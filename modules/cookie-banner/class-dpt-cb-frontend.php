@@ -40,6 +40,7 @@ class DPT_CB_Frontend {
 	public function rocket_exclude_inline( $excluded ) {
 		if ( ! is_array( $excluded ) ) { $excluded = array(); }
 		$excluded[] = 'DPT_CB_CONFIG';
+		$excluded[] = 'DPT_CB_INJECTED';
 		$excluded[] = 'dpt_consent';
 		return $excluded;
 	}
@@ -142,6 +143,20 @@ class DPT_CB_Frontend {
 
 		$o    = DPT_CB_Settings::all();
 		$lang = $this->resolve_lang( $o );
+
+		// With script blocking on, the client is the cache-proof injector:
+		// it loads whatever the server-rendered page did not inject (see
+		// inject_consented_scripts()) - the consenting page itself and any
+		// page served from a full-page cache.
+		$scripts = array();
+		if ( '1' === $o['block_scripts'] ) {
+			$scripts = array(
+				'functional' => '1' === $o['cat_functional_enabled'] ? (string) $o['scripts_functional'] : '',
+				'analytics'  => '1' === $o['cat_analytics_enabled'] ? (string) $o['scripts_analytics'] : '',
+				'marketing'  => '1' === $o['cat_marketing_enabled'] ? (string) $o['scripts_marketing'] : '',
+			);
+		}
+
 		wp_localize_script( 'dpt-cb-frontend', 'DPT_CB_CONFIG', array(
 			'version'          => DPT_VERSION,
 			'consentVersion'   => (string) $o['consent_version'],
@@ -158,6 +173,8 @@ class DPT_CB_Frontend {
 			'dir'              => $this->lang_dir( $lang ),
 			'isMobile'         => wp_is_mobile(),
 			'showOnMobile'     => '1' === $o['show_on_mobile'],
+			'blockScripts'     => '1' === $o['block_scripts'],
+			'scripts'          => $scripts,
 		) );
 	}
 
@@ -201,20 +218,29 @@ class DPT_CB_Frontend {
 			return;
 		}
 
-		$consent = $this->get_consent();
-		if ( ! is_array( $consent ) ) {
-			return;
+		$consent  = $this->get_consent();
+		$injected = array( 'functional' => false, 'analytics' => false, 'marketing' => false );
+
+		if ( is_array( $consent ) ) {
+			if ( ! empty( $consent['functional'] ) && '1' === $o['cat_functional_enabled'] && '' !== trim( (string) $o['scripts_functional'] ) ) {
+				$this->echo_script_block( $o['scripts_functional'] );
+				$injected['functional'] = true;
+			}
+			if ( ! empty( $consent['analytics'] ) && '1' === $o['cat_analytics_enabled'] && '' !== trim( (string) $o['scripts_analytics'] ) ) {
+				$this->echo_script_block( $o['scripts_analytics'] );
+				$injected['analytics'] = true;
+			}
+			if ( ! empty( $consent['marketing'] ) && '1' === $o['cat_marketing_enabled'] && '' !== trim( (string) $o['scripts_marketing'] ) ) {
+				$this->echo_script_block( $o['scripts_marketing'] );
+				$injected['marketing'] = true;
+			}
 		}
 
-		if ( ! empty( $consent['functional'] ) && '1' === $o['cat_functional_enabled'] ) {
-			$this->echo_script_block( $o['scripts_functional'] );
-		}
-		if ( ! empty( $consent['analytics'] ) && '1' === $o['cat_analytics_enabled'] ) {
-			$this->echo_script_block( $o['scripts_analytics'] );
-		}
-		if ( ! empty( $consent['marketing'] ) && '1' === $o['cat_marketing_enabled'] ) {
-			$this->echo_script_block( $o['scripts_marketing'] );
-		}
+		// Marker of what THIS rendered HTML already contains. It is cached
+		// together with the page, so the client script knows exactly which
+		// categories it still has to inject (consenting page, or a cached
+		// page rendered before the visitor consented).
+		echo '<script id="dpt-cb-injected" data-no-defer data-cfasync="false">window.DPT_CB_INJECTED=' . wp_json_encode( $injected ) . ';</script>' . "\n";
 	}
 
 	/**

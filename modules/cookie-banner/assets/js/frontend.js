@@ -46,12 +46,22 @@
             var d = new Date();
             d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));
             var secure = location.protocol === 'https:' ? '; secure' : '';
-            var domain = getCookieDomain();
-            var domainAttr = domain ? '; domain=' + domain : '';
-            document.cookie = name + '=' + encodeURIComponent(value) +
+            var base = name + '=' + encodeURIComponent(value) +
                 '; expires=' + d.toUTCString() +
-                '; path=/' + domainAttr +
+                '; path=/' +
                 '; samesite=lax' + secure;
+            var domain = getCookieDomain();
+            if (domain) {
+                document.cookie = base + '; domain=' + domain;
+            }
+            // Verify the write: if the guessed domain is actually a public
+            // suffix (e.g. .or.jp is not in our short list) the browser
+            // silently rejects it - fall back to a host-only cookie so the
+            // server can still read the consent.
+            if (getCookie(name) === null) {
+                document.cookie = base;
+                log('cookie domain rejected, host-only fallback', domain);
+            }
         } catch (e) { log('cookie set failed', e.message); }
     }
 
@@ -93,6 +103,62 @@
         setCookie(COOKIE, serialized, days);
         lsSet(LS_KEY, serialized);
         log('consent saved', consent);
+    }
+
+    /* ============== Script injection (cache-proof) ==============
+     * The server injects consented snippets into <head> only when the page
+     * was rendered WITH the consent cookie present; window.DPT_CB_INJECTED
+     * (rendered and cached with the page) records exactly what it injected.
+     * Everything else - the page where consent was just granted, or a page
+     * served from a full-page cache - is injected here.
+     */
+
+    var injectedCats = (function () {
+        var marker = window.DPT_CB_INJECTED;
+        return {
+            functional: !!(marker && marker.functional),
+            analytics:  !!(marker && marker.analytics),
+            marketing:  !!(marker && marker.marketing)
+        };
+    })();
+
+    // Insert an admin-provided HTML snippet so that its <script> tags
+    // actually execute (nodes added via innerHTML never run).
+    function appendExecutable(html) {
+        var tpl = document.createElement('template');
+        tpl.innerHTML = html;
+        var nodes = tpl.content ? tpl.content.childNodes : tpl.childNodes;
+        var target = document.head || document.body || document.documentElement;
+        Array.prototype.slice.call(nodes).forEach(function (node) {
+            if (node.nodeName === 'SCRIPT') {
+                var s = document.createElement('script');
+                for (var i = 0; i < node.attributes.length; i++) {
+                    s.setAttribute(node.attributes[i].name, node.attributes[i].value);
+                }
+                s.text = node.text || node.textContent || '';
+                target.appendChild(s);
+            } else {
+                target.appendChild(node);
+            }
+        });
+    }
+
+    function injectConsentedScripts(consent) {
+        if (!config.blockScripts || !consent) return;
+        var scripts = config.scripts || {};
+        ['functional', 'analytics', 'marketing'].forEach(function (cat) {
+            if (injectedCats[cat]) return;          // already in this page's HTML
+            if (!consent[cat]) return;              // no consent for this category
+            var html = scripts[cat];
+            if (!html || !String(html).replace(/\s+/g, '')) return;
+            injectedCats[cat] = true;
+            try {
+                appendExecutable(String(html));
+                log('injected scripts: ' + cat);
+            } catch (e) {
+                log('script injection failed: ' + cat, e.message);
+            }
+        });
     }
 
     /* ============== Debug Panel ============== */
@@ -203,6 +269,12 @@
         var preResolved = document.documentElement.getAttribute('data-dpt-cb-resolved') === '1';
         var shouldShow  = (!existing && !preResolved) || forceOpen;
 
+        // Cached pages are rendered without the visitor's consent cookie, so
+        // the server-side injection may be missing - complete it client-side.
+        if (existing) {
+            injectConsentedScripts(existing);
+        }
+
         // The precheck may have resolved from a stale-version consent that
         // readConsent() now rejects - trust readConsent() over the marker.
         if (!existing && preResolved && !forceOpen) {
@@ -301,6 +373,7 @@
             isClosing = true;
             log('finishConsent', consent);
             saveConsent(consent);
+            injectConsentedScripts(consent);
             try { document.documentElement.setAttribute('data-dpt-cb-resolved', '1'); } catch(e) {}
             hideBannerInstant();
             // Reset to main view so the next time the banner opens, it shows the main view.
