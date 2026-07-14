@@ -92,10 +92,9 @@
         return (Date.now() - consent.ts) > days * 864e5;
     }
 
-    function readConsent() {
-        var fromCookie = getCookie(COOKIE);
-        var fromLs     = lsGet(LS_KEY);
-        var raw = fromCookie || fromLs;
+    // Parse one stored copy and validate it: well-formed, current
+    // consent_version, within the consent lifetime. Returns null otherwise.
+    function parseValidConsent(raw) {
         if (!raw) return null;
         try {
             var parsed = JSON.parse(raw);
@@ -103,14 +102,32 @@
             // Consent stored for an older consent_version: ignore it, so the
             // banner asks again after the admin bumps the version.
             if (!isCurrentVersion(parsed)) return null;
-            if (isExpired(parsed)) {
-                lsRemove(LS_KEY);
-                return null;
-            }
-            if (!fromCookie && fromLs) setCookie(COOKIE, fromLs, config.consentDays || 180);
-            if (!fromLs && fromCookie) lsSet(LS_KEY, fromCookie);
+            if (isExpired(parsed)) return null;
             return parsed;
         } catch (e) { return null; }
+    }
+
+    function readConsent() {
+        // Validate each store independently - a malformed/stale cookie must
+        // not shadow a valid localStorage copy (or vice versa).
+        var fromCookie    = getCookie(COOKIE);
+        var fromLs        = lsGet(LS_KEY);
+        var cookieConsent = parseValidConsent(fromCookie);
+        var lsConsent     = parseValidConsent(fromLs);
+        var consent       = cookieConsent || lsConsent;
+
+        if (!consent) {
+            // Nothing valid anywhere - drop a dead localStorage copy so it
+            // can't linger forever (the cookie expires on its own).
+            if (fromLs) lsRemove(LS_KEY);
+            return null;
+        }
+
+        // Cross-heal: rewrite whichever side is missing or invalid.
+        var serialized = JSON.stringify(consent);
+        if (!cookieConsent) setCookie(COOKIE, serialized, config.consentDays || 180);
+        if (!lsConsent) lsSet(LS_KEY, serialized);
+        return consent;
     }
 
     function saveConsent(consent) {
