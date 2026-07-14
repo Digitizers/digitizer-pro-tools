@@ -246,9 +246,9 @@ class DPT_CB_Frontend {
 		}
 		$o = DPT_CB_Settings::all();
 
-		if ( wp_is_mobile() && '1' !== $o['show_on_mobile'] ) {
-			return;
-		}
+		// Mobile visibility is decided in CSS (media query), never here:
+		// wp_is_mobile() output baked into cached HTML would leak the wrong
+		// variant to the other device type.
 
 		$lang  = $this->resolve_lang( $o );
 		$dir   = $this->lang_dir( $lang );
@@ -460,6 +460,7 @@ class DPT_CB_Frontend {
 	private function render_banner_markup( $o, $t, $lang, $dir ) {
 		$position_class = 'dpt-cb-pos-' . esc_attr( $o['position'] );
 		$anim_class     = ' dpt-cb-anim-' . esc_attr( $o['animation'] );
+		$mobile_class   = $this->hide_mobile_class( $o );
 		$preview_mode   = isset( $_GET['dpt_cb_preview'] ) && current_user_can( 'manage_options' );
 
 		// CACHE-PROOF STRATEGY:
@@ -472,11 +473,11 @@ class DPT_CB_Frontend {
 
 		?>
 		<?php if ( '1' === $o['overlay_enabled'] ) : ?>
-			<div id="dpt-cb-overlay" class="<?php echo esc_attr( trim( $hidden_class ) ); ?>"></div>
+			<div id="dpt-cb-overlay" class="<?php echo esc_attr( trim( $hidden_class . $mobile_class ) ); ?>"></div>
 		<?php endif; ?>
 
 		<div id="dpt-cb-banner"
-		     class="<?php echo $position_class; ?><?php echo $anim_class; ?><?php echo $hidden_class; ?>"
+		     class="<?php echo $position_class; ?><?php echo $anim_class; ?><?php echo $mobile_class; ?><?php echo $hidden_class; ?>"
 		     dir="<?php echo esc_attr( $dir ); ?>"
 		     lang="<?php echo esc_attr( str_replace( '_', '-', $lang ) ); ?>"
 		     <?php echo $force_open; ?>
@@ -561,10 +562,19 @@ class DPT_CB_Frontend {
 		<?php
 	}
 
+	/**
+	 * Class that hides an element on small screens when "show on mobile"
+	 * is off. Pure CSS so cached HTML behaves the same for every device.
+	 */
+	private function hide_mobile_class( $o ) {
+		return '1' === $o['show_on_mobile'] ? '' : ' dpt-cb-hide-mobile';
+	}
+
 	private function render_float_button( $o, $t ) {
 		if ( '1' !== $o['float_button_enabled'] ) {
 			return;
 		}
+		$mobile_class = trim( $this->hide_mobile_class( $o ) );
 		// Inline onclick is a defensive fallback: if a cache/optimizer plugin
 		// delays our JS, the button still works on first click.
 		$inline_open = "try{document.documentElement.removeAttribute('data-dpt-cb-resolved');"
@@ -576,7 +586,7 @@ class DPT_CB_Frontend {
 		             . "if(m)m.style.display='';if(s)s.style.display='none';"
 		             . "}catch(e){}";
 		?>
-		<button type="button" id="dpt-cb-float-button" aria-label="<?php echo esc_attr( $t['float_button_aria'] ); ?>" onclick="<?php echo esc_attr( $inline_open ); ?>"><?php
+		<button type="button" id="dpt-cb-float-button" class="<?php echo esc_attr( $mobile_class ); ?>" aria-label="<?php echo esc_attr( $t['float_button_aria'] ); ?>" onclick="<?php echo esc_attr( $inline_open ); ?>"><?php
 			echo esc_html( $t['float_button_text'] );
 		?></button>
 		<?php

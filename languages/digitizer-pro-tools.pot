@@ -365,7 +365,7 @@ msgstr ""
 msgid "Image size"
 msgstr ""
 
-msgid "Increase this number to ask ALL visitors for consent again (for example after changing your cookie policy). Works even through page caches."
+msgid "Increase this number to ask ALL visitors for consent again (for example after changing your cookie policy). Popular page caches (WP Rocket, LiteSpeed, Super Cache, W3TC, Fastest Cache, SiteGround) are purged automatically when it changes."
 msgstr ""
 
 msgid "Inner padding (px)"

@@ -124,7 +124,7 @@ return array (
     'Image overlay opacity (0-1)' => 'עוצמת שכבת הכיסוי (0-1)',
     'Image position' => 'מיקום התמונה',
     'Image size' => 'גודל התמונה',
-    'Increase this number to ask ALL visitors for consent again (for example after changing your cookie policy). Works even through page caches.' => 'הגדילו את המספר כדי לבקש הסכמה מחדש מכל המבקרים (למשל אחרי שינוי מדיניות העוגיות). עובד גם דרך קאש עמודים.',
+    'Increase this number to ask ALL visitors for consent again (for example after changing your cookie policy). Popular page caches (WP Rocket, LiteSpeed, Super Cache, W3TC, Fastest Cache, SiteGround) are purged automatically when it changes.' => 'הגדילו את המספר כדי לבקש הסכמה מחדש מכל המבקרים (למשל אחרי שינוי מדיניות העוגיות). תוספי קאש נפוצים (WP Rocket, LiteSpeed, Super Cache, W3TC, Fastest Cache, SiteGround) מנוקים אוטומטית כשהערך משתנה.',
     'Inner padding (px)' => 'ריווח פנימי (פיקסלים)',
     'Invalid language code. Use formats like "en", "ru" or "pt_BR".' => 'קוד שפה לא תקין. השתמשו בפורמט כמו "en"‏, "ru" או "pt_BR".',
     'Justify' => 'מיושר לשני הצדדים',

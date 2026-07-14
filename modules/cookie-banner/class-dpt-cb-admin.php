@@ -329,7 +329,7 @@ class DPT_CB_Admin {
 				<th><label for="dpt_cb_consent_version"><?php esc_html_e( 'Consent version', 'digitizer-pro-tools' ); ?></label></th>
 				<td>
 					<input type="number" min="1" step="1" id="dpt_cb_consent_version" name="dpt_cb[consent_version]" value="<?php echo esc_attr( $o['consent_version'] ); ?>" />
-					<p class="description"><?php esc_html_e( 'Increase this number to ask ALL visitors for consent again (for example after changing your cookie policy). Works even through page caches.', 'digitizer-pro-tools' ); ?></p>
+					<p class="description"><?php esc_html_e( 'Increase this number to ask ALL visitors for consent again (for example after changing your cookie policy). Popular page caches (WP Rocket, LiteSpeed, Super Cache, W3TC, Fastest Cache, SiteGround) are purged automatically when it changes.', 'digitizer-pro-tools' ); ?></p>
 				</td>
 			</tr>
 			<tr>

@@ -470,8 +470,40 @@ class DPT_CB_Settings {
 			}
 		}
 
+		$old_version = isset( $existing['consent_version'] ) ? (string) $existing['consent_version'] : ( isset( $defaults['consent_version'] ) ? $defaults['consent_version'] : '1' );
+
 		update_option( self::OPTION, $clean );
+
+		// A consent-version bump must reach visitors that are served cached
+		// HTML (the precheck script inlines the version), so purge the
+		// popular page caches when it changes.
+		if ( (string) $clean['consent_version'] !== $old_version ) {
+			self::purge_page_caches();
+		}
 		return true;
+	}
+
+	/**
+	 * Best-effort purge of well-known full-page cache plugins.
+	 */
+	public static function purge_page_caches() {
+		if ( function_exists( 'rocket_clean_domain' ) ) {
+			rocket_clean_domain(); // WP Rocket.
+		}
+		if ( function_exists( 'wp_cache_clear_cache' ) ) {
+			wp_cache_clear_cache(); // WP Super Cache.
+		}
+		if ( function_exists( 'w3tc_flush_all' ) ) {
+			w3tc_flush_all(); // W3 Total Cache.
+		}
+		if ( function_exists( 'wpfc_clear_all_cache' ) ) {
+			wpfc_clear_all_cache( true ); // WP Fastest Cache.
+		}
+		if ( function_exists( 'sg_cachepress_purge_cache' ) ) {
+			sg_cachepress_purge_cache(); // SiteGround Optimizer.
+		}
+		do_action( 'litespeed_purge_all' ); // LiteSpeed Cache (no-op when absent).
+		do_action( 'dpt_cb_purge_caches' ); // Custom hosts/CDNs can hook here.
 	}
 
 	/**

@@ -26,7 +26,7 @@ A multilingual cookie-consent banner:
 * Rich design controls: colors, background image with overlay, typography with shadows, per-button styling, border, page overlay
 * Cache-proof: banner renders hidden and an inline head precheck decides visibility, so page caches / CDNs never show it to visitors who already answered
 * Consent stored in a cookie and localStorage (cross-healing), with correct cookie domain on double-suffix TLDs (.co.il, .co.uk, .com.au)
-* Consent version field - bump it to re-prompt all visitors, even through caches
+* Consent version field - bump it to re-prompt all visitors (popular page caches are purged automatically on change)
 * Consent lifetime in days, optional show delay, optional auto-accept on scroll
 * Admin-only live preview (?dpt_cb_preview=1) and debug panel (?dpt_debug=1)
 * JS API window.DPTCB (open/close/getConsent/acceptAll/rejectAll) and a dpt:consent event

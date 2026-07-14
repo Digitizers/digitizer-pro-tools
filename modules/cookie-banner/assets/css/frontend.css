@@ -280,6 +280,9 @@
 
 /* Mobile */
 @media (max-width: 640px) {
+    /* "Show on mobile" off - decided in CSS so cached HTML is device-safe */
+    .dpt-cb-hide-mobile { display: none !important; }
+
     #dpt-cb-banner.dpt-cb-pos-bottom,
     #dpt-cb-banner.dpt-cb-pos-top {
         left: 10px !important;

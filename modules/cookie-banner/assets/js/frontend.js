@@ -114,25 +114,48 @@
 
     var injectedCats = { functional: false, analytics: false, marketing: false };
 
-    // Insert an admin-provided HTML snippet so that its <script> tags
-    // actually execute (nodes added via innerHTML never run).
-    function appendExecutable(html) {
-        var tpl = document.createElement('template');
-        tpl.innerHTML = html;
-        var nodes = tpl.content ? tpl.content.childNodes : tpl.childNodes;
-        var target = document.head || document.body || document.documentElement;
-        Array.prototype.slice.call(nodes).forEach(function (node) {
+    // Insert admin-provided HTML so its <script> tags actually execute
+    // (nodes added via innerHTML never run). Nodes are processed through a
+    // sequential queue: an external <script src> must finish loading before
+    // the next node runs, so snippets like "load library + inline init"
+    // keep working exactly like they do when parsed from static HTML.
+    var injectQueue = [];
+    var injectWaiting = false;
+
+    function processInjectQueue() {
+        while (!injectWaiting && injectQueue.length) {
+            var node = injectQueue.shift();
+            var target = document.head || document.body || document.documentElement;
             if (node.nodeName === 'SCRIPT') {
                 var s = document.createElement('script');
                 for (var i = 0; i < node.attributes.length; i++) {
                     s.setAttribute(node.attributes[i].name, node.attributes[i].value);
                 }
                 s.text = node.text || node.textContent || '';
+                if (s.src) {
+                    injectWaiting = true;
+                    var proceed = function () {
+                        injectWaiting = false;
+                        processInjectQueue();
+                    };
+                    s.onload = proceed;
+                    s.onerror = proceed;
+                    target.appendChild(s);
+                    return; // resume from onload/onerror
+                }
                 target.appendChild(s);
             } else {
                 target.appendChild(node);
             }
-        });
+        }
+    }
+
+    function appendExecutable(html) {
+        var tpl = document.createElement('template');
+        tpl.innerHTML = html;
+        var nodes = tpl.content ? tpl.content.childNodes : tpl.childNodes;
+        injectQueue = injectQueue.concat(Array.prototype.slice.call(nodes));
+        processInjectQueue();
     }
 
     function injectConsentedScripts(consent) {
