@@ -505,7 +505,10 @@
                     window.removeEventListener('scroll', scrollHandler);
                     return;
                 }
-                if (bannerHiddenHere()) return;
+                // Scrolling past an INVISIBLE banner is not consent: still
+                // within the show-delay window (dpt-cb-hidden not yet
+                // removed) or hidden on this viewport by the mobile rule.
+                if (banner.classList.contains('dpt-cb-hidden') || bannerHiddenHere()) return;
                 window.removeEventListener('scroll', scrollHandler);
                 acceptAll();
             };
