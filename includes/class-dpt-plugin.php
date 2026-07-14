@@ -1,0 +1,165 @@
+<?php
+/**
+ * Core plugin singleton: module registry, loading and migrations.
+ */
+
+if ( ! defined( 'ABSPATH' ) ) { exit; }
+
+class DPT_Plugin {
+
+	/** @var DPT_Plugin */
+	private static $instance = null;
+
+	/** @var DPT_Module[] Instantiated modules, keyed by id. */
+	private $modules = array();
+
+	public static function instance() {
+		if ( null === self::$instance ) {
+			self::$instance = new self();
+		}
+		return self::$instance;
+	}
+
+	private function __construct() {}
+
+	/**
+	 * Module registry: id => array( file => main class file, class => class name ).
+	 * Extendable via the dpt_modules filter.
+	 */
+	public function registry() {
+		$modules = array(
+			'cookie_banner' => array(
+				'file'  => DPT_PATH . 'modules/cookie-banner/class-dpt-cb-module.php',
+				'class' => 'DPT_Cookie_Banner_Module',
+			),
+		);
+		return apply_filters( 'dpt_modules', $modules );
+	}
+
+	/**
+	 * Boot the plugin on plugins_loaded.
+	 */
+	public function boot() {
+		add_action( 'init', array( $this, 'load_textdomain' ) );
+
+		$this->load_modules();
+		$this->maybe_migrate();
+
+		new DPT_Admin( $this );
+	}
+
+	public function load_textdomain() {
+		load_plugin_textdomain( 'digitizer-pro-tools', false, dirname( DPT_BASENAME ) . '/languages' );
+	}
+
+	/**
+	 * Instantiate every registered module; init() only the enabled ones.
+	 */
+	private function load_modules() {
+		$enabled = $this->enabled_map();
+		foreach ( $this->registry() as $id => $spec ) {
+			if ( ! file_exists( $spec['file'] ) ) {
+				continue;
+			}
+			require_once $spec['file'];
+			if ( ! class_exists( $spec['class'] ) ) {
+				continue;
+			}
+			$module = new $spec['class']();
+			$this->modules[ $id ] = $module;
+			if ( ! empty( $enabled[ $id ] ) && '1' === $enabled[ $id ] ) {
+				$module->init();
+			}
+		}
+	}
+
+	/**
+	 * All instantiated modules (enabled or not) for the dashboard.
+	 *
+	 * @return DPT_Module[]
+	 */
+	public function modules() {
+		return $this->modules;
+	}
+
+	public function is_module_enabled( $id ) {
+		$enabled = $this->enabled_map();
+		return ! empty( $enabled[ $id ] ) && '1' === $enabled[ $id ];
+	}
+
+	/**
+	 * The saved modules on/off map, with defaults for unknown ids.
+	 */
+	public function enabled_map() {
+		$opts = get_option( DPT_OPTION, array() );
+		$map  = ( is_array( $opts ) && isset( $opts['modules'] ) && is_array( $opts['modules'] ) ) ? $opts['modules'] : array();
+		foreach ( $this->registry() as $id => $spec ) {
+			if ( ! array_key_exists( $id, $map ) ) {
+				// New module never saved before: fall back to its default flag.
+				$map[ $id ] = ( 'cookie_banner' === $id ) ? '1' : '0';
+			}
+		}
+		return $map;
+	}
+
+	/**
+	 * Persist the modules on/off map.
+	 */
+	public function save_enabled_map( $map ) {
+		$opts = get_option( DPT_OPTION, array() );
+		if ( ! is_array( $opts ) ) {
+			$opts = array();
+		}
+		$clean = array();
+		foreach ( $this->registry() as $id => $spec ) {
+			$clean[ $id ] = ( isset( $map[ $id ] ) && '1' === $map[ $id ] ) ? '1' : '0';
+		}
+		$changed         = ! isset( $opts['modules'] ) || $opts['modules'] !== $clean;
+		$opts['modules'] = $clean;
+		update_option( DPT_OPTION, $opts );
+
+		// Toggling a module changes the rendered HTML - stale cached pages
+		// would keep the old module output alive.
+		if ( $changed && class_exists( 'DPT_CB_Settings' ) ) {
+			DPT_CB_Settings::purge_page_caches();
+		}
+	}
+
+	/**
+	 * Seed core + module defaults. Runs on activation and upgrades.
+	 */
+	public function install_defaults() {
+		$opts = get_option( DPT_OPTION );
+		if ( ! is_array( $opts ) ) {
+			$opts = array();
+		}
+		if ( ! isset( $opts['modules'] ) || ! is_array( $opts['modules'] ) ) {
+			$opts['modules'] = array();
+		}
+		foreach ( $this->registry() as $id => $spec ) {
+			if ( ! array_key_exists( $id, $opts['modules'] ) ) {
+				$opts['modules'][ $id ] = ( 'cookie_banner' === $id ) ? '1' : '0';
+			}
+			if ( file_exists( $spec['file'] ) ) {
+				require_once $spec['file'];
+				if ( class_exists( $spec['class'] ) ) {
+					$module = new $spec['class']();
+					$module->install_defaults();
+				}
+			}
+		}
+		update_option( DPT_OPTION, $opts );
+		update_option( 'dpt_db_version', DPT_VERSION );
+	}
+
+	/**
+	 * Run migrations when the plugin files were replaced without the
+	 * activation hook firing (manual/FTP updates).
+	 */
+	private function maybe_migrate() {
+		$current = get_option( 'dpt_db_version', '0' );
+		if ( version_compare( $current, DPT_VERSION, '<' ) ) {
+			$this->install_defaults();
+		}
+	}
+}

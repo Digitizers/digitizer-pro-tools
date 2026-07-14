@@ -1,0 +1,641 @@
+# Hebrew translation for Digitizer Pro Tools.
+msgid ""
+msgstr ""
+"Project-Id-Version: Digitizer Pro Tools 1.0.0\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: he_IL\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Domain: digitizer-pro-tools\n"
+
+msgid "\"Accept all\" button"
+msgstr "כפתור \"קבל הכל\""
+
+msgid "\"Always active\" label"
+msgstr "תווית \"תמיד פעילות\""
+
+msgid "\"Reject all\" button"
+msgstr "כפתור \"דחה הכל\""
+
+msgid "\"Save preferences\" button"
+msgstr "כפתור \"שמור העדפות\""
+
+msgid "\"Settings\" button"
+msgstr "כפתור \"הגדרות\""
+
+msgid "0 = show immediately. 5 = show after 5 seconds, so the banner does not interrupt visitors right away."
+msgstr "0 = הצגה מיידית. 5 = הצגה אחרי 5 שניות, כדי שהבאנר לא יפריע למבקרים מיד עם הכניסה."
+
+msgid "300 - Light"
+msgstr "300 - דק"
+
+msgid "400 - Regular"
+msgstr "400 - רגיל"
+
+msgid "500 - Medium"
+msgstr "500 - בינוני"
+
+msgid "600 - Semi-bold"
+msgstr "600 - חצי מודגש"
+
+msgid "700 - Bold"
+msgstr "700 - מודגש"
+
+msgid "800 - Extra-bold"
+msgstr "800 - מודגש מאוד"
+
+msgid "900 - Black"
+msgstr "900 - שחור"
+
+msgid "A small button in the corner of the site that lets visitors reopen the banner and change their preferences at any time. Its text and accessibility label are edited per language on the \"Texts\" tab."
+msgstr "כפתור קטן בפינת האתר שמאפשר למבקרים לפתוח את הבאנר מחדש ולשנות העדפות בכל עת. הטקסט ותווית הנגישות שלו נערכים לפי שפה בטאב \"טקסטים\"."
+
+msgid "Accept on scroll"
+msgstr "הסכמה בגלילה"
+
+msgid "Add"
+msgstr "הוסף"
+
+msgid "Add language (code):"
+msgstr "הוספת שפה (קוד):"
+
+msgid "Adds a thin border in the text color."
+msgstr "מוסיף מסגרת דקה בצבע הטקסט."
+
+msgid "After this many days the visitor is asked again."
+msgstr "לאחר מספר ימים זה המבקר יתבקש להסכים שוב."
+
+msgid "Alignment"
+msgstr "יישור"
+
+msgid "Alignment uses logical values, so \"Start\" is right for Hebrew/Arabic pages and left for English pages - the same setting fits every language."
+msgstr "היישור משתמש בערכים לוגיים: \"התחלה\" היא ימין בעמודים בעברית/ערבית ושמאל בעמודים באנגלית - אותה הגדרה מתאימה לכל שפה."
+
+msgid "Always active - cannot be disabled."
+msgstr "תמיד פעילות - לא ניתן לבטל."
+
+msgid "Analytics - description"
+msgstr "אנליטיקה - תיאור"
+
+msgid "Analytics - name"
+msgstr "אנליטיקה - שם"
+
+msgid "Analytics cookies"
+msgstr "עוגיות אנליטיקה"
+
+msgid "Analytics scripts"
+msgstr "סקריפטים של אנליטיקה"
+
+msgid "Anchor corner"
+msgstr "פינת עוגן"
+
+msgid "Arabic"
+msgstr "ערבית"
+
+msgid "Background color"
+msgstr "צבע רקע"
+
+msgid "Background image"
+msgstr "תמונת רקע"
+
+msgid "Banner Design"
+msgstr "עיצוב הבאנר"
+
+msgid "Banner message"
+msgstr "הודעת הבאנר"
+
+msgid "Banner position"
+msgstr "מיקום הבאנר"
+
+msgid "Banner title"
+msgstr "כותרת הבאנר"
+
+msgid "Base text color"
+msgstr "צבע טקסט בסיסי"
+
+msgid "Basic HTML is allowed: <strong>, <em>, <a>, <br>"
+msgstr "ניתן להשתמש ב-HTML בסיסי: <strong>, <em>, <a>, <br>"
+
+msgid "Basics"
+msgstr "הגדרות בסיס"
+
+msgid "Block scripts until consent"
+msgstr "חסימת סקריפטים עד להסכמה"
+
+msgid "Blur (px)"
+msgstr "טשטוש (פיקסלים)"
+
+msgid "Border"
+msgstr "מסגרת"
+
+msgid "Border color"
+msgstr "צבע מסגרת"
+
+msgid "Border style"
+msgstr "סגנון מסגרת"
+
+msgid "Border width (px)"
+msgstr "עובי מסגרת (פיקסלים)"
+
+msgid "Bottom (center)"
+msgstr "למטה (מרכז)"
+
+msgid "Bottom left"
+msgstr "למטה משמאל"
+
+msgid "Bottom right"
+msgstr "למטה מימין"
+
+msgid "Bottom-left corner"
+msgstr "פינה שמאלית תחתונה"
+
+msgid "Bottom-right corner"
+msgstr "פינה ימנית תחתונה"
+
+msgid "Box shadow"
+msgstr "הצללת תיבה"
+
+msgid "Button Design"
+msgstr "עיצוב כפתורים"
+
+msgid "Button content"
+msgstr "תוכן הכפתור"
+
+msgid "Button label (accessibility)"
+msgstr "תווית הכפתור (נגישות)"
+
+msgid "Button size"
+msgstr "גודל הכפתור"
+
+msgid "Buttons"
+msgstr "כפתורים"
+
+msgid "Categories"
+msgstr "קטגוריות"
+
+msgid "Category names and descriptions"
+msgstr "שמות ותיאורי קטגוריות"
+
+msgid "Center"
+msgstr "מרכז"
+
+msgid "Centered modal"
+msgstr "מודאל מרכזי"
+
+msgid "Choose image"
+msgstr "בחר תמונה"
+
+msgid "Close button (X)"
+msgstr "כפתור סגירה (X)"
+
+msgid "Close button label (accessibility)"
+msgstr "תווית כפתור הסגירה (נגישות)"
+
+msgid "Closing with X counts as rejecting non-essential cookies."
+msgstr "סגירה ב-X נספרת כדחיית עוגיות לא חיוניות."
+
+msgid "Colors and background"
+msgstr "צבעים ורקע"
+
+msgid "Consent lifetime (days)"
+msgstr "תוקף ההסכמה (ימים)"
+
+msgid "Consent version"
+msgstr "גרסת הסכמה"
+
+msgid "Content"
+msgstr "תוכן"
+
+msgid "Cookie Banner"
+msgstr "באנר עוגיות"
+
+msgid "Cookie Categories"
+msgstr "קטגוריות עוגיות"
+
+msgid "Corner radius (px)"
+msgstr "עיגול פינות (פיקסלים)"
+
+msgid "Darkens a bright image so the text stays readable."
+msgstr "מכהה תמונה בהירה כדי שהטקסט יישאר קריא."
+
+msgid "Dashed"
+msgstr "מקווקו"
+
+msgid "Default language"
+msgstr "שפת ברירת מחדל"
+
+msgid "Design"
+msgstr "עיצוב"
+
+msgid "Desktop position"
+msgstr "מיקום במחשב"
+
+msgid "Digitizer Pro Tools"
+msgstr "Digitizer Pro Tools"
+
+msgid "Dims the page behind the banner, prompting the visitor to choose."
+msgstr "מכהה את העמוד מאחורי הבאנר ומעודד את המבקר לבחור."
+
+msgid "Dotted"
+msgstr "נקודות"
+
+msgid "Double"
+msgstr "כפול"
+
+msgid "Each category shows a separate toggle on the advanced-preferences screen. Scripts from the \"Scripts\" tab load only after the visitor consents to the matching category. Category names and descriptions are edited per language on the \"Texts\" tab."
+msgstr "כל קטגוריה מציגה מתג נפרד במסך ההעדפות המתקדמות. סקריפטים מהטאב \"סקריפטים\" נטענים רק לאחר שהמבקר מסכים לקטגוריה המתאימה. שמות ותיאורי הקטגוריות נערכים לפי שפה בטאב \"טקסטים\"."
+
+msgid "Emoji or short text. For example: 🍪"
+msgstr "אימוג'י או טקסט קצר. למשל: 🍪"
+
+msgid "Empty = transparent. With a color, the button becomes a circle."
+msgstr "ריק = שקוף. עם צבע, הכפתור הופך לעיגול."
+
+msgid "Empty = use the base text color."
+msgstr "ריק = שימוש בצבע הטקסט הבסיסי."
+
+msgid "Enable banner"
+msgstr "הפעלת הבאנר"
+
+msgid "Enable button"
+msgstr "הפעלת הכפתור"
+
+msgid "Enable overlay"
+msgstr "הפעלת כיסוי"
+
+msgid "Enable the tools you need. Each module replaces a standalone plugin."
+msgstr "הפעילו את הכלים שאתם צריכים. כל מודול מחליף תוסף נפרד."
+
+msgid "End (left in RTL, right in LTR)"
+msgstr "סוף (שמאל בעברית, ימין באנגלית)"
+
+msgid "English"
+msgstr "אנגלית"
+
+msgid "Entry animation"
+msgstr "אנימציית כניסה"
+
+msgid "Essential - description"
+msgstr "חיוניות - תיאור"
+
+msgid "Essential - name"
+msgstr "חיוניות - שם"
+
+msgid "Essential cookies"
+msgstr "עוגיות חיוניות"
+
+msgid "Fade"
+msgstr "התעמעמות"
+
+msgid "Floating \"Manage Cookies\" Button"
+msgstr "כפתור ניהול עוגיות צף"
+
+msgid "Floating Button"
+msgstr "כפתור צף"
+
+msgid "Floating button texts"
+msgstr "טקסטים של הכפתור הצף"
+
+msgid "Font size"
+msgstr "גודל פונט"
+
+msgid "Font weight"
+msgstr "עובי פונט"
+
+msgid "For example: Facebook Pixel, Google Ads, TikTok Pixel, LinkedIn Insight."
+msgstr "לדוגמה: Facebook Pixel, Google Ads, TikTok Pixel, LinkedIn Insight."
+
+msgid "For example: Google Analytics 4, Google Tag Manager, Hotjar, Clarity."
+msgstr "לדוגמה: Google Analytics 4, Google Tag Manager, Hotjar, Clarity."
+
+msgid "French"
+msgstr "צרפתית"
+
+msgid "Full-width bar at the bottom"
+msgstr "בר מלא למטה"
+
+msgid "Full-width bar at the top"
+msgstr "בר מלא למעלה"
+
+msgid "Functional - description"
+msgstr "פונקציונליות - תיאור"
+
+msgid "Functional - name"
+msgstr "פונקציונליות - שם"
+
+msgid "Functional cookies"
+msgstr "עוגיות פונקציונליות"
+
+msgid "Functional scripts"
+msgstr "סקריפטים פונקציונליים"
+
+msgid "General"
+msgstr "כללי"
+
+msgid "General Settings"
+msgstr "הגדרות כלליות"
+
+msgid "German"
+msgstr "גרמנית"
+
+msgid "Hebrew"
+msgstr "עברית"
+
+msgid "Horizontal"
+msgstr "אופקית"
+
+msgid "Horizontal offset"
+msgstr "מרחק אופקי"
+
+msgid "Hover background color"
+msgstr "צבע רקע ב-Hover"
+
+msgid "How does it work?"
+msgstr "איך זה עובד?"
+
+msgid "Image overlay color"
+msgstr "צבע שכבת כיסוי לתמונה"
+
+msgid "Image overlay opacity (0-1)"
+msgstr "עוצמת שכבת הכיסוי (0-1)"
+
+msgid "Image position"
+msgstr "מיקום התמונה"
+
+msgid "Image size"
+msgstr "גודל התמונה"
+
+msgid "Increase this number to ask ALL visitors for consent again (for example after changing your cookie policy). Popular page caches (WP Rocket, LiteSpeed, Super Cache, W3TC, Fastest Cache, SiteGround) are purged automatically when it changes."
+msgstr "הגדילו את המספר כדי לבקש הסכמה מחדש מכל המבקרים (למשל אחרי שינוי מדיניות העוגיות). תוספי קאש נפוצים (WP Rocket, LiteSpeed, Super Cache, W3TC, Fastest Cache, SiteGround) מנוקים אוטומטית כשהערך משתנה."
+
+msgid "Inner padding (px)"
+msgstr "ריווח פנימי (פיקסלים)"
+
+msgid "Invalid language code. Use formats like \"en\", \"ru\" or \"pt_BR\"."
+msgstr "קוד שפה לא תקין. השתמשו בפורמט כמו \"en\"‏, \"ru\" או \"pt_BR\"."
+
+msgid "Justify"
+msgstr "מיושר לשני הצדדים"
+
+msgid "Language added."
+msgstr "השפה נוספה."
+
+msgid "Language removed."
+msgstr "השפה הוסרה."
+
+msgid "Layout and border"
+msgstr "פריסה ומסגרת"
+
+msgid "Left side"
+msgstr "צד שמאל"
+
+msgid "Manage languages"
+msgstr "ניהול שפות"
+
+msgid "Marketing - description"
+msgstr "שיווק - תיאור"
+
+msgid "Marketing - name"
+msgstr "שיווק - שם"
+
+msgid "Marketing cookies"
+msgstr "עוגיות שיווק"
+
+msgid "Marketing scripts"
+msgstr "סקריפטים של שיווק"
+
+msgid "Max width (px)"
+msgstr "רוחב מקסימלי (פיקסלים)"
+
+msgid "Max width on small screens (%)"
+msgstr "רוחב מקסימלי במסכים קטנים (%)"
+
+msgid "Mobile position"
+msgstr "מיקום במובייל"
+
+msgid "Modules"
+msgstr "מודולים"
+
+msgid "Modules saved."
+msgstr "המודולים נשמרו."
+
+msgid "Multilingual cookie-consent banner with cookie categories, script blocking until consent, and a floating preferences button."
+msgstr "באנר הסכמת עוגיות רב-לשוני עם קטגוריות עוגיות, חסימת סקריפטים עד להסכמה וכפתור העדפות צף."
+
+msgid "New languages start with the English texts. The default language cannot be removed."
+msgstr "שפות חדשות מתחילות עם הטקסטים באנגלית. לא ניתן להסיר את שפת ברירת המחדל."
+
+msgid "No repeat"
+msgstr "ללא חזרה"
+
+msgid "None"
+msgstr "ללא"
+
+msgid "Not recommended for GDPR - EU law requires active consent."
+msgstr "לא מומלץ לפי GDPR - חוקי האיחוד האירופי דורשים הסכמה אקטיבית."
+
+msgid "Offsets are measured from the chosen corner. For example, corner \"bottom-right\" with vertical offset 100 places the button 100px above the bottom - handy for avoiding WhatsApp/chat buttons."
+msgstr "המרחקים נמדדים מהפינה שנבחרה. לדוגמה: פינה ימנית תחתונה עם מרחק אנכי 100 ממקמת את הכפתור 100 פיקסלים מעל התחתית - שימושי כדי לא להתנגש בכפתורי WhatsApp/צ'אט."
+
+msgid "Only if the policy lives outside this site. Leave empty when a page is selected above."
+msgstr "רק אם המדיניות נמצאת מחוץ לאתר זה. השאירו ריק כשנבחר עמוד למעלה."
+
+msgid "Or an external URL (instead of a page)"
+msgstr "או כתובת URL חיצונית (במקום עמוד)"
+
+msgid "Overlay color"
+msgstr "צבע הכיסוי"
+
+msgid "Overlay opacity (0-1)"
+msgstr "שקיפות הכיסוי (0-1)"
+
+msgid "Page overlay (dim the site behind the banner)"
+msgstr "שכבת כיסוי (הכהיית האתר מאחורי הבאנר)"
+
+msgid "Paste the complete code including the <script> tags."
+msgstr "יש להדביק את הקוד המלא כולל תגיות <script>."
+
+msgid "Paste the full HTML snippets here (Google Analytics, Facebook Pixel, GTM...). They are injected into the site <head> only after the visitor consents to the matching category."
+msgstr "הדביקו כאן את קטעי ה-HTML המלאים (Google Analytics, Facebook Pixel, GTM...). הם מוזרקים ל-<head> של האתר רק לאחר שהמבקר מסכים לקטגוריה המתאימה."
+
+msgid "Pick the privacy policy page. With WPML or Polylang, the translated page is linked automatically per language."
+msgstr "בחרו את עמוד מדיניות הפרטיות. עם WPML או Polylang, העמוד המתורגם מקושר אוטומטית לפי שפה."
+
+msgid "Preferences screen title"
+msgstr "כותרת מסך ההעדפות"
+
+msgid "Preview"
+msgstr "תצוגה מקדימה"
+
+msgid "Privacy policy link (shared for all languages)"
+msgstr "קישור מדיניות פרטיות (משותף לכל השפות)"
+
+msgid "Privacy policy link text"
+msgstr "טקסט קישור למדיניות פרטיות"
+
+msgid "Privacy policy page"
+msgstr "עמוד מדיניות פרטיות"
+
+msgid "Relevant for the centered modal and corner positions - full-width bars size automatically."
+msgstr "רלוונטי למודאל מרכזי ולפינות - בר מלא מקבל רוחב אוטומטי."
+
+msgid "Remove \"%s\""
+msgstr "הסרת \"%s\""
+
+msgid "Remove image"
+msgstr "הסר תמונה"
+
+msgid "Remove this language and its texts?"
+msgstr "להסיר את השפה ואת הטקסטים שלה?"
+
+msgid "Repeat"
+msgstr "חזרה"
+
+msgid "Right side"
+msgstr "צד ימין"
+
+msgid "Russian"
+msgstr "רוסית"
+
+msgid "Save Modules"
+msgstr "שמירת מודולים"
+
+msgid "Save Settings"
+msgstr "שמירת הגדרות"
+
+msgid "Scripts"
+msgstr "סקריפטים"
+
+msgid "Scripts from the \"Scripts\" tab load only after the visitor consents to the matching category."
+msgstr "סקריפטים מהטאב \"סקריפטים\" נטענים רק לאחר שהמבקר מסכים לקטגוריה המתאימה."
+
+msgid "Scripts loaded after consent"
+msgstr "סקריפטים שנטענים לאחר הסכמה"
+
+msgid "Separate values for screens up to 640px wide."
+msgstr "ערכים נפרדים למסכים ברוחב עד 640 פיקסלים."
+
+msgid "Settings"
+msgstr "הגדרות"
+
+msgid "Settings saved."
+msgstr "ההגדרות נשמרו."
+
+msgid "Shadow color"
+msgstr "צבע ההצללה"
+
+msgid "Show button"
+msgstr "הצגת הכפתור"
+
+msgid "Show close button"
+msgstr "הצגת כפתור סגירה"
+
+msgid "Show delay (seconds)"
+msgstr "עיכוב בהצגה (שניות)"
+
+msgid "Show on mobile"
+msgstr "הצגה במובייל"
+
+msgid "Slide down"
+msgstr "החלקה מלמעלה"
+
+msgid "Slide up"
+msgstr "החלקה מלמטה"
+
+msgid "Solid"
+msgstr "רציף"
+
+msgid "Space below (px)"
+msgstr "רווח מתחת (פיקסלים)"
+
+msgid "Spanish"
+msgstr "ספרדית"
+
+msgid "Start (right in RTL, left in LTR)"
+msgstr "התחלה (ימין בעברית, שמאל באנגלית)"
+
+msgid "Text color"
+msgstr "צבע טקסט"
+
+msgid "Text shadow"
+msgstr "הצללת טקסט"
+
+msgid "Texts"
+msgstr "טקסטים"
+
+msgid "The banner picks the language automatically from the current page locale (WPML / Polylang / TranslatePress compatible), falling back to the default language."
+msgstr "הבאנר בוחר את השפה אוטומטית לפי שפת העמוד הנוכחי (תואם WPML / Polylang / TranslatePress), עם נפילה לשפת ברירת המחדל."
+
+msgid "The final position is the corner plus the offsets below."
+msgstr "המיקום הסופי הוא הפינה ועוד המרחקים שבהמשך."
+
+msgid "Tip: WhatsApp buttons usually sit 20-80px from the bottom. Use 90-100 to avoid collisions."
+msgstr "טיפ: כפתורי WhatsApp יושבים בדרך כלל 20-80 פיקסלים מהתחתית. השתמשו ב-90-100 כדי להימנע מהתנגשות."
+
+msgid "Title"
+msgstr "כותרת"
+
+msgid "Title color"
+msgstr "צבע הכותרת"
+
+msgid "Top (center)"
+msgstr "למעלה (מרכז)"
+
+msgid "Top left"
+msgstr "למעלה משמאל"
+
+msgid "Top right"
+msgstr "למעלה מימין"
+
+msgid "Top-left corner"
+msgstr "פינה שמאלית עליונה"
+
+msgid "Top-right corner"
+msgstr "פינה ימנית עליונה"
+
+msgid "Typography"
+msgstr "טיפוגרפיה"
+
+msgid "Updates after saving."
+msgstr "מתעדכן לאחר שמירה."
+
+msgid "Used when the page locale has no matching language."
+msgstr "בשימוש כששפת העמוד לא תואמת לאף שפה מוגדרת."
+
+msgid "Vertical"
+msgstr "אנכית"
+
+msgid "Vertical offset"
+msgstr "מרחק אנכי"
+
+msgid "Vertical offset (px)"
+msgstr "הזזה אנכית (פיקסלים)"
+
+msgid "View banner on the site"
+msgstr "צפייה בבאנר באתר"
+
+msgid "When disabled, the banner is not shown at all."
+msgstr "כאשר מושבת, הבאנר לא מוצג כלל."
+
+msgid "X background color"
+msgstr "צבע רקע ה-X"
+
+msgid "X color"
+msgstr "צבע ה-X"
+
+msgid "X size (px)"
+msgstr "גודל ה-X (פיקסלים)"
+
+msgid "You are not allowed to do that."
+msgstr "אין לך הרשאה לבצע פעולה זו."
+
+msgid "Zoom"
+msgstr "התקרבות"
+
+msgid "default"
+msgstr "ברירת מחדל"
+
+msgid "— No link —"
+msgstr "— ללא קישור —"
+
