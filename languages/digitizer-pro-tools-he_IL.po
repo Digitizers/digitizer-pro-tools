@@ -246,9 +246,6 @@ msgstr "כפול"
 msgid "Each category shows a separate toggle on the advanced-preferences screen. Scripts from the \"Scripts\" tab load only after the visitor consents to the matching category. Category names and descriptions are edited per language on the \"Texts\" tab."
 msgstr "כל קטגוריה מציגה מתג נפרד במסך ההעדפות המתקדמות. סקריפטים מהטאב \"סקריפטים\" נטענים רק לאחר שהמבקר מסכים לקטגוריה המתאימה. שמות ותיאורי הקטגוריות נערכים לפי שפה בטאב \"טקסטים\"."
 
-msgid "Emoji or short text. For example: 🍪"
-msgstr "אימוג'י או טקסט קצר. למשל: 🍪"
-
 msgid "Empty = transparent. With a color, the button becomes a circle."
 msgstr "ריק = שקוף. עם צבע, הכפתור הופך לעיגול."
 
@@ -386,6 +383,9 @@ msgstr "השפה הוסרה."
 
 msgid "Layout and border"
 msgstr "פריסה ומסגרת"
+
+msgid "Leave empty for the built-in cookie icon, or type short text of your own."
+msgstr "השאירו ריק לאייקון העוגייה המובנה, או הקלידו טקסט קצר משלכם."
 
 msgid "Left side"
 msgstr "צד שמאל"

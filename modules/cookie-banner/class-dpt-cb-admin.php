@@ -253,7 +253,7 @@ class DPT_CB_Admin {
 
 	private function tab_general( $o ) {
 		?>
-		<h2>⚙️ <?php esc_html_e( 'General Settings', 'digitizer-pro-tools' ); ?></h2>
+		<h2><span class="dashicons dashicons-admin-generic"></span> <?php esc_html_e( 'General Settings', 'digitizer-pro-tools' ); ?></h2>
 		<table class="form-table dpt-form">
 			<tr>
 				<th><?php esc_html_e( 'Enable banner', 'digitizer-pro-tools' ); ?></th>
@@ -351,7 +351,7 @@ class DPT_CB_Admin {
 		$defaults = DPT_CB_Settings::default_texts( $lang );
 		$n        = 'dpt_cb[texts][' . esc_attr( $lang ) . ']';
 		?>
-		<h2>✍️ <?php esc_html_e( 'Texts', 'digitizer-pro-tools' ); ?></h2>
+		<h2><span class="dashicons dashicons-edit"></span> <?php esc_html_e( 'Texts', 'digitizer-pro-tools' ); ?></h2>
 		<p class="description dpt-big-desc"><?php esc_html_e( 'The banner picks the language automatically from the current page locale (WPML / Polylang / TranslatePress compatible), falling back to the default language.', 'digitizer-pro-tools' ); ?></p>
 
 		<div class="nav-tab-wrapper dpt-lang-tabs">
@@ -412,7 +412,7 @@ class DPT_CB_Admin {
 			</tr>
 		</table>
 
-		<h3 class="dpt-section-heading">🗂️ <?php esc_html_e( 'Category names and descriptions', 'digitizer-pro-tools' ); ?> (<?php echo esc_html( $this->lang_label( $lang ) ); ?>)</h3>
+		<h3 class="dpt-section-heading"><span class="dashicons dashicons-category"></span> <?php esc_html_e( 'Category names and descriptions', 'digitizer-pro-tools' ); ?> (<?php echo esc_html( $this->lang_label( $lang ) ); ?>)</h3>
 		<table class="form-table dpt-form">
 			<tr>
 				<th><label><?php esc_html_e( 'Essential - name', 'digitizer-pro-tools' ); ?></label></th>
@@ -448,13 +448,13 @@ class DPT_CB_Admin {
 			</tr>
 		</table>
 
-		<h3 class="dpt-section-heading">🍪 <?php esc_html_e( 'Floating button texts', 'digitizer-pro-tools' ); ?></h3>
+		<h3 class="dpt-section-heading"><span class="dashicons dashicons-sticky"></span> <?php esc_html_e( 'Floating button texts', 'digitizer-pro-tools' ); ?></h3>
 		<table class="form-table dpt-form">
 			<tr>
 				<th><label><?php esc_html_e( 'Button content', 'digitizer-pro-tools' ); ?></label></th>
 				<td>
 					<input type="text" name="<?php echo $n; ?>[float_button_text]" value="<?php echo esc_attr( $texts['float_button_text'] ); ?>" />
-					<p class="description"><?php esc_html_e( 'Emoji or short text. For example: 🍪', 'digitizer-pro-tools' ); ?></p>
+					<p class="description"><?php esc_html_e( 'Leave empty for the built-in cookie icon, or type short text of your own.', 'digitizer-pro-tools' ); ?></p>
 				</td>
 			</tr>
 			<tr>
@@ -463,7 +463,7 @@ class DPT_CB_Admin {
 			</tr>
 		</table>
 
-		<h3 class="dpt-section-heading">🔗 <?php esc_html_e( 'Privacy policy link (shared for all languages)', 'digitizer-pro-tools' ); ?></h3>
+		<h3 class="dpt-section-heading"><span class="dashicons dashicons-admin-links"></span> <?php esc_html_e( 'Privacy policy link (shared for all languages)', 'digitizer-pro-tools' ); ?></h3>
 		<table class="form-table dpt-form">
 			<tr>
 				<th><label for="dpt_cb_policy_page_id"><?php esc_html_e( 'Privacy policy page', 'digitizer-pro-tools' ); ?></label></th>
@@ -540,9 +540,9 @@ class DPT_CB_Admin {
 
 	private function tab_design( $o ) {
 		?>
-		<h2>🎨 <?php esc_html_e( 'Banner Design', 'digitizer-pro-tools' ); ?></h2>
+		<h2><span class="dashicons dashicons-admin-appearance"></span> <?php esc_html_e( 'Banner Design', 'digitizer-pro-tools' ); ?></h2>
 
-		<h3 class="dpt-section-heading">🎨 <?php esc_html_e( 'Colors and background', 'digitizer-pro-tools' ); ?></h3>
+		<h3 class="dpt-section-heading"><span class="dashicons dashicons-admin-appearance"></span> <?php esc_html_e( 'Colors and background', 'digitizer-pro-tools' ); ?></h3>
 		<table class="form-table dpt-form">
 			<tr>
 				<th><label for="dpt_cb_bg_color"><?php esc_html_e( 'Background color', 'digitizer-pro-tools' ); ?></label></th>
@@ -558,7 +558,7 @@ class DPT_CB_Admin {
 			</tr>
 		</table>
 
-		<h3 class="dpt-section-heading">🌑 <?php esc_html_e( 'Page overlay (dim the site behind the banner)', 'digitizer-pro-tools' ); ?></h3>
+		<h3 class="dpt-section-heading"><span class="dashicons dashicons-image-filter"></span> <?php esc_html_e( 'Page overlay (dim the site behind the banner)', 'digitizer-pro-tools' ); ?></h3>
 		<table class="form-table dpt-form">
 			<tr>
 				<th><?php esc_html_e( 'Enable overlay', 'digitizer-pro-tools' ); ?></th>
@@ -577,7 +577,7 @@ class DPT_CB_Admin {
 			</tr>
 		</table>
 
-		<h3 class="dpt-section-heading">🖼️ <?php esc_html_e( 'Background image', 'digitizer-pro-tools' ); ?></h3>
+		<h3 class="dpt-section-heading"><span class="dashicons dashicons-format-image"></span> <?php esc_html_e( 'Background image', 'digitizer-pro-tools' ); ?></h3>
 		<table class="form-table dpt-form">
 			<tr>
 				<th><?php esc_html_e( 'Background image', 'digitizer-pro-tools' ); ?></th>
@@ -662,7 +662,7 @@ class DPT_CB_Admin {
 			</tr>
 		</table>
 
-		<h3 class="dpt-section-heading">📐 <?php esc_html_e( 'Layout and border', 'digitizer-pro-tools' ); ?></h3>
+		<h3 class="dpt-section-heading"><span class="dashicons dashicons-grid-view"></span> <?php esc_html_e( 'Layout and border', 'digitizer-pro-tools' ); ?></h3>
 		<table class="form-table dpt-form">
 			<tr>
 				<th><label for="dpt_cb_width"><?php esc_html_e( 'Max width (px)', 'digitizer-pro-tools' ); ?></label></th>
@@ -711,7 +711,7 @@ class DPT_CB_Admin {
 			</tr>
 		</table>
 
-		<h3 class="dpt-section-heading">❌ <?php esc_html_e( 'Close button (X)', 'digitizer-pro-tools' ); ?></h3>
+		<h3 class="dpt-section-heading"><span class="dashicons dashicons-no-alt"></span> <?php esc_html_e( 'Close button (X)', 'digitizer-pro-tools' ); ?></h3>
 		<table class="form-table dpt-form">
 			<tr>
 				<th><?php esc_html_e( 'Show close button', 'digitizer-pro-tools' ); ?></th>
@@ -759,10 +759,10 @@ class DPT_CB_Admin {
 			'900' => __( '900 - Black', 'digitizer-pro-tools' ),
 		);
 		?>
-		<h2>🔤 <?php esc_html_e( 'Typography', 'digitizer-pro-tools' ); ?></h2>
+		<h2><span class="dashicons dashicons-editor-textcolor"></span> <?php esc_html_e( 'Typography', 'digitizer-pro-tools' ); ?></h2>
 		<p class="description dpt-big-desc"><?php esc_html_e( 'Alignment uses logical values, so "Start" is right for Hebrew/Arabic pages and left for English pages - the same setting fits every language.', 'digitizer-pro-tools' ); ?></p>
 
-		<h3 class="dpt-section-heading">🏷️ <?php esc_html_e( 'Title', 'digitizer-pro-tools' ); ?></h3>
+		<h3 class="dpt-section-heading"><span class="dashicons dashicons-heading"></span> <?php esc_html_e( 'Title', 'digitizer-pro-tools' ); ?></h3>
 		<table class="form-table dpt-form">
 			<tr>
 				<th><label for="dpt_cb_title_color"><?php esc_html_e( 'Title color', 'digitizer-pro-tools' ); ?></label></th>
@@ -817,7 +817,7 @@ class DPT_CB_Admin {
 			</tr>
 		</table>
 
-		<h3 class="dpt-section-heading">📝 <?php esc_html_e( 'Content', 'digitizer-pro-tools' ); ?></h3>
+		<h3 class="dpt-section-heading"><span class="dashicons dashicons-text"></span> <?php esc_html_e( 'Content', 'digitizer-pro-tools' ); ?></h3>
 		<table class="form-table dpt-form">
 			<tr>
 				<th><label for="dpt_cb_content_color"><?php esc_html_e( 'Text color', 'digitizer-pro-tools' ); ?></label></th>
@@ -862,12 +862,12 @@ class DPT_CB_Admin {
 
 	private function tab_buttons( $o ) {
 		?>
-		<h2>🔘 <?php esc_html_e( 'Button Design', 'digitizer-pro-tools' ); ?></h2>
+		<h2><span class="dashicons dashicons-button"></span> <?php esc_html_e( 'Button Design', 'digitizer-pro-tools' ); ?></h2>
 
-		<h3 class="dpt-section-heading">✅ <?php esc_html_e( '"Accept all" button', 'digitizer-pro-tools' ); ?></h3>
+		<h3 class="dpt-section-heading"><span class="dashicons dashicons-yes"></span> <?php esc_html_e( '"Accept all" button', 'digitizer-pro-tools' ); ?></h3>
 		<?php $this->button_style_fields( 'accept', $o, false ); ?>
 
-		<h3 class="dpt-section-heading">❌ <?php esc_html_e( '"Reject all" button', 'digitizer-pro-tools' ); ?></h3>
+		<h3 class="dpt-section-heading"><span class="dashicons dashicons-no-alt"></span> <?php esc_html_e( '"Reject all" button', 'digitizer-pro-tools' ); ?></h3>
 		<table class="form-table dpt-form">
 			<tr>
 				<th><?php esc_html_e( 'Show button', 'digitizer-pro-tools' ); ?></th>
@@ -876,7 +876,7 @@ class DPT_CB_Admin {
 		</table>
 		<?php $this->button_style_fields( 'reject', $o, false ); ?>
 
-		<h3 class="dpt-section-heading">⚙️ <?php esc_html_e( '"Settings" button', 'digitizer-pro-tools' ); ?></h3>
+		<h3 class="dpt-section-heading"><span class="dashicons dashicons-admin-generic"></span> <?php esc_html_e( '"Settings" button', 'digitizer-pro-tools' ); ?></h3>
 		<table class="form-table dpt-form">
 			<tr>
 				<th><?php esc_html_e( 'Show button', 'digitizer-pro-tools' ); ?></th>
@@ -885,7 +885,7 @@ class DPT_CB_Admin {
 		</table>
 		<?php $this->button_style_fields( 'settings', $o, true ); ?>
 
-		<h3 class="dpt-section-heading">💾 <?php esc_html_e( '"Save preferences" button', 'digitizer-pro-tools' ); ?></h3>
+		<h3 class="dpt-section-heading"><span class="dashicons dashicons-saved"></span> <?php esc_html_e( '"Save preferences" button', 'digitizer-pro-tools' ); ?></h3>
 		<?php $this->button_style_fields( 'save', $o, false ); ?>
 		<?php
 	}
@@ -929,24 +929,24 @@ class DPT_CB_Admin {
 
 	private function tab_categories( $o ) {
 		?>
-		<h2>🗂️ <?php esc_html_e( 'Cookie Categories', 'digitizer-pro-tools' ); ?></h2>
+		<h2><span class="dashicons dashicons-category"></span> <?php esc_html_e( 'Cookie Categories', 'digitizer-pro-tools' ); ?></h2>
 		<p class="description dpt-big-desc"><?php esc_html_e( 'Each category shows a separate toggle on the advanced-preferences screen. Scripts from the "Scripts" tab load only after the visitor consents to the matching category. Category names and descriptions are edited per language on the "Texts" tab.', 'digitizer-pro-tools' ); ?></p>
 
 		<table class="form-table dpt-form">
 			<tr>
-				<th>🔒 <?php esc_html_e( 'Essential cookies', 'digitizer-pro-tools' ); ?></th>
+				<th><span class="dashicons dashicons-lock"></span> <?php esc_html_e( 'Essential cookies', 'digitizer-pro-tools' ); ?></th>
 				<td><span class="description"><?php esc_html_e( 'Always active - cannot be disabled.', 'digitizer-pro-tools' ); ?></span></td>
 			</tr>
 			<tr>
-				<th>🎯 <?php esc_html_e( 'Functional cookies', 'digitizer-pro-tools' ); ?></th>
+				<th><span class="dashicons dashicons-admin-settings"></span> <?php esc_html_e( 'Functional cookies', 'digitizer-pro-tools' ); ?></th>
 				<td><?php $this->switch_field( 'cat_functional_enabled', $o['cat_functional_enabled'] ); ?></td>
 			</tr>
 			<tr>
-				<th>📊 <?php esc_html_e( 'Analytics cookies', 'digitizer-pro-tools' ); ?></th>
+				<th><span class="dashicons dashicons-chart-bar"></span> <?php esc_html_e( 'Analytics cookies', 'digitizer-pro-tools' ); ?></th>
 				<td><?php $this->switch_field( 'cat_analytics_enabled', $o['cat_analytics_enabled'] ); ?></td>
 			</tr>
 			<tr>
-				<th>📣 <?php esc_html_e( 'Marketing cookies', 'digitizer-pro-tools' ); ?></th>
+				<th><span class="dashicons dashicons-megaphone"></span> <?php esc_html_e( 'Marketing cookies', 'digitizer-pro-tools' ); ?></th>
 				<td><?php $this->switch_field( 'cat_marketing_enabled', $o['cat_marketing_enabled'] ); ?></td>
 			</tr>
 		</table>
@@ -955,14 +955,14 @@ class DPT_CB_Admin {
 
 	private function tab_scripts( $o ) {
 		?>
-		<h2>📜 <?php esc_html_e( 'Scripts loaded after consent', 'digitizer-pro-tools' ); ?></h2>
+		<h2><span class="dashicons dashicons-editor-code"></span> <?php esc_html_e( 'Scripts loaded after consent', 'digitizer-pro-tools' ); ?></h2>
 		<div class="dpt-info-box">
 			<p><strong><?php esc_html_e( 'How does it work?', 'digitizer-pro-tools' ); ?></strong></p>
 			<p><?php esc_html_e( 'Paste the full HTML snippets here (Google Analytics, Facebook Pixel, GTM...). They are injected into the site <head> only after the visitor consents to the matching category.', 'digitizer-pro-tools' ); ?></p>
 			<p><?php esc_html_e( 'Paste the complete code including the <script> tags.', 'digitizer-pro-tools' ); ?></p>
 		</div>
 
-		<h3 class="dpt-section-heading">🎯 <?php esc_html_e( 'Functional scripts', 'digitizer-pro-tools' ); ?></h3>
+		<h3 class="dpt-section-heading"><span class="dashicons dashicons-admin-settings"></span> <?php esc_html_e( 'Functional scripts', 'digitizer-pro-tools' ); ?></h3>
 		<table class="form-table dpt-form">
 			<tr>
 				<td>
@@ -971,7 +971,7 @@ class DPT_CB_Admin {
 			</tr>
 		</table>
 
-		<h3 class="dpt-section-heading">📊 <?php esc_html_e( 'Analytics scripts', 'digitizer-pro-tools' ); ?></h3>
+		<h3 class="dpt-section-heading"><span class="dashicons dashicons-chart-bar"></span> <?php esc_html_e( 'Analytics scripts', 'digitizer-pro-tools' ); ?></h3>
 		<table class="form-table dpt-form">
 			<tr>
 				<td>
@@ -981,7 +981,7 @@ class DPT_CB_Admin {
 			</tr>
 		</table>
 
-		<h3 class="dpt-section-heading">📣 <?php esc_html_e( 'Marketing scripts', 'digitizer-pro-tools' ); ?></h3>
+		<h3 class="dpt-section-heading"><span class="dashicons dashicons-megaphone"></span> <?php esc_html_e( 'Marketing scripts', 'digitizer-pro-tools' ); ?></h3>
 		<table class="form-table dpt-form">
 			<tr>
 				<td>
@@ -995,10 +995,10 @@ class DPT_CB_Admin {
 
 	private function tab_floating( $o ) {
 		?>
-		<h2>🍪 <?php esc_html_e( 'Floating "Manage Cookies" Button', 'digitizer-pro-tools' ); ?></h2>
+		<h2><span class="dashicons dashicons-sticky"></span> <?php esc_html_e( 'Floating "Manage Cookies" Button', 'digitizer-pro-tools' ); ?></h2>
 		<p class="description dpt-big-desc"><?php esc_html_e( 'A small button in the corner of the site that lets visitors reopen the banner and change their preferences at any time. Its text and accessibility label are edited per language on the "Texts" tab.', 'digitizer-pro-tools' ); ?></p>
 
-		<h3 class="dpt-section-heading">⚙️ <?php esc_html_e( 'Basics', 'digitizer-pro-tools' ); ?></h3>
+		<h3 class="dpt-section-heading"><span class="dashicons dashicons-admin-generic"></span> <?php esc_html_e( 'Basics', 'digitizer-pro-tools' ); ?></h3>
 		<table class="form-table dpt-form">
 			<tr>
 				<th><?php esc_html_e( 'Enable button', 'digitizer-pro-tools' ); ?></th>
@@ -1033,7 +1033,7 @@ class DPT_CB_Admin {
 			</tr>
 		</table>
 
-		<h3 class="dpt-section-heading">🖥️ <?php esc_html_e( 'Desktop position', 'digitizer-pro-tools' ); ?></h3>
+		<h3 class="dpt-section-heading"><span class="dashicons dashicons-desktop"></span> <?php esc_html_e( 'Desktop position', 'digitizer-pro-tools' ); ?></h3>
 		<p class="description dpt-big-desc"><?php esc_html_e( 'Offsets are measured from the chosen corner. For example, corner "bottom-right" with vertical offset 100 places the button 100px above the bottom - handy for avoiding WhatsApp/chat buttons.', 'digitizer-pro-tools' ); ?></p>
 		<table class="form-table dpt-form">
 			<tr>
@@ -1053,7 +1053,7 @@ class DPT_CB_Admin {
 			</tr>
 		</table>
 
-		<h3 class="dpt-section-heading">📱 <?php esc_html_e( 'Mobile position', 'digitizer-pro-tools' ); ?></h3>
+		<h3 class="dpt-section-heading"><span class="dashicons dashicons-smartphone"></span> <?php esc_html_e( 'Mobile position', 'digitizer-pro-tools' ); ?></h3>
 		<p class="description dpt-big-desc"><?php esc_html_e( 'Separate values for screens up to 640px wide.', 'digitizer-pro-tools' ); ?></p>
 		<table class="form-table dpt-form">
 			<tr>
@@ -1141,7 +1141,7 @@ class DPT_CB_Admin {
 			esc_attr( $o['btn_settings_bg'] ), esc_attr( $o['btn_settings_color'] ), (int) $o['btn_settings_radius'], $settings_border );
 		?>
 		<div class="dpt-preview-wrap">
-			<h3>👁️ <?php esc_html_e( 'Preview', 'digitizer-pro-tools' ); ?> <span class="dpt-preview-lang">(<?php echo esc_html( $this->lang_label( $lang ) ); ?>)</span></h3>
+			<h3><span class="dashicons dashicons-visibility"></span> <?php esc_html_e( 'Preview', 'digitizer-pro-tools' ); ?> <span class="dpt-preview-lang">(<?php echo esc_html( $this->lang_label( $lang ) ); ?>)</span></h3>
 			<p class="description"><?php esc_html_e( 'Updates after saving.', 'digitizer-pro-tools' ); ?></p>
 			<div class="dpt-preview-box" dir="<?php echo esc_attr( $dir ); ?>" style="<?php echo $box_style; ?>">
 				<?php if ( '1' === $o['show_close'] ) : ?>
@@ -1161,7 +1161,7 @@ class DPT_CB_Admin {
 			</div>
 			<p style="margin-top:12px;">
 				<a href="<?php echo esc_url( home_url( '/?dpt_cb_preview=1' ) ); ?>" target="_blank" class="button button-primary" style="width:100%;text-align:center;">
-					🔍 <?php esc_html_e( 'View banner on the site', 'digitizer-pro-tools' ); ?>
+					<span class="dashicons dashicons-search"></span> <?php esc_html_e( 'View banner on the site', 'digitizer-pro-tools' ); ?>
 				</a>
 			</p>
 		</div>

@@ -38,8 +38,8 @@ class DPT_CB_Settings {
 			// Design - box.
 			'bg_color'           => '#ffffff',
 			'text_color'         => '#333333',
-			'width'              => '900',
-			'max_width_pct'      => '95',
+			'width'              => '700',
+			'max_width_pct'      => '100',
 			'border_radius'      => '12',
 			'padding'            => '24',
 			'box_shadow'         => '1',
@@ -174,7 +174,7 @@ class DPT_CB_Settings {
 	public static function default_texts( $lang ) {
 		if ( 'he' === $lang ) {
 			return array(
-				'title'               => 'אנחנו משתמשים בעוגיות 🍪',
+				'title'               => 'אנחנו משתמשים בעוגיות',
 				'message'             => 'האתר שלנו משתמש בעוגיות (Cookies) כדי לשפר את חוויית הגלישה שלך, להתאים את התוכן אישית ולנתח את התנועה באתר. על ידי לחיצה על "קבל הכל" אתה מסכים לשימוש בעוגיות. ניתן לנהל את ההעדפות שלך בכל עת.',
 				'btn_accept_text'     => 'קבל הכל',
 				'btn_reject_text'     => 'דחה הכל',
@@ -183,7 +183,7 @@ class DPT_CB_Settings {
 				'policy_text'         => 'מדיניות פרטיות',
 				'settings_view_title' => 'ניהול העדפות עוגיות',
 				'always_on_label'     => 'תמיד פעילות',
-				'float_button_text'   => '🍪',
+				'float_button_text'   => '',
 				'float_button_aria'   => 'ניהול עוגיות',
 				'close_aria'          => 'סגור',
 				'cat_essential_name'  => 'עוגיות חיוניות',
@@ -198,7 +198,7 @@ class DPT_CB_Settings {
 		}
 		// English seed (also the base for any new language).
 		return array(
-			'title'               => 'We use cookies 🍪',
+			'title'               => 'We use cookies',
 			'message'             => 'Our website uses cookies to improve your browsing experience, personalize content and analyze our traffic. By clicking "Accept all" you consent to the use of cookies. You can manage your preferences at any time.',
 			'btn_accept_text'     => 'Accept all',
 			'btn_reject_text'     => 'Reject all',
@@ -207,7 +207,7 @@ class DPT_CB_Settings {
 			'policy_text'         => 'Privacy policy',
 			'settings_view_title' => 'Manage cookie preferences',
 			'always_on_label'     => 'Always active',
-			'float_button_text'   => '🍪',
+			'float_button_text'   => '',
 			'float_button_aria'   => 'Manage cookies',
 			'close_aria'          => 'Close',
 			'cat_essential_name'  => 'Essential cookies',
