@@ -1,0 +1,640 @@
+# Copyright (C) 2026 Digitizers
+# This file is distributed under the GPL v2 or later.
+msgid ""
+msgstr ""
+"Project-Id-Version: Digitizer Pro Tools 1.0.0\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Domain: digitizer-pro-tools\n"
+
+msgid "\"Accept all\" button"
+msgstr ""
+
+msgid "\"Always active\" label"
+msgstr ""
+
+msgid "\"Reject all\" button"
+msgstr ""
+
+msgid "\"Save preferences\" button"
+msgstr ""
+
+msgid "\"Settings\" button"
+msgstr ""
+
+msgid "0 = show immediately. 5 = show after 5 seconds, so the banner does not interrupt visitors right away."
+msgstr ""
+
+msgid "300 - Light"
+msgstr ""
+
+msgid "400 - Regular"
+msgstr ""
+
+msgid "500 - Medium"
+msgstr ""
+
+msgid "600 - Semi-bold"
+msgstr ""
+
+msgid "700 - Bold"
+msgstr ""
+
+msgid "800 - Extra-bold"
+msgstr ""
+
+msgid "900 - Black"
+msgstr ""
+
+msgid "A small button in the corner of the site that lets visitors reopen the banner and change their preferences at any time. Its text and accessibility label are edited per language on the \"Texts\" tab."
+msgstr ""
+
+msgid "Accept on scroll"
+msgstr ""
+
+msgid "Add"
+msgstr ""
+
+msgid "Add language (code):"
+msgstr ""
+
+msgid "Adds a thin border in the text color."
+msgstr ""
+
+msgid "After this many days the visitor is asked again."
+msgstr ""
+
+msgid "Alignment"
+msgstr ""
+
+msgid "Alignment uses logical values, so \"Start\" is right for Hebrew/Arabic pages and left for English pages - the same setting fits every language."
+msgstr ""
+
+msgid "Always active - cannot be disabled."
+msgstr ""
+
+msgid "Analytics - description"
+msgstr ""
+
+msgid "Analytics - name"
+msgstr ""
+
+msgid "Analytics cookies"
+msgstr ""
+
+msgid "Analytics scripts"
+msgstr ""
+
+msgid "Anchor corner"
+msgstr ""
+
+msgid "Arabic"
+msgstr ""
+
+msgid "Background color"
+msgstr ""
+
+msgid "Background image"
+msgstr ""
+
+msgid "Banner Design"
+msgstr ""
+
+msgid "Banner message"
+msgstr ""
+
+msgid "Banner position"
+msgstr ""
+
+msgid "Banner title"
+msgstr ""
+
+msgid "Base text color"
+msgstr ""
+
+msgid "Basic HTML is allowed: <strong>, <em>, <a>, <br>"
+msgstr ""
+
+msgid "Basics"
+msgstr ""
+
+msgid "Block scripts until consent"
+msgstr ""
+
+msgid "Blur (px)"
+msgstr ""
+
+msgid "Border"
+msgstr ""
+
+msgid "Border color"
+msgstr ""
+
+msgid "Border style"
+msgstr ""
+
+msgid "Border width (px)"
+msgstr ""
+
+msgid "Bottom (center)"
+msgstr ""
+
+msgid "Bottom left"
+msgstr ""
+
+msgid "Bottom right"
+msgstr ""
+
+msgid "Bottom-left corner"
+msgstr ""
+
+msgid "Bottom-right corner"
+msgstr ""
+
+msgid "Box shadow"
+msgstr ""
+
+msgid "Button Design"
+msgstr ""
+
+msgid "Button content"
+msgstr ""
+
+msgid "Button label (accessibility)"
+msgstr ""
+
+msgid "Button size"
+msgstr ""
+
+msgid "Buttons"
+msgstr ""
+
+msgid "Categories"
+msgstr ""
+
+msgid "Category names and descriptions"
+msgstr ""
+
+msgid "Center"
+msgstr ""
+
+msgid "Centered modal"
+msgstr ""
+
+msgid "Choose image"
+msgstr ""
+
+msgid "Close button (X)"
+msgstr ""
+
+msgid "Close button label (accessibility)"
+msgstr ""
+
+msgid "Closing with X counts as rejecting non-essential cookies."
+msgstr ""
+
+msgid "Colors and background"
+msgstr ""
+
+msgid "Consent lifetime (days)"
+msgstr ""
+
+msgid "Consent version"
+msgstr ""
+
+msgid "Content"
+msgstr ""
+
+msgid "Cookie Banner"
+msgstr ""
+
+msgid "Cookie Categories"
+msgstr ""
+
+msgid "Corner radius (px)"
+msgstr ""
+
+msgid "Darkens a bright image so the text stays readable."
+msgstr ""
+
+msgid "Dashed"
+msgstr ""
+
+msgid "Default language"
+msgstr ""
+
+msgid "Design"
+msgstr ""
+
+msgid "Desktop position"
+msgstr ""
+
+msgid "Digitizer Pro Tools"
+msgstr ""
+
+msgid "Dims the page behind the banner, prompting the visitor to choose."
+msgstr ""
+
+msgid "Dotted"
+msgstr ""
+
+msgid "Double"
+msgstr ""
+
+msgid "Each category shows a separate toggle on the advanced-preferences screen. Scripts from the \"Scripts\" tab load only after the visitor consents to the matching category. Category names and descriptions are edited per language on the \"Texts\" tab."
+msgstr ""
+
+msgid "Emoji or short text. For example: 🍪"
+msgstr ""
+
+msgid "Empty = transparent. With a color, the button becomes a circle."
+msgstr ""
+
+msgid "Empty = use the base text color."
+msgstr ""
+
+msgid "Enable banner"
+msgstr ""
+
+msgid "Enable button"
+msgstr ""
+
+msgid "Enable overlay"
+msgstr ""
+
+msgid "Enable the tools you need. Each module replaces a standalone plugin."
+msgstr ""
+
+msgid "End (left in RTL, right in LTR)"
+msgstr ""
+
+msgid "English"
+msgstr ""
+
+msgid "Entry animation"
+msgstr ""
+
+msgid "Essential - description"
+msgstr ""
+
+msgid "Essential - name"
+msgstr ""
+
+msgid "Essential cookies"
+msgstr ""
+
+msgid "Fade"
+msgstr ""
+
+msgid "Floating \"Manage Cookies\" Button"
+msgstr ""
+
+msgid "Floating Button"
+msgstr ""
+
+msgid "Floating button texts"
+msgstr ""
+
+msgid "Font size"
+msgstr ""
+
+msgid "Font weight"
+msgstr ""
+
+msgid "For example: Facebook Pixel, Google Ads, TikTok Pixel, LinkedIn Insight."
+msgstr ""
+
+msgid "For example: Google Analytics 4, Google Tag Manager, Hotjar, Clarity."
+msgstr ""
+
+msgid "French"
+msgstr ""
+
+msgid "Full-width bar at the bottom"
+msgstr ""
+
+msgid "Full-width bar at the top"
+msgstr ""
+
+msgid "Functional - description"
+msgstr ""
+
+msgid "Functional - name"
+msgstr ""
+
+msgid "Functional cookies"
+msgstr ""
+
+msgid "Functional scripts"
+msgstr ""
+
+msgid "General"
+msgstr ""
+
+msgid "General Settings"
+msgstr ""
+
+msgid "German"
+msgstr ""
+
+msgid "Hebrew"
+msgstr ""
+
+msgid "Horizontal"
+msgstr ""
+
+msgid "Horizontal offset"
+msgstr ""
+
+msgid "Hover background color"
+msgstr ""
+
+msgid "How does it work?"
+msgstr ""
+
+msgid "Image overlay color"
+msgstr ""
+
+msgid "Image overlay opacity (0-1)"
+msgstr ""
+
+msgid "Image position"
+msgstr ""
+
+msgid "Image size"
+msgstr ""
+
+msgid "Increase this number to ask ALL visitors for consent again (for example after changing your cookie policy). Works even through page caches."
+msgstr ""
+
+msgid "Inner padding (px)"
+msgstr ""
+
+msgid "Invalid language code. Use formats like \"en\", \"ru\" or \"pt_BR\"."
+msgstr ""
+
+msgid "Justify"
+msgstr ""
+
+msgid "Language added."
+msgstr ""
+
+msgid "Language removed."
+msgstr ""
+
+msgid "Layout and border"
+msgstr ""
+
+msgid "Left side"
+msgstr ""
+
+msgid "Manage languages"
+msgstr ""
+
+msgid "Marketing - description"
+msgstr ""
+
+msgid "Marketing - name"
+msgstr ""
+
+msgid "Marketing cookies"
+msgstr ""
+
+msgid "Marketing scripts"
+msgstr ""
+
+msgid "Max width (px)"
+msgstr ""
+
+msgid "Max width on small screens (%)"
+msgstr ""
+
+msgid "Mobile position"
+msgstr ""
+
+msgid "Modules"
+msgstr ""
+
+msgid "Modules saved."
+msgstr ""
+
+msgid "Multilingual cookie-consent banner with cookie categories, script blocking until consent, and a floating preferences button."
+msgstr ""
+
+msgid "New languages start with the English texts. The default language cannot be removed."
+msgstr ""
+
+msgid "No repeat"
+msgstr ""
+
+msgid "None"
+msgstr ""
+
+msgid "Not recommended for GDPR - EU law requires active consent."
+msgstr ""
+
+msgid "Offsets are measured from the chosen corner. For example, corner \"bottom-right\" with vertical offset 100 places the button 100px above the bottom - handy for avoiding WhatsApp/chat buttons."
+msgstr ""
+
+msgid "Only if the policy lives outside this site. Leave empty when a page is selected above."
+msgstr ""
+
+msgid "Or an external URL (instead of a page)"
+msgstr ""
+
+msgid "Overlay color"
+msgstr ""
+
+msgid "Overlay opacity (0-1)"
+msgstr ""
+
+msgid "Page overlay (dim the site behind the banner)"
+msgstr ""
+
+msgid "Paste the complete code including the <script> tags."
+msgstr ""
+
+msgid "Paste the full HTML snippets here (Google Analytics, Facebook Pixel, GTM...). They are injected into the site <head> only after the visitor consents to the matching category."
+msgstr ""
+
+msgid "Pick the privacy policy page. With WPML or Polylang, the translated page is linked automatically per language."
+msgstr ""
+
+msgid "Preferences screen title"
+msgstr ""
+
+msgid "Preview"
+msgstr ""
+
+msgid "Privacy policy link (shared for all languages)"
+msgstr ""
+
+msgid "Privacy policy link text"
+msgstr ""
+
+msgid "Privacy policy page"
+msgstr ""
+
+msgid "Relevant for the centered modal and corner positions - full-width bars size automatically."
+msgstr ""
+
+msgid "Remove \"%s\""
+msgstr ""
+
+msgid "Remove image"
+msgstr ""
+
+msgid "Remove this language and its texts?"
+msgstr ""
+
+msgid "Repeat"
+msgstr ""
+
+msgid "Right side"
+msgstr ""
+
+msgid "Russian"
+msgstr ""
+
+msgid "Save Modules"
+msgstr ""
+
+msgid "Save Settings"
+msgstr ""
+
+msgid "Scripts"
+msgstr ""
+
+msgid "Scripts from the \"Scripts\" tab load only after the visitor consents to the matching category."
+msgstr ""
+
+msgid "Scripts loaded after consent"
+msgstr ""
+
+msgid "Separate values for screens up to 640px wide."
+msgstr ""
+
+msgid "Settings"
+msgstr ""
+
+msgid "Settings saved."
+msgstr ""
+
+msgid "Shadow color"
+msgstr ""
+
+msgid "Show button"
+msgstr ""
+
+msgid "Show close button"
+msgstr ""
+
+msgid "Show delay (seconds)"
+msgstr ""
+
+msgid "Show on mobile"
+msgstr ""
+
+msgid "Slide down"
+msgstr ""
+
+msgid "Slide up"
+msgstr ""
+
+msgid "Solid"
+msgstr ""
+
+msgid "Space below (px)"
+msgstr ""
+
+msgid "Spanish"
+msgstr ""
+
+msgid "Start (right in RTL, left in LTR)"
+msgstr ""
+
+msgid "Text color"
+msgstr ""
+
+msgid "Text shadow"
+msgstr ""
+
+msgid "Texts"
+msgstr ""
+
+msgid "The banner picks the language automatically from the current page locale (WPML / Polylang / TranslatePress compatible), falling back to the default language."
+msgstr ""
+
+msgid "The final position is the corner plus the offsets below."
+msgstr ""
+
+msgid "Tip: WhatsApp buttons usually sit 20-80px from the bottom. Use 90-100 to avoid collisions."
+msgstr ""
+
+msgid "Title"
+msgstr ""
+
+msgid "Title color"
+msgstr ""
+
+msgid "Top (center)"
+msgstr ""
+
+msgid "Top left"
+msgstr ""
+
+msgid "Top right"
+msgstr ""
+
+msgid "Top-left corner"
+msgstr ""
+
+msgid "Top-right corner"
+msgstr ""
+
+msgid "Typography"
+msgstr ""
+
+msgid "Updates after saving."
+msgstr ""
+
+msgid "Used when the page locale has no matching language."
+msgstr ""
+
+msgid "Vertical"
+msgstr ""
+
+msgid "Vertical offset"
+msgstr ""
+
+msgid "Vertical offset (px)"
+msgstr ""
+
+msgid "View banner on the site"
+msgstr ""
+
+msgid "When disabled, the banner is not shown at all."
+msgstr ""
+
+msgid "X background color"
+msgstr ""
+
+msgid "X color"
+msgstr ""
+
+msgid "X size (px)"
+msgstr ""
+
+msgid "You are not allowed to do that."
+msgstr ""
+
+msgid "Zoom"
+msgstr ""
+
+msgid "default"
+msgstr ""
+
+msgid "— No link —"
+msgstr ""
+
