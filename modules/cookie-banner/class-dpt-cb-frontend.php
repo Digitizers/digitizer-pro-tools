@@ -40,7 +40,6 @@ class DPT_CB_Frontend {
 	public function rocket_exclude_inline( $excluded ) {
 		if ( ! is_array( $excluded ) ) { $excluded = array(); }
 		$excluded[] = 'DPT_CB_CONFIG';
-		$excluded[] = 'DPT_CB_INJECTED';
 		$excluded[] = 'dpt_consent';
 		return $excluded;
 	}
@@ -144,10 +143,10 @@ class DPT_CB_Frontend {
 		$o    = DPT_CB_Settings::all();
 		$lang = $this->resolve_lang( $o );
 
-		// With script blocking on, the client is the cache-proof injector:
-		// it loads whatever the server-rendered page did not inject (see
-		// inject_consented_scripts()) - the consenting page itself and any
-		// page served from a full-page cache.
+		// With script blocking on, the client is the ONLY injector of
+		// consented snippets - server-rendered HTML can be cached and served
+		// to other visitors, so it must never contain them (see
+		// inject_consented_scripts()).
 		$scripts = array();
 		if ( '1' === $o['block_scripts'] ) {
 			$scripts = array(
@@ -200,7 +199,13 @@ class DPT_CB_Frontend {
 	}
 
 	/**
-	 * Inject scripts to <head> for categories the user consented to.
+	 * Inject scripts to <head> when script blocking is OFF.
+	 *
+	 * With blocking ON, consented snippets are injected ONLY client-side
+	 * (frontend.js) based on the visitor's own consent: server-rendered HTML
+	 * may be stored by a full-page cache and served to OTHER visitors, so
+	 * baking consented tags into it would run them for people who never
+	 * consented.
 	 */
 	public function inject_consented_scripts() {
 		if ( is_admin() ) {
@@ -211,36 +216,11 @@ class DPT_CB_Frontend {
 			return;
 		}
 		if ( '1' !== $o['block_scripts'] ) {
-			// Script blocking is off - load everything.
+			// Script blocking is off - load everything for everyone.
 			$this->echo_script_block( $o['scripts_functional'] );
 			$this->echo_script_block( $o['scripts_analytics'] );
 			$this->echo_script_block( $o['scripts_marketing'] );
-			return;
 		}
-
-		$consent  = $this->get_consent();
-		$injected = array( 'functional' => false, 'analytics' => false, 'marketing' => false );
-
-		if ( is_array( $consent ) ) {
-			if ( ! empty( $consent['functional'] ) && '1' === $o['cat_functional_enabled'] && '' !== trim( (string) $o['scripts_functional'] ) ) {
-				$this->echo_script_block( $o['scripts_functional'] );
-				$injected['functional'] = true;
-			}
-			if ( ! empty( $consent['analytics'] ) && '1' === $o['cat_analytics_enabled'] && '' !== trim( (string) $o['scripts_analytics'] ) ) {
-				$this->echo_script_block( $o['scripts_analytics'] );
-				$injected['analytics'] = true;
-			}
-			if ( ! empty( $consent['marketing'] ) && '1' === $o['cat_marketing_enabled'] && '' !== trim( (string) $o['scripts_marketing'] ) ) {
-				$this->echo_script_block( $o['scripts_marketing'] );
-				$injected['marketing'] = true;
-			}
-		}
-
-		// Marker of what THIS rendered HTML already contains. It is cached
-		// together with the page, so the client script knows exactly which
-		// categories it still has to inject (consenting page, or a cached
-		// page rendered before the visitor consented).
-		echo '<script id="dpt-cb-injected" data-no-defer data-cfasync="false">window.DPT_CB_INJECTED=' . wp_json_encode( $injected ) . ';</script>' . "\n";
 	}
 
 	/**

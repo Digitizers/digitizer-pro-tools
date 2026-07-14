@@ -106,21 +106,13 @@
     }
 
     /* ============== Script injection (cache-proof) ==============
-     * The server injects consented snippets into <head> only when the page
-     * was rendered WITH the consent cookie present; window.DPT_CB_INJECTED
-     * (rendered and cached with the page) records exactly what it injected.
-     * Everything else - the page where consent was just granted, or a page
-     * served from a full-page cache - is injected here.
+     * With script blocking on, consented snippets are injected ONLY here,
+     * based on this visitor's own consent. The server never bakes them into
+     * the HTML, because full-page caches may serve that HTML to visitors
+     * who did not consent.
      */
 
-    var injectedCats = (function () {
-        var marker = window.DPT_CB_INJECTED;
-        return {
-            functional: !!(marker && marker.functional),
-            analytics:  !!(marker && marker.analytics),
-            marketing:  !!(marker && marker.marketing)
-        };
-    })();
+    var injectedCats = { functional: false, analytics: false, marketing: false };
 
     // Insert an admin-provided HTML snippet so that its <script> tags
     // actually execute (nodes added via innerHTML never run).
@@ -147,7 +139,7 @@
         if (!config.blockScripts || !consent) return;
         var scripts = config.scripts || {};
         ['functional', 'analytics', 'marketing'].forEach(function (cat) {
-            if (injectedCats[cat]) return;          // already in this page's HTML
+            if (injectedCats[cat]) return;          // already injected on this page
             if (!consent[cat]) return;              // no consent for this category
             var html = scripts[cat];
             if (!html || !String(html).replace(/\s+/g, '')) return;
@@ -269,8 +261,8 @@
         var preResolved = document.documentElement.getAttribute('data-dpt-cb-resolved') === '1';
         var shouldShow  = (!existing && !preResolved) || forceOpen;
 
-        // Cached pages are rendered without the visitor's consent cookie, so
-        // the server-side injection may be missing - complete it client-side.
+        // Consented snippets are client-injected on every page load (the
+        // server never bakes them into cacheable HTML).
         if (existing) {
             injectConsentedScripts(existing);
         }
