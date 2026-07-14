@@ -88,11 +88,13 @@ class DPT_CB_Frontend {
 			return;
 		}
 		$version = (string) DPT_CB_Settings::get( 'consent_version' );
+		$days    = max( 1, (int) DPT_CB_Settings::get( 'consent_days' ) );
 		?>
 		<script id="dpt-cb-precheck" data-no-defer data-cfasync="false">
 		(function(){
 			try {
 				var EXPECTED_V = <?php echo wp_json_encode( $version ); ?>;
+				var MAX_AGE_MS = <?php echo (int) $days; ?> * 864e5;
 				var raw = null;
 				// Cookie first
 				var m = document.cookie.match(/(?:^|; )dpt_consent=([^;]*)/);
@@ -106,6 +108,8 @@ class DPT_CB_Frontend {
 				if (!c || typeof c !== 'object') return;
 				// Stale consent version - treat as no consent, banner shows again.
 				if (String(c.v || '') !== EXPECTED_V) return;
+				// Consent lifetime elapsed (localStorage outlives the cookie).
+				if (!c.ts || (Date.now() - c.ts) > MAX_AGE_MS) return;
 				// Mark the document so CSS can hide the banner immediately when it streams in.
 				document.documentElement.setAttribute('data-dpt-cb-resolved', '1');
 			} catch(e) { /* swallow */ }
@@ -193,6 +197,14 @@ class DPT_CB_Frontend {
 		$expected = (string) DPT_CB_Settings::get( 'consent_version' );
 		$stored   = isset( $data['v'] ) ? (string) $data['v'] : '';
 		if ( $stored !== $expected ) {
+			return null;
+		}
+		// Enforce the consent lifetime here too: the cookie's own expiry was
+		// set from the consent_days value at write time, so a later, shorter
+		// setting must still win.
+		$days = max( 1, (int) DPT_CB_Settings::get( 'consent_days' ) );
+		$ts   = isset( $data['ts'] ) ? (float) $data['ts'] : 0; // JS epoch ms.
+		if ( ! $ts || ( microtime( true ) * 1000 - $ts ) > $days * 86400000 ) {
 			return null;
 		}
 		return $data;

@@ -54,13 +54,15 @@
             if (domain) {
                 document.cookie = base + '; domain=' + domain;
             }
-            // Verify the write: if the guessed domain is actually a public
-            // suffix (e.g. .or.jp is not in our short list) the browser
-            // silently rejects it - fall back to a host-only cookie so the
-            // server can still read the consent.
-            if (getCookie(name) === null) {
+            // Verify the write LANDED (value comparison, not mere presence -
+            // a stale pre-existing cookie must not mask a rejected write):
+            // if the guessed domain is actually a public suffix (e.g. .or.jp
+            // is not in our short list) the browser silently rejects it -
+            // fall back to a host-only cookie so the server can still read
+            // the consent.
+            if (getCookie(name) !== value) {
                 document.cookie = base;
-                log('cookie domain rejected, host-only fallback', domain);
+                log('cookie domain write not verified, host-only fallback', domain);
             }
         } catch (e) { log('cookie set failed', e.message); }
     }
@@ -74,10 +76,20 @@
 
     function lsGet(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
     function lsSet(key, value) { try { localStorage.setItem(key, value); } catch (e) {} }
+    function lsRemove(key) { try { localStorage.removeItem(key); } catch (e) {} }
 
     function isCurrentVersion(consent) {
         var expected = String(config.consentVersion || '1');
         return String((consent && consent.v) || '') === expected;
+    }
+
+    // The "Consent lifetime (days)" setting must hold even when the consent
+    // survives in localStorage after the cookie expired - otherwise the
+    // localStorage copy would silently mint a fresh cookie forever.
+    function isExpired(consent) {
+        var days = parseInt(config.consentDays, 10) || 180;
+        if (!consent || !consent.ts) return true;
+        return (Date.now() - consent.ts) > days * 864e5;
     }
 
     function readConsent() {
@@ -91,6 +103,10 @@
             // Consent stored for an older consent_version: ignore it, so the
             // banner asks again after the admin bumps the version.
             if (!isCurrentVersion(parsed)) return null;
+            if (isExpired(parsed)) {
+                lsRemove(LS_KEY);
+                return null;
+            }
             if (!fromCookie && fromLs) setCookie(COOKIE, fromLs, config.consentDays || 180);
             if (!fromLs && fromCookie) lsSet(LS_KEY, fromCookie);
             return parsed;
