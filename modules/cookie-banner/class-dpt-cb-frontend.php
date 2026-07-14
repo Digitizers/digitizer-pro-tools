@@ -228,10 +228,18 @@ class DPT_CB_Frontend {
 			return;
 		}
 		if ( '1' !== $o['block_scripts'] ) {
-			// Script blocking is off - load everything for everyone.
-			$this->echo_script_block( $o['scripts_functional'] );
-			$this->echo_script_block( $o['scripts_analytics'] );
-			$this->echo_script_block( $o['scripts_marketing'] );
+			// Script blocking is off - load everything for everyone, but a
+			// disabled category stays off: it is no longer disclosed in the
+			// preferences UI, so its leftover snippet must not run.
+			if ( '1' === $o['cat_functional_enabled'] ) {
+				$this->echo_script_block( $o['scripts_functional'] );
+			}
+			if ( '1' === $o['cat_analytics_enabled'] ) {
+				$this->echo_script_block( $o['scripts_analytics'] );
+			}
+			if ( '1' === $o['cat_marketing_enabled'] ) {
+				$this->echo_script_block( $o['scripts_marketing'] );
+			}
 		}
 	}
 

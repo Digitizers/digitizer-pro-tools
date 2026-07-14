@@ -489,8 +489,15 @@
         }
 
         if (config.autoAcceptScroll && !readConsent()) {
+            // Mirrors the .dpt-cb-hide-mobile media query: scrolling must not
+            // count as consent while the banner is invisible on this viewport.
+            var bannerHiddenHere = function () {
+                if (config.showOnMobile) return false;
+                try { return window.matchMedia('(max-width: 640px)').matches; }
+                catch (e) { return false; }
+            };
             var scrollHandler = function () {
-                if (window.scrollY > 150) {
+                if (window.scrollY > 150 && !bannerHiddenHere()) {
                     window.removeEventListener('scroll', scrollHandler);
                     acceptAll();
                 }
