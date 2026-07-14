@@ -114,8 +114,15 @@ class DPT_Plugin {
 		foreach ( $this->registry() as $id => $spec ) {
 			$clean[ $id ] = ( isset( $map[ $id ] ) && '1' === $map[ $id ] ) ? '1' : '0';
 		}
+		$changed         = ! isset( $opts['modules'] ) || $opts['modules'] !== $clean;
 		$opts['modules'] = $clean;
 		update_option( DPT_OPTION, $opts );
+
+		// Toggling a module changes the rendered HTML - stale cached pages
+		// would keep the old module output alive.
+		if ( $changed && class_exists( 'DPT_CB_Settings' ) ) {
+			DPT_CB_Settings::purge_page_caches();
+		}
 	}
 
 	/**

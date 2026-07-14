@@ -350,6 +350,7 @@ class DPT_CB_Settings {
 		$opts['texts']           = isset( $opts['texts'] ) && is_array( $opts['texts'] ) ? $opts['texts'] : array();
 		$opts['texts'][ $code ]  = self::default_texts( $code );
 		update_option( self::OPTION, $opts );
+		self::purge_page_caches();
 		return $code;
 	}
 
@@ -370,6 +371,7 @@ class DPT_CB_Settings {
 			unset( $opts['texts'][ $code ] );
 		}
 		update_option( self::OPTION, $opts );
+		self::purge_page_caches();
 		return true;
 	}
 
@@ -399,6 +401,7 @@ class DPT_CB_Settings {
 		if ( isset( $existing['languages'] ) && is_array( $existing['languages'] ) ) {
 			$clean['languages'] = $existing['languages'];
 		}
+		$before = $clean;
 
 		// Script fields (allow full script tags for trusted admins).
 		$script_fields = array( 'scripts_functional', 'scripts_analytics', 'scripts_marketing' );
@@ -470,14 +473,14 @@ class DPT_CB_Settings {
 			}
 		}
 
-		$old_version = isset( $existing['consent_version'] ) ? (string) $existing['consent_version'] : ( isset( $defaults['consent_version'] ) ? $defaults['consent_version'] : '1' );
-
 		update_option( self::OPTION, $clean );
 
-		// A consent-version bump must reach visitors that are served cached
-		// HTML (the precheck script inlines the version), so purge the
-		// popular page caches when it changes.
-		if ( (string) $clean['consent_version'] !== $old_version ) {
+		// Every module setting shapes the rendered/cached HTML (precheck
+		// version, banner markup, raw snippets when blocking is off, the
+		// localized config...), so any actual change must invalidate the
+		// page caches - otherwise stale pages keep the old behavior, e.g.
+		// keep running tags after block_scripts was switched on.
+		if ( $clean != $before ) {
 			self::purge_page_caches();
 		}
 		return true;
