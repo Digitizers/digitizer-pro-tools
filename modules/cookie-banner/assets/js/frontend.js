@@ -403,8 +403,15 @@
             return { v: String(config.consentVersion || '1'), essential: true, ts: Date.now() };
         }
         function acceptAll() {
+            // Grant only the categories that are enabled (and therefore
+            // disclosed) right now - a disabled category must stay false so
+            // enabling it later doesn't resurrect this cookie as consent
+            // the visitor never actually gave.
+            var cats = config.categories || {};
             var c = baseConsent();
-            c.functional = true; c.analytics = true; c.marketing = true;
+            c.functional = !!cats.functional;
+            c.analytics  = !!cats.analytics;
+            c.marketing  = !!cats.marketing;
             finishConsent(c);
         }
         function rejectAll() {
