@@ -497,10 +497,17 @@
                 catch (e) { return false; }
             };
             var scrollHandler = function () {
-                if (window.scrollY > 150 && !bannerHiddenHere()) {
+                if (window.scrollY <= 150) return;
+                // The visitor may have answered since this listener was
+                // attached (e.g. clicked "Reject all" and kept scrolling) -
+                // an explicit choice must never be overwritten by a scroll.
+                if (readConsent()) {
                     window.removeEventListener('scroll', scrollHandler);
-                    acceptAll();
+                    return;
                 }
+                if (bannerHiddenHere()) return;
+                window.removeEventListener('scroll', scrollHandler);
+                acceptAll();
             };
             window.addEventListener('scroll', scrollHandler, { passive: true });
         }
