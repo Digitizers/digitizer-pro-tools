@@ -621,7 +621,6 @@ class DPT_CB_Frontend {
 		             . "var m=b&&b.querySelector('.dpt-cb-main-view'),s=b&&b.querySelector('.dpt-cb-settings-view');"
 		             . "if(m)m.style.display='';if(s)s.style.display='none';"
 		             . "}catch(e){}";
-		?>
 		// Empty text (or the legacy 🍪 seed) renders the built-in SVG cookie
 		// icon; any other text/emoji the admin typed is shown as-is.
 		$float_text = trim( (string) $t['float_button_text'] );
