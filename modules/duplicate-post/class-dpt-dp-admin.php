@@ -44,7 +44,15 @@ class DPT_DP_Admin {
 		if ( ! $type ) {
 			return false;
 		}
-		return current_user_can( $type->cap->edit_posts ) && current_user_can( 'edit_post', $post->ID );
+		// Duplication CREATES a new item, so the post type's creation
+		// capability is required (it can differ from edit_posts, e.g.
+		// create_posts => do_not_allow), on top of edit access to the source.
+		$create_cap = isset( $type->cap->create_posts ) && $type->cap->create_posts
+			? $type->cap->create_posts
+			: $type->cap->edit_posts;
+		return current_user_can( $create_cap )
+			&& current_user_can( $type->cap->edit_posts )
+			&& current_user_can( 'edit_post', $post->ID );
 	}
 
 	private function duplicate_url( $post_id, $redirect ) {
