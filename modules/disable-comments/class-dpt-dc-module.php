@@ -75,12 +75,12 @@ class DPT_Disable_Comments_Module extends DPT_Module {
 	}
 
 	/**
-	 * Empty comment queries for disabled post types on the frontend (and
-	 * REST) - covers the block Comments template and any direct
-	 * get_comments() call. Admin queries are left alone so moderation
-	 * screens can still list existing comments. Site-wide queries without
-	 * a post_id/post_type constraint are also left alone: with WooCommerce
-	 * reviews protected they may legitimately serve review widgets.
+	 * Hide comments of disabled post types from every frontend/REST
+	 * WP_Comment_Query - the block Comments template, the REST comments
+	 * endpoint and direct get_comments() calls. Each constraint shape is
+	 * narrowed rather than dropped, so protected types (WooCommerce
+	 * reviews) keep working inside mixed and unconstrained queries. Admin
+	 * queries are left alone so moderation screens still list everything.
 	 *
 	 * @param WP_Comment_Query $query Query, passed by reference.
 	 */
@@ -99,29 +99,49 @@ class DPT_Disable_Comments_Module extends DPT_Module {
 		// not post_id - drop the disabled-type posts from the list.
 		$post_in = ! empty( $query->query_vars['post__in'] ) ? array_map( 'intval', (array) $query->query_vars['post__in'] ) : array();
 		if ( $post_in ) {
-			$allowed = array();
+			$kept = array();
 			foreach ( $post_in as $pid ) {
 				if ( ! DPT_DC_Settings::disabled_for( (string) get_post_type( $pid ) ) ) {
-					$allowed[] = $pid;
+					$kept[] = $pid;
 				}
 			}
-			if ( empty( $allowed ) ) {
+			if ( empty( $kept ) ) {
 				$query->query_vars['comment__in'] = array( 0 );
 			} else {
-				$query->query_vars['post__in'] = $allowed;
+				$query->query_vars['post__in'] = $kept;
 			}
 			return;
 		}
+		// post_type constraint: narrow the list to the non-disabled types.
 		$post_types = isset( $query->query_vars['post_type'] ) ? $query->query_vars['post_type'] : '';
-		if ( empty( $post_types ) ) {
+		if ( ! empty( $post_types ) ) {
+			$kept = array();
+			foreach ( (array) $post_types as $type ) {
+				if ( ! DPT_DC_Settings::disabled_for( (string) $type ) ) {
+					$kept[] = (string) $type;
+				}
+			}
+			if ( empty( $kept ) ) {
+				$query->query_vars['comment__in'] = array( 0 );
+			} else {
+				$query->query_vars['post_type'] = $kept;
+			}
 			return;
 		}
-		foreach ( (array) $post_types as $type ) {
-			if ( ! DPT_DC_Settings::disabled_for( (string) $type ) ) {
-				return;
+		// Unconstrained query (e.g. recent-comments widgets, bare
+		// /wp/v2/comments): restrict it to the still-allowed
+		// comment-supporting types, or empty it when none remain.
+		$allowed = array();
+		foreach ( DPT_DC_Settings::comment_post_types() as $type ) {
+			if ( ! DPT_DC_Settings::disabled_for( $type ) ) {
+				$allowed[] = $type;
 			}
 		}
-		$query->query_vars['comment__in'] = array( 0 );
+		if ( empty( $allowed ) ) {
+			$query->query_vars['comment__in'] = array( 0 );
+		} else {
+			$query->query_vars['post_type'] = $allowed;
+		}
 	}
 
 	/**
