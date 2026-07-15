@@ -91,8 +91,16 @@ class DPT_DC_Settings {
 
 	/**
 	 * Should comments be disabled for this post type?
+	 *
+	 * Scope guard: the module only manages post types that support
+	 * comments as a FRONTEND feature. Types that merely use comments as
+	 * internal storage (e.g. WooCommerce 'shop_order' order notes) are
+	 * never touched, even in 'all' mode.
 	 */
 	public static function disabled_for( $post_type ) {
+		if ( ! in_array( $post_type, self::comment_post_types(), true ) ) {
+			return false;
+		}
 		$o = self::all();
 		if ( 'product' === $post_type && '1' === $o['keep_woo_reviews'] ) {
 			return false;
@@ -146,7 +154,14 @@ class DPT_DC_Settings {
 			$clean['keep_woo_reviews'] = '1' === $raw['keep_woo_reviews'] ? '1' : '0';
 		}
 
+		$before = self::all();
 		update_option( self::OPTION, $clean );
+
+		// Comment forms/lists are part of the rendered (cacheable) HTML -
+		// invalidate the page caches when the behavior actually changed.
+		if ( $clean != $before && class_exists( 'DPT_CB_Settings' ) ) {
+			DPT_CB_Settings::purge_page_caches();
+		}
 		return true;
 	}
 }
