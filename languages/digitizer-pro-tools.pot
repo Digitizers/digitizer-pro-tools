@@ -26,6 +26,9 @@ msgstr ""
 msgid "%d items duplicated as drafts."
 msgstr ""
 
+msgid "(WooCommerce is not active on this site right now.)"
+msgstr ""
+
 msgid "0 = show immediately. 5 = show after 5 seconds, so the banner does not interrupt visitors right away."
 msgstr ""
 
@@ -203,6 +206,9 @@ msgstr ""
 msgid "Close button label (accessibility)"
 msgstr ""
 
+msgid "Closes comment forms, hides existing comments and removes the admin comments UI (menu, admin-bar bubble, dashboard widget, edit-comments screen). The admin UI is removed only when comments are disabled for every relevant post type."
+msgstr ""
+
 msgid "Closing with X counts as rejecting non-essential cookies."
 msgstr ""
 
@@ -255,6 +261,9 @@ msgid "Digitizer Pro Tools"
 msgstr ""
 
 msgid "Dims the page behind the banner, prompting the visitor to choose."
+msgstr ""
+
+msgid "Disable Comments"
 msgstr ""
 
 msgid "Dotted"
@@ -321,6 +330,9 @@ msgid "Essential - name"
 msgstr ""
 
 msgid "Essential cookies"
+msgstr ""
+
+msgid "Everywhere (all post types)"
 msgstr ""
 
 msgid "Fade"
@@ -425,6 +437,9 @@ msgstr ""
 msgid "Justify"
 msgstr ""
 
+msgid "Keep WooCommerce product reviews"
+msgstr ""
+
 msgid "Keep original date"
 msgstr ""
 
@@ -467,6 +482,9 @@ msgstr ""
 msgid "Mobile position"
 msgstr ""
 
+msgid "Mode"
+msgstr ""
+
 msgid "Modules"
 msgstr ""
 
@@ -498,6 +516,9 @@ msgid "One-click duplication of posts, pages and custom post types as drafts - i
 msgstr ""
 
 msgid "Only if the policy lives outside this site. Leave empty when a page is selected above."
+msgstr ""
+
+msgid "Only on selected post types"
 msgstr ""
 
 msgid "Or an external URL (instead of a page)"
@@ -542,6 +563,9 @@ msgstr ""
 msgid "Privacy policy page"
 msgstr ""
 
+msgid "Product reviews are technically comments - this keeps them working even when comments are disabled everywhere else."
+msgstr ""
+
 msgid "Relevant for the centered modal and corner positions - full-width bars size automatically."
 msgstr ""
 
@@ -576,6 +600,9 @@ msgid "Scripts from the \"Scripts\" tab load only after the visitor consents to 
 msgstr ""
 
 msgid "Scripts loaded after consent"
+msgstr ""
+
+msgid "Selected post types"
 msgstr ""
 
 msgid "Separate values for screens up to 640px wide."
@@ -671,6 +698,9 @@ msgstr ""
 msgid "Top-right corner"
 msgstr ""
 
+msgid "Turns off comments globally or per post type - closes forms, hides existing comments and removes the admin comments UI. WooCommerce product reviews are protected by default."
+msgstr ""
+
 msgid "Typography"
 msgstr ""
 
@@ -678,6 +708,9 @@ msgid "Update Emails"
 msgstr ""
 
 msgid "Updates after saving."
+msgstr ""
+
+msgid "Used only in \"Only on selected post types\" mode."
 msgstr ""
 
 msgid "Used when the page locale has no matching language."
@@ -696,6 +729,9 @@ msgid "View banner on the site"
 msgstr ""
 
 msgid "When disabled, the banner is not shown at all."
+msgstr ""
+
+msgid "Where to disable comments"
 msgstr ""
 
 msgid "WordPress emails the site admin after every automatic update. On a maintained site these routine \"success\" notifications are noise - this module silences them. Emails about FAILED updates are never suppressed."
