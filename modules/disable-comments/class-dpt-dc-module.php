@@ -113,12 +113,15 @@ class DPT_Disable_Comments_Module extends DPT_Module {
 			return;
 		}
 		// post_type constraint: narrow the list to the non-disabled types.
+		// 'any' is WordPress' match-every-type value, not a type name -
+		// treat it exactly like an unconstrained query.
 		$post_types = isset( $query->query_vars['post_type'] ) ? $query->query_vars['post_type'] : '';
-		if ( ! empty( $post_types ) ) {
+		$types_list = array_map( 'strval', (array) $post_types );
+		if ( ! empty( $post_types ) && ! in_array( 'any', $types_list, true ) ) {
 			$kept = array();
-			foreach ( (array) $post_types as $type ) {
-				if ( ! DPT_DC_Settings::disabled_for( (string) $type ) ) {
-					$kept[] = (string) $type;
+			foreach ( $types_list as $type ) {
+				if ( ! DPT_DC_Settings::disabled_for( $type ) ) {
+					$kept[] = $type;
 				}
 			}
 			if ( empty( $kept ) ) {
@@ -128,8 +131,8 @@ class DPT_Disable_Comments_Module extends DPT_Module {
 			}
 			return;
 		}
-		// Unconstrained query (e.g. recent-comments widgets, bare
-		// /wp/v2/comments): restrict it to the still-allowed
+		// Unconstrained query (post_type empty or 'any' - recent-comments
+		// widgets, bare /wp/v2/comments): restrict it to the still-allowed
 		// comment-supporting types, or empty it when none remain.
 		$allowed = array();
 		foreach ( DPT_DC_Settings::comment_post_types() as $type ) {
