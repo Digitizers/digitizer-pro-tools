@@ -138,18 +138,23 @@ class DPT_Disable_Comments_Module extends DPT_Module {
 			return;
 		}
 		// Unconstrained query (post_type empty or 'any' - recent-comments
-		// widgets, bare /wp/v2/comments): restrict it to the still-allowed
-		// comment-supporting types, or empty it when none remain.
-		$allowed = array();
+		// widgets, bare /wp/v2/comments): exclude ONLY the disabled types.
+		// Everything else stays, including unmanaged internal types like
+		// WooCommerce shop_order whose order notes must keep flowing.
+		$disabled = array();
 		foreach ( DPT_DC_Settings::comment_post_types() as $type ) {
-			if ( ! DPT_DC_Settings::disabled_for( $type ) ) {
-				$allowed[] = $type;
+			if ( DPT_DC_Settings::disabled_for( $type ) ) {
+				$disabled[] = $type;
 			}
 		}
-		if ( empty( $allowed ) ) {
+		if ( empty( $disabled ) ) {
+			return;
+		}
+		$kept = array_values( array_diff( array_values( get_post_types( array(), 'names' ) ), $disabled ) );
+		if ( empty( $kept ) ) {
 			$query->query_vars['comment__in'] = array( 0 );
 		} else {
-			$query->query_vars['post_type'] = $allowed;
+			$query->query_vars['post_type'] = $kept;
 		}
 	}
 
