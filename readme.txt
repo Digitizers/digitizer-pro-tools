@@ -66,7 +66,7 @@ Moves the login page to a custom URL (disabled by default; enable it on the Modu
 
 * Custom login slug (default: /login), configurable per site
 * wp-login.php returns the theme's real 404 page; logged-out wp-admin requests land on a 404 as well
-* All generated login/logout/lost-password/registration URLs are rewritten automatically, including emails
+* All generated login/logout/lost-password/registration URLs are rewritten automatically, including the links in password-reset emails
 * Post-password forms, admin-ajax, admin-post and cron keep working
 * Reserved WordPress slugs are rejected to avoid lockouts
 

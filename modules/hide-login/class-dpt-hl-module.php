@@ -49,7 +49,6 @@ class DPT_Hide_Login_Module extends DPT_Module {
 		add_filter( 'site_url', array( $this, 'filter_login_url' ), 10, 2 );
 		add_filter( 'network_site_url', array( $this, 'filter_login_url' ), 10, 2 );
 		add_filter( 'wp_redirect', array( $this, 'filter_login_url' ), 10, 1 );
-		add_filter( 'site_option_welcome_email', array( $this, 'filter_welcome_email' ) );
 	}
 
 	public function register_admin_menu( $parent_slug ) {
@@ -141,18 +140,6 @@ class DPT_Hide_Login_Module extends DPT_Module {
 			return $base . $sep . $parts[1];
 		}
 		return $base;
-	}
-
-	/**
-	 * Multisite welcome email contains a hardcoded BLOG_URLwp-login.php
-	 * link; swap in the slug in the same relative form new_login_url()
-	 * would produce (pretty path or plain ?slug), so the link routes on
-	 * plain-permalink sites too.
-	 */
-	public function filter_welcome_email( $value ) {
-		return is_string( $value )
-			? str_replace( 'wp-login.php', DPT_HL_Settings::login_relative(), $value )
-			: $value;
 	}
 
 	/**

@@ -133,20 +133,6 @@ class DPT_HL_Settings {
 	}
 
 	/**
-	 * The login slug relative to home_url('/'): "slug", "slug/",
-	 * "index.php/slug/" or "?slug" depending on the permalink structure.
-	 */
-	public static function login_relative() {
-		$slug   = self::slug();
-		$struct = get_option( 'permalink_structure' );
-		if ( $struct ) {
-			$path = self::permalink_prefix() . $slug;
-			return ( '/' === substr( $struct, -1 ) ) ? trailingslashit( $path ) : $path;
-		}
-		return '?' . $slug;
-	}
-
-	/**
 	 * The current absolute login URL under the custom slug.
 	 */
 	public static function new_login_url( $scheme = null ) {
