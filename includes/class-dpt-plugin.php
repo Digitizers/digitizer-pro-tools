@@ -43,6 +43,11 @@ class DPT_Plugin {
 				'class'   => 'DPT_Update_Emails_Module',
 				'default' => '1',
 			),
+			'disable_comments' => array(
+				'file'    => DPT_PATH . 'modules/disable-comments/class-dpt-dc-module.php',
+				'class'   => 'DPT_Disable_Comments_Module',
+				'default' => '0',
+			),
 		);
 		return apply_filters( 'dpt_modules', $modules );
 	}

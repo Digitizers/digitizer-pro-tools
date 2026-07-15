@@ -6,7 +6,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.2.0
+Stable tag: 1.3.0
 License: GPLv2 or later
 
 One toolbox plugin by Digitizer. Modules: multilingual cookie-consent banner, one-click post duplication, auto-update email silencing.
@@ -51,6 +51,15 @@ Silences the routine "site updated" notifications WordPress emails after automat
 * Core updates: only SUCCESS notifications are silenced - failure and critical emails always go out
 * Neutralizes the well-known legacy functions.php snippets on these hooks (blanket __return_false and the WPBeginner-style core callbacks), so they cannot hide failure emails or fatal the cron - still, remove those snippets once the module is active
 
+= Module: Disable Comments =
+
+Turns comments off - dynamically (disabled by default; enable it on the Modules screen):
+
+* Everywhere, or only on selected post types
+* Closes comment/trackback forms, hides existing comments, strips editor support
+* Removes the admin comments UI (menu, admin-bar bubble, dashboard widget, edit-comments screen) - only when comments are disabled for every relevant post type
+* WooCommerce product reviews are comments under the hood - a dedicated toggle (on by default) keeps them working
+
 Admin interface is in English with a full Hebrew translation.
 
 == Installation ==
@@ -62,6 +71,9 @@ Admin interface is in English with a full Hebrew translation.
 5. Save and check the site
 
 == Changelog ==
+
+= 1.3.0 =
+* New module: Disable Comments - global or per-post-type, with WooCommerce product reviews protected by default (module ships disabled; enable per site)
 
 = 1.2.0 =
 * New module: Update Emails - silences automatic-update email notifications (plugins, themes, successful core updates), with failure emails always kept
