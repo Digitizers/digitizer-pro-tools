@@ -37,10 +37,10 @@ class DPT_Update_Emails_Module extends DPT_Module {
 		$o = DPT_UE_Settings::all();
 
 		if ( '1' === $o['disable_plugin_emails'] ) {
-			add_filter( 'auto_plugin_update_send_email', array( $this, 'filter_plugin_theme_update_email' ), 10, 3 );
+			add_filter( 'auto_plugin_update_send_email', array( $this, 'filter_plugin_theme_update_email' ), 10, 2 );
 		}
 		if ( '1' === $o['disable_theme_emails'] ) {
-			add_filter( 'auto_theme_update_send_email', array( $this, 'filter_plugin_theme_update_email' ), 10, 3 );
+			add_filter( 'auto_theme_update_send_email', array( $this, 'filter_plugin_theme_update_email' ), 10, 2 );
 		}
 		if ( '1' === $o['disable_core_success_emails'] ) {
 			add_filter( 'auto_core_update_send_email', array( $this, 'filter_core_update_email' ), 10, 4 );
@@ -54,18 +54,23 @@ class DPT_Update_Emails_Module extends DPT_Module {
 	/**
 	 * Plugin/theme auto-update notifications use ONE combined email for both
 	 * completed and failed updates, so a plain __return_false would hide
-	 * failures too. Silence the email only when every update in the batch
-	 * succeeded; any failure keeps the notification going out.
+	 * failures too. WordPress passes ($enabled, $update_results): a flat
+	 * array of result objects whose ->result is true only on success (see
+	 * WP_Automatic_Updater::after_plugin_theme_update()). Silence the email
+	 * only when EVERY update in the batch succeeded; anything else - a
+	 * failure, or a shape we don't recognize - keeps the notification.
 	 *
-	 * @param bool  $send       Whether WordPress would send the email.
-	 * @param array $successful Successful update results.
-	 * @param array $failed     Failed update results.
+	 * @param bool  $send           Whether WordPress would send the email.
+	 * @param array $update_results Update result objects for this batch.
 	 */
-	public function filter_plugin_theme_update_email( $send, $successful = array(), $failed = array() ) {
-		if ( empty( $failed ) ) {
-			return false;
+	public function filter_plugin_theme_update_email( $send, $update_results = array() ) {
+		foreach ( (array) $update_results as $update ) {
+			$result = ( is_object( $update ) && property_exists( $update, 'result' ) ) ? $update->result : null;
+			if ( true !== $result ) {
+				return $send;
+			}
 		}
-		return $send;
+		return false;
 	}
 
 	/**
