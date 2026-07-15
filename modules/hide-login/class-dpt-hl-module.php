@@ -49,6 +49,13 @@ class DPT_Hide_Login_Module extends DPT_Module {
 		add_filter( 'site_url', array( $this, 'filter_login_url' ), 10, 2 );
 		add_filter( 'network_site_url', array( $this, 'filter_login_url' ), 10, 2 );
 		add_filter( 'wp_redirect', array( $this, 'filter_login_url' ), 10, 1 );
+
+		// WordPress core canonically redirects the /login, /wp-login, /admin
+		// and /dashboard aliases to wp_login_url()/admin_url(). Since this
+		// module rewrites wp_login_url() to the secret slug, a plain /login
+		// request would 301 straight to the hidden URL and disclose it -
+		// drop that convenience redirect entirely.
+		remove_action( 'template_redirect', 'wp_redirect_admin_locations', 1000 );
 	}
 
 	public function register_admin_menu( $parent_slug ) {
