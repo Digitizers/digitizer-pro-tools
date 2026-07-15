@@ -49,6 +49,7 @@ class DPT_Hide_Login_Module extends DPT_Module {
 		add_filter( 'site_url', array( $this, 'filter_login_url' ), 10, 2 );
 		add_filter( 'network_site_url', array( $this, 'filter_login_url' ), 10, 2 );
 		add_filter( 'wp_redirect', array( $this, 'filter_login_url' ), 10, 1 );
+		add_filter( 'wp_redirect', array( $this, 'preserve_login_marker' ), 20, 1 );
 
 		// WordPress core canonically redirects the /login, /wp-login, /admin
 		// and /dashboard aliases to wp_login_url()/admin_url(). Since this
@@ -147,6 +148,42 @@ class DPT_Hide_Login_Module extends DPT_Module {
 			return $base . $sep . $parts[1];
 		}
 		return $base;
+	}
+
+	/**
+	 * Keep the plain-permalink login endpoint marker alive across core
+	 * redirects that happen while serving the login page.
+	 *
+	 * On plain permalinks the endpoint is the slug query key (/?slug). With
+	 * the default slug 'login' this collides with the 'login' arg WordPress
+	 * uses in the password-reset flow: after setting the reset cookie core
+	 * redirects with remove_query_arg( array( 'key', 'login' ) ), which also
+	 * strips our marker, so the next request 404s instead of showing the
+	 * reset form. Re-add the marker to any home-path redirect issued during
+	 * a login request that lost it.
+	 */
+	public function preserve_login_marker( $location ) {
+		if ( ! $this->is_new_login || ! is_string( $location ) || get_option( 'permalink_structure' ) ) {
+			return $location;
+		}
+		$slug  = DPT_HL_Settings::slug();
+		$parts = wp_parse_url( $location );
+		if ( false === $parts ) {
+			return $location;
+		}
+		$path      = isset( $parts['path'] ) ? untrailingslashit( $parts['path'] ) : '';
+		$home_path = untrailingslashit( (string) wp_parse_url( home_url( '/' ), PHP_URL_PATH ) );
+		if ( $path !== $home_path ) {
+			return $location;
+		}
+		$query = array();
+		if ( isset( $parts['query'] ) ) {
+			parse_str( $parts['query'], $query );
+		}
+		if ( array_key_exists( $slug, $query ) ) {
+			return $location;
+		}
+		return add_query_arg( $slug, '', $location );
 	}
 
 	/**
