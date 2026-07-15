@@ -73,10 +73,20 @@ class DPT_Hide_Login_Module extends DPT_Module {
 		}
 
 		$home_path = untrailingslashit( (string) wp_parse_url( home_url( '/' ), PHP_URL_PATH ) );
-		$slug_path = $home_path . '/' . DPT_HL_Settings::slug();
 
-		if ( untrailingslashit( $path ) === $slug_path
-			|| ( ! get_option( 'permalink_structure' ) && isset( $_GET[ DPT_HL_Settings::slug() ] ) ) ) {
+		if ( get_option( 'permalink_structure' ) ) {
+			// Pretty permalinks: match the slug path (carrying the
+			// index.php prefix on PATHINFO installs).
+			$slug_path = $home_path . '/' . DPT_HL_Settings::permalink_prefix() . DPT_HL_Settings::slug();
+			$match     = untrailingslashit( $path ) === untrailingslashit( $slug_path );
+		} else {
+			// Plain permalinks: the slug is a query key, but only the home
+			// URL form (/?slug) is the login endpoint - a normal page like
+			// /some-page/?login=1 must not be hijacked.
+			$match = isset( $_GET[ DPT_HL_Settings::slug() ] ) && untrailingslashit( $path ) === $home_path;
+		}
+
+		if ( $match ) {
 			$this->is_new_login = true;
 			$pagenow            = 'wp-login.php';
 		}
@@ -141,21 +151,8 @@ class DPT_Hide_Login_Module extends DPT_Module {
 	 */
 	public function filter_welcome_email( $value ) {
 		return is_string( $value )
-			? str_replace( 'wp-login.php', $this->relative_login_path(), $value )
+			? str_replace( 'wp-login.php', DPT_HL_Settings::login_relative(), $value )
 			: $value;
-	}
-
-	/**
-	 * The login slug relative to home_url('/'): "slug", "slug/" or "?slug"
-	 * depending on the permalink structure - mirrors new_login_url().
-	 */
-	private function relative_login_path() {
-		$slug = DPT_HL_Settings::slug();
-		$struct = get_option( 'permalink_structure' );
-		if ( $struct ) {
-			return ( '/' === substr( $struct, -1 ) ) ? trailingslashit( $slug ) : $slug;
-		}
-		return '?' . $slug;
 	}
 
 	/**

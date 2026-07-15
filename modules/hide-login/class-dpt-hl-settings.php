@@ -119,18 +119,46 @@ class DPT_HL_Settings {
 	}
 
 	/**
-	 * The current login URL under the custom slug.
+	 * Prefix WordPress inserts before pretty permalinks: "index.php/" on
+	 * PATHINFO permalink structures (e.g. /index.php/%postname%/), empty
+	 * otherwise. Front-end URLs on those installs only route through the
+	 * index.php prefix, so the login URL must carry it too.
+	 */
+	public static function permalink_prefix() {
+		$struct = get_option( 'permalink_structure' );
+		if ( $struct && 0 === strpos( ltrim( $struct, '/' ), 'index.php' ) ) {
+			return 'index.php/';
+		}
+		return '';
+	}
+
+	/**
+	 * The login slug relative to home_url('/'): "slug", "slug/",
+	 * "index.php/slug/" or "?slug" depending on the permalink structure.
+	 */
+	public static function login_relative() {
+		$slug   = self::slug();
+		$struct = get_option( 'permalink_structure' );
+		if ( $struct ) {
+			$path = self::permalink_prefix() . $slug;
+			return ( '/' === substr( $struct, -1 ) ) ? trailingslashit( $path ) : $path;
+		}
+		return '?' . $slug;
+	}
+
+	/**
+	 * The current absolute login URL under the custom slug.
 	 */
 	public static function new_login_url( $scheme = null ) {
-		$slug = self::slug();
-		if ( get_option( 'permalink_structure' ) ) {
-			$url = home_url( '/', $scheme ) . $slug;
-			if ( '/' === substr( get_option( 'permalink_structure' ), -1 ) ) {
+		$struct = get_option( 'permalink_structure' );
+		if ( $struct ) {
+			$url = home_url( '/', $scheme ) . self::permalink_prefix() . self::slug();
+			if ( '/' === substr( $struct, -1 ) ) {
 				$url = trailingslashit( $url );
 			}
 			return $url;
 		}
-		return home_url( '/', $scheme ) . '?' . $slug;
+		return home_url( '/', $scheme ) . '?' . self::slug();
 	}
 
 	public static function save( $raw ) {
