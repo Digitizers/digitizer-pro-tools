@@ -120,8 +120,11 @@ class DPT_Hide_Login_Module extends DPT_Module {
 		if ( ! is_string( $url ) || false === strpos( $url, 'wp-login.php' ) ) {
 			return $url;
 		}
-		$scheme = is_ssl() ? 'https' : null;
-		$base   = DPT_HL_Settings::new_login_url( $scheme );
+		// Preserve the scheme WordPress chose for this URL - it may have
+		// forced https (FORCE_SSL_ADMIN) even on a non-SSL request; deriving
+		// it from is_ssl() would downgrade the rewritten login URL to http.
+		$scheme = wp_parse_url( $url, PHP_URL_SCHEME );
+		$base   = DPT_HL_Settings::new_login_url( $scheme ? $scheme : null );
 		$parts  = explode( '?', $url, 2 );
 		if ( isset( $parts[1] ) && '' !== $parts[1] ) {
 			$sep = ( false !== strpos( $base, '?' ) ) ? '&' : '?';
