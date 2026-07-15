@@ -85,7 +85,10 @@ class DPT_Disable_Comments_Module extends DPT_Module {
 	 * @param WP_Comment_Query $query Query, passed by reference.
 	 */
 	public function filter_comment_queries( $query ) {
-		if ( is_admin() ) {
+		// Skip only REAL admin screens (moderation must list everything).
+		// admin-ajax.php sets is_admin() to true even for public frontend
+		// AJAX, so those requests must stay filtered.
+		if ( is_admin() && ! wp_doing_ajax() ) {
 			return;
 		}
 		$post_id = ! empty( $query->query_vars['post_id'] ) ? (int) $query->query_vars['post_id'] : 0;
