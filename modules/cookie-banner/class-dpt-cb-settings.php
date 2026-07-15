@@ -275,6 +275,23 @@ class DPT_CB_Settings {
 			$merged['texts'][ $lang ] = array_merge( self::default_texts( $lang ), $saved );
 		}
 
+		// v1.0.1: emoji removed from the seeded texts. Saved copies that
+		// still hold the EXACT legacy seeds follow; customized texts stay.
+		if ( version_compare( $old_version, '1.0.1', '<' ) ) {
+			$legacy_titles = array(
+				'אנחנו משתמשים בעוגיות 🍪' => 'אנחנו משתמשים בעוגיות',
+				'We use cookies 🍪'        => 'We use cookies',
+			);
+			foreach ( $merged['texts'] as $lang => $lang_texts ) {
+				if ( isset( $lang_texts['title'] ) && isset( $legacy_titles[ $lang_texts['title'] ] ) ) {
+					$merged['texts'][ $lang ]['title'] = $legacy_titles[ $lang_texts['title'] ];
+				}
+				if ( isset( $lang_texts['float_button_text'] ) && '🍪' === trim( $lang_texts['float_button_text'] ) ) {
+					$merged['texts'][ $lang ]['float_button_text'] = '';
+				}
+			}
+		}
+
 		update_option( self::OPTION, $merged );
 	}
 
