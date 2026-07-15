@@ -225,29 +225,43 @@ class DPT_URE_Manager {
 			return new WP_Error( 'dpt_ure_missing', __( 'Role not found.', 'digitizer-pro-tools' ) );
 		}
 
-		$valid   = self::get_all_capabilities();
+		// Validate submitted caps against the known capability list verbatim:
+		// the whitelist IS the sanitizer, so plugin-defined caps that contain
+		// uppercase letters or hyphens survive a save instead of being
+		// normalized to a non-matching value and silently dropped.
+		$valid   = array_flip( self::get_all_capabilities() );
 		$desired = array();
 		foreach ( (array) $desired_caps as $cap ) {
-			$cap = self::sanitize_capability( is_array( $cap ) ? '' : $cap );
-			if ( '' !== $cap && in_array( $cap, $valid, true ) ) {
+			if ( is_string( $cap ) && isset( $valid[ $cap ] ) ) {
 				$desired[ $cap ] = true;
 			}
 		}
 
+		$current = is_array( $role->capabilities ) ? $role->capabilities : array();
+
 		// Never let the administrator role lose the caps that keep the site
-		// manageable, and never let the current user strip their own access.
+		// manageable.
 		if ( 'administrator' === $key ) {
 			foreach ( self::protected_admin_caps() as $cap ) {
 				$desired[ $cap ] = true;
 			}
 		}
+
+		// Never let the current user strip their OWN admin access - but only
+		// force-keep a cap on this role when no other role of theirs still
+		// grants it, otherwise editing a secondary role (e.g. an admin who is
+		// also an editor saving the Editor page) would over-grant it to every
+		// member of that role.
 		if ( self::current_user_has_role( $key ) ) {
-			$desired['manage_options'] = true;
-			$desired['read']           = true;
+			foreach ( array( 'manage_options', 'read' ) as $cap ) {
+				if ( ! empty( $current[ $cap ] ) && empty( $desired[ $cap ] )
+					&& ! self::current_user_keeps_cap_via_other_role( $key, $cap ) ) {
+					$desired[ $cap ] = true;
+				}
+			}
 		}
 
 		// Apply the diff against the role's current caps.
-		$current = is_array( $role->capabilities ) ? $role->capabilities : array();
 		foreach ( array_keys( $current ) as $cap ) {
 			if ( empty( $desired[ $cap ] ) ) {
 				$role->remove_cap( $cap );
@@ -287,5 +301,27 @@ class DPT_URE_Manager {
 	private static function current_user_has_role( $key ) {
 		$user = wp_get_current_user();
 		return $user && ! empty( $user->roles ) && in_array( $key, (array) $user->roles, true );
+	}
+
+	/**
+	 * Does the current user still get $cap from a role OTHER than $key? Used
+	 * to decide whether removing $cap from $key would actually cost them
+	 * their own access (so we only force-keep it when it truly would).
+	 */
+	private static function current_user_keeps_cap_via_other_role( $key, $cap ) {
+		$user = wp_get_current_user();
+		if ( ! $user || empty( $user->roles ) ) {
+			return false;
+		}
+		foreach ( (array) $user->roles as $rk ) {
+			if ( $rk === $key ) {
+				continue;
+			}
+			$role = self::roles()->get_role( $rk );
+			if ( $role && ! empty( $role->capabilities[ $cap ] ) ) {
+				return true;
+			}
+		}
+		return false;
 	}
 }
