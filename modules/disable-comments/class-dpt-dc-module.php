@@ -116,7 +116,13 @@ class DPT_Disable_Comments_Module extends DPT_Module {
 		// 'any' is WordPress' match-every-type value, not a type name -
 		// treat it exactly like an unconstrained query.
 		$post_types = isset( $query->query_vars['post_type'] ) ? $query->query_vars['post_type'] : '';
-		$types_list = array_map( 'strval', (array) $post_types );
+		// WP_Comment_Query also accepts the comma-separated string form
+		// ('post,product') - split it the same way core does.
+		if ( is_string( $post_types ) ) {
+			$types_list = array_filter( array_map( 'trim', explode( ',', $post_types ) ) );
+		} else {
+			$types_list = array_map( 'strval', (array) $post_types );
+		}
 		if ( ! empty( $post_types ) && ! in_array( 'any', $types_list, true ) ) {
 			$kept = array();
 			foreach ( $types_list as $type ) {
