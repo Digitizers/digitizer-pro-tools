@@ -20,6 +20,7 @@ class DPT_HL_Settings {
 	 */
 	public static function reserved_slugs() {
 		$reserved = array(
+			// WordPress paths and endpoints.
 			'wp-admin',
 			'wp-login',
 			'wp-login.php',
@@ -34,10 +35,44 @@ class DPT_HL_Settings {
 			'404',
 			'feed',
 			'embed',
-			'page',
 			'comments',
-			'search',
 			'attachment',
+			// Core public query vars: on plain permalinks the slug becomes a
+			// query key (/?slug), so any of these would hijack normal
+			// front-end routing such as /?p=123 or /?s=term.
+			'p',
+			'page',
+			'page_id',
+			'pagename',
+			'name',
+			's',
+			'cat',
+			'category_name',
+			'tag',
+			'tag_id',
+			'author',
+			'author_name',
+			'post_type',
+			'taxonomy',
+			'term',
+			'm',
+			'w',
+			'year',
+			'monthnum',
+			'day',
+			'hour',
+			'minute',
+			'second',
+			'paged',
+			'order',
+			'orderby',
+			'cpage',
+			'attachment_id',
+			'preview',
+			'robots',
+			'sitemap',
+			'rest_route',
+			'error',
 		);
 		return apply_filters( 'dpt_hl_reserved_slugs', $reserved );
 	}
