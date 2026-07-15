@@ -43,6 +43,8 @@ class DPT_Disable_Comments_Module extends DPT_Module {
 		add_action( 'admin_init', array( $this, 'admin_lockdown' ) );
 		add_action( 'admin_menu', array( $this, 'remove_admin_menu' ) );
 		add_action( 'admin_bar_menu', array( $this, 'remove_admin_bar_item' ), 0 );
+		add_action( 'wp_dashboard_setup', array( $this, 'remove_dashboard_widget' ) );
+		add_action( 'admin_print_styles-index.php', array( $this, 'hide_dashboard_activity_comments' ) );
 
 		if ( is_admin() ) {
 			$this->admin = new DPT_DC_Admin();
@@ -74,7 +76,10 @@ class DPT_Disable_Comments_Module extends DPT_Module {
 	 * (removes the editor discussion panel and related REST fields).
 	 */
 	public function remove_post_type_support() {
-		foreach ( DPT_DC_Settings::comment_post_types() as $type ) {
+		// Snapshot the pre-strip list first, so the settings UI and save
+		// validation keep seeing the types this module disabled.
+		$types = DPT_DC_Settings::snapshot_comment_post_types();
+		foreach ( $types as $type ) {
 			if ( DPT_DC_Settings::disabled_for( $type ) ) {
 				remove_post_type_support( $type, 'comments' );
 				remove_post_type_support( $type, 'trackbacks' );
@@ -83,8 +88,8 @@ class DPT_Disable_Comments_Module extends DPT_Module {
 	}
 
 	/**
-	 * Redirect away from edit-comments.php and drop the dashboard widget -
-	 * only when comments are disabled for every relevant post type.
+	 * Redirect away from edit-comments.php - only when comments are
+	 * disabled for every relevant post type.
 	 */
 	public function admin_lockdown() {
 		if ( ! DPT_DC_Settings::fully_disabled() ) {
@@ -95,7 +100,28 @@ class DPT_Disable_Comments_Module extends DPT_Module {
 			wp_safe_redirect( admin_url() );
 			exit;
 		}
-		remove_meta_box( 'dashboard_recent_comments', 'dashboard', 'normal' );
+	}
+
+	/**
+	 * Legacy dashboard comments widget - removed at wp_dashboard_setup,
+	 * i.e. when dashboard widgets are actually registered.
+	 */
+	public function remove_dashboard_widget() {
+		if ( DPT_DC_Settings::fully_disabled() ) {
+			remove_meta_box( 'dashboard_recent_comments', 'dashboard', 'normal' );
+		}
+	}
+
+	/**
+	 * Modern WordPress shows recent comments inside the Activity dashboard
+	 * widget (the #latest-comments block) - there is no hook to drop just
+	 * that section, so hide it the same way the classic Disable Comments
+	 * plugin does.
+	 */
+	public function hide_dashboard_activity_comments() {
+		if ( DPT_DC_Settings::fully_disabled() ) {
+			echo '<style id="dpt-dc-dashboard">#dashboard_activity #latest-comments{display:none;}</style>' . "\n";
+		}
 	}
 
 	public function remove_admin_menu() {

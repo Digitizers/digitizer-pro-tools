@@ -49,10 +49,37 @@ class DPT_DC_Settings {
 	}
 
 	/**
+	 * Snapshot of the comment-supporting post types taken BEFORE this
+	 * module strips their 'comments' support - otherwise the settings UI
+	 * and save validation would stop seeing exactly the types the module
+	 * disabled, silently dropping them on the next save.
+	 *
+	 * @var string[]|null
+	 */
+	private static $types_snapshot = null;
+
+	/**
 	 * Post types offered in the settings UI: everything registered with
-	 * comments support.
+	 * comments support (as it was before this module removed any).
 	 */
 	public static function comment_post_types() {
+		if ( null !== self::$types_snapshot ) {
+			return self::$types_snapshot;
+		}
+		return self::compute_comment_post_types();
+	}
+
+	/**
+	 * Called by the module right before it strips post type support.
+	 */
+	public static function snapshot_comment_post_types() {
+		if ( null === self::$types_snapshot ) {
+			self::$types_snapshot = self::compute_comment_post_types();
+		}
+		return self::$types_snapshot;
+	}
+
+	private static function compute_comment_post_types() {
 		$types = array();
 		foreach ( get_post_types( array(), 'names' ) as $type ) {
 			if ( post_type_supports( $type, 'comments' ) ) {
