@@ -351,10 +351,18 @@ class DPT_CB_Settings {
 
 		$texts = array();
 		foreach ( self::text_keys() as $key ) {
-			$texts[ $key ] = '';
+			// For float_button_text an explicit blank MEANS "use the built-in
+			// icon", so it must win over lower layers instead of falling
+			// through to another language's custom label.
+			$blank_is_value = ( 'float_button_text' === $key );
+			$texts[ $key ]  = '';
 			foreach ( $layers as $layer ) {
-				if ( isset( $layer[ $key ] ) && '' !== trim( (string) $layer[ $key ] ) ) {
-					$texts[ $key ] = $layer[ $key ];
+				if ( ! isset( $layer[ $key ] ) ) {
+					continue;
+				}
+				$value = (string) $layer[ $key ];
+				if ( $blank_is_value || '' !== trim( $value ) ) {
+					$texts[ $key ] = $value;
 				}
 			}
 		}
