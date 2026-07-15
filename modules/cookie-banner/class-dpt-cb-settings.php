@@ -293,6 +293,18 @@ class DPT_CB_Settings {
 		}
 
 		update_option( self::OPTION, $merged );
+
+		// Migrations change frontend-rendered settings just like a normal
+		// save does, so cached pages must be invalidated too. This runs on
+		// plugins_loaded - defer to init when needed so cache plugins that
+		// register their purge listeners on init still catch it.
+		if ( $merged != $existing ) {
+			if ( did_action( 'init' ) ) {
+				self::purge_page_caches();
+			} else {
+				add_action( 'init', array( __CLASS__, 'purge_page_caches' ), 99 );
+			}
+		}
 	}
 
 	/**
