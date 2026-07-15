@@ -48,6 +48,11 @@ class DPT_Plugin {
 				'class'   => 'DPT_Disable_Comments_Module',
 				'default' => '0',
 			),
+			'hide_login' => array(
+				'file'    => DPT_PATH . 'modules/hide-login/class-dpt-hl-module.php',
+				'class'   => 'DPT_Hide_Login_Module',
+				'default' => '0',
+			),
 		);
 		return apply_filters( 'dpt_modules', $modules );
 	}

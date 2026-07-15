@@ -6,7 +6,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.3.0
+Stable tag: 1.4.0
 License: GPLv2 or later
 
 One toolbox plugin by Digitizer. Modules: multilingual cookie-consent banner, one-click post duplication, auto-update email silencing.
@@ -60,6 +60,16 @@ Turns comments off - dynamically (disabled by default; enable it on the Modules 
 * Removes the admin comments UI (menu, admin-bar bubble, dashboard widget, edit-comments screen) - only when comments are disabled for every relevant post type
 * WooCommerce product reviews are comments under the hood - a dedicated toggle (on by default) keeps them working
 
+= Module: Hide Login =
+
+Moves the login page to a custom URL (disabled by default; enable it on the Modules screen):
+
+* Custom login slug (default: /login), configurable per site
+* wp-login.php returns the theme's real 404 page; logged-out wp-admin requests land on a 404 as well
+* All generated login/logout/lost-password/registration URLs are rewritten automatically, including the links in password-reset emails
+* Post-password forms, admin-ajax, admin-post and cron keep working
+* Reserved WordPress slugs are rejected to avoid lockouts
+
 Admin interface is in English with a full Hebrew translation.
 
 == Installation ==
@@ -71,6 +81,9 @@ Admin interface is in English with a full Hebrew translation.
 5. Save and check the site
 
 == Changelog ==
+
+= 1.4.0 =
+* New module: Hide Login - custom login URL with 404 for wp-login.php and logged-out wp-admin (module ships disabled; enable per site)
 
 = 1.3.0 =
 * New module: Disable Comments - global or per-post-type, with WooCommerce product reviews protected by default (module ships disabled; enable per site)

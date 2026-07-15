@@ -1,35 +1,460 @@
-# Copyright (C) 2026 Digitizers
-# This file is distributed under the GPL v2 or later.
+# Digitizer Pro Tools translations
 msgid ""
 msgstr ""
-"Project-Id-Version: Digitizer Pro Tools 1.0.0\n"
+"Project-Id-Version: Digitizer Pro Tools\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Domain: digitizer-pro-tools\n"
+"POT-Creation-Date: 2026-07-15 22:07+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: digitizer-pro-tools build-i18n\n"
 
-msgid "\"Accept all\" button"
+msgid "Digitizer Pro Tools"
 msgstr ""
 
-msgid "\"Always active\" label"
+msgid "Modules"
+msgstr ""
+
+msgid "You are not allowed to do that."
+msgstr ""
+
+msgid "Modules saved."
+msgstr ""
+
+msgid "Enable the tools you need. Each module replaces a standalone plugin."
+msgstr ""
+
+msgid "Save Modules"
+msgstr ""
+
+msgid "Settings"
+msgstr ""
+
+msgid "Cookie Banner"
+msgstr ""
+
+msgid "Settings saved."
+msgstr ""
+
+msgid "Language added."
+msgstr ""
+
+msgid "Language removed."
+msgstr ""
+
+msgid "Invalid language code. Use formats like \"en\", \"ru\" or \"pt_BR\"."
+msgstr ""
+
+msgid "General"
+msgstr ""
+
+msgid "Texts"
+msgstr ""
+
+msgid "Design"
+msgstr ""
+
+msgid "Typography"
+msgstr ""
+
+msgid "Buttons"
+msgstr ""
+
+msgid "Categories"
+msgstr ""
+
+msgid "Scripts"
+msgstr ""
+
+msgid "Floating Button"
+msgstr ""
+
+msgid "Save Settings"
+msgstr ""
+
+msgid "Hebrew"
+msgstr ""
+
+msgid "English"
+msgstr ""
+
+msgid "Arabic"
+msgstr ""
+
+msgid "Russian"
+msgstr ""
+
+msgid "French"
+msgstr ""
+
+msgid "Spanish"
+msgstr ""
+
+msgid "German"
+msgstr ""
+
+msgid "General Settings"
+msgstr ""
+
+msgid "Enable banner"
+msgstr ""
+
+msgid "When disabled, the banner is not shown at all."
+msgstr ""
+
+msgid "Banner position"
+msgstr ""
+
+msgid "Full-width bar at the bottom"
+msgstr ""
+
+msgid "Full-width bar at the top"
+msgstr ""
+
+msgid "Centered modal"
+msgstr ""
+
+msgid "Bottom-left corner"
+msgstr ""
+
+msgid "Bottom-right corner"
+msgstr ""
+
+msgid "Entry animation"
+msgstr ""
+
+msgid "Slide up"
+msgstr ""
+
+msgid "Slide down"
+msgstr ""
+
+msgid "Fade"
+msgstr ""
+
+msgid "Zoom"
+msgstr ""
+
+msgid "None"
+msgstr ""
+
+msgid "Show on mobile"
+msgstr ""
+
+msgid "Accept on scroll"
+msgstr ""
+
+msgid "Not recommended for GDPR - EU law requires active consent."
+msgstr ""
+
+msgid "Block scripts until consent"
+msgstr ""
+
+msgid "Scripts from the \"Scripts\" tab load only after the visitor consents to the matching category."
+msgstr ""
+
+msgid "Consent lifetime (days)"
+msgstr ""
+
+msgid "After this many days the visitor is asked again."
+msgstr ""
+
+msgid "Consent version"
+msgstr ""
+
+msgid "Increase this number to ask ALL visitors for consent again (for example after changing your cookie policy). Popular page caches (WP Rocket, LiteSpeed, Super Cache, W3TC, Fastest Cache, SiteGround) are purged automatically when it changes."
+msgstr ""
+
+msgid "Show delay (seconds)"
+msgstr ""
+
+msgid "0 = show immediately. 5 = show after 5 seconds, so the banner does not interrupt visitors right away."
+msgstr ""
+
+msgid "The banner picks the language automatically from the current page locale (WPML / Polylang / TranslatePress compatible), falling back to the default language."
+msgstr ""
+
+msgid "default"
+msgstr ""
+
+msgid "Banner title"
+msgstr ""
+
+msgid "Banner message"
+msgstr ""
+
+msgid "Basic HTML is allowed: <strong>, <em>, <a>, <br>"
+msgstr ""
+
+msgid "\"Accept all\" button"
 msgstr ""
 
 msgid "\"Reject all\" button"
 msgstr ""
 
-msgid "\"Save preferences\" button"
-msgstr ""
-
 msgid "\"Settings\" button"
 msgstr ""
 
-msgid "%d items duplicated as drafts."
+msgid "\"Save preferences\" button"
 msgstr ""
 
-msgid "(WooCommerce is not active on this site right now.)"
+msgid "Preferences screen title"
 msgstr ""
 
-msgid "0 = show immediately. 5 = show after 5 seconds, so the banner does not interrupt visitors right away."
+msgid "\"Always active\" label"
+msgstr ""
+
+msgid "Close button label (accessibility)"
+msgstr ""
+
+msgid "Privacy policy link text"
+msgstr ""
+
+msgid "Category names and descriptions"
+msgstr ""
+
+msgid "Essential - name"
+msgstr ""
+
+msgid "Essential - description"
+msgstr ""
+
+msgid "Functional - name"
+msgstr ""
+
+msgid "Functional - description"
+msgstr ""
+
+msgid "Analytics - name"
+msgstr ""
+
+msgid "Analytics - description"
+msgstr ""
+
+msgid "Marketing - name"
+msgstr ""
+
+msgid "Marketing - description"
+msgstr ""
+
+msgid "Floating button texts"
+msgstr ""
+
+msgid "Button content"
+msgstr ""
+
+msgid "Leave empty for the built-in cookie icon, or type short text of your own."
+msgstr ""
+
+msgid "Button label (accessibility)"
+msgstr ""
+
+msgid "Privacy policy link (shared for all languages)"
+msgstr ""
+
+msgid "Privacy policy page"
+msgstr ""
+
+msgid "— No link —"
+msgstr ""
+
+msgid "Pick the privacy policy page. With WPML or Polylang, the translated page is linked automatically per language."
+msgstr ""
+
+msgid "Or an external URL (instead of a page)"
+msgstr ""
+
+msgid "Only if the policy lives outside this site. Leave empty when a page is selected above."
+msgstr ""
+
+msgid "Default language"
+msgstr ""
+
+msgid "Used when the page locale has no matching language."
+msgstr ""
+
+msgid "Manage languages"
+msgstr ""
+
+msgid "Add language (code):"
+msgstr ""
+
+msgid "Add"
+msgstr ""
+
+msgid "Remove this language and its texts?"
+msgstr ""
+
+msgid "Remove \"%s\""
+msgstr ""
+
+msgid "New languages start with the English texts. The default language cannot be removed."
+msgstr ""
+
+msgid "Banner Design"
+msgstr ""
+
+msgid "Colors and background"
+msgstr ""
+
+msgid "Background color"
+msgstr ""
+
+msgid "Base text color"
+msgstr ""
+
+msgid "Box shadow"
+msgstr ""
+
+msgid "Page overlay (dim the site behind the banner)"
+msgstr ""
+
+msgid "Enable overlay"
+msgstr ""
+
+msgid "Dims the page behind the banner, prompting the visitor to choose."
+msgstr ""
+
+msgid "Overlay color"
+msgstr ""
+
+msgid "Overlay opacity (0-1)"
+msgstr ""
+
+msgid "Background image"
+msgstr ""
+
+msgid "Choose image"
+msgstr ""
+
+msgid "Remove image"
+msgstr ""
+
+msgid "Image size"
+msgstr ""
+
+msgid "Image position"
+msgstr ""
+
+msgid "Center"
+msgstr ""
+
+msgid "Top (center)"
+msgstr ""
+
+msgid "Bottom (center)"
+msgstr ""
+
+msgid "Top left"
+msgstr ""
+
+msgid "Top right"
+msgstr ""
+
+msgid "Bottom left"
+msgstr ""
+
+msgid "Bottom right"
+msgstr ""
+
+msgid "Left side"
+msgstr ""
+
+msgid "Right side"
+msgstr ""
+
+msgid "Repeat"
+msgstr ""
+
+msgid "No repeat"
+msgstr ""
+
+msgid "Horizontal"
+msgstr ""
+
+msgid "Vertical"
+msgstr ""
+
+msgid "Image overlay color"
+msgstr ""
+
+msgid "Darkens a bright image so the text stays readable."
+msgstr ""
+
+msgid "Image overlay opacity (0-1)"
+msgstr ""
+
+msgid "Layout and border"
+msgstr ""
+
+msgid "Max width (px)"
+msgstr ""
+
+msgid "Relevant for the centered modal and corner positions - full-width bars size automatically."
+msgstr ""
+
+msgid "Max width on small screens (%)"
+msgstr ""
+
+msgid "Corner radius (px)"
+msgstr ""
+
+msgid "Inner padding (px)"
+msgstr ""
+
+msgid "Border width (px)"
+msgstr ""
+
+msgid "Border color"
+msgstr ""
+
+msgid "Border style"
+msgstr ""
+
+msgid "Solid"
+msgstr ""
+
+msgid "Dashed"
+msgstr ""
+
+msgid "Dotted"
+msgstr ""
+
+msgid "Double"
+msgstr ""
+
+msgid "Close button (X)"
+msgstr ""
+
+msgid "Show close button"
+msgstr ""
+
+msgid "Closing with X counts as rejecting non-essential cookies."
+msgstr ""
+
+msgid "X size (px)"
+msgstr ""
+
+msgid "X color"
+msgstr ""
+
+msgid "Empty = use the base text color."
+msgstr ""
+
+msgid "X background color"
+msgstr ""
+
+msgid "Empty = transparent. With a color, the button becomes a circle."
+msgstr ""
+
+msgid "Start (right in RTL, left in LTR)"
+msgstr ""
+
+msgid "End (left in RTL, right in LTR)"
+msgstr ""
+
+msgid "Justify"
 msgstr ""
 
 msgid "300 - Light"
@@ -53,625 +478,7 @@ msgstr ""
 msgid "900 - Black"
 msgstr ""
 
-msgid "A small button in the corner of the site that lets visitors reopen the banner and change their preferences at any time. Its text and accessibility label are edited per language on the \"Texts\" tab."
-msgstr ""
-
-msgid "Accept on scroll"
-msgstr ""
-
-msgid "Add"
-msgstr ""
-
-msgid "Add language (code):"
-msgstr ""
-
-msgid "Adds \"Duplicate\" and \"Duplicate & Edit\" links to the post lists, plus a bulk action. Copies are created as drafts, including custom fields (Elementor data), taxonomies and the featured image."
-msgstr ""
-
-msgid "Adds a thin border in the text color."
-msgstr ""
-
-msgid "After this many days the visitor is asked again."
-msgstr ""
-
-msgid "Alignment"
-msgstr ""
-
 msgid "Alignment uses logical values, so \"Start\" is right for Hebrew/Arabic pages and left for English pages - the same setting fits every language."
-msgstr ""
-
-msgid "Always active - cannot be disabled."
-msgstr ""
-
-msgid "Analytics - description"
-msgstr ""
-
-msgid "Analytics - name"
-msgstr ""
-
-msgid "Analytics cookies"
-msgstr ""
-
-msgid "Analytics scripts"
-msgstr ""
-
-msgid "Anchor corner"
-msgstr ""
-
-msgid "Appended to the copy's title. Leave empty for an identical title."
-msgstr ""
-
-msgid "Arabic"
-msgstr ""
-
-msgid "Background color"
-msgstr ""
-
-msgid "Background image"
-msgstr ""
-
-msgid "Banner Design"
-msgstr ""
-
-msgid "Banner message"
-msgstr ""
-
-msgid "Banner position"
-msgstr ""
-
-msgid "Banner title"
-msgstr ""
-
-msgid "Base text color"
-msgstr ""
-
-msgid "Basic HTML is allowed: <strong>, <em>, <a>, <br>"
-msgstr ""
-
-msgid "Basics"
-msgstr ""
-
-msgid "Block scripts until consent"
-msgstr ""
-
-msgid "Blur (px)"
-msgstr ""
-
-msgid "Border"
-msgstr ""
-
-msgid "Border color"
-msgstr ""
-
-msgid "Border style"
-msgstr ""
-
-msgid "Border width (px)"
-msgstr ""
-
-msgid "Bottom (center)"
-msgstr ""
-
-msgid "Bottom left"
-msgstr ""
-
-msgid "Bottom right"
-msgstr ""
-
-msgid "Bottom-left corner"
-msgstr ""
-
-msgid "Bottom-right corner"
-msgstr ""
-
-msgid "Box shadow"
-msgstr ""
-
-msgid "Button Design"
-msgstr ""
-
-msgid "Button content"
-msgstr ""
-
-msgid "Button label (accessibility)"
-msgstr ""
-
-msgid "Button size"
-msgstr ""
-
-msgid "Buttons"
-msgstr ""
-
-msgid "Categories"
-msgstr ""
-
-msgid "Categories, tags and custom taxonomies."
-msgstr ""
-
-msgid "Category names and descriptions"
-msgstr ""
-
-msgid "Center"
-msgstr ""
-
-msgid "Centered modal"
-msgstr ""
-
-msgid "Choose image"
-msgstr ""
-
-msgid "Close button (X)"
-msgstr ""
-
-msgid "Close button label (accessibility)"
-msgstr ""
-
-msgid "Closes comment forms, hides existing comments and removes the admin comments UI (menu, admin-bar bubble, dashboard widget, edit-comments screen). The admin UI is removed only when comments are disabled for every relevant post type."
-msgstr ""
-
-msgid "Closing with X counts as rejecting non-essential cookies."
-msgstr ""
-
-msgid "Colors and background"
-msgstr ""
-
-msgid "Consent lifetime (days)"
-msgstr ""
-
-msgid "Consent version"
-msgstr ""
-
-msgid "Content"
-msgstr ""
-
-msgid "Cookie Banner"
-msgstr ""
-
-msgid "Cookie Categories"
-msgstr ""
-
-msgid "Copy custom fields"
-msgstr ""
-
-msgid "Copy taxonomies"
-msgstr ""
-
-msgid "Core auto-updates (successful only)"
-msgstr ""
-
-msgid "Corner radius (px)"
-msgstr ""
-
-msgid "Darkens a bright image so the text stays readable."
-msgstr ""
-
-msgid "Dashed"
-msgstr ""
-
-msgid "Default language"
-msgstr ""
-
-msgid "Design"
-msgstr ""
-
-msgid "Desktop position"
-msgstr ""
-
-msgid "Digitizer Pro Tools"
-msgstr ""
-
-msgid "Dims the page behind the banner, prompting the visitor to choose."
-msgstr ""
-
-msgid "Disable Comments"
-msgstr ""
-
-msgid "Dotted"
-msgstr ""
-
-msgid "Double"
-msgstr ""
-
-msgid "Duplicate"
-msgstr ""
-
-msgid "Duplicate \"%s\""
-msgstr ""
-
-msgid "Duplicate \"%s\" and edit the copy"
-msgstr ""
-
-msgid "Duplicate & Edit"
-msgstr ""
-
-msgid "Duplicate Post"
-msgstr ""
-
-msgid "Duplication Settings"
-msgstr ""
-
-msgid "Each category shows a separate toggle on the advanced-preferences screen. Scripts from the \"Scripts\" tab load only after the visitor consents to the matching category. Category names and descriptions are edited per language on the \"Texts\" tab."
-msgstr ""
-
-msgid "Empty = transparent. With a color, the button becomes a circle."
-msgstr ""
-
-msgid "Empty = use the base text color."
-msgstr ""
-
-msgid "Enable banner"
-msgstr ""
-
-msgid "Enable button"
-msgstr ""
-
-msgid "Enable overlay"
-msgstr ""
-
-msgid "Enable the tools you need. Each module replaces a standalone plugin."
-msgstr ""
-
-msgid "Enabled post types"
-msgstr ""
-
-msgid "End (left in RTL, right in LTR)"
-msgstr ""
-
-msgid "English"
-msgstr ""
-
-msgid "Entry animation"
-msgstr ""
-
-msgid "Essential - description"
-msgstr ""
-
-msgid "Essential - name"
-msgstr ""
-
-msgid "Essential cookies"
-msgstr ""
-
-msgid "Everywhere (all post types)"
-msgstr ""
-
-msgid "Fade"
-msgstr ""
-
-msgid "Failure and critical core-update emails always go out."
-msgstr ""
-
-msgid "Floating \"Manage Cookies\" Button"
-msgstr ""
-
-msgid "Floating Button"
-msgstr ""
-
-msgid "Floating button texts"
-msgstr ""
-
-msgid "Font size"
-msgstr ""
-
-msgid "Font weight"
-msgstr ""
-
-msgid "For example: Facebook Pixel, Google Ads, TikTok Pixel, LinkedIn Insight."
-msgstr ""
-
-msgid "For example: Google Analytics 4, Google Tag Manager, Hotjar, Clarity."
-msgstr ""
-
-msgid "French"
-msgstr ""
-
-msgid "Full-width bar at the bottom"
-msgstr ""
-
-msgid "Full-width bar at the top"
-msgstr ""
-
-msgid "Functional - description"
-msgstr ""
-
-msgid "Functional - name"
-msgstr ""
-
-msgid "Functional cookies"
-msgstr ""
-
-msgid "Functional scripts"
-msgstr ""
-
-msgid "General"
-msgstr ""
-
-msgid "General Settings"
-msgstr ""
-
-msgid "German"
-msgstr ""
-
-msgid "Hebrew"
-msgstr ""
-
-msgid "Horizontal"
-msgstr ""
-
-msgid "Horizontal offset"
-msgstr ""
-
-msgid "Hover background color"
-msgstr ""
-
-msgid "How does it work?"
-msgstr ""
-
-msgid "Image overlay color"
-msgstr ""
-
-msgid "Image overlay opacity (0-1)"
-msgstr ""
-
-msgid "Image position"
-msgstr ""
-
-msgid "Image size"
-msgstr ""
-
-msgid "Includes the featured image, page template and page-builder data (Elementor)."
-msgstr ""
-
-msgid "Increase this number to ask ALL visitors for consent again (for example after changing your cookie policy). Popular page caches (WP Rocket, LiteSpeed, Super Cache, W3TC, Fastest Cache, SiteGround) are purged automatically when it changes."
-msgstr ""
-
-msgid "Inner padding (px)"
-msgstr ""
-
-msgid "Invalid language code. Use formats like \"en\", \"ru\" or \"pt_BR\"."
-msgstr ""
-
-msgid "Item duplicated as a draft."
-msgstr ""
-
-msgid "Justify"
-msgstr ""
-
-msgid "Keep WooCommerce product reviews"
-msgstr ""
-
-msgid "Keep original date"
-msgstr ""
-
-msgid "Language added."
-msgstr ""
-
-msgid "Language removed."
-msgstr ""
-
-msgid "Layout and border"
-msgstr ""
-
-msgid "Leave empty for the built-in cookie icon, or type short text of your own."
-msgstr ""
-
-msgid "Left side"
-msgstr ""
-
-msgid "Manage languages"
-msgstr ""
-
-msgid "Marketing - description"
-msgstr ""
-
-msgid "Marketing - name"
-msgstr ""
-
-msgid "Marketing cookies"
-msgstr ""
-
-msgid "Marketing scripts"
-msgstr ""
-
-msgid "Max width (px)"
-msgstr ""
-
-msgid "Max width on small screens (%)"
-msgstr ""
-
-msgid "Mobile position"
-msgstr ""
-
-msgid "Mode"
-msgstr ""
-
-msgid "Modules"
-msgstr ""
-
-msgid "Modules saved."
-msgstr ""
-
-msgid "Multilingual cookie-consent banner with cookie categories, script blocking until consent, and a floating preferences button."
-msgstr ""
-
-msgid "New languages start with the English texts. The default language cannot be removed."
-msgstr ""
-
-msgid "No repeat"
-msgstr ""
-
-msgid "None"
-msgstr ""
-
-msgid "Not recommended for GDPR - EU law requires active consent."
-msgstr ""
-
-msgid "Off = the copy gets the current date."
-msgstr ""
-
-msgid "Offsets are measured from the chosen corner. For example, corner \"bottom-right\" with vertical offset 100 places the button 100px above the bottom - handy for avoiding WhatsApp/chat buttons."
-msgstr ""
-
-msgid "One-click duplication of posts, pages and custom post types as drafts - including custom fields (Elementor data), taxonomies and the featured image."
-msgstr ""
-
-msgid "Only if the policy lives outside this site. Leave empty when a page is selected above."
-msgstr ""
-
-msgid "Only on selected post types"
-msgstr ""
-
-msgid "Or an external URL (instead of a page)"
-msgstr ""
-
-msgid "Overlay color"
-msgstr ""
-
-msgid "Overlay opacity (0-1)"
-msgstr ""
-
-msgid "Page overlay (dim the site behind the banner)"
-msgstr ""
-
-msgid "Paste the complete code including the <script> tags."
-msgstr ""
-
-msgid "Paste the full HTML snippets here (Google Analytics, Facebook Pixel, GTM...). They are injected into the site <head> only after the visitor consents to the matching category."
-msgstr ""
-
-msgid "Pick the privacy policy page. With WPML or Polylang, the translated page is linked automatically per language."
-msgstr ""
-
-msgid "Plugin auto-updates"
-msgstr ""
-
-msgid "Post not found."
-msgstr ""
-
-msgid "Preferences screen title"
-msgstr ""
-
-msgid "Preview"
-msgstr ""
-
-msgid "Privacy policy link (shared for all languages)"
-msgstr ""
-
-msgid "Privacy policy link text"
-msgstr ""
-
-msgid "Privacy policy page"
-msgstr ""
-
-msgid "Product reviews are technically comments - this keeps them working even when comments are disabled everywhere else."
-msgstr ""
-
-msgid "Relevant for the centered modal and corner positions - full-width bars size automatically."
-msgstr ""
-
-msgid "Remove \"%s\""
-msgstr ""
-
-msgid "Remove image"
-msgstr ""
-
-msgid "Remove this language and its texts?"
-msgstr ""
-
-msgid "Repeat"
-msgstr ""
-
-msgid "Right side"
-msgstr ""
-
-msgid "Russian"
-msgstr ""
-
-msgid "Save Modules"
-msgstr ""
-
-msgid "Save Settings"
-msgstr ""
-
-msgid "Scripts"
-msgstr ""
-
-msgid "Scripts from the \"Scripts\" tab load only after the visitor consents to the matching category."
-msgstr ""
-
-msgid "Scripts loaded after consent"
-msgstr ""
-
-msgid "Selected post types"
-msgstr ""
-
-msgid "Separate values for screens up to 640px wide."
-msgstr ""
-
-msgid "Settings"
-msgstr ""
-
-msgid "Settings saved."
-msgstr ""
-
-msgid "Shadow color"
-msgstr ""
-
-msgid "Show button"
-msgstr ""
-
-msgid "Show close button"
-msgstr ""
-
-msgid "Show delay (seconds)"
-msgstr ""
-
-msgid "Show on mobile"
-msgstr ""
-
-msgid "Silence notifications for"
-msgstr ""
-
-msgid "Silences the \"site updated\" email notifications WordPress sends after automatic plugin, theme and core updates. Failure emails are always kept."
-msgstr ""
-
-msgid "Slide down"
-msgstr ""
-
-msgid "Slide up"
-msgstr ""
-
-msgid "Solid"
-msgstr ""
-
-msgid "Space below (px)"
-msgstr ""
-
-msgid "Spanish"
-msgstr ""
-
-msgid "Start (right in RTL, left in LTR)"
-msgstr ""
-
-msgid "Text color"
-msgstr ""
-
-msgid "Text shadow"
-msgstr ""
-
-msgid "Texts"
-msgstr ""
-
-msgid "The banner picks the language automatically from the current page locale (WPML / Polylang / TranslatePress compatible), falling back to the default language."
-msgstr ""
-
-msgid "The final position is the corner plus the offsets below."
-msgstr ""
-
-msgid "Theme auto-updates"
-msgstr ""
-
-msgid "Tip: WhatsApp buttons usually sit 20-80px from the bottom. Use 90-100 to avoid collisions."
 msgstr ""
 
 msgid "Title"
@@ -680,84 +487,306 @@ msgstr ""
 msgid "Title color"
 msgstr ""
 
-msgid "Title suffix"
+msgid "Font size"
 msgstr ""
 
-msgid "Top (center)"
+msgid "Alignment"
 msgstr ""
 
-msgid "Top left"
+msgid "Font weight"
 msgstr ""
 
-msgid "Top right"
+msgid "Space below (px)"
 msgstr ""
 
-msgid "Top-left corner"
+msgid "Text shadow"
 msgstr ""
 
-msgid "Top-right corner"
+msgid "Shadow color"
 msgstr ""
 
-msgid "Turns off comments globally or per post type - closes forms, hides existing comments and removes the admin comments UI. WooCommerce product reviews are protected by default."
-msgstr ""
-
-msgid "Typography"
-msgstr ""
-
-msgid "Update Emails"
-msgstr ""
-
-msgid "Updates after saving."
-msgstr ""
-
-msgid "Used only in \"Only on selected post types\" mode."
-msgstr ""
-
-msgid "Used when the page locale has no matching language."
-msgstr ""
-
-msgid "Vertical"
-msgstr ""
-
-msgid "Vertical offset"
+msgid "Blur (px)"
 msgstr ""
 
 msgid "Vertical offset (px)"
 msgstr ""
 
+msgid "Content"
+msgstr ""
+
+msgid "Text color"
+msgstr ""
+
+msgid "Button Design"
+msgstr ""
+
+msgid "Show button"
+msgstr ""
+
+msgid "Hover background color"
+msgstr ""
+
+msgid "Border"
+msgstr ""
+
+msgid "Adds a thin border in the text color."
+msgstr ""
+
+msgid "Cookie Categories"
+msgstr ""
+
+msgid "Each category shows a separate toggle on the advanced-preferences screen. Scripts from the \"Scripts\" tab load only after the visitor consents to the matching category. Category names and descriptions are edited per language on the \"Texts\" tab."
+msgstr ""
+
+msgid "Essential cookies"
+msgstr ""
+
+msgid "Always active - cannot be disabled."
+msgstr ""
+
+msgid "Functional cookies"
+msgstr ""
+
+msgid "Analytics cookies"
+msgstr ""
+
+msgid "Marketing cookies"
+msgstr ""
+
+msgid "Scripts loaded after consent"
+msgstr ""
+
+msgid "How does it work?"
+msgstr ""
+
+msgid "Paste the full HTML snippets here (Google Analytics, Facebook Pixel, GTM...). They are injected into the site <head> only after the visitor consents to the matching category."
+msgstr ""
+
+msgid "Paste the complete code including the <script> tags."
+msgstr ""
+
+msgid "Functional scripts"
+msgstr ""
+
+msgid "Analytics scripts"
+msgstr ""
+
+msgid "For example: Google Analytics 4, Google Tag Manager, Hotjar, Clarity."
+msgstr ""
+
+msgid "Marketing scripts"
+msgstr ""
+
+msgid "For example: Facebook Pixel, Google Ads, TikTok Pixel, LinkedIn Insight."
+msgstr ""
+
+msgid "Floating \"Manage Cookies\" Button"
+msgstr ""
+
+msgid "A small button in the corner of the site that lets visitors reopen the banner and change their preferences at any time. Its text and accessibility label are edited per language on the \"Texts\" tab."
+msgstr ""
+
+msgid "Basics"
+msgstr ""
+
+msgid "Enable button"
+msgstr ""
+
+msgid "Anchor corner"
+msgstr ""
+
+msgid "Top-right corner"
+msgstr ""
+
+msgid "Top-left corner"
+msgstr ""
+
+msgid "The final position is the corner plus the offsets below."
+msgstr ""
+
+msgid "Desktop position"
+msgstr ""
+
+msgid "Offsets are measured from the chosen corner. For example, corner \"bottom-right\" with vertical offset 100 places the button 100px above the bottom - handy for avoiding WhatsApp/chat buttons."
+msgstr ""
+
+msgid "Horizontal offset"
+msgstr ""
+
+msgid "Vertical offset"
+msgstr ""
+
+msgid "Tip: WhatsApp buttons usually sit 20-80px from the bottom. Use 90-100 to avoid collisions."
+msgstr ""
+
+msgid "Button size"
+msgstr ""
+
+msgid "Mobile position"
+msgstr ""
+
+msgid "Separate values for screens up to 640px wide."
+msgstr ""
+
+msgid "Preview"
+msgstr ""
+
+msgid "Updates after saving."
+msgstr ""
+
 msgid "View banner on the site"
 msgstr ""
 
-msgid "When disabled, the banner is not shown at all."
+msgid "Multilingual cookie-consent banner with cookie categories, script blocking until consent, and a floating preferences button."
 msgstr ""
 
-msgid "Where to disable comments"
+msgid "Post not found."
 msgstr ""
 
-msgid "WordPress emails the site admin after every automatic update. On a maintained site these routine \"success\" notifications are noise - this module silences them. Emails about FAILED updates are never suppressed."
+msgid "Duplicate Post"
 msgstr ""
 
-msgid "X background color"
+msgid "Duplicate \"%s\""
 msgstr ""
 
-msgid "X color"
+msgid "Duplicate"
 msgstr ""
 
-msgid "X size (px)"
+msgid "Duplicate \"%s\" and edit the copy"
 msgstr ""
 
-msgid "You are not allowed to do that."
+msgid "Duplicate & Edit"
 msgstr ""
 
 msgid "You are not allowed to duplicate this item."
 msgstr ""
 
-msgid "Zoom"
+msgid "Item duplicated as a draft."
 msgstr ""
 
-msgid "default"
+msgid "%d items duplicated as drafts."
 msgstr ""
 
-msgid "— No link —"
+msgid "Adds \"Duplicate\" and \"Duplicate & Edit\" links to the post lists, plus a bulk action. Copies are created as drafts, including custom fields (Elementor data), taxonomies and the featured image."
+msgstr ""
+
+msgid "Duplication Settings"
+msgstr ""
+
+msgid "Enabled post types"
+msgstr ""
+
+msgid "Title suffix"
+msgstr ""
+
+msgid "Appended to the copy's title. Leave empty for an identical title."
+msgstr ""
+
+msgid "Copy custom fields"
+msgstr ""
+
+msgid "Includes the featured image, page template and page-builder data (Elementor)."
+msgstr ""
+
+msgid "Copy taxonomies"
+msgstr ""
+
+msgid "Categories, tags and custom taxonomies."
+msgstr ""
+
+msgid "Keep original date"
+msgstr ""
+
+msgid "Off = the copy gets the current date."
+msgstr ""
+
+msgid "One-click duplication of posts, pages and custom post types as drafts - including custom fields (Elementor data), taxonomies and the featured image."
+msgstr ""
+
+msgid "Update Emails"
+msgstr ""
+
+msgid "Silences the \"site updated\" email notifications WordPress sends after automatic plugin, theme and core updates. Failure emails are always kept."
+msgstr ""
+
+msgid "WordPress emails the site admin after every automatic update. On a maintained site these routine \"success\" notifications are noise - this module silences them. Emails about FAILED updates are never suppressed."
+msgstr ""
+
+msgid "Silence notifications for"
+msgstr ""
+
+msgid "Plugin auto-updates"
+msgstr ""
+
+msgid "Theme auto-updates"
+msgstr ""
+
+msgid "Core auto-updates (successful only)"
+msgstr ""
+
+msgid "Failure and critical core-update emails always go out."
+msgstr ""
+
+msgid "Hide Login"
+msgstr ""
+
+msgid "That slug is empty, invalid or reserved by WordPress - the previous slug was kept."
+msgstr ""
+
+msgid "Moves the login page to a custom URL. The default wp-login.php returns a 404 page and logged-out visitors of wp-admin are sent to a 404 as well."
+msgstr ""
+
+msgid "Login URL"
+msgstr ""
+
+msgid "Login slug"
+msgstr ""
+
+msgid "Lowercase letters, digits, dashes and underscores only. WordPress core slugs are rejected."
+msgstr ""
+
+msgid "Current login URL"
+msgstr ""
+
+msgid "Bookmark this URL - wp-login.php will stop working while this module is enabled."
+msgstr ""
+
+msgid "Moves the login page to a custom URL and returns a 404 for wp-login.php and logged-out wp-admin requests. Replaces the WPS Hide Login plugin."
+msgstr ""
+
+msgid "Disable Comments"
+msgstr ""
+
+msgid "Turns off comments globally or per post type - closes forms, hides existing comments and removes the admin comments UI. WooCommerce product reviews are protected by default."
+msgstr ""
+
+msgid "Closes comment forms, hides existing comments and removes the admin comments UI (menu, admin-bar bubble, dashboard widget, edit-comments screen). The admin UI is removed only when comments are disabled for every relevant post type."
+msgstr ""
+
+msgid "Where to disable comments"
+msgstr ""
+
+msgid "Mode"
+msgstr ""
+
+msgid "Everywhere (all post types)"
+msgstr ""
+
+msgid "Only on selected post types"
+msgstr ""
+
+msgid "Selected post types"
+msgstr ""
+
+msgid "Used only in \"Only on selected post types\" mode."
+msgstr ""
+
+msgid "Keep WooCommerce product reviews"
+msgstr ""
+
+msgid "Product reviews are technically comments - this keeps them working even when comments are disabled everywhere else."
+msgstr ""
+
+msgid "(WooCommerce is not active on this site right now.)"
 msgstr ""
 
