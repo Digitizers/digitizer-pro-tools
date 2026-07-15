@@ -95,6 +95,23 @@ class DPT_Disable_Comments_Module extends DPT_Module {
 			}
 			return;
 		}
+		// The REST comments endpoint (?post=<id>) constrains via post__in,
+		// not post_id - drop the disabled-type posts from the list.
+		$post_in = ! empty( $query->query_vars['post__in'] ) ? array_map( 'intval', (array) $query->query_vars['post__in'] ) : array();
+		if ( $post_in ) {
+			$allowed = array();
+			foreach ( $post_in as $pid ) {
+				if ( ! DPT_DC_Settings::disabled_for( (string) get_post_type( $pid ) ) ) {
+					$allowed[] = $pid;
+				}
+			}
+			if ( empty( $allowed ) ) {
+				$query->query_vars['comment__in'] = array( 0 );
+			} else {
+				$query->query_vars['post__in'] = $allowed;
+			}
+			return;
+		}
 		$post_types = isset( $query->query_vars['post_type'] ) ? $query->query_vars['post_type'] : '';
 		if ( empty( $post_types ) ) {
 			return;
