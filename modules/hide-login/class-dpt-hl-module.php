@@ -134,7 +134,14 @@ class DPT_Hide_Login_Module extends DPT_Module {
 	 * would corrupt nested query strings such as redirect_to targets.
 	 */
 	public function filter_login_url( $url, $path = '' ) {
-		if ( ! is_string( $url ) || false === strpos( $url, 'wp-login.php' ) ) {
+		if ( ! is_string( $url ) ) {
+			return $url;
+		}
+		// Only rewrite when wp-login.php is the actual script being linked -
+		// match the parsed path basename, not the raw string, so a URL that
+		// merely carries "wp-login.php" inside a query value (e.g.
+		// redirect_to=/docs/wp-login.php-notes/) is left untouched.
+		if ( 'wp-login.php' !== basename( (string) wp_parse_url( $url, PHP_URL_PATH ) ) ) {
 			return $url;
 		}
 		// Preserve the scheme WordPress chose for this URL - it may have
