@@ -73,7 +73,10 @@ class DPT_Hide_Login_Module extends DPT_Module {
 		$uri  = isset( $_SERVER['REQUEST_URI'] ) ? rawurldecode( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '';
 		$path = (string) wp_parse_url( $uri, PHP_URL_PATH );
 
-		if ( ! is_admin() && false !== stripos( $path, 'wp-login.php' ) ) {
+		if ( ! is_admin() && 'wp-login.php' === strtolower( basename( $path ) ) ) {
+			// Match the script basename, not a substring: a legitimate
+			// permalink like /docs/wp-login.php-notes/ must not be treated
+			// as the old login page and 404'd.
 			$this->is_old_login = true;
 			$pagenow            = 'index.php';
 			return;
