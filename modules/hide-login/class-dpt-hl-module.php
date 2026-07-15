@@ -110,30 +110,49 @@ class DPT_Hide_Login_Module extends DPT_Module {
 	/**
 	 * Rewrite any generated wp-login.php URL to the custom slug, keeping
 	 * the query string (action, redirect_to, resetpass keys, ...).
+	 *
+	 * The existing query substring is carried over verbatim rather than
+	 * parsed and rebuilt: WordPress already encoded it, and decoding then
+	 * re-encoding through add_query_arg() (which does not encode values)
+	 * would corrupt nested query strings such as redirect_to targets.
 	 */
 	public function filter_login_url( $url, $path = '' ) {
 		if ( ! is_string( $url ) || false === strpos( $url, 'wp-login.php' ) ) {
 			return $url;
 		}
 		$scheme = is_ssl() ? 'https' : null;
+		$base   = DPT_HL_Settings::new_login_url( $scheme );
 		$parts  = explode( '?', $url, 2 );
-		if ( isset( $parts[1] ) ) {
-			parse_str( $parts[1], $args );
-			if ( isset( $args['login'] ) ) {
-				$args['login'] = rawurlencode( $args['login'] );
-			}
-			return add_query_arg( $args, DPT_HL_Settings::new_login_url( $scheme ) );
+		if ( isset( $parts[1] ) && '' !== $parts[1] ) {
+			$sep = ( false !== strpos( $base, '?' ) ) ? '&' : '?';
+			return $base . $sep . $parts[1];
 		}
-		return DPT_HL_Settings::new_login_url( $scheme );
+		return $base;
 	}
 
 	/**
-	 * Multisite welcome email contains a hardcoded wp-login.php link.
+	 * Multisite welcome email contains a hardcoded BLOG_URLwp-login.php
+	 * link; swap in the slug in the same relative form new_login_url()
+	 * would produce (pretty path or plain ?slug), so the link routes on
+	 * plain-permalink sites too.
 	 */
 	public function filter_welcome_email( $value ) {
 		return is_string( $value )
-			? str_replace( 'wp-login.php', trailingslashit( DPT_HL_Settings::slug() ), $value )
+			? str_replace( 'wp-login.php', $this->relative_login_path(), $value )
 			: $value;
+	}
+
+	/**
+	 * The login slug relative to home_url('/'): "slug", "slug/" or "?slug"
+	 * depending on the permalink structure - mirrors new_login_url().
+	 */
+	private function relative_login_path() {
+		$slug = DPT_HL_Settings::slug();
+		$struct = get_option( 'permalink_structure' );
+		if ( $struct ) {
+			return ( '/' === substr( $struct, -1 ) ) ? trailingslashit( $slug ) : $slug;
+		}
+		return '?' . $slug;
 	}
 
 	/**
