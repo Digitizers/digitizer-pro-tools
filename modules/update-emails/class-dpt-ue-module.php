@@ -75,6 +75,7 @@ class DPT_Update_Emails_Module extends DPT_Module {
 			remove_filter( 'auto_theme_update_send_email', '__return_false' );
 		}
 		if ( '1' === $o['disable_core_success_emails'] ) {
+			remove_filter( 'auto_core_update_send_email', '__return_false' );
 			remove_filter( 'auto_core_update_send_email', 'wpb_stop_auto_update_emails' );
 			remove_filter( 'auto_core_update_send_email', 'wpb_stop_update_emails' );
 		}
