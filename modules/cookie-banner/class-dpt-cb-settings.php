@@ -251,6 +251,20 @@ class DPT_CB_Settings {
 		// Merge defaults for new keys, keep user's saved values.
 		$merged = array_merge( $defaults, $existing );
 
+		// v1.0.1: banner box default changed from 900px/95% to 700px/100%.
+		// Installs still carrying the exact legacy seeds get the new size;
+		// any other stored value is a deliberate admin choice and is kept.
+		// (dpt_db_version still holds the OLD version here - DPT_Plugin
+		// updates it only after all module migrations ran.)
+		$old_version = get_option( 'dpt_db_version', '0' );
+		if ( version_compare( $old_version, '1.0.1', '<' )
+			&& isset( $existing['width'], $existing['max_width_pct'] )
+			&& '900' === (string) $existing['width']
+			&& '95' === (string) $existing['max_width_pct'] ) {
+			$merged['width']         = '700';
+			$merged['max_width_pct'] = '100';
+		}
+
 		// Deep-merge texts: keep saved languages, fill in missing keys per language.
 		$languages = ( isset( $existing['languages'] ) && is_array( $existing['languages'] ) ) ? $existing['languages'] : $defaults['languages'];
 		$texts     = ( isset( $existing['texts'] ) && is_array( $existing['texts'] ) ) ? $existing['texts'] : array();
