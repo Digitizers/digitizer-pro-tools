@@ -49,7 +49,7 @@ Silences the routine "site updated" notifications WordPress emails after automat
 
 * Separate toggles for plugin, theme and core auto-update emails
 * Core updates: only SUCCESS notifications are silenced - failure and critical emails always go out
-* Safe alongside an existing functions.php snippet doing the same (duplicate filters are harmless)
+* Neutralizes the well-known legacy functions.php snippets on these hooks (blanket __return_false and the WPBeginner-style core callbacks), so they cannot hide failure emails or fatal the cron - still, remove those snippets once the module is active
 
 Admin interface is in English with a full Hebrew translation.
 

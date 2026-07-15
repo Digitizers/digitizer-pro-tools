@@ -46,8 +46,37 @@ class DPT_Update_Emails_Module extends DPT_Module {
 			add_filter( 'auto_core_update_send_email', array( $this, 'filter_core_update_email' ), 10, 4 );
 		}
 
+		// Legacy hand-pasted snippets register blanket filters on these same
+		// hooks and would override this module's failure-preserving logic.
+		// Neutralize the well-known ones late (init:1), after the theme's
+		// functions.php and snippet plugins have registered them.
+		add_action( 'init', array( $this, 'neutralize_legacy_snippets' ), 1 );
+
 		if ( is_admin() ) {
 			$this->admin = new DPT_UE_Admin();
+		}
+	}
+
+	/**
+	 * Remove the widespread functions.php snippet callbacks on the hooks
+	 * this module manages (only for toggles that are ON):
+	 * - __return_false on the plugin/theme email hooks silences FAILED
+	 *   update emails too, defeating this module's promise;
+	 * - the WPBeginner-style core callbacks (both spellings - the snippet
+	 *   circulating with a typo registers a function that is never defined
+	 *   and fatals the cron request when a core update completes).
+	 */
+	public function neutralize_legacy_snippets() {
+		$o = DPT_UE_Settings::all();
+		if ( '1' === $o['disable_plugin_emails'] ) {
+			remove_filter( 'auto_plugin_update_send_email', '__return_false' );
+		}
+		if ( '1' === $o['disable_theme_emails'] ) {
+			remove_filter( 'auto_theme_update_send_email', '__return_false' );
+		}
+		if ( '1' === $o['disable_core_success_emails'] ) {
+			remove_filter( 'auto_core_update_send_email', 'wpb_stop_auto_update_emails' );
+			remove_filter( 'auto_core_update_send_email', 'wpb_stop_update_emails' );
 		}
 	}
 
