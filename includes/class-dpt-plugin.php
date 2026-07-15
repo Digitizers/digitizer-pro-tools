@@ -29,11 +29,24 @@ class DPT_Plugin {
 	public function registry() {
 		$modules = array(
 			'cookie_banner' => array(
-				'file'  => DPT_PATH . 'modules/cookie-banner/class-dpt-cb-module.php',
-				'class' => 'DPT_Cookie_Banner_Module',
+				'file'    => DPT_PATH . 'modules/cookie-banner/class-dpt-cb-module.php',
+				'class'   => 'DPT_Cookie_Banner_Module',
+				'default' => '1',
+			),
+			'duplicate_post' => array(
+				'file'    => DPT_PATH . 'modules/duplicate-post/class-dpt-dp-module.php',
+				'class'   => 'DPT_Duplicate_Post_Module',
+				'default' => '1',
 			),
 		);
 		return apply_filters( 'dpt_modules', $modules );
+	}
+
+	/**
+	 * A module's on/off default from its registry spec.
+	 */
+	private function module_default( $spec ) {
+		return ( isset( $spec['default'] ) && '1' === $spec['default'] ) ? '1' : '0';
 	}
 
 	/**
@@ -96,7 +109,7 @@ class DPT_Plugin {
 		foreach ( $this->registry() as $id => $spec ) {
 			if ( ! array_key_exists( $id, $map ) ) {
 				// New module never saved before: fall back to its default flag.
-				$map[ $id ] = ( 'cookie_banner' === $id ) ? '1' : '0';
+				$map[ $id ] = $this->module_default( $spec );
 			}
 		}
 		return $map;
@@ -138,7 +151,7 @@ class DPT_Plugin {
 		}
 		foreach ( $this->registry() as $id => $spec ) {
 			if ( ! array_key_exists( $id, $opts['modules'] ) ) {
-				$opts['modules'][ $id ] = ( 'cookie_banner' === $id ) ? '1' : '0';
+				$opts['modules'][ $id ] = $this->module_default( $spec );
 			}
 			if ( file_exists( $spec['file'] ) ) {
 				require_once $spec['file'];
