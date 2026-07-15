@@ -24,6 +24,9 @@ msgstr "כפתור \"שמור העדפות\""
 msgid "\"Settings\" button"
 msgstr "כפתור \"הגדרות\""
 
+msgid "%d items duplicated as drafts."
+msgstr "%d פריטים שוכפלו כטיוטות."
+
 msgid "0 = show immediately. 5 = show after 5 seconds, so the banner does not interrupt visitors right away."
 msgstr "0 = הצגה מיידית. 5 = הצגה אחרי 5 שניות, כדי שהבאנר לא יפריע למבקרים מיד עם הכניסה."
 
@@ -60,6 +63,9 @@ msgstr "הוסף"
 msgid "Add language (code):"
 msgstr "הוספת שפה (קוד):"
 
+msgid "Adds \"Duplicate\" and \"Duplicate & Edit\" links to the post lists, plus a bulk action. Copies are created as drafts, including custom fields (Elementor data), taxonomies and the featured image."
+msgstr "מוסיף קישורי \"שכפול\" ו\"שכפול ועריכה\" לרשימות התוכן, וכן פעולה קבוצתית. עותקים נוצרים כטיוטות, כולל שדות מותאמים (נתוני אלמנטור), טקסונומיות ותמונה ראשית."
+
 msgid "Adds a thin border in the text color."
 msgstr "מוסיף מסגרת דקה בצבע הטקסט."
 
@@ -89,6 +95,9 @@ msgstr "סקריפטים של אנליטיקה"
 
 msgid "Anchor corner"
 msgstr "פינת עוגן"
+
+msgid "Appended to the copy's title. Leave empty for an identical title."
+msgstr "מתווספת לכותרת העותק. השאירו ריק לכותרת זהה."
 
 msgid "Arabic"
 msgstr "ערבית"
@@ -174,6 +183,9 @@ msgstr "כפתורים"
 msgid "Categories"
 msgstr "קטגוריות"
 
+msgid "Categories, tags and custom taxonomies."
+msgstr "קטגוריות, תגיות וטקסונומיות מותאמות."
+
 msgid "Category names and descriptions"
 msgstr "שמות ותיאורי קטגוריות"
 
@@ -213,6 +225,12 @@ msgstr "באנר עוגיות"
 msgid "Cookie Categories"
 msgstr "קטגוריות עוגיות"
 
+msgid "Copy custom fields"
+msgstr "העתקת שדות מותאמים"
+
+msgid "Copy taxonomies"
+msgstr "העתקת טקסונומיות"
+
 msgid "Corner radius (px)"
 msgstr "עיגול פינות (פיקסלים)"
 
@@ -243,6 +261,24 @@ msgstr "נקודות"
 msgid "Double"
 msgstr "כפול"
 
+msgid "Duplicate"
+msgstr "שכפול"
+
+msgid "Duplicate \"%s\""
+msgstr "שכפול \"%s\""
+
+msgid "Duplicate \"%s\" and edit the copy"
+msgstr "שכפול \"%s\" ועריכת העותק"
+
+msgid "Duplicate & Edit"
+msgstr "שכפול ועריכה"
+
+msgid "Duplicate Post"
+msgstr "שכפול פוסטים"
+
+msgid "Duplication Settings"
+msgstr "הגדרות שכפול"
+
 msgid "Each category shows a separate toggle on the advanced-preferences screen. Scripts from the \"Scripts\" tab load only after the visitor consents to the matching category. Category names and descriptions are edited per language on the \"Texts\" tab."
 msgstr "כל קטגוריה מציגה מתג נפרד במסך ההעדפות המתקדמות. סקריפטים מהטאב \"סקריפטים\" נטענים רק לאחר שהמבקר מסכים לקטגוריה המתאימה. שמות ותיאורי הקטגוריות נערכים לפי שפה בטאב \"טקסטים\"."
 
@@ -263,6 +299,9 @@ msgstr "הפעלת כיסוי"
 
 msgid "Enable the tools you need. Each module replaces a standalone plugin."
 msgstr "הפעילו את הכלים שאתם צריכים. כל מודול מחליף תוסף נפרד."
+
+msgid "Enabled post types"
+msgstr "סוגי תוכן פעילים"
 
 msgid "End (left in RTL, right in LTR)"
 msgstr "סוף (שמאל בעברית, ימין באנגלית)"
@@ -363,6 +402,9 @@ msgstr "מיקום התמונה"
 msgid "Image size"
 msgstr "גודל התמונה"
 
+msgid "Includes the featured image, page template and page-builder data (Elementor)."
+msgstr "כולל תמונה ראשית, תבנית עמוד ונתוני בוני עמודים (אלמנטור)."
+
 msgid "Increase this number to ask ALL visitors for consent again (for example after changing your cookie policy). Popular page caches (WP Rocket, LiteSpeed, Super Cache, W3TC, Fastest Cache, SiteGround) are purged automatically when it changes."
 msgstr "הגדילו את המספר כדי לבקש הסכמה מחדש מכל המבקרים (למשל אחרי שינוי מדיניות העוגיות). תוספי קאש נפוצים (WP Rocket, LiteSpeed, Super Cache, W3TC, Fastest Cache, SiteGround) מנוקים אוטומטית כשהערך משתנה."
 
@@ -372,8 +414,14 @@ msgstr "ריווח פנימי (פיקסלים)"
 msgid "Invalid language code. Use formats like \"en\", \"ru\" or \"pt_BR\"."
 msgstr "קוד שפה לא תקין. השתמשו בפורמט כמו \"en\"‏, \"ru\" או \"pt_BR\"."
 
+msgid "Item duplicated as a draft."
+msgstr "הפריט שוכפל כטיוטה."
+
 msgid "Justify"
 msgstr "מיושר לשני הצדדים"
+
+msgid "Keep original date"
+msgstr "שמירת התאריך המקורי"
 
 msgid "Language added."
 msgstr "השפה נוספה."
@@ -435,8 +483,14 @@ msgstr "ללא"
 msgid "Not recommended for GDPR - EU law requires active consent."
 msgstr "לא מומלץ לפי GDPR - חוקי האיחוד האירופי דורשים הסכמה אקטיבית."
 
+msgid "Off = the copy gets the current date."
+msgstr "כבוי = העותק מקבל את התאריך הנוכחי."
+
 msgid "Offsets are measured from the chosen corner. For example, corner \"bottom-right\" with vertical offset 100 places the button 100px above the bottom - handy for avoiding WhatsApp/chat buttons."
 msgstr "המרחקים נמדדים מהפינה שנבחרה. לדוגמה: פינה ימנית תחתונה עם מרחק אנכי 100 ממקמת את הכפתור 100 פיקסלים מעל התחתית - שימושי כדי לא להתנגש בכפתורי WhatsApp/צ'אט."
+
+msgid "One-click duplication of posts, pages and custom post types as drafts - including custom fields (Elementor data), taxonomies and the featured image."
+msgstr "שכפול בקליק אחד של פוסטים, עמודים וסוגי תוכן מותאמים כטיוטות - כולל שדות מותאמים (נתוני אלמנטור), טקסונומיות ותמונה ראשית."
 
 msgid "Only if the policy lives outside this site. Leave empty when a page is selected above."
 msgstr "רק אם המדיניות נמצאת מחוץ לאתר זה. השאירו ריק כשנבחר עמוד למעלה."
@@ -461,6 +515,9 @@ msgstr "הדביקו כאן את קטעי ה-HTML המלאים (Google Analytics
 
 msgid "Pick the privacy policy page. With WPML or Polylang, the translated page is linked automatically per language."
 msgstr "בחרו את עמוד מדיניות הפרטיות. עם WPML או Polylang, העמוד המתורגם מקושר אוטומטית לפי שפה."
+
+msgid "Post not found."
+msgstr "הפוסט לא נמצא."
 
 msgid "Preferences screen title"
 msgstr "כותרת מסך ההעדפות"
@@ -579,6 +636,9 @@ msgstr "כותרת"
 msgid "Title color"
 msgstr "צבע הכותרת"
 
+msgid "Title suffix"
+msgstr "סיומת לכותרת"
+
 msgid "Top (center)"
 msgstr "למעלה (מרכז)"
 
@@ -629,6 +689,9 @@ msgstr "גודל ה-X (פיקסלים)"
 
 msgid "You are not allowed to do that."
 msgstr "אין לך הרשאה לבצע פעולה זו."
+
+msgid "You are not allowed to duplicate this item."
+msgstr "אין לך הרשאה לשכפל פריט זה."
 
 msgid "Zoom"
 msgstr "התקרבות"

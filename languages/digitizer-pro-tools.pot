@@ -23,6 +23,9 @@ msgstr ""
 msgid "\"Settings\" button"
 msgstr ""
 
+msgid "%d items duplicated as drafts."
+msgstr ""
+
 msgid "0 = show immediately. 5 = show after 5 seconds, so the banner does not interrupt visitors right away."
 msgstr ""
 
@@ -59,6 +62,9 @@ msgstr ""
 msgid "Add language (code):"
 msgstr ""
 
+msgid "Adds \"Duplicate\" and \"Duplicate & Edit\" links to the post lists, plus a bulk action. Copies are created as drafts, including custom fields (Elementor data), taxonomies and the featured image."
+msgstr ""
+
 msgid "Adds a thin border in the text color."
 msgstr ""
 
@@ -87,6 +93,9 @@ msgid "Analytics scripts"
 msgstr ""
 
 msgid "Anchor corner"
+msgstr ""
+
+msgid "Appended to the copy's title. Leave empty for an identical title."
 msgstr ""
 
 msgid "Arabic"
@@ -173,6 +182,9 @@ msgstr ""
 msgid "Categories"
 msgstr ""
 
+msgid "Categories, tags and custom taxonomies."
+msgstr ""
+
 msgid "Category names and descriptions"
 msgstr ""
 
@@ -212,6 +224,12 @@ msgstr ""
 msgid "Cookie Categories"
 msgstr ""
 
+msgid "Copy custom fields"
+msgstr ""
+
+msgid "Copy taxonomies"
+msgstr ""
+
 msgid "Corner radius (px)"
 msgstr ""
 
@@ -242,6 +260,24 @@ msgstr ""
 msgid "Double"
 msgstr ""
 
+msgid "Duplicate"
+msgstr ""
+
+msgid "Duplicate \"%s\""
+msgstr ""
+
+msgid "Duplicate \"%s\" and edit the copy"
+msgstr ""
+
+msgid "Duplicate & Edit"
+msgstr ""
+
+msgid "Duplicate Post"
+msgstr ""
+
+msgid "Duplication Settings"
+msgstr ""
+
 msgid "Each category shows a separate toggle on the advanced-preferences screen. Scripts from the \"Scripts\" tab load only after the visitor consents to the matching category. Category names and descriptions are edited per language on the \"Texts\" tab."
 msgstr ""
 
@@ -261,6 +297,9 @@ msgid "Enable overlay"
 msgstr ""
 
 msgid "Enable the tools you need. Each module replaces a standalone plugin."
+msgstr ""
+
+msgid "Enabled post types"
 msgstr ""
 
 msgid "End (left in RTL, right in LTR)"
@@ -362,6 +401,9 @@ msgstr ""
 msgid "Image size"
 msgstr ""
 
+msgid "Includes the featured image, page template and page-builder data (Elementor)."
+msgstr ""
+
 msgid "Increase this number to ask ALL visitors for consent again (for example after changing your cookie policy). Popular page caches (WP Rocket, LiteSpeed, Super Cache, W3TC, Fastest Cache, SiteGround) are purged automatically when it changes."
 msgstr ""
 
@@ -371,7 +413,13 @@ msgstr ""
 msgid "Invalid language code. Use formats like \"en\", \"ru\" or \"pt_BR\"."
 msgstr ""
 
+msgid "Item duplicated as a draft."
+msgstr ""
+
 msgid "Justify"
+msgstr ""
+
+msgid "Keep original date"
 msgstr ""
 
 msgid "Language added."
@@ -434,7 +482,13 @@ msgstr ""
 msgid "Not recommended for GDPR - EU law requires active consent."
 msgstr ""
 
+msgid "Off = the copy gets the current date."
+msgstr ""
+
 msgid "Offsets are measured from the chosen corner. For example, corner \"bottom-right\" with vertical offset 100 places the button 100px above the bottom - handy for avoiding WhatsApp/chat buttons."
+msgstr ""
+
+msgid "One-click duplication of posts, pages and custom post types as drafts - including custom fields (Elementor data), taxonomies and the featured image."
 msgstr ""
 
 msgid "Only if the policy lives outside this site. Leave empty when a page is selected above."
@@ -459,6 +513,9 @@ msgid "Paste the full HTML snippets here (Google Analytics, Facebook Pixel, GTM.
 msgstr ""
 
 msgid "Pick the privacy policy page. With WPML or Polylang, the translated page is linked automatically per language."
+msgstr ""
+
+msgid "Post not found."
 msgstr ""
 
 msgid "Preferences screen title"
@@ -578,6 +635,9 @@ msgstr ""
 msgid "Title color"
 msgstr ""
 
+msgid "Title suffix"
+msgstr ""
+
 msgid "Top (center)"
 msgstr ""
 
@@ -627,6 +687,9 @@ msgid "X size (px)"
 msgstr ""
 
 msgid "You are not allowed to do that."
+msgstr ""
+
+msgid "You are not allowed to duplicate this item."
 msgstr ""
 
 msgid "Zoom"

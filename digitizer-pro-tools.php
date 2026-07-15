@@ -2,8 +2,8 @@
 /**
  * Plugin Name:       Digitizer Pro Tools
  * Plugin URI:        https://github.com/digitizers/digitizer-pro-tools
- * Description:       One toolbox plugin by Digitizers: a multilingual cookie-consent banner with script blocking, plus more modules to come.
- * Version:           1.0.1
+ * Description:       One toolbox plugin by Digitizer: a multilingual cookie-consent banner with script blocking, one-click post duplication, and more modules to come.
+ * Version:           1.1.0
  * Requires at least: 5.8
  * Requires PHP:      7.4
  * Author:            Digitizer
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'DPT_VERSION', '1.0.1' );
+define( 'DPT_VERSION', '1.1.0' );
 define( 'DPT_PATH', plugin_dir_path( __FILE__ ) );
 define( 'DPT_URL', plugin_dir_url( __FILE__ ) );
 define( 'DPT_BASENAME', plugin_basename( __FILE__ ) );

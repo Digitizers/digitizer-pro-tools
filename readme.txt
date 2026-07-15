@@ -6,7 +6,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.0.1
+Stable tag: 1.1.0
 License: GPLv2 or later
 
 One toolbox plugin by Digitizers. First module: a multilingual cookie-consent banner with per-category script blocking.
@@ -34,6 +34,15 @@ A multilingual cookie-consent banner:
 * JS API window.DPTCB (open/close/getConsent/acceptAll/rejectAll) and a dpt:consent event
 * WP Rocket and Cloudflare Rocket Loader compatibility built in
 
+= Module: Duplicate Post =
+
+One-click duplication of posts, pages and custom post types:
+
+* "Duplicate" and "Duplicate & Edit" links in the post list rows, plus a bulk action
+* Copies are created as drafts with a configurable title suffix
+* Copies custom fields - including page-builder data such as Elementor's - taxonomies, featured image, page template, menu order and parent
+* Configurable per post type; respects each post type's edit capabilities
+
 Admin interface is in English with a full Hebrew translation.
 
 == Installation ==
@@ -45,6 +54,9 @@ Admin interface is in English with a full Hebrew translation.
 5. Save and check the site
 
 == Changelog ==
+
+= 1.1.0 =
+* New module: Duplicate Post - one-click duplication of posts, pages and custom post types as drafts, including custom fields (Elementor data), taxonomies and the featured image
 
 = 1.0.1 =
 * Banner box is now 100% wide with a 700px max-width (existing installs still on the old 900px/95% defaults are migrated automatically)
