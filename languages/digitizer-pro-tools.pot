@@ -230,6 +230,9 @@ msgstr ""
 msgid "Copy taxonomies"
 msgstr ""
 
+msgid "Core auto-updates (successful only)"
+msgstr ""
+
 msgid "Corner radius (px)"
 msgstr ""
 
@@ -321,6 +324,9 @@ msgid "Essential cookies"
 msgstr ""
 
 msgid "Fade"
+msgstr ""
+
+msgid "Failure and critical core-update emails always go out."
 msgstr ""
 
 msgid "Floating \"Manage Cookies\" Button"
@@ -515,6 +521,9 @@ msgstr ""
 msgid "Pick the privacy policy page. With WPML or Polylang, the translated page is linked automatically per language."
 msgstr ""
 
+msgid "Plugin auto-updates"
+msgstr ""
+
 msgid "Post not found."
 msgstr ""
 
@@ -593,6 +602,12 @@ msgstr ""
 msgid "Show on mobile"
 msgstr ""
 
+msgid "Silence notifications for"
+msgstr ""
+
+msgid "Silences the \"site updated\" email notifications WordPress sends after automatic plugin, theme and core updates. Failure emails are always kept."
+msgstr ""
+
 msgid "Slide down"
 msgstr ""
 
@@ -626,6 +641,9 @@ msgstr ""
 msgid "The final position is the corner plus the offsets below."
 msgstr ""
 
+msgid "Theme auto-updates"
+msgstr ""
+
 msgid "Tip: WhatsApp buttons usually sit 20-80px from the bottom. Use 90-100 to avoid collisions."
 msgstr ""
 
@@ -656,6 +674,9 @@ msgstr ""
 msgid "Typography"
 msgstr ""
 
+msgid "Update Emails"
+msgstr ""
+
 msgid "Updates after saving."
 msgstr ""
 
@@ -675,6 +696,9 @@ msgid "View banner on the site"
 msgstr ""
 
 msgid "When disabled, the banner is not shown at all."
+msgstr ""
+
+msgid "WordPress emails the site admin after every automatic update. On a maintained site these routine \"success\" notifications are noise - this module silences them. Emails about FAILED updates are never suppressed."
 msgstr ""
 
 msgid "X background color"

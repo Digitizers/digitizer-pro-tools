@@ -231,6 +231,9 @@ msgstr "העתקת שדות מותאמים"
 msgid "Copy taxonomies"
 msgstr "העתקת טקסונומיות"
 
+msgid "Core auto-updates (successful only)"
+msgstr "עדכוני ליבה אוטומטיים (מוצלחים בלבד)"
+
 msgid "Corner radius (px)"
 msgstr "עיגול פינות (פיקסלים)"
 
@@ -323,6 +326,9 @@ msgstr "עוגיות חיוניות"
 
 msgid "Fade"
 msgstr "התעמעמות"
+
+msgid "Failure and critical core-update emails always go out."
+msgstr "מיילים על כשלים ועדכוני ליבה קריטיים תמיד נשלחים."
 
 msgid "Floating \"Manage Cookies\" Button"
 msgstr "כפתור ניהול עוגיות צף"
@@ -516,6 +522,9 @@ msgstr "הדביקו כאן את קטעי ה-HTML המלאים (Google Analytics
 msgid "Pick the privacy policy page. With WPML or Polylang, the translated page is linked automatically per language."
 msgstr "בחרו את עמוד מדיניות הפרטיות. עם WPML או Polylang, העמוד המתורגם מקושר אוטומטית לפי שפה."
 
+msgid "Plugin auto-updates"
+msgstr "עדכוני תוספים אוטומטיים"
+
 msgid "Post not found."
 msgstr "הפוסט לא נמצא."
 
@@ -594,6 +603,12 @@ msgstr "עיכוב בהצגה (שניות)"
 msgid "Show on mobile"
 msgstr "הצגה במובייל"
 
+msgid "Silence notifications for"
+msgstr "השתקת הודעות עבור"
+
+msgid "Silences the \"site updated\" email notifications WordPress sends after automatic plugin, theme and core updates. Failure emails are always kept."
+msgstr "משתיק את הודעות המייל \"האתר עודכן\" שוורדפרס שולח אחרי עדכונים אוטומטיים של תוספים, תבניות והליבה. מיילים על כשלים תמיד נשלחים."
+
 msgid "Slide down"
 msgstr "החלקה מלמעלה"
 
@@ -627,6 +642,9 @@ msgstr "הבאנר בוחר את השפה אוטומטית לפי שפת העמ�
 msgid "The final position is the corner plus the offsets below."
 msgstr "המיקום הסופי הוא הפינה ועוד המרחקים שבהמשך."
 
+msgid "Theme auto-updates"
+msgstr "עדכוני תבניות אוטומטיים"
+
 msgid "Tip: WhatsApp buttons usually sit 20-80px from the bottom. Use 90-100 to avoid collisions."
 msgstr "טיפ: כפתורי WhatsApp יושבים בדרך כלל 20-80 פיקסלים מהתחתית. השתמשו ב-90-100 כדי להימנע מהתנגשות."
 
@@ -657,6 +675,9 @@ msgstr "פינה ימנית עליונה"
 msgid "Typography"
 msgstr "טיפוגרפיה"
 
+msgid "Update Emails"
+msgstr "מיילים על עדכונים"
+
 msgid "Updates after saving."
 msgstr "מתעדכן לאחר שמירה."
 
@@ -677,6 +698,9 @@ msgstr "צפייה בבאנר באתר"
 
 msgid "When disabled, the banner is not shown at all."
 msgstr "כאשר מושבת, הבאנר לא מוצג כלל."
+
+msgid "WordPress emails the site admin after every automatic update. On a maintained site these routine \"success\" notifications are noise - this module silences them. Emails about FAILED updates are never suppressed."
+msgstr "וורדפרס שולח מייל למנהל האתר אחרי כל עדכון אוטומטי. באתר מתוחזק ההודעות השגרתיות על הצלחה הן רעש - המודול הזה משתיק אותן. מיילים על עדכונים שנכשלו לעולם לא מושתקים."
 
 msgid "X background color"
 msgstr "צבע רקע ה-X"

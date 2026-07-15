@@ -38,6 +38,11 @@ class DPT_Plugin {
 				'class'   => 'DPT_Duplicate_Post_Module',
 				'default' => '1',
 			),
+			'update_emails' => array(
+				'file'    => DPT_PATH . 'modules/update-emails/class-dpt-ue-module.php',
+				'class'   => 'DPT_Update_Emails_Module',
+				'default' => '1',
+			),
 		);
 		return apply_filters( 'dpt_modules', $modules );
 	}

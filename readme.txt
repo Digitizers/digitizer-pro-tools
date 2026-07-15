@@ -6,10 +6,10 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.1.0
+Stable tag: 1.2.0
 License: GPLv2 or later
 
-One toolbox plugin by Digitizers. First module: a multilingual cookie-consent banner with per-category script blocking.
+One toolbox plugin by Digitizer. Modules: multilingual cookie-consent banner, one-click post duplication, auto-update email silencing.
 
 == Description ==
 
@@ -43,6 +43,14 @@ One-click duplication of posts, pages and custom post types:
 * Copies custom fields - including page-builder data such as Elementor's - taxonomies, featured image, page template, menu order and parent
 * Configurable per post type; respects each post type's edit capabilities
 
+= Module: Update Emails =
+
+Silences the routine "site updated" notifications WordPress emails after automatic updates:
+
+* Separate toggles for plugin, theme and core auto-update emails
+* Core updates: only SUCCESS notifications are silenced - failure and critical emails always go out
+* Safe alongside an existing functions.php snippet doing the same (duplicate filters are harmless)
+
 Admin interface is in English with a full Hebrew translation.
 
 == Installation ==
@@ -54,6 +62,9 @@ Admin interface is in English with a full Hebrew translation.
 5. Save and check the site
 
 == Changelog ==
+
+= 1.2.0 =
+* New module: Update Emails - silences automatic-update email notifications (plugins, themes, successful core updates), with failure emails always kept
 
 = 1.1.0 =
 * New module: Duplicate Post - one-click duplication of posts, pages and custom post types as drafts, including custom fields (Elementor data), taxonomies and the featured image
