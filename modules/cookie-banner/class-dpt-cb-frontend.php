@@ -477,6 +477,22 @@ class DPT_CB_Frontend {
 		return isset( $map[ $pos ] ) ? $map[ $pos ] : $map['bottom-right'];
 	}
 
+	/**
+	 * Inline SVG icon (stroke follows the text color). Self-contained -
+	 * no icon font or Elementor dependency.
+	 */
+	private function icon( $name ) {
+		$attrs = 'class="dpt-cb-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"';
+		$icons = array(
+			'lock'      => '<svg ' . $attrs . '><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>',
+			'sliders'   => '<svg ' . $attrs . '><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>',
+			'chart'     => '<svg ' . $attrs . '><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>',
+			'megaphone' => '<svg ' . $attrs . '><path d="m3 11 18-5v12L3 14v-3z"></path><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"></path></svg>',
+			'cookie'    => '<svg ' . $attrs . '><path d="M12 2a10 10 0 1 0 10 10 4 4 0 0 1-5-5 4 4 0 0 1-5-5"></path><path d="M8.5 8.5v.01"></path><path d="M16 15.5v.01"></path><path d="M12 12v.01"></path><path d="M11 17v.01"></path><path d="M7 14v.01"></path></svg>',
+		);
+		return isset( $icons[ $name ] ) ? $icons[ $name ] : '';
+	}
+
 	private function render_banner_markup( $o, $t, $lang, $dir ) {
 		$position_class = 'dpt-cb-pos-' . esc_attr( $o['position'] );
 		$anim_class     = ' dpt-cb-anim-' . esc_attr( $o['animation'] );
@@ -536,7 +552,7 @@ class DPT_CB_Frontend {
 
 					<div class="dpt-cb-category">
 						<div class="dpt-cb-category-head">
-							<span class="dpt-cb-category-name">🔒 <?php echo esc_html( $t['cat_essential_name'] ); ?></span>
+							<span class="dpt-cb-category-name"><?php echo $this->icon( 'lock' ); ?> <?php echo esc_html( $t['cat_essential_name'] ); ?></span>
 							<span class="dpt-cb-always-on"><?php echo esc_html( $t['always_on_label'] ); ?></span>
 						</div>
 						<p class="dpt-cb-category-desc"><?php echo wp_kses_post( $t['cat_essential_desc'] ); ?></p>
@@ -545,7 +561,7 @@ class DPT_CB_Frontend {
 					<?php if ( '1' === $o['cat_functional_enabled'] ) : ?>
 					<div class="dpt-cb-category">
 						<div class="dpt-cb-category-head">
-							<span class="dpt-cb-category-name">🎯 <?php echo esc_html( $t['cat_functional_name'] ); ?></span>
+							<span class="dpt-cb-category-name"><?php echo $this->icon( 'sliders' ); ?> <?php echo esc_html( $t['cat_functional_name'] ); ?></span>
 							<label class="dpt-cb-toggle"><input type="checkbox" data-dpt-cb-cat="functional" /><span class="dpt-cb-toggle-slider"></span></label>
 						</div>
 						<p class="dpt-cb-category-desc"><?php echo wp_kses_post( $t['cat_functional_desc'] ); ?></p>
@@ -555,7 +571,7 @@ class DPT_CB_Frontend {
 					<?php if ( '1' === $o['cat_analytics_enabled'] ) : ?>
 					<div class="dpt-cb-category">
 						<div class="dpt-cb-category-head">
-							<span class="dpt-cb-category-name">📊 <?php echo esc_html( $t['cat_analytics_name'] ); ?></span>
+							<span class="dpt-cb-category-name"><?php echo $this->icon( 'chart' ); ?> <?php echo esc_html( $t['cat_analytics_name'] ); ?></span>
 							<label class="dpt-cb-toggle"><input type="checkbox" data-dpt-cb-cat="analytics" /><span class="dpt-cb-toggle-slider"></span></label>
 						</div>
 						<p class="dpt-cb-category-desc"><?php echo wp_kses_post( $t['cat_analytics_desc'] ); ?></p>
@@ -565,7 +581,7 @@ class DPT_CB_Frontend {
 					<?php if ( '1' === $o['cat_marketing_enabled'] ) : ?>
 					<div class="dpt-cb-category">
 						<div class="dpt-cb-category-head">
-							<span class="dpt-cb-category-name">📣 <?php echo esc_html( $t['cat_marketing_name'] ); ?></span>
+							<span class="dpt-cb-category-name"><?php echo $this->icon( 'megaphone' ); ?> <?php echo esc_html( $t['cat_marketing_name'] ); ?></span>
 							<label class="dpt-cb-toggle"><input type="checkbox" data-dpt-cb-cat="marketing" /><span class="dpt-cb-toggle-slider"></span></label>
 						</div>
 						<p class="dpt-cb-category-desc"><?php echo wp_kses_post( $t['cat_marketing_desc'] ); ?></p>
@@ -605,9 +621,16 @@ class DPT_CB_Frontend {
 		             . "var m=b&&b.querySelector('.dpt-cb-main-view'),s=b&&b.querySelector('.dpt-cb-settings-view');"
 		             . "if(m)m.style.display='';if(s)s.style.display='none';"
 		             . "}catch(e){}";
+		// Empty text (or the legacy 🍪 seed) renders the built-in SVG cookie
+		// icon; any other text/emoji the admin typed is shown as-is.
+		$float_text = trim( (string) $t['float_button_text'] );
 		?>
 		<button type="button" id="dpt-cb-float-button" class="<?php echo esc_attr( $mobile_class ); ?>" aria-label="<?php echo esc_attr( $t['float_button_aria'] ); ?>" onclick="<?php echo esc_attr( $inline_open ); ?>"><?php
-			echo esc_html( $t['float_button_text'] );
+			if ( '' === $float_text || '🍪' === $float_text ) {
+				echo $this->icon( 'cookie' );
+			} else {
+				echo esc_html( $float_text );
+			}
 		?></button>
 		<?php
 	}

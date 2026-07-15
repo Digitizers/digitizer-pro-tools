@@ -1,10 +1,12 @@
 === Digitizer Pro Tools ===
 Contributors: digitizers
+Author: Digitizer
+Author URI: https://www.digitizer.co.il
 Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.0.0
+Stable tag: 1.0.1
 License: GPLv2 or later
 
 One toolbox plugin by Digitizers. First module: a multilingual cookie-consent banner with per-category script blocking.
@@ -43,6 +45,11 @@ Admin interface is in English with a full Hebrew translation.
 5. Save and check the site
 
 == Changelog ==
+
+= 1.0.1 =
+* Banner box is now 100% wide with a 700px max-width (existing installs still on the old 900px/95% defaults are migrated automatically)
+* All emoji replaced with real icons: inline SVG in the banner (categories + floating cookie button), native Dashicons in the admin
+* Plugin author details added
 
 = 1.0.0 =
 * Initial release: modular core + multilingual cookie banner module.

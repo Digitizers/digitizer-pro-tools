@@ -110,6 +110,21 @@
     padding: 24px;
     border-radius: 12px;
     line-height: 1.5;
+    width: 100%;
+    max-width: 700px;
+}
+
+/* Inline SVG icons */
+.dpt-cb-icon {
+    display: inline-block;
+    vertical-align: -3px;
+    margin-inline-end: 4px;
+}
+#dpt-cb-float-button .dpt-cb-icon {
+    width: 55%;
+    height: 55%;
+    margin: 0;
+    vertical-align: middle;
 }
 
 /* Close X - sits at the inline-end corner in both directions */

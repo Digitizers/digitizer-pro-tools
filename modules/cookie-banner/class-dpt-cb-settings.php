@@ -38,8 +38,8 @@ class DPT_CB_Settings {
 			// Design - box.
 			'bg_color'           => '#ffffff',
 			'text_color'         => '#333333',
-			'width'              => '900',
-			'max_width_pct'      => '95',
+			'width'              => '700',
+			'max_width_pct'      => '100',
 			'border_radius'      => '12',
 			'padding'            => '24',
 			'box_shadow'         => '1',
@@ -174,7 +174,7 @@ class DPT_CB_Settings {
 	public static function default_texts( $lang ) {
 		if ( 'he' === $lang ) {
 			return array(
-				'title'               => 'אנחנו משתמשים בעוגיות 🍪',
+				'title'               => 'אנחנו משתמשים בעוגיות',
 				'message'             => 'האתר שלנו משתמש בעוגיות (Cookies) כדי לשפר את חוויית הגלישה שלך, להתאים את התוכן אישית ולנתח את התנועה באתר. על ידי לחיצה על "קבל הכל" אתה מסכים לשימוש בעוגיות. ניתן לנהל את ההעדפות שלך בכל עת.',
 				'btn_accept_text'     => 'קבל הכל',
 				'btn_reject_text'     => 'דחה הכל',
@@ -183,7 +183,7 @@ class DPT_CB_Settings {
 				'policy_text'         => 'מדיניות פרטיות',
 				'settings_view_title' => 'ניהול העדפות עוגיות',
 				'always_on_label'     => 'תמיד פעילות',
-				'float_button_text'   => '🍪',
+				'float_button_text'   => '',
 				'float_button_aria'   => 'ניהול עוגיות',
 				'close_aria'          => 'סגור',
 				'cat_essential_name'  => 'עוגיות חיוניות',
@@ -198,7 +198,7 @@ class DPT_CB_Settings {
 		}
 		// English seed (also the base for any new language).
 		return array(
-			'title'               => 'We use cookies 🍪',
+			'title'               => 'We use cookies',
 			'message'             => 'Our website uses cookies to improve your browsing experience, personalize content and analyze our traffic. By clicking "Accept all" you consent to the use of cookies. You can manage your preferences at any time.',
 			'btn_accept_text'     => 'Accept all',
 			'btn_reject_text'     => 'Reject all',
@@ -207,7 +207,7 @@ class DPT_CB_Settings {
 			'policy_text'         => 'Privacy policy',
 			'settings_view_title' => 'Manage cookie preferences',
 			'always_on_label'     => 'Always active',
-			'float_button_text'   => '🍪',
+			'float_button_text'   => '',
 			'float_button_aria'   => 'Manage cookies',
 			'close_aria'          => 'Close',
 			'cat_essential_name'  => 'Essential cookies',
@@ -251,6 +251,20 @@ class DPT_CB_Settings {
 		// Merge defaults for new keys, keep user's saved values.
 		$merged = array_merge( $defaults, $existing );
 
+		// v1.0.1: banner box default changed from 900px/95% to 700px/100%.
+		// Installs still carrying the exact legacy seeds get the new size;
+		// any other stored value is a deliberate admin choice and is kept.
+		// (dpt_db_version still holds the OLD version here - DPT_Plugin
+		// updates it only after all module migrations ran.)
+		$old_version = get_option( 'dpt_db_version', '0' );
+		if ( version_compare( $old_version, '1.0.1', '<' )
+			&& isset( $existing['width'], $existing['max_width_pct'] )
+			&& '900' === (string) $existing['width']
+			&& '95' === (string) $existing['max_width_pct'] ) {
+			$merged['width']         = '700';
+			$merged['max_width_pct'] = '100';
+		}
+
 		// Deep-merge texts: keep saved languages, fill in missing keys per language.
 		$languages = ( isset( $existing['languages'] ) && is_array( $existing['languages'] ) ) ? $existing['languages'] : $defaults['languages'];
 		$texts     = ( isset( $existing['texts'] ) && is_array( $existing['texts'] ) ) ? $existing['texts'] : array();
@@ -261,7 +275,36 @@ class DPT_CB_Settings {
 			$merged['texts'][ $lang ] = array_merge( self::default_texts( $lang ), $saved );
 		}
 
+		// v1.0.1: emoji removed from the seeded texts. Saved copies that
+		// still hold the EXACT legacy seeds follow; customized texts stay.
+		if ( version_compare( $old_version, '1.0.1', '<' ) ) {
+			$legacy_titles = array(
+				'אנחנו משתמשים בעוגיות 🍪' => 'אנחנו משתמשים בעוגיות',
+				'We use cookies 🍪'        => 'We use cookies',
+			);
+			foreach ( $merged['texts'] as $lang => $lang_texts ) {
+				if ( isset( $lang_texts['title'] ) && isset( $legacy_titles[ $lang_texts['title'] ] ) ) {
+					$merged['texts'][ $lang ]['title'] = $legacy_titles[ $lang_texts['title'] ];
+				}
+				if ( isset( $lang_texts['float_button_text'] ) && '🍪' === trim( $lang_texts['float_button_text'] ) ) {
+					$merged['texts'][ $lang ]['float_button_text'] = '';
+				}
+			}
+		}
+
 		update_option( self::OPTION, $merged );
+
+		// Migrations change frontend-rendered settings just like a normal
+		// save does, so cached pages must be invalidated too. This runs on
+		// plugins_loaded - defer to init when needed so cache plugins that
+		// register their purge listeners on init still catch it.
+		if ( $merged != $existing ) {
+			if ( did_action( 'init' ) ) {
+				self::purge_page_caches();
+			} else {
+				add_action( 'init', array( __CLASS__, 'purge_page_caches' ), 99 );
+			}
+		}
 	}
 
 	/**
@@ -320,10 +363,18 @@ class DPT_CB_Settings {
 
 		$texts = array();
 		foreach ( self::text_keys() as $key ) {
-			$texts[ $key ] = '';
+			// For float_button_text an explicit blank MEANS "use the built-in
+			// icon", so it must win over lower layers instead of falling
+			// through to another language's custom label.
+			$blank_is_value = ( 'float_button_text' === $key );
+			$texts[ $key ]  = '';
 			foreach ( $layers as $layer ) {
-				if ( isset( $layer[ $key ] ) && '' !== trim( (string) $layer[ $key ] ) ) {
-					$texts[ $key ] = $layer[ $key ];
+				if ( ! isset( $layer[ $key ] ) ) {
+					continue;
+				}
+				$value = (string) $layer[ $key ];
+				if ( $blank_is_value || '' !== trim( $value ) ) {
+					$texts[ $key ] = $value;
 				}
 			}
 		}

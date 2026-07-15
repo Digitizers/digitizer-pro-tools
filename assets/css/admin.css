@@ -87,6 +87,25 @@
     border-radius: 4px;
 }
 
+/* Dashicons inside headings, table headers and buttons */
+.dpt-panel h2 .dashicons,
+.dpt-section-heading .dashicons,
+.dpt-form th .dashicons,
+.dpt-preview-wrap h3 .dashicons,
+.dpt-wrap a.button .dashicons {
+    font-size: 17px;
+    width: 17px;
+    height: 17px;
+    vertical-align: text-bottom;
+    margin-inline-end: 4px;
+    color: #2563eb;
+}
+.dpt-wrap a.button .dashicons {
+    color: inherit;
+    vertical-align: middle;
+    margin-top: -2px;
+}
+
 .dpt-form th {
     width: 240px;
     text-align: start;
