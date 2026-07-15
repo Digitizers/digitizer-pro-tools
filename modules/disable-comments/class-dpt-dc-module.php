@@ -35,6 +35,9 @@ class DPT_Disable_Comments_Module extends DPT_Module {
 		add_filter( 'comments_open', array( $this, 'filter_comments_open' ), 20, 2 );
 		add_filter( 'pings_open', array( $this, 'filter_comments_open' ), 20, 2 );
 		add_filter( 'comments_array', array( $this, 'filter_comments_array' ), 10, 2 );
+		// Block themes (the core Comments block) query comments directly via
+		// WP_Comment_Query and never pass through comments_array.
+		add_action( 'pre_get_comments', array( $this, 'filter_comment_queries' ) );
 
 		// Editor/REST support removal - after all post types registered.
 		add_action( 'init', array( $this, 'remove_post_type_support' ), 100 );
@@ -69,6 +72,39 @@ class DPT_Disable_Comments_Module extends DPT_Module {
 			return array();
 		}
 		return $comments;
+	}
+
+	/**
+	 * Empty comment queries for disabled post types on the frontend (and
+	 * REST) - covers the block Comments template and any direct
+	 * get_comments() call. Admin queries are left alone so moderation
+	 * screens can still list existing comments. Site-wide queries without
+	 * a post_id/post_type constraint are also left alone: with WooCommerce
+	 * reviews protected they may legitimately serve review widgets.
+	 *
+	 * @param WP_Comment_Query $query Query, passed by reference.
+	 */
+	public function filter_comment_queries( $query ) {
+		if ( is_admin() ) {
+			return;
+		}
+		$post_id = ! empty( $query->query_vars['post_id'] ) ? (int) $query->query_vars['post_id'] : 0;
+		if ( $post_id ) {
+			if ( DPT_DC_Settings::disabled_for( (string) get_post_type( $post_id ) ) ) {
+				$query->query_vars['comment__in'] = array( 0 );
+			}
+			return;
+		}
+		$post_types = isset( $query->query_vars['post_type'] ) ? $query->query_vars['post_type'] : '';
+		if ( empty( $post_types ) ) {
+			return;
+		}
+		foreach ( (array) $post_types as $type ) {
+			if ( ! DPT_DC_Settings::disabled_for( (string) $type ) ) {
+				return;
+			}
+		}
+		$query->query_vars['comment__in'] = array( 0 );
 	}
 
 	/**
