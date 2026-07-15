@@ -37,10 +37,10 @@ class DPT_Update_Emails_Module extends DPT_Module {
 		$o = DPT_UE_Settings::all();
 
 		if ( '1' === $o['disable_plugin_emails'] ) {
-			add_filter( 'auto_plugin_update_send_email', '__return_false' );
+			add_filter( 'auto_plugin_update_send_email', array( $this, 'filter_plugin_theme_update_email' ), 10, 3 );
 		}
 		if ( '1' === $o['disable_theme_emails'] ) {
-			add_filter( 'auto_theme_update_send_email', '__return_false' );
+			add_filter( 'auto_theme_update_send_email', array( $this, 'filter_plugin_theme_update_email' ), 10, 3 );
 		}
 		if ( '1' === $o['disable_core_success_emails'] ) {
 			add_filter( 'auto_core_update_send_email', array( $this, 'filter_core_update_email' ), 10, 4 );
@@ -49,6 +49,23 @@ class DPT_Update_Emails_Module extends DPT_Module {
 		if ( is_admin() ) {
 			$this->admin = new DPT_UE_Admin();
 		}
+	}
+
+	/**
+	 * Plugin/theme auto-update notifications use ONE combined email for both
+	 * completed and failed updates, so a plain __return_false would hide
+	 * failures too. Silence the email only when every update in the batch
+	 * succeeded; any failure keeps the notification going out.
+	 *
+	 * @param bool  $send       Whether WordPress would send the email.
+	 * @param array $successful Successful update results.
+	 * @param array $failed     Failed update results.
+	 */
+	public function filter_plugin_theme_update_email( $send, $successful = array(), $failed = array() ) {
+		if ( empty( $failed ) ) {
+			return false;
+		}
+		return $send;
 	}
 
 	/**
