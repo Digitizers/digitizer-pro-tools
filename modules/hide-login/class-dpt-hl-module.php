@@ -164,18 +164,32 @@ class DPT_Hide_Login_Module extends DPT_Module {
 	}
 
 	/**
-	 * Render the theme's real 404 template with a 404 status by running the
-	 * main query against a path that cannot exist.
+	 * Render the theme's real 404 template with a 404 status.
+	 *
+	 * The 404 state is forced directly rather than by pointing the main
+	 * query at a non-existent path: plain-permalink sites have no rewrite
+	 * rules to translate a synthetic REQUEST_URI into a 404, so wp() would
+	 * run the empty home query and return the homepage with a 200.
 	 */
 	private function render_404_and_exit() {
-		global $pagenow;
-		$pagenow                = 'index.php';
-		$_SERVER['REQUEST_URI'] = user_trailingslashit( '/' . str_repeat( '-/', 10 ) );
 		if ( ! defined( 'WP_USE_THEMES' ) ) {
 			define( 'WP_USE_THEMES', true );
 		}
-		wp();
+		$this->prepare_404();
 		require_once ABSPATH . WPINC . '/template-loader.php';
 		exit;
+	}
+
+	/**
+	 * Put WordPress into a genuine 404 query/response state.
+	 */
+	private function prepare_404() {
+		global $pagenow, $wp_query;
+		$pagenow = 'index.php';
+		status_header( 404 );
+		nocache_headers();
+		if ( isset( $wp_query ) && $wp_query instanceof WP_Query ) {
+			$wp_query->set_404();
+		}
 	}
 }
