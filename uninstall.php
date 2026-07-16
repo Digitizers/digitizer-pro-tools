@@ -18,6 +18,7 @@ delete_option( 'dpt_content_control' );
 delete_option( 'dpt_enlighter' );
 delete_option( 'dpt_site_tweaks' );
 delete_option( 'dpt_woo_checkout' );
+delete_option( 'dpt_rankmath_breadcrumbs' );
 
 // Remove the User Role Editor's dedicated gating capability from every role.
 if ( function_exists( 'wp_roles' ) ) {

@@ -6,7 +6,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.9.0
+Stable tag: 1.10.0
 License: GPLv2 or later
 
 One toolbox plugin by Digitizer. Modules: multilingual cookie-consent banner, one-click post duplication, auto-update email silencing.
@@ -123,6 +123,16 @@ Checkout-field helpers for WooCommerce (disabled by default; enable it on the Mo
 * Israeli phone-number validation: accepts numbers starting with 05 (10 digits), 972 (12) or +972 (13), with a live in-browser hint and an authoritative server-side check that blocks checkout on an invalid number
 * All suggestion/error text is inserted as plain text, so nothing typed into the fields can inject markup
 
+= Module: Rank Math Breadcrumbs =
+
+Adds extra crumbs to the Rank Math breadcrumb trail (disabled by default; enable it on the Modules screen):
+
+* A "Blog" crumb after Home on single posts and blog archives (category, tag, author, date)
+* A "Shop" crumb after Home on WooCommerce product pages
+* URLs and labels are auto-detected - the Blog crumb from the posts page set under Settings > Reading, the Shop crumb from the WooCommerce shop page - and each can be overridden manually
+* A crumb is not added if the same URL is already present in the trail
+* Applies only when Rank Math is active
+
 Admin interface is in English with a full Hebrew translation.
 
 == Installation ==
@@ -134,6 +144,9 @@ Admin interface is in English with a full Hebrew translation.
 5. Save and check the site
 
 == Changelog ==
+
+= 1.10.0 =
+* New module: Rank Math Breadcrumbs - adds a Blog crumb on post contexts and a Shop crumb on WooCommerce product pages to the Rank Math breadcrumb trail, with auto-detected URLs/labels and manual overrides (module ships disabled; enable per site)
 
 = 1.9.0 =
 * New module: WooCommerce Checkout - email-domain typo suggestions and Israeli phone-number validation (client-side hint plus a server-side check) on the checkout billing fields (module ships disabled; enable per site)

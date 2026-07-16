@@ -5,8 +5,8 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-07-16 13:30+0000\n"
-"PO-Revision-Date: 2026-07-16 13:30+0000\n"
+"POT-Creation-Date: 2026-07-16 13:49+0000\n"
+"PO-Revision-Date: 2026-07-16 13:49+0000\n"
 "Language: he_IL\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "X-Generator: digitizer-pro-tools build-i18n\n"
@@ -1207,4 +1207,64 @@ msgstr "הוספת הרשאה"
 
 msgid "Edit the capabilities of every role, add, clone or delete roles, and register custom capabilities. Replaces the User Role Editor plugin."
 msgstr "עריכת ההרשאות של כל תפקיד, הוספה, שכפול או מחיקה של תפקידים, ורישום הרשאות מותאמות אישית. מחליף את התוסף User Role Editor."
+
+msgid "Rank Math Breadcrumbs"
+msgstr "פירורי לחם Rank Math"
+
+msgid "Adds a Blog crumb on post pages and a Shop crumb on WooCommerce product pages to the Rank Math breadcrumb trail. URLs are detected automatically and can be overridden."
+msgstr "מוסיף פירור \"בלוג\" בעמודי פוסטים ופירור \"חנות\" בעמודי מוצרים של WooCommerce לשביל פירורי הלחם של Rank Math. הכתובות מזוהות אוטומטית וניתן לעקוף אותן."
+
+msgid "Blog"
+msgstr "בלוג"
+
+msgid "Shop"
+msgstr "חנות"
+
+msgid "Adds a Blog crumb on post pages and a Shop crumb on product pages to the Rank Math breadcrumb trail. Leave a URL or label empty to detect it automatically."
+msgstr "מוסיף פירור \"בלוג\" בעמודי פוסטים ופירור \"חנות\" בעמודי מוצרים לשביל פירורי הלחם של Rank Math. יש להשאיר כתובת או תווית ריקה כדי לזהות אותה אוטומטית."
+
+msgid "Rank Math is not active on this site right now - these crumbs apply only when it is."
+msgstr "Rank Math אינו פעיל באתר זה כרגע - הפירורים האלה חלים רק כשהוא פעיל."
+
+msgid "Blog crumb"
+msgstr "פירור בלוג"
+
+msgid "Add a Blog crumb"
+msgstr "הוספת פירור בלוג"
+
+msgid "Shown on single posts and blog archives (category, tag, author, date)."
+msgstr "מוצג בפוסטים בודדים ובארכיוני בלוג (קטגוריה, תגית, מחבר, תאריך)."
+
+msgid "Label"
+msgstr "תווית"
+
+msgid "Blog (auto)"
+msgstr "בלוג (אוטומטי)"
+
+msgid "URL"
+msgstr "כתובת"
+
+msgid "Auto-detected: %s"
+msgstr "זוהה אוטומטית: %s"
+
+msgid "No posts page is set under Settings > Reading, so enter the blog URL manually."
+msgstr "לא הוגדר עמוד פוסטים תחת הגדרות > קריאה, לכן יש להזין את כתובת הבלוג ידנית."
+
+msgid "Shop crumb"
+msgstr "פירור חנות"
+
+msgid "WooCommerce is not active - the Shop crumb applies to product pages only."
+msgstr "WooCommerce אינו פעיל - פירור החנות חל על עמודי מוצר בלבד."
+
+msgid "Add a Shop crumb"
+msgstr "הוספת פירור חנות"
+
+msgid "Shown on single WooCommerce product pages."
+msgstr "מוצג בעמודי מוצר בודדים של WooCommerce."
+
+msgid "Shop (auto)"
+msgstr "חנות (אוטומטי)"
+
+msgid "No WooCommerce shop page detected - enter the shop URL manually if needed."
+msgstr "לא זוהה עמוד חנות של WooCommerce - יש להזין את כתובת החנות ידנית במידת הצורך."
 
