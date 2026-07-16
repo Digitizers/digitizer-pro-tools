@@ -240,7 +240,9 @@ class DPT_ST_SVG_Sanitizer {
 	 * are kept), and strip script vectors. Returns cleaned CSS.
 	 */
 	private static function sanitize_css( $css ) {
-		$css = (string) $css;
+		// Decode CSS escapes first, so "@\69mport" / "u\72l(" cannot dodge the
+		// literal @import / url() matching below.
+		$css = self::decode_css_escapes( (string) $css );
 		// Remove @import (and @charset, which can precede a smuggled import).
 		$css = preg_replace( '/@(?:import|charset)\b[^;]*;?/i', '', $css );
 		// Neutralise url(...): keep url(#fragment), drop everything else.
@@ -266,12 +268,35 @@ class DPT_ST_SVG_Sanitizer {
 	}
 
 	/**
-	 * Collapse whitespace, HTML entities and control characters so obfuscated
-	 * "j&#97;vascript:" style payloads are detected.
+	 * Collapse HTML entities, CSS escapes, whitespace and control characters so
+	 * obfuscated "j&#97;vascript:" or "u\72l(" style payloads are detected.
 	 */
 	private static function normalize( $value ) {
 		$v = html_entity_decode( $value, ENT_QUOTES | ENT_HTML5 );
+		$v = self::decode_css_escapes( $v );
 		$v = preg_replace( '/[\x00-\x20]+/', '', $v ); // strip all whitespace/control chars
 		return strtolower( (string) $v );
+	}
+
+	/**
+	 * Decode CSS character escapes ("\72" -> "r", "\6C" -> "l", "\/" -> "/") so
+	 * escaped url()/javascript: payloads cannot slip past the literal checks.
+	 */
+	private static function decode_css_escapes( $s ) {
+		// Hex escape: backslash + 1-6 hex digits, with one optional trailing space.
+		$s = preg_replace_callback(
+			'/\\\\([0-9A-Fa-f]{1,6})[ \t\n\r\f]?/',
+			function ( $m ) {
+				$cp = hexdec( $m[1] );
+				if ( $cp <= 0 || $cp > 0x10FFFF ) {
+					return '';
+				}
+				return html_entity_decode( '&#' . $cp . ';', ENT_QUOTES, 'UTF-8' );
+			},
+			(string) $s
+		);
+		// Any other backslash escape resolves to the literal following char.
+		$s = preg_replace( '/\\\\(.)/s', '$1', $s );
+		return (string) $s;
 	}
 }

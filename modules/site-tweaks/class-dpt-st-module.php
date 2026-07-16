@@ -144,8 +144,9 @@ class DPT_Site_Tweaks_Module extends DPT_Module {
 	 */
 	public function allow_svg_mime( $mimes ) {
 		if ( current_user_can( DPT_ST_Settings::svg_capability() ) ) {
-			$mimes['svg']  = 'image/svg+xml';
-			$mimes['svgz'] = 'image/svg+xml';
+			// Only plain .svg: the sanitiser cannot inspect gzip-compressed
+			// .svgz, so it is not accepted.
+			$mimes['svg'] = 'image/svg+xml';
 		}
 		return $mimes;
 	}
@@ -165,8 +166,8 @@ class DPT_Site_Tweaks_Module extends DPT_Module {
 			return $data;
 		}
 		$ext = strtolower( (string) pathinfo( $filename, PATHINFO_EXTENSION ) );
-		if ( 'svg' === $ext || 'svgz' === $ext ) {
-			$data['ext']  = $ext;
+		if ( 'svg' === $ext ) {
+			$data['ext']  = 'svg';
 			$data['type'] = 'image/svg+xml';
 		}
 		return $data;
@@ -184,7 +185,7 @@ class DPT_Site_Tweaks_Module extends DPT_Module {
 		$name = isset( $file['name'] ) ? (string) $file['name'] : '';
 		$ext  = strtolower( (string) pathinfo( $name, PATHINFO_EXTENSION ) );
 
-		$is_svg = ( 'image/svg+xml' === $type || 'svg' === $ext || 'svgz' === $ext );
+		$is_svg = ( 'image/svg+xml' === $type || 'svg' === $ext );
 		if ( ! $is_svg ) {
 			return $file;
 		}
