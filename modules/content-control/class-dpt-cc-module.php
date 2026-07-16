@@ -155,8 +155,18 @@ class DPT_Content_Control_Module extends DPT_Module {
 	}
 
 	private function current_url() {
-		$req = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '/';
-		return home_url( $req );
+		// REQUEST_URI already contains the full path including any subdirectory
+		// the site lives in, so combine it with the trusted scheme+host from
+		// home_url() rather than home_url( $req ), which would double the
+		// subdirectory prefix (e.g. /site/site/page/).
+		$req    = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '/';
+		$home   = wp_parse_url( home_url() );
+		$scheme = ! empty( $home['scheme'] ) ? $home['scheme'] : ( is_ssl() ? 'https' : 'http' );
+		$host   = ! empty( $home['host'] ) ? $home['host'] : '';
+		if ( ! empty( $home['port'] ) ) {
+			$host .= ':' . $home['port'];
+		}
+		return $scheme . '://' . $host . $req;
 	}
 
 	/* --------------------------------------------------------------------- */
