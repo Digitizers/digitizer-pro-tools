@@ -48,15 +48,21 @@ class DPT_CC_Access {
 			return true;
 		}
 
+		// Derive the logged-in state from the supplied user (its ID is 0 when
+		// logged out) rather than the global is_user_logged_in(), so a rule
+		// can be evaluated for any WP_User - background jobs, REST helpers -
+		// not only the current request user.
+		$logged_in = $user && ! empty( $user->ID );
+
 		switch ( $visibility ) {
 			case 'logged_out':
-				$allowed = ! is_user_logged_in();
+				$allowed = ! $logged_in;
 				break;
 			case 'logged_in':
-				$allowed = is_user_logged_in();
+				$allowed = $logged_in;
 				break;
 			case 'roles':
-				$allowed = is_user_logged_in() && self::user_has_any_role( $user, $roles );
+				$allowed = $logged_in && self::user_has_any_role( $user, $roles );
 				break;
 			case 'public':
 			default:
