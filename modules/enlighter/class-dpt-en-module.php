@@ -38,10 +38,12 @@ class DPT_Enlighter_Module extends DPT_Module {
 		add_shortcode( 'dpt_code', array( $this, 'shortcode_code' ) );
 		add_filter( 'no_texturize_shortcodes', array( $this, 'no_texturize' ) );
 
-		// Render [dpt_code] before wpautop/wptexturize (priority 10) run, so
-		// the raw snippet - including literal HTML tags a user wants to show -
-		// is captured intact rather than mangled into paragraphs.
-		add_filter( 'the_content', array( $this, 'render_content_shortcodes' ), 7 );
+		// Render [dpt_code] AFTER block parsing (do_blocks, priority 9) but
+		// before wpautop/wptexturize (priority 10). Registering at priority 9 -
+		// after core added do_blocks - means block comments are already
+		// rendered to HTML, so this never regexes over serialized block-comment
+		// JSON, while literal HTML in a snippet is still captured before autop.
+		add_filter( 'the_content', array( $this, 'render_content_shortcodes' ), 9 );
 
 		add_action( 'init', array( $this, 'register_block' ) );
 
@@ -111,8 +113,14 @@ class DPT_Enlighter_Module extends DPT_Module {
 			$attrs .= ' data-dpt-en-copy="1"';
 		}
 
+		// Escape the code, then neutralise square brackets so a snippet that
+		// itself contains shortcode-like text (e.g. documenting [dpt_code])
+		// is not re-expanded by later shortcode passes. The browser renders
+		// the numeric entities back to literal brackets for the highlighter.
+		$escaped = str_replace( array( '[', ']' ), array( '&#91;', '&#93;' ), esc_html( $code ) );
+
 		return '<pre class="' . esc_attr( $class ) . '"' . $attrs . '><code class="language-' . esc_attr( $lang ) . '">'
-			. esc_html( $code ) . '</code></pre>';
+			. $escaped . '</code></pre>';
 	}
 
 	/**
