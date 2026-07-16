@@ -6,7 +6,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.5.0
+Stable tag: 1.6.0
 License: GPLv2 or later
 
 One toolbox plugin by Digitizer. Modules: multilingual cookie-consent banner, one-click post duplication, auto-update email silencing.
@@ -82,6 +82,17 @@ Full control over what every role can do (disabled by default; enable it on the 
 * Lockout-proof: the administrator role always keeps the capabilities needed to manage the site, and you can never strip your own access
 * Protected roles (administrator) and the default new-user role cannot be deleted
 
+= Module: Content Control =
+
+Restrict who can see what (disabled by default; enable it on the Modules screen):
+
+* Per-page/post restriction metabox: everyone, logged-in users, logged-out visitors only, or specific roles - with a custom restriction message
+* Whole-site protection: require login (or specific roles) for the entire site, redirecting to the login form, a page, or showing a message; exempt individual pages by ID
+* Per-menu-item visibility so navigation entries appear only to the right audience (descendants of a hidden item are hidden too)
+* `[dpt_restrict role="editor,author"]...[/dpt_restrict]` shortcode to gate partial content (works in the block editor and Elementor)
+* Restricted content is replaced in listings, single views, feeds and the REST API - not just hidden with CSS
+* Administrators always retain access so they cannot lock themselves out
+
 Admin interface is in English with a full Hebrew translation.
 
 == Installation ==
@@ -93,6 +104,9 @@ Admin interface is in English with a full Hebrew translation.
 5. Save and check the site
 
 == Changelog ==
+
+= 1.6.0 =
+* New module: Content Control - per-page/role restrictions, whole-site protection, per-menu-item visibility and a [dpt_restrict] shortcode, enforced across listings, feeds and REST (module ships disabled; enable per site)
 
 = 1.5.0 =
 * New module: User Role Editor - edit role capabilities, add/clone/delete roles and register custom capabilities, with lockout protection (module ships disabled; enable per site)
