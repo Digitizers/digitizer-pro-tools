@@ -118,6 +118,9 @@
 				$( this ).removeClass( 'dpt-wcc-ok' ).addClass( 'dpt-wcc-bad' );
 				showEmailSuggestion( $( this ), result.suggestion );
 			} else {
+				// No suggestion applies (unknown but plausible domain): clear
+				// any stale valid/invalid state left by a previous entry.
+				$( this ).removeClass( 'dpt-wcc-ok dpt-wcc-bad' );
 				removeEmailSuggestion();
 			}
 		} );
@@ -127,6 +130,10 @@
 
 	function validatePhone( phone ) {
 		var cleaned = String( phone ).replace( /[^\d+]/g, '' );
+		// Collapse to a single optional leading '+' so padding plus signs
+		// (e.g. "05++++") cannot satisfy the length check.
+		var lead = cleaned.charAt( 0 ) === '+' ? '+' : '';
+		cleaned = lead + cleaned.replace( /\+/g, '' );
 		var rules = [
 			{ prefix: '+972', len: 13 },
 			{ prefix: '972', len: 12 },

@@ -126,6 +126,10 @@ class DPT_Woo_Checkout_Module extends DPT_Module {
 	 */
 	public static function phone_error( $phone ) {
 		$cleaned = preg_replace( '/[^\d+]/', '', (string) $phone );
+		// Collapse to a single optional leading '+': a value like "05++++"
+		// would otherwise pass the length check with padding plus signs.
+		$lead    = ( isset( $cleaned[0] ) && '+' === $cleaned[0] ) ? '+' : '';
+		$cleaned = $lead . str_replace( '+', '', $cleaned );
 
 		$error = null;
 		if ( 0 === strpos( $cleaned, '+972' ) ) {
