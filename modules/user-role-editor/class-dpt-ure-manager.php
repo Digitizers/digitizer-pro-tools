@@ -203,7 +203,13 @@ class DPT_URE_Manager {
 		$users = get_users( array( 'role' => $key, 'fields' => array( 'ID' ) ) );
 		foreach ( $users as $u ) {
 			$user = new WP_User( $u->ID );
-			$user->set_role( $reassign_to );
+			// Drop only the deleted role so a user's other roles survive, and
+			// add the reassignment role only when they would otherwise be left
+			// with no role at all.
+			$user->remove_role( $key );
+			if ( empty( $user->roles ) ) {
+				$user->add_role( $reassign_to );
+			}
 		}
 
 		remove_role( $key );
@@ -261,9 +267,14 @@ class DPT_URE_Manager {
 			}
 		}
 
-		// Apply the diff against the role's current caps.
+		// Apply the diff against the role's current caps, but only for caps
+		// inside the editable universe ($valid). Caps that are deliberately
+		// hidden from the matrix - legacy level_0..level_10 and role-key
+		// pseudo caps - are never in the submitted set and must be left in
+		// place, or a no-op save would strip them and break code that still
+		// checks current_user_can( 'level_*' ).
 		foreach ( array_keys( $current ) as $cap ) {
-			if ( empty( $desired[ $cap ] ) ) {
+			if ( isset( $valid[ $cap ] ) && empty( $desired[ $cap ] ) ) {
 				$role->remove_cap( $cap );
 			}
 		}
