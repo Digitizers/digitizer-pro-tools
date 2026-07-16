@@ -93,6 +93,9 @@ class DPT_ST_SVG_Sanitizer {
 			$dom->doctype->parentNode->removeChild( $dom->doctype );
 		}
 
+		// Clean the root <svg>'s own attributes (e.g. onload) as well as every
+		// descendant - clean_element() only recurses into children.
+		self::clean_attributes( $root );
 		self::clean_element( $root );
 
 		$out = $dom->saveXML( $root );
