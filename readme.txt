@@ -6,7 +6,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.7.0
+Stable tag: 1.8.0
 License: GPLv2 or later
 
 One toolbox plugin by Digitizer. Modules: multilingual cookie-consent banner, one-click post duplication, auto-update email silencing.
@@ -106,6 +106,15 @@ Syntax-highlight code on the front end - dependency-free, no external CDN (disab
 * Code is always HTML-escaped and highlighted client-side from the escaped text, so nothing in a snippet can inject markup or scripts
 * Migration-friendly: the legacy `[enlighter]` shortcode and Enlighter's saved `data-enlighter-language` markup (block and inline) are recognised automatically; per-language shortcodes such as `[php]`/`[js]` can be enabled with the `dpt_en_language_shortcodes` filter
 
+= Module: Site Tweaks =
+
+Small site-wide tweaks that replace assorted functions.php snippets - each an independent toggle (disabled by default; enable it on the Modules screen):
+
+* HTTP security headers on front-end responses: X-Frame-Options (SAMEORIGIN), X-Content-Type-Options (nosniff), an optional legacy X-XSS-Protection, and optional HSTS (Strict-Transport-Security) sent over HTTPS only, with an extra opt-in for includeSubDomains/preload
+* Sanitised SVG uploads: every SVG is cleaned on upload (scripts, event handlers, javascript: URLs, external references and entity/DOCTYPE payloads are stripped), and uploads are limited to users with a configurable capability (administrators by default)
+* Hide the WordPress version: removes the generator meta tag/RSS marker and the `?ver=` core version from asset URLs, while keeping plugin/theme asset versions so cache-busting still works
+* Elementor helpers (only when Elementor is active): disable Elementor's Google Fonts, and validate phone numbers in Elementor Pro `tel` form fields
+
 Admin interface is in English with a full Hebrew translation.
 
 == Installation ==
@@ -117,6 +126,9 @@ Admin interface is in English with a full Hebrew translation.
 5. Save and check the site
 
 == Changelog ==
+
+= 1.8.0 =
+* New module: Site Tweaks - HTTP security headers, sanitised SVG uploads, hiding the WordPress version, and Elementor helpers (disable Google Fonts, phone-field validation), each an independent toggle (module ships disabled; enable per site)
 
 = 1.7.0 =
 * New module: Enlighter - dependency-free code syntax highlighting via a block, the [dpt_code] shortcode, automatic pre/code highlighting and an Elementor widget (module ships disabled; enable per site)

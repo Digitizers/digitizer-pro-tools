@@ -5,8 +5,8 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-07-16 01:31+0000\n"
-"PO-Revision-Date: 2026-07-16 01:31+0000\n"
+"POT-Creation-Date: 2026-07-16 12:17+0000\n"
+"PO-Revision-Date: 2026-07-16 12:17+0000\n"
 "Language: he_IL\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "X-Generator: digitizer-pro-tools build-i18n\n"
@@ -640,6 +640,96 @@ msgstr "צפייה בבאנר באתר"
 
 msgid "Multilingual cookie-consent banner with cookie categories, script blocking until consent, and a floating preferences button."
 msgstr "באנר הסכמת עוגיות רב-לשוני עם קטגוריות עוגיות, חסימת סקריפטים עד להסכמה וכפתור העדפות צף."
+
+msgid "Site Tweaks"
+msgstr "התאמות אתר"
+
+msgid "Small site-wide tweaks, each an independent toggle. Replaces the assorted functions.php snippets."
+msgstr "התאמות קטנות לכל האתר, כל אחת מתג עצמאי. מחליף את קטעי הקוד השונים של functions.php."
+
+msgid "HTTP security headers"
+msgstr "כותרות אבטחה של HTTP"
+
+msgid "Sent on front-end responses. Verify with your browser dev tools after enabling."
+msgstr "נשלחות בתגובות בצד הקדמי. יש לוודא בכלי הפיתוח של הדפדפן לאחר ההפעלה."
+
+msgid "X-Frame-Options: SAMEORIGIN"
+msgstr "X-Frame-Options: SAMEORIGIN"
+
+msgid "Stops other sites from framing yours (clickjacking protection)."
+msgstr "מונע מאתרים אחרים למסגר את האתר שלך (הגנה מפני clickjacking)."
+
+msgid "X-Content-Type-Options: nosniff"
+msgstr "X-Content-Type-Options: nosniff"
+
+msgid "Stops browsers from MIME-sniffing responses."
+msgstr "מונע מדפדפנים לנחש את סוג התוכן (MIME sniffing) של תגובות."
+
+msgid "X-XSS-Protection"
+msgstr "X-XSS-Protection"
+
+msgid "<em>Legacy.</em> Deprecated and ignored by modern browsers; included only for parity with old snippets."
+msgstr "<em>מיושן.</em> הוצא משימוש ומתעלמים ממנו בדפדפנים מודרניים; נכלל רק לצורך התאמה לקטעי קוד ישנים."
+
+msgid "Strict-Transport-Security (HSTS)"
+msgstr "Strict-Transport-Security (HSTS)"
+
+msgid "Forces HTTPS for a year. <strong>Only enable once HTTPS is solid</strong> - browsers cache this and it is hard to undo. Sent over HTTPS only."
+msgstr "כופה HTTPS למשך שנה. <strong>יש להפעיל רק כאשר HTTPS יציב</strong> - דפדפנים שומרים זאת במטמון וקשה לבטל. נשלח רק דרך HTTPS."
+
+msgid "HSTS: includeSubDomains; preload"
+msgstr "HSTS: includeSubDomains; preload"
+
+msgid "Extends HSTS to <strong>every subdomain</strong> and marks the site for browser preload lists (near-permanent). Only with HSTS on, and only if every subdomain is HTTPS."
+msgstr "מרחיב את HSTS <strong>לכל תת-דומיין</strong> ומסמן את האתר לרשימות הטעינה מראש של הדפדפנים (כמעט קבוע). רק כאשר HSTS פעיל, ורק אם כל תת-דומיין מוגש ב-HTTPS."
+
+msgid "SVG uploads"
+msgstr "העלאות SVG"
+
+msgid "Allow SVG uploads"
+msgstr "אפשר העלאות SVG"
+
+msgid "Every SVG is sanitised on upload (scripts, event handlers and external references are stripped). Allowed only for users with the <code>%s</code> capability."
+msgstr "כל קובץ SVG מנוקה בעת ההעלאה (סקריפטים, מטפלי אירועים והפניות חיצוניות מוסרים). מותר רק למשתמשים בעלי ההרשאה <code>%s</code>."
+
+msgid "Hide WordPress version"
+msgstr "הסתרת גרסת וורדפרס"
+
+msgid "Remove version info"
+msgstr "הסרת מידע גרסה"
+
+msgid "Removes the generator meta tag/RSS marker and the <code>?ver=</code> WordPress version from core asset URLs. Plugin and theme asset versions are kept, so cache-busting still works."
+msgstr "מסיר את תג ה-generator/סימון ה-RSS ואת גרסת וורדפרס <code>?ver=</code> מכתובות של קבצי ליבה. גרסאות של קבצי תוספים וערכות עיצוב נשמרות, כך שביטול מטמון עדיין עובד."
+
+msgid "Elementor"
+msgstr "Elementor"
+
+msgid "Elementor is not active on this site right now - these tweaks apply only when it is."
+msgstr "אלמנטור אינו פעיל באתר זה כרגע - התאמות אלה חלות רק כשהוא פעיל."
+
+msgid "Disable Elementor Google Fonts"
+msgstr "השבתת Google Fonts של אלמנטור"
+
+msgid "Stops Elementor loading fonts from Google (privacy/performance). Use only if your fonts are hosted locally."
+msgstr "מונע מאלמנטור לטעון גופנים מ-Google (פרטיות/ביצועים). יש להשתמש רק אם הגופנים שלך מאוחסנים מקומית."
+
+msgid "Validate phone fields (Elementor Pro)"
+msgstr "אימות שדות טלפון (Elementor Pro)"
+
+msgid "Rejects malformed numbers in Elementor Pro form <code>tel</code> fields (9-14 digits, optional leading +)."
+msgstr "דוחה מספרים שגויים בשדות <code>tel</code> של טפסי Elementor Pro (9-14 ספרות, + מוביל אופציונלי)."
+
+msgid "Small site-wide tweaks: HTTP security headers, sanitised SVG uploads, hiding the WordPress version, and Elementor helpers. Each tweak is an independent toggle."
+msgstr "התאמות קטנות לכל האתר: כותרות אבטחה של HTTP, העלאות SVG מנוקות, הסתרת גרסת וורדפרס, ועזרים לאלמנטור. כל התאמה היא מתג עצמאי."
+
+msgid "You are not allowed to upload SVG files."
+msgstr "אין לך הרשאה להעלות קובצי SVG."
+
+msgid "This SVG could not be sanitised and was not uploaded."
+msgstr "לא ניתן היה לנקות את קובץ ה-SVG והוא לא הועלה."
+
+msgid "Please enter a valid phone number."
+msgstr "נא להזין מספר טלפון תקין."
 
 msgid "Post not found."
 msgstr "הפוסט לא נמצא."
