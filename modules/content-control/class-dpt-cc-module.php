@@ -55,8 +55,10 @@ class DPT_Content_Control_Module extends DPT_Module {
 		add_filter( 'the_content_feed', array( $this, 'filter_feed_content' ), 20 );
 		add_filter( 'the_excerpt_rss', array( $this, 'filter_feed_content' ), 20 );
 
-		// REST: blank restricted content for readers who cannot view it.
+		// REST: blank restricted content for readers who cannot view it, and
+		// enforce whole-site protection on the whole API.
 		add_action( 'rest_api_init', array( $this, 'register_rest_guards' ) );
+		add_filter( 'rest_authentication_errors', array( $this, 'enforce_site_protection_rest' ), 20 );
 
 		// Shortcode gate (works inside Elementor and the block editor too).
 		add_shortcode( 'dpt_restrict', array( $this, 'shortcode_restrict' ) );
@@ -106,6 +108,37 @@ class DPT_Content_Control_Module extends DPT_Module {
 		// Default: send to the login form and back.
 		wp_safe_redirect( wp_login_url( $this->current_url() ) );
 		exit;
+	}
+
+	/**
+	 * Apply whole-site protection to the REST API. Without this, a private
+	 * site would still expose ordinary posts through /wp-json, since the
+	 * per-post REST guard only covers posts carrying restriction meta.
+	 *
+	 * @param WP_Error|null|true $result Existing authentication result.
+	 * @return WP_Error|null|true
+	 */
+	public function enforce_site_protection_rest( $result ) {
+		// Preserve an authentication error already raised upstream.
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+		if ( ! DPT_CC_Settings::site_protection_active() ) {
+			return $result;
+		}
+		$mode    = DPT_CC_Settings::get( 'site_mode' );
+		$roles   = DPT_CC_Settings::get( 'site_roles' );
+		$allowed = ( 'roles' === $mode )
+			? DPT_CC_Access::can_view( 'roles', $roles )
+			: DPT_CC_Access::can_view( 'logged_in' );
+		if ( $allowed ) {
+			return $result;
+		}
+		return new WP_Error(
+			'dpt_cc_rest_forbidden',
+			__( 'This site is private.', 'digitizer-pro-tools' ),
+			array( 'status' => rest_authorization_required_code() )
+		);
 	}
 
 	private function is_site_exempt() {

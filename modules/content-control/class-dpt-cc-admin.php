@@ -36,7 +36,10 @@ class DPT_CC_Admin {
 			wp_die( esc_html__( 'You are not allowed to do that.', 'digitizer-pro-tools' ) );
 		}
 		check_admin_referer( 'dpt_cc_settings' );
-		$data = isset( $_POST['dpt_cc'] ) && is_array( $_POST['dpt_cc'] ) ? wp_unslash( $_POST['dpt_cc'] ) : array();
+		// Pass the raw POST array: DPT_CC_Settings::save() unslashes each
+		// field itself, so unslashing here would double-unslash message text
+		// (e.g. a literal "C:\docs" would lose its backslash).
+		$data = isset( $_POST['dpt_cc'] ) && is_array( $_POST['dpt_cc'] ) ? $_POST['dpt_cc'] : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
 		DPT_CC_Settings::save( $data );
 		wp_safe_redirect( add_query_arg( array( 'page' => self::PAGE_SLUG, 'dpt_saved' => 1 ), admin_url( 'admin.php' ) ) );
 		exit;
