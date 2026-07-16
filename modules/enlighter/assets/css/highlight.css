@@ -24,6 +24,30 @@
 	white-space: pre;
 }
 
+/* Inline legacy Enlighter code */
+code.dpt-en-inline {
+	display: inline;
+	padding: 0.12em 0.4em;
+	border-radius: 4px;
+	font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+	font-size: 0.9em;
+	background: #f6f8fa;
+	color: #1f2328;
+	border: 1px solid #e2e6ea;
+}
+code.dpt-en-inline.dpt-en-theme-dark {
+	background: #161b22;
+	color: #e6edf3;
+	border-color: #30363d;
+}
+@media ( prefers-color-scheme: dark ) {
+	code.dpt-en-inline.dpt-en-theme-auto {
+		background: #161b22;
+		color: #e6edf3;
+		border-color: #30363d;
+	}
+}
+
 /* Line-number gutter */
 .dpt-en.dpt-en-has-lines {
 	padding-left: 3.5em;

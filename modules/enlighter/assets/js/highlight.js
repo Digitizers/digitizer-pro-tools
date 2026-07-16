@@ -203,6 +203,19 @@
 		block.appendChild( btn );
 	}
 
+	function decorateInline( code ) {
+		if ( code.getAttribute( 'data-dpt-en-done' ) === '1' ) { return; }
+		code.setAttribute( 'data-dpt-en-done', '1' );
+		var lang = detectLang( code );
+		var source = ( code.textContent || '' ).replace( /^\n/, '' ).replace( /\n$/, '' );
+		code.innerHTML = highlight( source, lang );
+		code.classList.add( 'dpt-en-inline', 'dpt-en-lang-' + lang );
+		if ( ! /\bdpt-en-theme-/.test( code.className ) ) {
+			var theme = ( window.DPTEnlighter && window.DPTEnlighter.theme ) || 'auto';
+			code.classList.add( 'dpt-en-theme-' + theme );
+		}
+	}
+
 	function applyConfigFlags( pre ) {
 		if ( window.DPTEnlighter && window.DPTEnlighter.lines ) { pre.setAttribute( 'data-dpt-en-lines', '1' ); }
 		if ( window.DPTEnlighter && window.DPTEnlighter.copy ) { pre.setAttribute( 'data-dpt-en-copy', '1' ); }
@@ -220,6 +233,12 @@
 				applyConfigFlags( pre );
 				decorate( pre );
 			}
+		} );
+
+		// Enlighter's inline format is a bare <code> (not wrapped in a <pre>).
+		document.querySelectorAll( 'code.EnlighterJSRAW, code[data-enlighter-language]' ).forEach( function ( code ) {
+			if ( code.closest( 'pre' ) ) { return; }
+			decorateInline( code );
 		} );
 
 		// Optionally decorate every remaining <pre><code> block.
