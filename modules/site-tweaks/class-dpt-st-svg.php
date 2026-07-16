@@ -130,6 +130,15 @@ class DPT_ST_SVG_Sanitizer {
 				continue;
 			}
 
+			// <style> holds CSS, not child elements: an @import or external
+			// url() there would still pull remote resources. Sanitise its text
+			// rather than recursing.
+			if ( 'style' === $tag ) {
+				self::clean_attributes( $child );
+				$child->textContent = self::sanitize_css( (string) $child->textContent );
+				continue;
+			}
+
 			self::clean_attributes( $child );
 			self::clean_element( $child );
 		}
@@ -223,6 +232,29 @@ class DPT_ST_SVG_Sanitizer {
 			}
 		}
 		return false;
+	}
+
+	/**
+	 * Sanitise CSS from a <style> element or style attribute: drop @import
+	 * rules, neutralise external url(...) references (same-document fragments
+	 * are kept), and strip script vectors. Returns cleaned CSS.
+	 */
+	private static function sanitize_css( $css ) {
+		$css = (string) $css;
+		// Remove @import (and @charset, which can precede a smuggled import).
+		$css = preg_replace( '/@(?:import|charset)\b[^;]*;?/i', '', $css );
+		// Neutralise url(...): keep url(#fragment), drop everything else.
+		$css = preg_replace_callback(
+			'/url\(\s*([^)]*)\)/i',
+			function ( $m ) {
+				$ref = trim( $m[1], " \t\n\r\0\x0B\"'" );
+				return ( '' !== $ref && '#' === $ref[0] ) ? 'url(' . $ref . ')' : 'none';
+			},
+			$css
+		);
+		// Strip obvious script vectors.
+		$css = preg_replace( '/javascript:|expression\s*\(|behavior\s*:|-moz-binding/i', '', $css );
+		return (string) $css;
 	}
 
 	private static function style_is_dangerous( $style ) {

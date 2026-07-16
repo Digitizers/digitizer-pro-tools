@@ -120,7 +120,15 @@ class DPT_Site_Tweaks_Module extends DPT_Module {
 		if ( ! is_string( $src ) || '' === (string) $wp_version ) {
 			return $src;
 		}
-		if ( false !== strpos( $src, 'ver=' . $wp_version ) ) {
+		$query = wp_parse_url( $src, PHP_URL_QUERY );
+		if ( ! $query ) {
+			return $src;
+		}
+		$args = array();
+		parse_str( $query, $args );
+		// Exact match only: a plugin asset versioned ?ver=6.8.10 on core 6.8
+		// must keep its cache-busting query - substring matching would strip it.
+		if ( isset( $args['ver'] ) && (string) $args['ver'] === (string) $wp_version ) {
 			$src = remove_query_arg( 'ver', $src );
 		}
 		return $src;
