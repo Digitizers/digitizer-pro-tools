@@ -36,6 +36,9 @@ class DPT_Enlighter_Module extends DPT_Module {
 
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_assets' ) );
 		add_shortcode( 'dpt_code', array( $this, 'shortcode_code' ) );
+		// Legacy alias so posts written for the standalone Enlighter plugin
+		// keep rendering after switching to this module.
+		add_shortcode( 'enlighter', array( $this, 'shortcode_code' ) );
 		add_filter( 'no_texturize_shortcodes', array( $this, 'no_texturize' ) );
 
 		// Render [dpt_code] AFTER block parsing (do_blocks, priority 9) but
@@ -57,7 +60,16 @@ class DPT_Enlighter_Module extends DPT_Module {
 
 	public function no_texturize( $shortcodes ) {
 		$shortcodes[] = 'dpt_code';
+		$shortcodes[] = 'enlighter';
 		return $shortcodes;
+	}
+
+	/**
+	 * The shortcode tags this module renders before wpautop, including the
+	 * legacy Enlighter tag.
+	 */
+	private function content_tags() {
+		return array( 'dpt_code', 'enlighter' );
 	}
 
 	/* --------------------------------------------------------------------- */
@@ -130,17 +142,20 @@ class DPT_Enlighter_Module extends DPT_Module {
 	 * is a <pre> block, which wpautop leaves untouched.
 	 */
 	public function render_content_shortcodes( $content ) {
-		if ( false === strpos( $content, '[dpt_code' ) ) {
-			return $content;
+		foreach ( $this->content_tags() as $tag ) {
+			if ( false === strpos( $content, '[' . $tag ) ) {
+				continue;
+			}
+			$content = preg_replace_callback(
+				'/\[' . $tag . '\b([^\]]*)\](.*?)\[\/' . $tag . '\]/s',
+				function ( $matches ) {
+					$atts = shortcode_parse_atts( $matches[1] );
+					return $this->shortcode_code( is_array( $atts ) ? $atts : array(), $matches[2] );
+				},
+				$content
+			);
 		}
-		return preg_replace_callback(
-			'/\[dpt_code\b([^\]]*)\](.*?)\[\/dpt_code\]/s',
-			function ( $matches ) {
-				$atts = shortcode_parse_atts( $matches[1] );
-				return $this->shortcode_code( is_array( $atts ) ? $atts : array(), $matches[2] );
-			},
-			$content
-		);
+		return $content;
 	}
 
 	/**

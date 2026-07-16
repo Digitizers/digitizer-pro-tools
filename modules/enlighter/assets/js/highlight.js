@@ -111,10 +111,16 @@
 	}
 
 	function detectLang( el ) {
+		// Enlighter's saved markup carries the language in a data attribute.
+		if ( el.getAttribute( 'data-enlighter-language' ) ) {
+			return el.getAttribute( 'data-enlighter-language' ).toLowerCase();
+		}
+		if ( el.getAttribute( 'data-lang' ) ) {
+			return el.getAttribute( 'data-lang' ).toLowerCase();
+		}
 		var cls = el.className || '';
 		var m = /(?:language|lang|brush)[-:]([a-z0-9#+]+)/i.exec( cls );
 		if ( m ) { return m[ 1 ].toLowerCase(); }
-		if ( el.getAttribute( 'data-lang' ) ) { return el.getAttribute( 'data-lang' ).toLowerCase(); }
 		return 'plain';
 	}
 
@@ -188,8 +194,16 @@
 		blocks.forEach( decorate );
 
 		if ( window.DPTEnlighter && window.DPTEnlighter.auto ) {
+			var autoBlocks = [];
 			document.querySelectorAll( 'pre > code' ).forEach( function ( code ) {
-				var pre = code.parentNode;
+				autoBlocks.push( code.parentNode );
+			} );
+			// Legacy Enlighter markup, e.g. <pre class="EnlighterJSRAW"
+			// data-enlighter-language="php">, so a migrated site keeps working.
+			document.querySelectorAll( 'pre.EnlighterJSRAW, pre[data-enlighter-language]' ).forEach( function ( pre ) {
+				autoBlocks.push( pre );
+			} );
+			autoBlocks.forEach( function ( pre ) {
 				if ( ! pre.hasAttribute( 'data-dpt-en-done' ) && ! pre.classList.contains( 'dpt-en-block' ) ) {
 					if ( window.DPTEnlighter.lines ) { pre.setAttribute( 'data-dpt-en-lines', '1' ); }
 					if ( window.DPTEnlighter.copy ) { pre.setAttribute( 'data-dpt-en-copy', '1' ); }
