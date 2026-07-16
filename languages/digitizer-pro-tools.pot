@@ -5,7 +5,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-07-16 00:09+0000\n"
+"POT-Creation-Date: 2026-07-16 00:30+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "X-Generator: digitizer-pro-tools build-i18n\n"
@@ -811,13 +811,16 @@ msgstr ""
 msgid "This is the default role for new users - change the default role first."
 msgstr ""
 
-msgid "You cannot delete a role that grants your own administrator access."
-msgstr ""
-
 msgid "Choose a valid role to move existing users to."
 msgstr ""
 
+msgid "You cannot delete a role that grants your own administrator access."
+msgstr ""
+
 msgid "Invalid capability name."
+msgstr ""
+
+msgid "That name is reserved (a role key or level_N) and cannot be used as a capability."
 msgstr ""
 
 msgid "User Role Editor"

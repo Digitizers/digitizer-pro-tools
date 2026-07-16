@@ -1,7 +1,7 @@
 <?php
 return array (
   'x-generator' => 'digitizer-pro-tools build-i18n',
-  'translation-revision-date' => '2026-07-16 00:09+0000',
+  'translation-revision-date' => '2026-07-16 00:30+0000',
   'plural-forms' => 'nplurals=2; plural=(n != 1);',
   'language' => 'he_IL',
   'project-id-version' => 'Digitizer Pro Tools',
@@ -263,6 +263,7 @@ return array (
     'Text color' => 'צבע טקסט',
     'Text shadow' => 'הצללת טקסט',
     'Texts' => 'טקסטים',
+    'That name is reserved (a role key or level_N) and cannot be used as a capability.' => 'השם הזה שמור (מפתח תפקיד או level_N) ולא ניתן להשתמש בו כהרשאה.',
     'That role cannot be deleted.' => 'לא ניתן למחוק את התפקיד הזה.',
     'That slug is empty, invalid or reserved by WordPress - the previous slug was kept.' => 'הסלאג ריק, לא תקין או שמור על ידי וורדפרס - הסלאג הקודם נשמר.',
     'The banner picks the language automatically from the current page locale (WPML / Polylang / TranslatePress compatible), falling back to the default language.' => 'הבאנר בוחר את השפה אוטומטית לפי שפת העמוד הנוכחי (תואם WPML / Polylang / TranslatePress), עם נפילה לשפת ברירת המחדל.',

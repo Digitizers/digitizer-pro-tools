@@ -296,7 +296,10 @@ class DPT_URE_Manager {
 		// also an editor saving the Editor page) would over-grant it to every
 		// member of that role.
 		if ( self::current_user_has_role( $key ) ) {
-			foreach ( array( 'manage_options', 'read' ) as $cap ) {
+			// Protect both site access (manage_options/read) and access to
+			// this editor itself (dpt_manage_roles) - a delegated role editor
+			// must not be able to lock themselves out of the editor.
+			foreach ( array( 'manage_options', 'read', self::REQUIRED_CAP ) as $cap ) {
 				if ( ! empty( $current[ $cap ] ) && empty( $desired[ $cap ] )
 					&& ! self::current_user_keeps_cap_via_other_role( $key, $cap ) ) {
 					$desired[ $cap ] = true;
@@ -328,6 +331,12 @@ class DPT_URE_Manager {
 		$cap = self::sanitize_capability( $cap );
 		if ( '' === $cap ) {
 			return new WP_Error( 'dpt_ure_bad_cap', __( 'Invalid capability name.', 'digitizer-pro-tools' ) );
+		}
+		// Reject role keys and legacy level_N names: get_all_capabilities()
+		// deliberately hides those from the matrix, so a cap registered under
+		// such a name could be granted but never shown or unchecked again.
+		if ( in_array( $cap, array_keys( self::get_roles() ), true ) || preg_match( '/^level_\d+$/', $cap ) ) {
+			return new WP_Error( 'dpt_ure_reserved_cap', __( 'That name is reserved (a role key or level_N) and cannot be used as a capability.', 'digitizer-pro-tools' ) );
 		}
 		$opts = self::all();
 		if ( ! in_array( $cap, $opts['custom_caps'], true ) ) {
