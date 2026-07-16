@@ -1,7 +1,7 @@
 <?php
 return array (
   'x-generator' => 'digitizer-pro-tools build-i18n',
-  'translation-revision-date' => '2026-07-15 23:50+0000',
+  'translation-revision-date' => '2026-07-16 00:09+0000',
   'plural-forms' => 'nplurals=2; plural=(n != 1);',
   'language' => 'he_IL',
   'project-id-version' => 'Digitizer Pro Tools',
@@ -297,6 +297,7 @@ return array (
     'X size (px)' => 'גודל ה-X (פיקסלים)',
     'You are not allowed to do that.' => 'אין לך הרשאה לבצע פעולה זו.',
     'You are not allowed to duplicate this item.' => 'אין לך הרשאה לשכפל פריט זה.',
+    'You cannot delete a role that grants your own administrator access.' => 'לא ניתן למחוק תפקיד שמעניק לך את גישת הניהול שלך עצמך.',
     'Zoom' => 'התקרבות',
     'custom' => 'מותאם',
     'default' => 'ברירת מחדל',

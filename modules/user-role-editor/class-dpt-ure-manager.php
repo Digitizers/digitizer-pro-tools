@@ -195,6 +195,13 @@ class DPT_URE_Manager {
 		if ( (string) get_option( 'default_role' ) === $key ) {
 			return new WP_Error( 'dpt_ure_default', __( 'This is the default role for new users - change the default role first.', 'digitizer-pro-tools' ) );
 		}
+		// Self-lockout guard: don't let the current user delete a role that is
+		// their only source of manage_options - the reassignment could drop
+		// them to a role without it.
+		if ( self::current_user_has_role( $key )
+			&& ! self::current_user_keeps_cap_via_other_role( $key, 'manage_options' ) ) {
+			return new WP_Error( 'dpt_ure_self', __( 'You cannot delete a role that grants your own administrator access.', 'digitizer-pro-tools' ) );
+		}
 		$reassign_to = self::sanitize_role_key( $reassign_to );
 		if ( '' === $reassign_to || ! self::role_exists( $reassign_to ) || $reassign_to === $key ) {
 			return new WP_Error( 'dpt_ure_reassign', __( 'Choose a valid role to move existing users to.', 'digitizer-pro-tools' ) );
