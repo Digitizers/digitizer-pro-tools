@@ -53,6 +53,11 @@ class DPT_Plugin {
 				'class'   => 'DPT_Hide_Login_Module',
 				'default' => '0',
 			),
+			'user_role_editor' => array(
+				'file'    => DPT_PATH . 'modules/user-role-editor/class-dpt-ure-module.php',
+				'class'   => 'DPT_User_Role_Editor_Module',
+				'default' => '0',
+			),
 		);
 		return apply_filters( 'dpt_modules', $modules );
 	}

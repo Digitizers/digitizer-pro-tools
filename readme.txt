@@ -6,7 +6,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.4.0
+Stable tag: 1.5.0
 License: GPLv2 or later
 
 One toolbox plugin by Digitizer. Modules: multilingual cookie-consent banner, one-click post duplication, auto-update email silencing.
@@ -70,6 +70,18 @@ Moves the login page to a custom URL (disabled by default; enable it on the Modu
 * Post-password forms, admin-ajax, admin-post and cron keep working
 * Reserved WordPress slugs are rejected to avoid lockouts
 
+= Module: User Role Editor =
+
+Full control over what every role can do (disabled by default; enable it on the Modules screen):
+
+* Per-role capability matrix - grant or revoke any capability with a live "select all" toggle
+* Add a new role, optionally cloning the capabilities of an existing one
+* Delete a role and move its users to another role in one step
+* Register custom capabilities and grant them to any roles
+* Gated by a dedicated `dpt_manage_roles` capability (granted to administrators), so a delegated manage_options account cannot open the editor and escalate its own privileges
+* Lockout-proof: the administrator role always keeps the capabilities needed to manage the site, and you can never strip your own access
+* Protected roles (administrator) and the default new-user role cannot be deleted
+
 Admin interface is in English with a full Hebrew translation.
 
 == Installation ==
@@ -81,6 +93,9 @@ Admin interface is in English with a full Hebrew translation.
 5. Save and check the site
 
 == Changelog ==
+
+= 1.5.0 =
+* New module: User Role Editor - edit role capabilities, add/clone/delete roles and register custom capabilities, with lockout protection (module ships disabled; enable per site)
 
 = 1.4.0 =
 * New module: Hide Login - custom login URL with 404 for wp-login.php and logged-out wp-admin (module ships disabled; enable per site)

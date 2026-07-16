@@ -5,8 +5,8 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-07-15 22:07+0000\n"
-"PO-Revision-Date: 2026-07-15 22:07+0000\n"
+"POT-Creation-Date: 2026-07-16 00:30+0000\n"
+"PO-Revision-Date: 2026-07-16 00:30+0000\n"
 "Language: he_IL\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "X-Generator: digitizer-pro-tools build-i18n\n"
@@ -790,4 +790,115 @@ msgstr "ביקורות מוצר הן טכנית תגובות - האפשרות ה
 
 msgid "(WooCommerce is not active on this site right now.)"
 msgstr "(ווקומרס לא פעיל באתר הזה כרגע.)"
+
+msgid "Invalid role key."
+msgstr "מפתח תפקיד לא תקין."
+
+msgid "A role with that key already exists."
+msgstr "כבר קיים תפקיד עם המפתח הזה."
+
+msgid "Role display name is required."
+msgstr "שם תצוגה לתפקיד הוא שדה חובה."
+
+msgid "Could not create the role."
+msgstr "לא ניתן היה ליצור את התפקיד."
+
+msgid "That role cannot be deleted."
+msgstr "לא ניתן למחוק את התפקיד הזה."
+
+msgid "Role not found."
+msgstr "התפקיד לא נמצא."
+
+msgid "This is the default role for new users - change the default role first."
+msgstr "זהו תפקיד ברירת המחדל למשתמשים חדשים - שנו קודם את תפקיד ברירת המחדל."
+
+msgid "Choose a valid role to move existing users to."
+msgstr "בחרו תפקיד תקין להעברת המשתמשים הקיימים אליו."
+
+msgid "You cannot delete a role that grants your own administrator access."
+msgstr "לא ניתן למחוק תפקיד שמעניק לך את גישת הניהול שלך עצמך."
+
+msgid "Invalid capability name."
+msgstr "שם הרשאה לא תקין."
+
+msgid "That name is reserved (a role key or level_N) and cannot be used as a capability."
+msgstr "השם הזה שמור (מפתח תפקיד או level_N) ולא ניתן להשתמש בו כהרשאה."
+
+msgid "User Role Editor"
+msgstr "עורך תפקידי משתמש"
+
+msgid "Changes saved."
+msgstr "השינויים נשמרו."
+
+msgid "Edit exactly what each role can do. The administrator role always keeps the capabilities needed to manage the site, and you can never remove your own access."
+msgstr "עריכה מדויקת של מה שכל תפקיד יכול לעשות. תפקיד המנהל תמיד שומר על ההרשאות הנדרשות לניהול האתר, ולעולם לא ניתן להסיר את הגישה שלך עצמך."
+
+msgid "Choose a role"
+msgstr "בחירת תפקיד"
+
+msgid "Load"
+msgstr "טעינה"
+
+msgid "Capabilities for: %s"
+msgstr "הרשאות עבור: %s"
+
+msgid "Select / deselect all"
+msgstr "בחירה / ביטול בחירה של הכול"
+
+msgid "custom"
+msgstr "מותאם"
+
+msgid "Save Capabilities"
+msgstr "שמירת הרשאות"
+
+msgid "Add a role"
+msgstr "הוספת תפקיד"
+
+msgid "Role key"
+msgstr "מפתח תפקיד"
+
+msgid "Lowercase letters, digits and underscores."
+msgstr "אותיות לטיניות קטנות, ספרות וקווים תחתונים."
+
+msgid "Display name"
+msgstr "שם תצוגה"
+
+msgid "Copy capabilities from"
+msgstr "העתקת הרשאות מ"
+
+msgid "— none (empty role) —"
+msgstr "— ללא (תפקיד ריק) —"
+
+msgid "Add Role"
+msgstr "הוספת תפקיד"
+
+msgid "Delete a role"
+msgstr "מחיקת תפקיד"
+
+msgid "Delete this role and move its users to the selected role?"
+msgstr "למחוק את התפקיד ולהעביר את המשתמשים שלו לתפקיד הנבחר?"
+
+msgid "Role to delete"
+msgstr "תפקיד למחיקה"
+
+msgid "Move its users to"
+msgstr "העברת המשתמשים שלו אל"
+
+msgid "Delete Role"
+msgstr "מחיקת תפקיד"
+
+msgid "Add a custom capability"
+msgstr "הוספת הרשאה מותאמת"
+
+msgid "Capability name"
+msgstr "שם הרשאה"
+
+msgid "Grant to roles"
+msgstr "הענקה לתפקידים"
+
+msgid "Add Capability"
+msgstr "הוספת הרשאה"
+
+msgid "Edit the capabilities of every role, add, clone or delete roles, and register custom capabilities. Replaces the User Role Editor plugin."
+msgstr "עריכת ההרשאות של כל תפקיד, הוספה, שכפול או מחיקה של תפקידים, ורישום הרשאות מותאמות אישית. מחליף את התוסף User Role Editor."
 

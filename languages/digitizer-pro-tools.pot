@@ -5,7 +5,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-07-15 22:07+0000\n"
+"POT-Creation-Date: 2026-07-16 00:30+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "X-Generator: digitizer-pro-tools build-i18n\n"
@@ -788,5 +788,116 @@ msgid "Product reviews are technically comments - this keeps them working even w
 msgstr ""
 
 msgid "(WooCommerce is not active on this site right now.)"
+msgstr ""
+
+msgid "Invalid role key."
+msgstr ""
+
+msgid "A role with that key already exists."
+msgstr ""
+
+msgid "Role display name is required."
+msgstr ""
+
+msgid "Could not create the role."
+msgstr ""
+
+msgid "That role cannot be deleted."
+msgstr ""
+
+msgid "Role not found."
+msgstr ""
+
+msgid "This is the default role for new users - change the default role first."
+msgstr ""
+
+msgid "Choose a valid role to move existing users to."
+msgstr ""
+
+msgid "You cannot delete a role that grants your own administrator access."
+msgstr ""
+
+msgid "Invalid capability name."
+msgstr ""
+
+msgid "That name is reserved (a role key or level_N) and cannot be used as a capability."
+msgstr ""
+
+msgid "User Role Editor"
+msgstr ""
+
+msgid "Changes saved."
+msgstr ""
+
+msgid "Edit exactly what each role can do. The administrator role always keeps the capabilities needed to manage the site, and you can never remove your own access."
+msgstr ""
+
+msgid "Choose a role"
+msgstr ""
+
+msgid "Load"
+msgstr ""
+
+msgid "Capabilities for: %s"
+msgstr ""
+
+msgid "Select / deselect all"
+msgstr ""
+
+msgid "custom"
+msgstr ""
+
+msgid "Save Capabilities"
+msgstr ""
+
+msgid "Add a role"
+msgstr ""
+
+msgid "Role key"
+msgstr ""
+
+msgid "Lowercase letters, digits and underscores."
+msgstr ""
+
+msgid "Display name"
+msgstr ""
+
+msgid "Copy capabilities from"
+msgstr ""
+
+msgid "— none (empty role) —"
+msgstr ""
+
+msgid "Add Role"
+msgstr ""
+
+msgid "Delete a role"
+msgstr ""
+
+msgid "Delete this role and move its users to the selected role?"
+msgstr ""
+
+msgid "Role to delete"
+msgstr ""
+
+msgid "Move its users to"
+msgstr ""
+
+msgid "Delete Role"
+msgstr ""
+
+msgid "Add a custom capability"
+msgstr ""
+
+msgid "Capability name"
+msgstr ""
+
+msgid "Grant to roles"
+msgstr ""
+
+msgid "Add Capability"
+msgstr ""
+
+msgid "Edit the capabilities of every role, add, clone or delete roles, and register custom capabilities. Replaces the User Role Editor plugin."
 msgstr ""
 
