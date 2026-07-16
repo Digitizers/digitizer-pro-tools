@@ -14,6 +14,7 @@ delete_option( 'dpt_update_emails' );
 delete_option( 'dpt_disable_comments' );
 delete_option( 'dpt_hide_login' );
 delete_option( 'dpt_user_role_editor' );
+delete_option( 'dpt_content_control' );
 
 // Remove the User Role Editor's dedicated gating capability from every role.
 if ( function_exists( 'wp_roles' ) ) {

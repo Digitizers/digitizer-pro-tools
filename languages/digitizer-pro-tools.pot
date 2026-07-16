@@ -5,7 +5,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-07-16 00:30+0000\n"
+"POT-Creation-Date: 2026-07-16 00:55+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "X-Generator: digitizer-pro-tools build-i18n\n"
@@ -788,6 +788,114 @@ msgid "Product reviews are technically comments - this keeps them working even w
 msgstr ""
 
 msgid "(WooCommerce is not active on this site right now.)"
+msgstr ""
+
+msgid "Content Control"
+msgstr ""
+
+msgid "Who can view this?"
+msgstr ""
+
+msgid "Everyone"
+msgstr ""
+
+msgid "Logged-in users"
+msgstr ""
+
+msgid "Logged-out visitors only"
+msgstr ""
+
+msgid "Specific roles"
+msgstr ""
+
+msgid "Roles (used with \"Specific roles\"):"
+msgstr ""
+
+msgid "Custom restriction message"
+msgstr ""
+
+msgid "Shown in place of the content. Leave blank to use the global default."
+msgstr ""
+
+msgid "Content Control visibility"
+msgstr ""
+
+msgid "Logged-out visitors"
+msgstr ""
+
+msgid "Roles (comma-separated keys, for \"Specific roles\")"
+msgstr ""
+
+msgid "Restrict pages and posts by role, hide menu items, gate content with a shortcode, and protect the whole site behind login. Replaces the Content Control plugin."
+msgstr ""
+
+msgid "This site is private."
+msgstr ""
+
+msgid "Private site"
+msgstr ""
+
+msgid "Protect the whole site behind login and set the default restriction message. Per-page restrictions and per-menu-item visibility are set on each page and menu item; wrap partial content with the [dpt_restrict] shortcode."
+msgstr ""
+
+msgid "Whole-site protection"
+msgstr ""
+
+msgid "Off - the site is public"
+msgstr ""
+
+msgid "Require login for the whole site"
+msgstr ""
+
+msgid "Require one of these roles"
+msgstr ""
+
+msgid "Allowed roles"
+msgstr ""
+
+msgid "Used only in \"Require one of these roles\" mode. Administrators always have access."
+msgstr ""
+
+msgid "When access is denied"
+msgstr ""
+
+msgid "Redirect to the login form"
+msgstr ""
+
+msgid "Redirect to a page"
+msgstr ""
+
+msgid "Show a message"
+msgstr ""
+
+msgid "Redirect page"
+msgstr ""
+
+msgid "— none —"
+msgstr ""
+
+msgid "Used with \"Redirect to a page\". This page is always reachable."
+msgstr ""
+
+msgid "Private-site message"
+msgstr ""
+
+msgid "Always-allowed page IDs"
+msgstr ""
+
+msgid "Comma-separated page/post IDs reachable even while the site is protected."
+msgstr ""
+
+msgid "Default restriction message"
+msgstr ""
+
+msgid "Message"
+msgstr ""
+
+msgid "Shown in place of restricted page/post content when no per-page message is set."
+msgstr ""
+
+msgid "This content is restricted."
 msgstr ""
 
 msgid "Invalid role key."
