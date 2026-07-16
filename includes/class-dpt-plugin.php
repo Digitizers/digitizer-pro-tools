@@ -78,6 +78,11 @@ class DPT_Plugin {
 				'class'   => 'DPT_Woo_Checkout_Module',
 				'default' => '0',
 			),
+			'rankmath_breadcrumbs' => array(
+				'file'    => DPT_PATH . 'modules/rankmath-breadcrumbs/class-dpt-rmb-module.php',
+				'class'   => 'DPT_RankMath_Breadcrumbs_Module',
+				'default' => '0',
+			),
 		);
 		return apply_filters( 'dpt_modules', $modules );
 	}
