@@ -209,6 +209,11 @@ class DPT_Enlighter_Module extends DPT_Module {
 			DPT_VERSION,
 			true
 		);
+		// Load JS translations for the editor script's __() calls.
+		if ( function_exists( 'wp_set_script_translations' ) ) {
+			wp_set_script_translations( 'dpt-enlighter-block', 'digitizer-pro-tools', DPT_PATH . 'languages' );
+		}
+
 		$o = DPT_EN_Settings::all();
 		wp_localize_script(
 			'dpt-enlighter-block',

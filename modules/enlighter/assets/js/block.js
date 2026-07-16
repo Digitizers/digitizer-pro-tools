@@ -25,7 +25,7 @@
 		title: __( 'Code (Enlighter)', 'digitizer-pro-tools' ),
 		description: __( 'Syntax-highlighted code block.', 'digitizer-pro-tools' ),
 		icon: 'editor-code',
-		category: 'formatting',
+		category: 'text',
 		attributes: {
 			code: { type: 'string', default: '' },
 			language: { type: 'string', default: defaults.language || 'php' },
