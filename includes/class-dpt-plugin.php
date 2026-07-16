@@ -73,6 +73,11 @@ class DPT_Plugin {
 				'class'   => 'DPT_Site_Tweaks_Module',
 				'default' => '0',
 			),
+			'woo_checkout' => array(
+				'file'    => DPT_PATH . 'modules/woo-checkout/class-dpt-wcc-module.php',
+				'class'   => 'DPT_Woo_Checkout_Module',
+				'default' => '0',
+			),
 		);
 		return apply_filters( 'dpt_modules', $modules );
 	}

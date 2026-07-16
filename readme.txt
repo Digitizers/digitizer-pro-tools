@@ -6,7 +6,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.8.0
+Stable tag: 1.9.0
 License: GPLv2 or later
 
 One toolbox plugin by Digitizer. Modules: multilingual cookie-consent banner, one-click post duplication, auto-update email silencing.
@@ -115,6 +115,14 @@ Small site-wide tweaks that replace assorted functions.php snippets - each an in
 * Hide the WordPress version: removes the generator meta tag/RSS marker and the `?ver=` core version from asset URLs, while keeping plugin/theme asset versions so cache-busting still works
 * Elementor helpers (only when Elementor is active): disable Elementor's Google Fonts, and validate phone numbers in Elementor Pro `tel` form fields
 
+= Module: WooCommerce Checkout =
+
+Checkout-field helpers for WooCommerce (disabled by default; enable it on the Modules screen):
+
+* Email typo suggestions: when a customer types an email whose domain looks like a misspelling of a known provider (Gmail, Outlook, Walla, etc.), a one-click correction is offered. The provider list is editable, and matching uses edit-distance so only genuine near-misses are suggested
+* Israeli phone-number validation: accepts numbers starting with 05 (10 digits), 972 (12) or +972 (13), with a live in-browser hint and an authoritative server-side check that blocks checkout on an invalid number
+* All suggestion/error text is inserted as plain text, so nothing typed into the fields can inject markup
+
 Admin interface is in English with a full Hebrew translation.
 
 == Installation ==
@@ -126,6 +134,9 @@ Admin interface is in English with a full Hebrew translation.
 5. Save and check the site
 
 == Changelog ==
+
+= 1.9.0 =
+* New module: WooCommerce Checkout - email-domain typo suggestions and Israeli phone-number validation (client-side hint plus a server-side check) on the checkout billing fields (module ships disabled; enable per site)
 
 = 1.8.0 =
 * New module: Site Tweaks - HTTP security headers, sanitised SVG uploads, hiding the WordPress version, and Elementor helpers (disable Google Fonts, phone-field validation), each an independent toggle (module ships disabled; enable per site)

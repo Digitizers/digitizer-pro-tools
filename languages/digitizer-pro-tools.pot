@@ -5,7 +5,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-07-16 12:17+0000\n"
+"POT-Creation-Date: 2026-07-16 13:30+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "X-Generator: digitizer-pro-tools build-i18n\n"
@@ -893,6 +893,63 @@ msgid "Code"
 msgstr ""
 
 msgid "Language"
+msgstr ""
+
+msgid "WooCommerce Checkout"
+msgstr ""
+
+msgid "Checkout helpers for WooCommerce: suggest corrections for mistyped email domains, and validate Israeli phone numbers (client-side hint plus a server-side check)."
+msgstr ""
+
+msgid "Did you mean %s?"
+msgstr ""
+
+msgid "The number is %1$d digit(s) short for a number starting with %2$s."
+msgstr ""
+
+msgid "The number has %1$d digit(s) too many for a number starting with %2$s."
+msgstr ""
+
+msgid "The phone number must start with 05, 972 or +972."
+msgstr ""
+
+msgid "A phone number starting with +972 must contain 13 digits."
+msgstr ""
+
+msgid "A phone number starting with 972 must contain 12 digits."
+msgstr ""
+
+msgid "A phone number starting with 05 must contain 10 digits."
+msgstr ""
+
+msgid "Checkout helpers: suggest fixes for mistyped email domains, and validate Israeli phone numbers."
+msgstr ""
+
+msgid "WooCommerce is not active on this site right now - these helpers apply only when it is."
+msgstr ""
+
+msgid "Email suggestions"
+msgstr ""
+
+msgid "Suggest email fixes"
+msgstr ""
+
+msgid "When a customer types an email whose domain looks like a typo of a known provider, offer a one-click correction."
+msgstr ""
+
+msgid "Known email domains"
+msgstr ""
+
+msgid "One domain per line. Typos of these are what trigger a suggestion. Leave empty to restore the default list."
+msgstr ""
+
+msgid "Phone validation"
+msgstr ""
+
+msgid "Validate Israeli phone numbers"
+msgstr ""
+
+msgid "Accepts numbers starting with 05 (10 digits), 972 (12) or +972 (13). Checked both in the browser and on the server, so checkout is blocked on an invalid number."
 msgstr ""
 
 msgid "Disable Comments"
