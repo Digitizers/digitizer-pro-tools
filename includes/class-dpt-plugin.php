@@ -63,6 +63,11 @@ class DPT_Plugin {
 				'class'   => 'DPT_Content_Control_Module',
 				'default' => '0',
 			),
+			'enlighter' => array(
+				'file'    => DPT_PATH . 'modules/enlighter/class-dpt-en-module.php',
+				'class'   => 'DPT_Enlighter_Module',
+				'default' => '0',
+			),
 		);
 		return apply_filters( 'dpt_modules', $modules );
 	}

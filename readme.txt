@@ -6,7 +6,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.6.0
+Stable tag: 1.7.0
 License: GPLv2 or later
 
 One toolbox plugin by Digitizer. Modules: multilingual cookie-consent banner, one-click post duplication, auto-update email silencing.
@@ -93,6 +93,18 @@ Restrict who can see what (disabled by default; enable it on the Modules screen)
 * Restricted content is replaced in listings, single views, feeds and the REST API - not just hidden with CSS
 * Administrators always retain access so they cannot lock themselves out
 
+= Module: Enlighter =
+
+Syntax-highlight code on the front end - dependency-free, no external CDN (disabled by default; enable it on the Modules screen):
+
+* "Code (Enlighter)" block for the block editor
+* `[dpt_code lang="php"]…[/dpt_code]` shortcode (works in the classic editor and Elementor)
+* Optional automatic highlighting of every existing `<pre><code class="language-…">` block
+* Elementor "Code (Enlighter)" widget when Elementor is active
+* Languages: PHP, JavaScript, CSS, HTML/XML, SQL, Bash, Python, JSON (and plain text)
+* Light, dark and auto themes (auto follows the visitor's colour scheme), optional line numbers and a copy button
+* Code is always HTML-escaped and highlighted client-side from the escaped text, so nothing in a snippet can inject markup or scripts
+
 Admin interface is in English with a full Hebrew translation.
 
 == Installation ==
@@ -104,6 +116,9 @@ Admin interface is in English with a full Hebrew translation.
 5. Save and check the site
 
 == Changelog ==
+
+= 1.7.0 =
+* New module: Enlighter - dependency-free code syntax highlighting via a block, the [dpt_code] shortcode, automatic pre/code highlighting and an Elementor widget (module ships disabled; enable per site)
 
 = 1.6.0 =
 * New module: Content Control - per-page/role restrictions, whole-site protection, per-menu-item visibility and a [dpt_restrict] shortcode, enforced across listings, feeds and REST (module ships disabled; enable per site)
