@@ -194,7 +194,11 @@ class DPT_RankMath_Breadcrumbs_Module extends DPT_Module {
 		if ( '' !== $url ) {
 			return $url;
 		}
-		if ( function_exists( 'wc_get_page_permalink' ) ) {
+		// wc_get_page_permalink('shop') falls back to the site home URL when the
+		// shop page is unset/deleted, so confirm a real shop page exists first -
+		// otherwise the Shop crumb would just link to Home.
+		if ( function_exists( 'wc_get_page_id' ) && function_exists( 'wc_get_page_permalink' )
+			&& (int) wc_get_page_id( 'shop' ) > 0 ) {
 			$permalink = wc_get_page_permalink( 'shop' );
 			if ( $permalink ) {
 				return $permalink;
