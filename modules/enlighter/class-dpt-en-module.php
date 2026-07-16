@@ -39,6 +39,13 @@ class DPT_Enlighter_Module extends DPT_Module {
 		// Legacy alias so posts written for the standalone Enlighter plugin
 		// keep rendering after switching to this module.
 		add_shortcode( 'enlighter', array( $this, 'shortcode_code' ) );
+		// Enlighter's per-language shortcodes ([php], [js], ...). Off by
+		// default - those tags are generic enough to collide with real
+		// content - and opt-in per site via the dpt_en_language_shortcodes
+		// filter for a clean migration.
+		foreach ( $this->language_shortcodes() as $lang ) {
+			add_shortcode( $lang, array( $this, 'shortcode_language' ) );
+		}
 		add_filter( 'no_texturize_shortcodes', array( $this, 'no_texturize' ) );
 
 		// Render [dpt_code] AFTER block parsing (do_blocks, priority 9) but
@@ -59,17 +66,40 @@ class DPT_Enlighter_Module extends DPT_Module {
 	}
 
 	public function no_texturize( $shortcodes ) {
-		$shortcodes[] = 'dpt_code';
-		$shortcodes[] = 'enlighter';
-		return $shortcodes;
+		return array_merge( $shortcodes, $this->content_tags() );
 	}
 
 	/**
-	 * The shortcode tags this module renders before wpautop, including the
-	 * legacy Enlighter tag.
+	 * Enlighter per-language shortcode tags to register (e.g. php, js). Empty
+	 * by default; opt in per site via the dpt_en_language_shortcodes filter.
+	 */
+	private function language_shortcodes() {
+		$langs = apply_filters( 'dpt_en_language_shortcodes', array() );
+		$out   = array();
+		foreach ( (array) $langs as $lang ) {
+			$lang = sanitize_key( is_array( $lang ) ? '' : $lang );
+			if ( '' !== $lang ) {
+				$out[] = $lang;
+			}
+		}
+		return array_values( array_unique( $out ) );
+	}
+
+	/**
+	 * The shortcode tags this module renders before wpautop: [dpt_code], the
+	 * legacy [enlighter] tag and any opted-in per-language tags.
 	 */
 	private function content_tags() {
-		return array( 'dpt_code', 'enlighter' );
+		return array_merge( array( 'dpt_code', 'enlighter' ), $this->language_shortcodes() );
+	}
+
+	/**
+	 * Per-language shortcode handler: the tag itself is the language.
+	 */
+	public function shortcode_language( $atts, $content = '', $tag = '' ) {
+		$atts = is_array( $atts ) ? $atts : array();
+		$atts['lang'] = $tag;
+		return $this->shortcode_code( $atts, $content );
 	}
 
 	/* --------------------------------------------------------------------- */
@@ -146,14 +176,19 @@ class DPT_Enlighter_Module extends DPT_Module {
 			if ( false === strpos( $content, '[' . $tag ) ) {
 				continue;
 			}
+			$is_language_tag = in_array( $tag, $this->language_shortcodes(), true );
 			$content = preg_replace_callback(
 				// Skip WordPress's [[shortcode]] escape form: the negative
 				// look-behind/ahead means a doubled-bracket occurrence is left
 				// for core do_shortcode() to render as literal text.
 				'/(?<!\[)\[' . $tag . '\b([^\]]*)\](.*?)\[\/' . $tag . '\](?!\])/s',
-				function ( $matches ) {
+				function ( $matches ) use ( $tag, $is_language_tag ) {
 					$atts = shortcode_parse_atts( $matches[1] );
-					return $this->shortcode_code( is_array( $atts ) ? $atts : array(), $matches[2] );
+					$atts = is_array( $atts ) ? $atts : array();
+					if ( $is_language_tag ) {
+						$atts['lang'] = $tag;
+					}
+					return $this->shortcode_code( $atts, $matches[2] );
 				},
 				$content
 			);
@@ -209,10 +244,13 @@ class DPT_Enlighter_Module extends DPT_Module {
 			DPT_VERSION,
 			true
 		);
-		// Load JS translations for the editor script's __() calls.
+		// Load JS translations for the editor script's __() calls. We also
+		// inject the strings inline from the already-loaded PHP catalog, so
+		// the block is translated without shipping a separate JS .json file.
 		if ( function_exists( 'wp_set_script_translations' ) ) {
 			wp_set_script_translations( 'dpt-enlighter-block', 'digitizer-pro-tools', DPT_PATH . 'languages' );
 		}
+		$this->inline_block_translations();
 
 		$o = DPT_EN_Settings::all();
 		wp_localize_script(
@@ -241,6 +279,43 @@ class DPT_Enlighter_Module extends DPT_Module {
 					'copy'     => array( 'type' => 'boolean', 'default' => '1' === DPT_EN_Settings::get( 'copy_button' ) ),
 				),
 			)
+		);
+	}
+
+	/**
+	 * Inject the block editor's translatable strings from the loaded PHP
+	 * catalog into wp.i18n, so they are localised without a separate JS
+	 * translation .json file.
+	 */
+	private function inline_block_translations() {
+		if ( ! function_exists( 'wp_add_inline_script' ) ) {
+			return;
+		}
+		$strings = array(
+			'Code (Enlighter)',
+			'Syntax-highlighted code block.',
+			'Code settings',
+			'Language',
+			'Line numbers',
+			'Copy button',
+			'Code',
+		);
+		$data = array( '' => array( 'domain' => 'digitizer-pro-tools', 'lang' => get_locale() ) );
+		$has  = false;
+		foreach ( $strings as $s ) {
+			$t = __( $s, 'digitizer-pro-tools' );
+			if ( $t !== $s ) {
+				$data[ $s ] = array( $t );
+				$has = true;
+			}
+		}
+		if ( ! $has ) {
+			return;
+		}
+		wp_add_inline_script(
+			'dpt-enlighter-block',
+			'wp.i18n.setLocaleData( ' . wp_json_encode( $data ) . ', "digitizer-pro-tools" );',
+			'before'
 		);
 	}
 

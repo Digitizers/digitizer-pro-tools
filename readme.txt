@@ -104,7 +104,7 @@ Syntax-highlight code on the front end - dependency-free, no external CDN (disab
 * Languages: PHP, JavaScript, CSS, HTML/XML, SQL, Bash, Python, JSON (and plain text)
 * Light, dark and auto themes (auto follows the visitor's colour scheme), optional line numbers and a copy button
 * Code is always HTML-escaped and highlighted client-side from the escaped text, so nothing in a snippet can inject markup or scripts
-* Migration-friendly: the legacy `[enlighter]` shortcode and Enlighter's saved `data-enlighter-language` markup are recognised automatically
+* Migration-friendly: the legacy `[enlighter]` shortcode and Enlighter's saved `data-enlighter-language` markup (block and inline) are recognised automatically; per-language shortcodes such as `[php]`/`[js]` can be enabled with the `dpt_en_language_shortcodes` filter
 
 Admin interface is in English with a full Hebrew translation.
 
