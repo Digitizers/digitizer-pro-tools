@@ -1,0 +1,34 @@
+/* Digitizer Pro Tools - WooCommerce Checkout helpers */
+
+#billing_email.dpt-wcc-ok,
+#billing_phone.dpt-wcc-ok {
+	border: 2px solid #af8fe2;
+}
+
+#billing_email.dpt-wcc-bad,
+#billing_phone.dpt-wcc-bad {
+	border: 2px solid #ce1849;
+}
+
+.dpt-wcc-suggest {
+	padding: 6px 0;
+	cursor: pointer;
+	user-select: none;
+	opacity: 0;
+	transition: opacity 0.3s ease;
+}
+
+.dpt-wcc-suggest.is-visible {
+	opacity: 1;
+}
+
+.dpt-wcc-suggest u {
+	color: #af8fe2;
+}
+
+.dpt-wcc-error {
+	padding: 8px 0;
+	color: #1b1a0f;
+	font-size: 14px;
+	user-select: none;
+}

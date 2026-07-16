@@ -5,8 +5,8 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-07-16 12:17+0000\n"
-"PO-Revision-Date: 2026-07-16 12:17+0000\n"
+"POT-Creation-Date: 2026-07-16 13:30+0000\n"
+"PO-Revision-Date: 2026-07-16 13:30+0000\n"
 "Language: he_IL\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "X-Generator: digitizer-pro-tools build-i18n\n"
@@ -895,6 +895,63 @@ msgstr "קוד"
 
 msgid "Language"
 msgstr "שפה"
+
+msgid "WooCommerce Checkout"
+msgstr "צ׳קאאוט WooCommerce"
+
+msgid "Checkout helpers for WooCommerce: suggest corrections for mistyped email domains, and validate Israeli phone numbers (client-side hint plus a server-side check)."
+msgstr "עזרים לצ׳קאאוט של WooCommerce: הצעת תיקונים לדומייני אימייל שהוקלדו בטעות, ואימות מספרי טלפון ישראליים (רמז בצד הלקוח יחד עם בדיקה בצד השרת)."
+
+msgid "Did you mean %s?"
+msgstr "האם התכוונת ל-%s?"
+
+msgid "The number is %1$d digit(s) short for a number starting with %2$s."
+msgstr "חסרות %1$d ספרות במספר שמתחיל ב-%2$s."
+
+msgid "The number has %1$d digit(s) too many for a number starting with %2$s."
+msgstr "יש %1$d ספרות מיותרות במספר שמתחיל ב-%2$s."
+
+msgid "The phone number must start with 05, 972 or +972."
+msgstr "מספר הטלפון חייב להתחיל ב-05, 972 או +972."
+
+msgid "A phone number starting with +972 must contain 13 digits."
+msgstr "מספר טלפון שמתחיל ב-+972 חייב להכיל 13 ספרות."
+
+msgid "A phone number starting with 972 must contain 12 digits."
+msgstr "מספר טלפון שמתחיל ב-972 חייב להכיל 12 ספרות."
+
+msgid "A phone number starting with 05 must contain 10 digits."
+msgstr "מספר טלפון שמתחיל ב-05 חייב להכיל 10 ספרות."
+
+msgid "Checkout helpers: suggest fixes for mistyped email domains, and validate Israeli phone numbers."
+msgstr "עזרים לצ׳קאאוט: הצעת תיקונים לדומייני אימייל שהוקלדו בטעות, ואימות מספרי טלפון ישראליים."
+
+msgid "WooCommerce is not active on this site right now - these helpers apply only when it is."
+msgstr "WooCommerce אינו פעיל באתר זה כרגע - העזרים האלה חלים רק כשהוא פעיל."
+
+msgid "Email suggestions"
+msgstr "הצעות אימייל"
+
+msgid "Suggest email fixes"
+msgstr "הצעת תיקוני אימייל"
+
+msgid "When a customer types an email whose domain looks like a typo of a known provider, offer a one-click correction."
+msgstr "כאשר לקוח מקליד אימייל שהדומיין שלו נראה כשגיאת הקלדה של ספק מוכר, מוצע תיקון בלחיצה אחת."
+
+msgid "Known email domains"
+msgstr "דומייני אימייל מוכרים"
+
+msgid "One domain per line. Typos of these are what trigger a suggestion. Leave empty to restore the default list."
+msgstr "דומיין אחד בכל שורה. שגיאות הקלדה של אלה הן שמפעילות הצעה. יש להשאיר ריק כדי לשחזר את רשימת ברירת המחדל."
+
+msgid "Phone validation"
+msgstr "אימות טלפון"
+
+msgid "Validate Israeli phone numbers"
+msgstr "אימות מספרי טלפון ישראליים"
+
+msgid "Accepts numbers starting with 05 (10 digits), 972 (12) or +972 (13). Checked both in the browser and on the server, so checkout is blocked on an invalid number."
+msgstr "מקבל מספרים שמתחילים ב-05 (10 ספרות), 972 (12) או +972 (13). נבדק גם בדפדפן וגם בשרת, כך שהצ׳קאאוט נחסם במספר לא תקין."
 
 msgid "Disable Comments"
 msgstr "כיבוי תגובות"
