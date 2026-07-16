@@ -38,6 +38,11 @@ class DPT_Enlighter_Module extends DPT_Module {
 		add_shortcode( 'dpt_code', array( $this, 'shortcode_code' ) );
 		add_filter( 'no_texturize_shortcodes', array( $this, 'no_texturize' ) );
 
+		// Render [dpt_code] before wpautop/wptexturize (priority 10) run, so
+		// the raw snippet - including literal HTML tags a user wants to show -
+		// is captured intact rather than mangled into paragraphs.
+		add_filter( 'the_content', array( $this, 'render_content_shortcodes' ), 7 );
+
 		add_action( 'init', array( $this, 'register_block' ) );
 
 		// Elementor widget (only when Elementor is active).
@@ -70,6 +75,7 @@ class DPT_Enlighter_Module extends DPT_Module {
 				'auto'         => '1' === $o['auto_highlight'],
 				'lines'        => '1' === $o['line_numbers'],
 				'copy'         => '1' === $o['copy_button'],
+				'theme'        => $o['theme'],
 				'copyLabel'    => __( 'Copy', 'digitizer-pro-tools' ),
 				'copiedLabel'  => __( 'Copied', 'digitizer-pro-tools' ),
 			)
@@ -110,16 +116,36 @@ class DPT_Enlighter_Module extends DPT_Module {
 	}
 
 	/**
-	 * Undo the wpautop / kses wrappers that classic-editor and Elementor
-	 * text fields can add around shortcode content, recovering the raw code
-	 * so it can be re-escaped safely on output.
+	 * Render [dpt_code] blocks in post content before wpautop/wptexturize run
+	 * (they hook the_content at priority 10), so literal HTML in a snippet is
+	 * preserved instead of being turned into paragraphs. The finished markup
+	 * is a <pre> block, which wpautop leaves untouched.
+	 */
+	public function render_content_shortcodes( $content ) {
+		if ( false === strpos( $content, '[dpt_code' ) ) {
+			return $content;
+		}
+		return preg_replace_callback(
+			'/\[dpt_code\b([^\]]*)\](.*?)\[\/dpt_code\]/s',
+			function ( $matches ) {
+				$atts = shortcode_parse_atts( $matches[1] );
+				return $this->shortcode_code( is_array( $atts ) ? $atts : array(), $matches[2] );
+			},
+			$content
+		);
+	}
+
+	/**
+	 * Recover the raw code from shortcode content. It is captured before
+	 * wpautop runs (see render_content_shortcodes), so only entity decoding
+	 * is needed - literal tags a user typed are kept and re-escaped on output
+	 * by build_markup(). Tags are never stripped, so HTML snippets survive.
 	 */
 	private function clean_shortcode_code( $content ) {
-		$content = preg_replace( '#<br\s*/?>#i', "\n", (string) $content );
-		$content = str_replace( array( '<p>', '</p>' ), array( '', "\n" ), $content );
-		$content = preg_replace( '#</?span[^>]*>#i', '', $content );
-		$content = trim( $content, "\r\n" );
-		// Recover entities WP may have introduced; build_markup re-escapes.
+		$content = trim( (string) $content, "\r\n" );
+		// The Visual editor may have entity-encoded < and >; recover them so
+		// build_markup() can re-escape once. Text a user typed literally has
+		// no entities and is unaffected.
 		return html_entity_decode( $content, ENT_QUOTES, 'UTF-8' );
 	}
 

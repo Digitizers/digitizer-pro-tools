@@ -131,6 +131,13 @@
 		codeEl.innerHTML = highlight( source, lang );
 		block.classList.add( 'dpt-en', 'dpt-en-lang-' + lang );
 
+		// Ensure a theme class so auto-highlighted legacy blocks (which have
+		// no PHP-emitted theme class) still honour the configured theme.
+		if ( ! /\bdpt-en-theme-/.test( block.className ) ) {
+			var theme = ( window.DPTEnlighter && window.DPTEnlighter.theme ) || 'auto';
+			block.classList.add( 'dpt-en-theme-' + theme );
+		}
+
 		if ( block.getAttribute( 'data-dpt-en-lines' ) === '1' ) {
 			block.classList.add( 'dpt-en-has-lines' );
 			buildLineNumbers( block, source );
