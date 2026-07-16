@@ -13,7 +13,9 @@
 	var ToggleControl = components.ToggleControl;
 	var TextareaControl = components.TextareaControl;
 
-	var langs = ( window.DPTEnlighterBlock && window.DPTEnlighterBlock.languages ) || { plain: 'Plain text' };
+	var cfg = window.DPTEnlighterBlock || {};
+	var langs = cfg.languages || { plain: 'Plain text' };
+	var defaults = cfg.defaults || {};
 	var options = Object.keys( langs ).map( function ( key ) {
 		return { label: langs[ key ], value: key };
 	} );
@@ -26,9 +28,9 @@
 		category: 'formatting',
 		attributes: {
 			code: { type: 'string', default: '' },
-			language: { type: 'string', default: 'php' },
-			lines: { type: 'boolean', default: true },
-			copy: { type: 'boolean', default: true }
+			language: { type: 'string', default: defaults.language || 'php' },
+			lines: { type: 'boolean', default: defaults.lines !== undefined ? defaults.lines : true },
+			copy: { type: 'boolean', default: defaults.copy !== undefined ? defaults.copy : true }
 		},
 		edit: function ( props ) {
 			var a = props.attributes;

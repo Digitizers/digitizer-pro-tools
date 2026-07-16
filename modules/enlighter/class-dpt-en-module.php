@@ -100,7 +100,7 @@ class DPT_Enlighter_Module extends DPT_Module {
 	 * JS highlighter rebuilds tokens from the escaped text, so no code can
 	 * inject markup or script.
 	 */
-	public function build_markup( $code, $lang, $lines, $copy ) {
+	public static function build_markup( $code, $lang, $lines, $copy ) {
 		$lang  = DPT_EN_Settings::sanitize_lang( $lang );
 		$theme = DPT_EN_Settings::get( 'theme' );
 		$class = 'dpt-en-block dpt-en-theme-' . $theme;
@@ -173,7 +173,7 @@ class DPT_Enlighter_Module extends DPT_Module {
 		$copy  = is_null( $atts['copy'] ) ? ( '1' === $defaults['copy_button'] ) : self::truthy( $atts['copy'] );
 		$code  = $this->clean_shortcode_code( $content );
 
-		return $this->build_markup( $code, $atts['lang'], $lines, $copy );
+		return self::build_markup( $code, $atts['lang'], $lines, $copy );
 	}
 
 	/* --------------------------------------------------------------------- */
@@ -191,7 +191,19 @@ class DPT_Enlighter_Module extends DPT_Module {
 			DPT_VERSION,
 			true
 		);
-		wp_localize_script( 'dpt-enlighter-block', 'DPTEnlighterBlock', array( 'languages' => DPT_EN_Settings::languages() ) );
+		$o = DPT_EN_Settings::all();
+		wp_localize_script(
+			'dpt-enlighter-block',
+			'DPTEnlighterBlock',
+			array(
+				'languages' => DPT_EN_Settings::languages(),
+				'defaults'  => array(
+					'language' => $o['default_lang'],
+					'lines'    => '1' === $o['line_numbers'],
+					'copy'     => '1' === $o['copy_button'],
+				),
+			)
+		);
 
 		register_block_type(
 			'digitizer/enlighter',
@@ -214,7 +226,7 @@ class DPT_Enlighter_Module extends DPT_Module {
 		if ( '' === trim( $code ) ) {
 			return '';
 		}
-		return $this->build_markup(
+		return self::build_markup(
 			$code,
 			isset( $attributes['language'] ) ? $attributes['language'] : 'plain',
 			! empty( $attributes['lines'] ),
@@ -229,7 +241,7 @@ class DPT_Enlighter_Module extends DPT_Module {
 	public function register_elementor_widget( $widgets_manager ) {
 		require_once __DIR__ . '/class-dpt-en-elementor.php';
 		if ( class_exists( 'DPT_EN_Elementor_Widget' ) ) {
-			$widgets_manager->register( new DPT_EN_Elementor_Widget( array(), array( 'dpt_module' => $this ) ) );
+			$widgets_manager->register( new DPT_EN_Elementor_Widget() );
 		}
 	}
 }

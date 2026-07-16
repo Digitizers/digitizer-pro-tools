@@ -12,16 +12,6 @@ if ( ! class_exists( '\Elementor\Widget_Base' ) ) {
 
 class DPT_EN_Elementor_Widget extends \Elementor\Widget_Base {
 
-	/** @var DPT_Enlighter_Module|null */
-	private $module;
-
-	public function __construct( $data = array(), $args = null ) {
-		parent::__construct( $data, $args );
-		if ( is_array( $args ) && isset( $args['dpt_module'] ) ) {
-			$this->module = $args['dpt_module'];
-		}
-	}
-
 	public function get_name() {
 		return 'dpt_enlighter';
 	}
@@ -99,11 +89,8 @@ class DPT_EN_Elementor_Widget extends \Elementor\Widget_Base {
 		if ( '' === trim( $code ) ) {
 			return;
 		}
-		if ( ! $this->module ) {
-			return;
-		}
-		// build_markup() escapes the code; safe to echo.
-		echo $this->module->build_markup( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		// build_markup() is static and escapes the code; safe to echo.
+		echo DPT_Enlighter_Module::build_markup( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 			$code,
 			isset( $settings['language'] ) ? $settings['language'] : 'plain',
 			! empty( $settings['lines'] ) && 'yes' === $settings['lines'],
