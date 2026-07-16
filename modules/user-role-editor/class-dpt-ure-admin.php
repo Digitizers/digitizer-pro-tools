@@ -8,7 +8,10 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 class DPT_URE_Admin {
 
 	const PAGE_SLUG = 'dpt-user-role-editor';
-	const CAP       = 'manage_options';
+
+	private function cap() {
+		return DPT_URE_Manager::required_cap();
+	}
 
 	public function __construct() {
 		add_action( 'admin_post_dpt_ure_save_caps', array( $this, 'handle_save_caps' ) );
@@ -23,7 +26,7 @@ class DPT_URE_Admin {
 			$parent_slug,
 			__( 'User Role Editor', 'digitizer-pro-tools' ),
 			__( 'User Role Editor', 'digitizer-pro-tools' ),
-			self::CAP,
+			$this->cap(),
 			self::PAGE_SLUG,
 			array( $this, 'render_page' )
 		);
@@ -54,7 +57,7 @@ class DPT_URE_Admin {
 	}
 
 	private function guard() {
-		if ( ! current_user_can( self::CAP ) ) {
+		if ( ! current_user_can( $this->cap() ) ) {
 			wp_die( esc_html__( 'You are not allowed to do that.', 'digitizer-pro-tools' ) );
 		}
 	}
@@ -112,7 +115,7 @@ class DPT_URE_Admin {
 	}
 
 	public function render_page() {
-		if ( ! current_user_can( self::CAP ) ) {
+		if ( ! current_user_can( $this->cap() ) ) {
 			return;
 		}
 		$roles    = DPT_URE_Manager::get_roles();

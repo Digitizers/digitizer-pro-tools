@@ -78,6 +78,7 @@ Full control over what every role can do (disabled by default; enable it on the 
 * Add a new role, optionally cloning the capabilities of an existing one
 * Delete a role and move its users to another role in one step
 * Register custom capabilities and grant them to any roles
+* Gated by a dedicated `dpt_manage_roles` capability (granted to administrators), so a delegated manage_options account cannot open the editor and escalate its own privileges
 * Lockout-proof: the administrator role always keeps the capabilities needed to manage the site, and you can never strip your own access
 * Protected roles (administrator) and the default new-user role cannot be deleted
 

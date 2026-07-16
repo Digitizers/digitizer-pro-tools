@@ -10,6 +10,20 @@ class DPT_URE_Manager {
 
 	const OPTION = 'dpt_user_role_editor';
 
+	/**
+	 * Dedicated capability that gates the editor. Granted to administrators
+	 * on install so a delegated manage_options account cannot open the role
+	 * editor and escalate its own privileges.
+	 */
+	const REQUIRED_CAP = 'dpt_manage_roles';
+
+	/**
+	 * The capability required to use the editor (filterable).
+	 */
+	public static function required_cap() {
+		return apply_filters( 'dpt_ure_required_cap', self::REQUIRED_CAP );
+	}
+
 	public static function defaults() {
 		return array(
 			// Capabilities added through the editor that may be unchecked on
@@ -22,9 +36,17 @@ class DPT_URE_Manager {
 		$existing = get_option( self::OPTION );
 		if ( ! is_array( $existing ) ) {
 			add_option( self::OPTION, self::defaults() );
-			return;
+		} else {
+			update_option( self::OPTION, array_merge( self::defaults(), $existing ) );
 		}
-		update_option( self::OPTION, array_merge( self::defaults(), $existing ) );
+
+		// Grant the dedicated role-management capability to administrators so
+		// only they - not every delegated manage_options account - can open
+		// the editor. Runs on activation and version upgrades.
+		$admin = self::roles()->get_role( 'administrator' );
+		if ( $admin ) {
+			$admin->add_cap( self::REQUIRED_CAP );
+		}
 	}
 
 	public static function all() {
@@ -41,7 +63,7 @@ class DPT_URE_Manager {
 	 * can never lock themselves out of the site or this editor.
 	 */
 	public static function protected_admin_caps() {
-		return apply_filters( 'dpt_ure_protected_admin_caps', array( 'read', 'manage_options' ) );
+		return apply_filters( 'dpt_ure_protected_admin_caps', array( 'read', 'manage_options', self::REQUIRED_CAP ) );
 	}
 
 	/**
