@@ -195,26 +195,34 @@ class DPT_URE_Manager {
 		if ( (string) get_option( 'default_role' ) === $key ) {
 			return new WP_Error( 'dpt_ure_default', __( 'This is the default role for new users - change the default role first.', 'digitizer-pro-tools' ) );
 		}
-		// Self-lockout guard: don't let the current user delete a role that is
-		// their only source of manage_options - the reassignment could drop
-		// them to a role without it.
-		if ( self::current_user_has_role( $key )
-			&& ! self::current_user_keeps_cap_via_other_role( $key, 'manage_options' ) ) {
-			return new WP_Error( 'dpt_ure_self', __( 'You cannot delete a role that grants your own administrator access.', 'digitizer-pro-tools' ) );
-		}
 		$reassign_to = self::sanitize_role_key( $reassign_to );
 		if ( '' === $reassign_to || ! self::role_exists( $reassign_to ) || $reassign_to === $key ) {
 			return new WP_Error( 'dpt_ure_reassign', __( 'Choose a valid role to move existing users to.', 'digitizer-pro-tools' ) );
 		}
 
+		// Self-lockout guard: don't let the current user delete a role that is
+		// their only source of manage_options - unless the migration is safe,
+		// i.e. the deleted role is their sole role and the reassignment role
+		// grants manage_options too (so they receive it on reassignment).
+		if ( self::current_user_has_role( $key )
+			&& ! self::current_user_keeps_cap_via_other_role( $key, 'manage_options' ) ) {
+			$user            = wp_get_current_user();
+			$sole_role       = $user && 1 === count( (array) $user->roles );
+			$replacement     = self::roles()->get_role( $reassign_to );
+			$reassign_grants = $replacement && ! empty( $replacement->capabilities['manage_options'] );
+			if ( ! ( $sole_role && $reassign_grants ) ) {
+				return new WP_Error( 'dpt_ure_self', __( 'You cannot delete a role that grants your own administrator access.', 'digitizer-pro-tools' ) );
+			}
+		}
+
 		$users = get_users( array( 'role' => $key, 'fields' => array( 'ID' ) ) );
 		foreach ( $users as $u ) {
 			$user = new WP_User( $u->ID );
-			// Drop only the deleted role so a user's other roles survive, and
-			// add the reassignment role only when they would otherwise be left
-			// with no role at all.
+			// Drop only the deleted role so a user's other roles survive, then
+			// move them to the reassignment role (as the UI promises) unless
+			// they already have it.
 			$user->remove_role( $key );
-			if ( empty( $user->roles ) ) {
+			if ( ! in_array( $reassign_to, (array) $user->roles, true ) ) {
 				$user->add_role( $reassign_to );
 			}
 		}
