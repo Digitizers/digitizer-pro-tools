@@ -5,7 +5,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-07-16 01:31+0000\n"
+"POT-Creation-Date: 2026-07-16 12:17+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "X-Generator: digitizer-pro-tools build-i18n\n"
@@ -638,6 +638,96 @@ msgid "View banner on the site"
 msgstr ""
 
 msgid "Multilingual cookie-consent banner with cookie categories, script blocking until consent, and a floating preferences button."
+msgstr ""
+
+msgid "Site Tweaks"
+msgstr ""
+
+msgid "Small site-wide tweaks, each an independent toggle. Replaces the assorted functions.php snippets."
+msgstr ""
+
+msgid "HTTP security headers"
+msgstr ""
+
+msgid "Sent on front-end responses. Verify with your browser dev tools after enabling."
+msgstr ""
+
+msgid "X-Frame-Options: SAMEORIGIN"
+msgstr ""
+
+msgid "Stops other sites from framing yours (clickjacking protection)."
+msgstr ""
+
+msgid "X-Content-Type-Options: nosniff"
+msgstr ""
+
+msgid "Stops browsers from MIME-sniffing responses."
+msgstr ""
+
+msgid "X-XSS-Protection"
+msgstr ""
+
+msgid "<em>Legacy.</em> Deprecated and ignored by modern browsers; included only for parity with old snippets."
+msgstr ""
+
+msgid "Strict-Transport-Security (HSTS)"
+msgstr ""
+
+msgid "Forces HTTPS for a year. <strong>Only enable once HTTPS is solid</strong> - browsers cache this and it is hard to undo. Sent over HTTPS only."
+msgstr ""
+
+msgid "HSTS: includeSubDomains; preload"
+msgstr ""
+
+msgid "Extends HSTS to <strong>every subdomain</strong> and marks the site for browser preload lists (near-permanent). Only with HSTS on, and only if every subdomain is HTTPS."
+msgstr ""
+
+msgid "SVG uploads"
+msgstr ""
+
+msgid "Allow SVG uploads"
+msgstr ""
+
+msgid "Every SVG is sanitised on upload (scripts, event handlers and external references are stripped). Allowed only for users with the <code>%s</code> capability."
+msgstr ""
+
+msgid "Hide WordPress version"
+msgstr ""
+
+msgid "Remove version info"
+msgstr ""
+
+msgid "Removes the generator meta tag/RSS marker and the <code>?ver=</code> WordPress version from core asset URLs. Plugin and theme asset versions are kept, so cache-busting still works."
+msgstr ""
+
+msgid "Elementor"
+msgstr ""
+
+msgid "Elementor is not active on this site right now - these tweaks apply only when it is."
+msgstr ""
+
+msgid "Disable Elementor Google Fonts"
+msgstr ""
+
+msgid "Stops Elementor loading fonts from Google (privacy/performance). Use only if your fonts are hosted locally."
+msgstr ""
+
+msgid "Validate phone fields (Elementor Pro)"
+msgstr ""
+
+msgid "Rejects malformed numbers in Elementor Pro form <code>tel</code> fields (9-14 digits, optional leading +)."
+msgstr ""
+
+msgid "Small site-wide tweaks: HTTP security headers, sanitised SVG uploads, hiding the WordPress version, and Elementor helpers. Each tweak is an independent toggle."
+msgstr ""
+
+msgid "You are not allowed to upload SVG files."
+msgstr ""
+
+msgid "This SVG could not be sanitised and was not uploaded."
+msgstr ""
+
+msgid "Please enter a valid phone number."
 msgstr ""
 
 msgid "Post not found."

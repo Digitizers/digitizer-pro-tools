@@ -68,6 +68,11 @@ class DPT_Plugin {
 				'class'   => 'DPT_Enlighter_Module',
 				'default' => '0',
 			),
+			'site_tweaks' => array(
+				'file'    => DPT_PATH . 'modules/site-tweaks/class-dpt-st-module.php',
+				'class'   => 'DPT_Site_Tweaks_Module',
+				'default' => '0',
+			),
 		);
 		return apply_filters( 'dpt_modules', $modules );
 	}
