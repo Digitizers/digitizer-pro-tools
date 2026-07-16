@@ -45,7 +45,7 @@ class DPT_URE_Manager {
 		// the editor. Runs on activation and version upgrades.
 		$admin = self::roles()->get_role( 'administrator' );
 		if ( $admin ) {
-			$admin->add_cap( self::REQUIRED_CAP );
+			$admin->add_cap( self::required_cap() );
 		}
 	}
 
@@ -63,7 +63,7 @@ class DPT_URE_Manager {
 	 * can never lock themselves out of the site or this editor.
 	 */
 	public static function protected_admin_caps() {
-		return apply_filters( 'dpt_ure_protected_admin_caps', array( 'read', 'manage_options', self::REQUIRED_CAP ) );
+		return apply_filters( 'dpt_ure_protected_admin_caps', array( 'read', 'manage_options', self::required_cap() ) );
 	}
 
 	/**
@@ -223,17 +223,27 @@ class DPT_URE_Manager {
 		}
 
 		// Self-lockout guard: don't let the current user delete a role that is
-		// their only source of manage_options - unless the migration is safe,
-		// i.e. the deleted role is their sole role and the reassignment role
-		// grants manage_options too (so they receive it on reassignment).
-		if ( self::current_user_has_role( $key )
-			&& ! self::current_user_keeps_cap_via_other_role( $key, 'manage_options' ) ) {
-			$user            = wp_get_current_user();
-			$sole_role       = $user && 1 === count( (array) $user->roles );
-			$replacement     = self::roles()->get_role( $reassign_to );
-			$reassign_grants = $replacement && ! empty( $replacement->capabilities['manage_options'] );
-			if ( ! ( $sole_role && $reassign_grants ) ) {
-				return new WP_Error( 'dpt_ure_self', __( 'You cannot delete a role that grants your own administrator access.', 'digitizer-pro-tools' ) );
+		// their only source of site access (manage_options) or editor access
+		// (the required cap) - unless the migration is safe, i.e. the deleted
+		// role is their sole role and the reassignment role grants that same
+		// cap (so they receive it on reassignment).
+		if ( self::current_user_has_role( $key ) ) {
+			$user         = wp_get_current_user();
+			$sole_role    = $user && 1 === count( (array) $user->roles );
+			$deleted_role = self::roles()->get_role( $key );
+			$replacement  = self::roles()->get_role( $reassign_to );
+			$deleted_caps = ( $deleted_role && is_array( $deleted_role->capabilities ) ) ? $deleted_role->capabilities : array();
+			foreach ( array( 'manage_options', self::required_cap() ) as $cap ) {
+				// Only a concern when the deleted role actually grants the cap
+				// to the user and no other of their roles does.
+				if ( empty( $deleted_caps[ $cap ] )
+					|| self::current_user_keeps_cap_via_other_role( $key, $cap ) ) {
+					continue;
+				}
+				$reassign_grants = $replacement && ! empty( $replacement->capabilities[ $cap ] );
+				if ( ! ( $sole_role && $reassign_grants ) ) {
+					return new WP_Error( 'dpt_ure_self', __( 'You cannot delete a role that grants your own administrator access.', 'digitizer-pro-tools' ) );
+				}
 			}
 		}
 
@@ -299,7 +309,7 @@ class DPT_URE_Manager {
 			// Protect both site access (manage_options/read) and access to
 			// this editor itself (dpt_manage_roles) - a delegated role editor
 			// must not be able to lock themselves out of the editor.
-			foreach ( array( 'manage_options', 'read', self::REQUIRED_CAP ) as $cap ) {
+			foreach ( array( 'manage_options', 'read', self::required_cap() ) as $cap ) {
 				if ( ! empty( $current[ $cap ] ) && empty( $desired[ $cap ] )
 					&& ! self::current_user_keeps_cap_via_other_role( $key, $cap ) ) {
 					$desired[ $cap ] = true;
