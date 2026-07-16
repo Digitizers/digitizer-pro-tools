@@ -147,7 +147,10 @@ class DPT_Enlighter_Module extends DPT_Module {
 				continue;
 			}
 			$content = preg_replace_callback(
-				'/\[' . $tag . '\b([^\]]*)\](.*?)\[\/' . $tag . '\]/s',
+				// Skip WordPress's [[shortcode]] escape form: the negative
+				// look-behind/ahead means a doubled-bracket occurrence is left
+				// for core do_shortcode() to render as literal text.
+				'/(?<!\[)\[' . $tag . '\b([^\]]*)\](.*?)\[\/' . $tag . '\](?!\])/s',
 				function ( $matches ) {
 					$atts = shortcode_parse_atts( $matches[1] );
 					return $this->shortcode_code( is_array( $atts ) ? $atts : array(), $matches[2] );

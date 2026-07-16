@@ -143,8 +143,10 @@
 		var codeEl = block.querySelector( 'code' ) || block;
 		var lang = detectLang( block ) !== 'plain' ? detectLang( block ) : detectLang( codeEl );
 		var source = codeEl.textContent || '';
-		// Trim a single leading/trailing newline for tidy rendering.
-		source = source.replace( /^\n/, '' ).replace( /\s+$/, '' );
+		// Trim only a single leading and trailing newline (editor noise);
+		// intentional trailing spaces, tabs or blank lines are preserved so
+		// the displayed and copied code match the original.
+		source = source.replace( /^\n/, '' ).replace( /\n$/, '' );
 
 		codeEl.innerHTML = highlight( source, lang );
 		block.classList.add( 'dpt-en', 'dpt-en-lang-' + lang );
