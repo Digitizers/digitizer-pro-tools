@@ -48,7 +48,11 @@ class DPT_Woo_Checkout_Module extends DPT_Module {
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_assets' ) );
 
 		if ( DPT_WCC_Settings::is_on( 'phone_validation' ) ) {
+			// Classic (shortcode) checkout.
 			add_action( 'woocommerce_checkout_process', array( $this, 'validate_phone_server' ) );
+			// Block checkout submits through the Store API, which never fires
+			// woocommerce_checkout_process - validate there too.
+			add_action( 'woocommerce_store_api_checkout_update_order_from_request', array( $this, 'validate_phone_store_api' ), 10, 2 );
 		}
 	}
 
@@ -114,6 +118,31 @@ class DPT_Woo_Checkout_Module extends DPT_Module {
 		$error = self::phone_error( $phone );
 		if ( null !== $error && function_exists( 'wc_add_notice' ) ) {
 			wc_add_notice( $error, 'error' );
+		}
+	}
+
+	/**
+	 * Server-side phone validation for block (Store API) checkout. Throwing a
+	 * RouteException aborts the checkout with the message shown to the customer.
+	 *
+	 * @param WC_Order $order   Draft order built from the request.
+	 * @param mixed    $request The Store API request.
+	 * @throws \Automattic\WooCommerce\StoreApi\Exceptions\RouteException On invalid phone.
+	 */
+	public function validate_phone_store_api( $order, $request ) {
+		$phone = ( is_object( $order ) && method_exists( $order, 'get_billing_phone' ) )
+			? (string) $order->get_billing_phone()
+			: '';
+		if ( '' === $phone ) {
+			return;
+		}
+		$error = self::phone_error( $phone );
+		if ( null !== $error && class_exists( '\Automattic\WooCommerce\StoreApi\Exceptions\RouteException' ) ) {
+			throw new \Automattic\WooCommerce\StoreApi\Exceptions\RouteException(
+				'dpt_wcc_invalid_phone',
+				$error,
+				400
+			);
 		}
 	}
 
