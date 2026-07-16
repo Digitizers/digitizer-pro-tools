@@ -102,9 +102,28 @@ class DPT_RankMath_Breadcrumbs_Module extends DPT_Module {
 				return $crumbs;
 			}
 		}
-		$position = ( count( $crumbs ) >= 1 ) ? 1 : 0;
+		// Insert after Home only when the first crumb actually is Home; if Rank
+		// Math's Home crumb is disabled, $crumbs[0] is a real item and inserting
+		// after it would make that item linkable (e.g. "Product > Shop").
+		$position = self::first_is_home( $crumbs ) ? 1 : 0;
 		array_splice( $crumbs, $position, 0, array( array( $label, $url ) ) );
 		return $crumbs;
+	}
+
+	/**
+	 * Whether the first crumb is the site Home entry (so a new crumb should go
+	 * after it). Compared trailing-slash-insensitively against home_url('/').
+	 *
+	 * @param array $crumbs Crumb list.
+	 * @return bool
+	 */
+	public static function first_is_home( $crumbs ) {
+		if ( empty( $crumbs ) || ! is_array( $crumbs[0] ) || ! isset( $crumbs[0][1] ) ) {
+			return false;
+		}
+		$first_url = untrailingslashit( (string) $crumbs[0][1] );
+		$home      = function_exists( 'home_url' ) ? untrailingslashit( (string) home_url( '/' ) ) : '';
+		return '' !== $home && $first_url === $home;
 	}
 
 	// --- Auto-detection ----------------------------------------------------
