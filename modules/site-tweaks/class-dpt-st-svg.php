@@ -172,6 +172,15 @@ class DPT_ST_SVG_Sanitizer {
 				continue;
 			}
 
+			// Presentation attributes (fill, filter, mask, clip-path,
+			// marker-*, ...) accept url(...) references. Only same-document
+			// fragments are safe; a url(https://attacker/...) makes an external
+			// request when the SVG renders, so drop the attribute.
+			if ( self::has_external_url_ref( $value ) ) {
+				$el->removeAttribute( $attr->nodeName );
+				continue;
+			}
+
 			// A javascript: payload can hide in almost any attribute value.
 			if ( false !== strpos( self::normalize( $value ), 'javascript:' ) ) {
 				$el->removeAttribute( $attr->nodeName );
@@ -190,6 +199,28 @@ class DPT_ST_SVG_Sanitizer {
 		}
 		if ( preg_match( '#^data:image/(png|jpe?g|gif|webp);base64,#i', $v ) ) {
 			return true;
+		}
+		return false;
+	}
+
+	/**
+	 * True if a value contains a url(...) reference that is not a same-document
+	 * fragment (url(#id)). Such references (url(https://...), url(data:...),
+	 * protocol-relative url(//...)) trigger external requests on render.
+	 */
+	private static function has_external_url_ref( $value ) {
+		$v = self::normalize( $value );
+		if ( false === strpos( $v, 'url(' ) ) {
+			return false;
+		}
+		if ( ! preg_match_all( '/url\(([^)]*)\)/', $v, $matches ) ) {
+			return false;
+		}
+		foreach ( $matches[1] as $ref ) {
+			$ref = trim( $ref, " \t\n\r\0\x0B\"'" );
+			if ( '' !== $ref && '#' !== $ref[0] ) {
+				return true;
+			}
 		}
 		return false;
 	}
