@@ -224,12 +224,11 @@ class DPT_URE_Manager {
 
 		// Self-lockout guard: don't let the current user delete a role that is
 		// their only source of site access (manage_options) or editor access
-		// (the required cap) - unless the migration is safe, i.e. the deleted
-		// role is their sole role and the reassignment role grants that same
-		// cap (so they receive it on reassignment).
+		// (the required cap). The migration is safe when the reassignment role
+		// grants that same cap - every affected user (including the current
+		// one) is moved to it below, so their access is preserved regardless
+		// of how many roles they hold.
 		if ( self::current_user_has_role( $key ) ) {
-			$user         = wp_get_current_user();
-			$sole_role    = $user && 1 === count( (array) $user->roles );
 			$deleted_role = self::roles()->get_role( $key );
 			$replacement  = self::roles()->get_role( $reassign_to );
 			$deleted_caps = ( $deleted_role && is_array( $deleted_role->capabilities ) ) ? $deleted_role->capabilities : array();
@@ -241,7 +240,7 @@ class DPT_URE_Manager {
 					continue;
 				}
 				$reassign_grants = $replacement && ! empty( $replacement->capabilities[ $cap ] );
-				if ( ! ( $sole_role && $reassign_grants ) ) {
+				if ( ! $reassign_grants ) {
 					return new WP_Error( 'dpt_ure_self', __( 'You cannot delete a role that grants your own administrator access.', 'digitizer-pro-tools' ) );
 				}
 			}
