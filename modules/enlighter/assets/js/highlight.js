@@ -110,17 +110,29 @@
 		return out;
 	}
 
+	var ALIAS = {
+		js: 'javascript', ts: 'javascript', node: 'javascript',
+		sh: 'bash', shell: 'bash', zsh: 'bash',
+		py: 'python', xml: 'html', htm: 'html', mysql: 'sql',
+		text: 'plain', txt: 'plain', generic: 'plain', raw: 'plain'
+	};
+
+	function normLang( lang ) {
+		lang = ( lang || '' ).toLowerCase();
+		return ALIAS[ lang ] || lang;
+	}
+
 	function detectLang( el ) {
 		// Enlighter's saved markup carries the language in a data attribute.
 		if ( el.getAttribute( 'data-enlighter-language' ) ) {
-			return el.getAttribute( 'data-enlighter-language' ).toLowerCase();
+			return normLang( el.getAttribute( 'data-enlighter-language' ) );
 		}
 		if ( el.getAttribute( 'data-lang' ) ) {
-			return el.getAttribute( 'data-lang' ).toLowerCase();
+			return normLang( el.getAttribute( 'data-lang' ) );
 		}
 		var cls = el.className || '';
 		var m = /(?:language|lang|brush)[-:]([a-z0-9#+]+)/i.exec( cls );
-		if ( m ) { return m[ 1 ].toLowerCase(); }
+		if ( m ) { return normLang( m[ 1 ] ); }
 		return 'plain';
 	}
 
@@ -189,24 +201,31 @@
 		block.appendChild( btn );
 	}
 
-	function run() {
-		var blocks = document.querySelectorAll( 'pre.dpt-en-block, pre[data-dpt-en]' );
-		blocks.forEach( decorate );
+	function applyConfigFlags( pre ) {
+		if ( window.DPTEnlighter && window.DPTEnlighter.lines ) { pre.setAttribute( 'data-dpt-en-lines', '1' ); }
+		if ( window.DPTEnlighter && window.DPTEnlighter.copy ) { pre.setAttribute( 'data-dpt-en-copy', '1' ); }
+	}
 
+	function run() {
+		// Always decorate DPT-emitted blocks.
+		document.querySelectorAll( 'pre.dpt-en-block, pre[data-dpt-en]' ).forEach( decorate );
+
+		// Always decorate legacy Enlighter markup - these are explicitly
+		// Enlighter-authored, so they should highlight even without the
+		// blanket auto-highlight setting.
+		document.querySelectorAll( 'pre.EnlighterJSRAW, pre[data-enlighter-language]' ).forEach( function ( pre ) {
+			if ( ! pre.hasAttribute( 'data-dpt-en-done' ) && ! pre.classList.contains( 'dpt-en-block' ) ) {
+				applyConfigFlags( pre );
+				decorate( pre );
+			}
+		} );
+
+		// Optionally decorate every remaining <pre><code> block.
 		if ( window.DPTEnlighter && window.DPTEnlighter.auto ) {
-			var autoBlocks = [];
 			document.querySelectorAll( 'pre > code' ).forEach( function ( code ) {
-				autoBlocks.push( code.parentNode );
-			} );
-			// Legacy Enlighter markup, e.g. <pre class="EnlighterJSRAW"
-			// data-enlighter-language="php">, so a migrated site keeps working.
-			document.querySelectorAll( 'pre.EnlighterJSRAW, pre[data-enlighter-language]' ).forEach( function ( pre ) {
-				autoBlocks.push( pre );
-			} );
-			autoBlocks.forEach( function ( pre ) {
+				var pre = code.parentNode;
 				if ( ! pre.hasAttribute( 'data-dpt-en-done' ) && ! pre.classList.contains( 'dpt-en-block' ) ) {
-					if ( window.DPTEnlighter.lines ) { pre.setAttribute( 'data-dpt-en-lines', '1' ); }
-					if ( window.DPTEnlighter.copy ) { pre.setAttribute( 'data-dpt-en-copy', '1' ); }
+					applyConfigFlags( pre );
 					decorate( pre );
 				}
 			} );
