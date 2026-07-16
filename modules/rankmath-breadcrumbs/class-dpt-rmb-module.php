@@ -122,8 +122,39 @@ class DPT_RankMath_Breadcrumbs_Module extends DPT_Module {
 			return false;
 		}
 		$first_url = untrailingslashit( (string) $crumbs[0][1] );
-		$home      = function_exists( 'home_url' ) ? untrailingslashit( (string) home_url( '/' ) ) : '';
-		return '' !== $home && $first_url === $home;
+
+		// Candidate "home" URLs: the WordPress home, plus Rank Math's own
+		// configured Home Link (which a site may point at a localized or other
+		// canonical root, so a plain home_url() comparison would miss it).
+		$candidates = array();
+		if ( function_exists( 'home_url' ) ) {
+			$candidates[] = untrailingslashit( (string) home_url( '/' ) );
+		}
+		$rm_home = self::rank_math_home_link();
+		if ( '' !== $rm_home ) {
+			$candidates[] = untrailingslashit( $rm_home );
+		}
+		foreach ( $candidates as $candidate ) {
+			if ( '' !== $candidate && $first_url === $candidate ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Rank Math's configured breadcrumb Home Link, or '' when unavailable.
+	 *
+	 * @return string
+	 */
+	public static function rank_math_home_link() {
+		if ( class_exists( '\RankMath\Helper' ) && method_exists( '\RankMath\Helper', 'get_settings' ) ) {
+			$link = \RankMath\Helper::get_settings( 'general.breadcrumbs_home_link' );
+			if ( is_string( $link ) && '' !== $link ) {
+				return $link;
+			}
+		}
+		return '';
 	}
 
 	// --- Auto-detection ----------------------------------------------------
