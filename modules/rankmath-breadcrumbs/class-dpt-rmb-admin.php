@@ -52,7 +52,11 @@ class DPT_RMB_Admin {
 		$rm_active   = class_exists( 'RankMath' );
 		$woo_active  = class_exists( 'WooCommerce' );
 		$auto_blog   = get_option( 'page_for_posts' ) ? get_permalink( (int) get_option( 'page_for_posts' ) ) : '';
-		$auto_shop   = function_exists( 'wc_get_page_permalink' ) ? wc_get_page_permalink( 'shop' ) : '';
+		// wc_get_page_permalink('shop') falls back to the home URL when the shop
+		// page is unset, so only treat it as auto-detected if a shop page exists.
+		$auto_shop   = ( function_exists( 'wc_get_page_id' ) && function_exists( 'wc_get_page_permalink' ) && (int) wc_get_page_id( 'shop' ) > 0 )
+			? wc_get_page_permalink( 'shop' )
+			: '';
 		?>
 		<div class="wrap dpt-wrap">
 			<h1 class="dpt-title">
