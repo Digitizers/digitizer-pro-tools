@@ -37,6 +37,9 @@ class DPT_RM_Admin {
 		if ( isset( $_GET['dpt_test_sent'] ) ) {
 			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Test email sent - check the inbox and the log below.', 'digitizer-pro-tools' ) . '</p></div>';
 		}
+		if ( isset( $_GET['dpt_test_fallback'] ) ) {
+			echo '<div class="notice notice-warning is-dismissible"><p>' . esc_html__( 'The Resend API rejected the test email - it went out through the default WordPress mailer instead. Check the log below for the error.', 'digitizer-pro-tools' ) . '</p></div>';
+		}
 		if ( isset( $_GET['dpt_test_failed'] ) ) {
 			echo '<div class="notice notice-error is-dismissible"><p>' . esc_html__( 'The test email failed to send. Check the log below for the error.', 'digitizer-pro-tools' ) . '</p></div>';
 		}
@@ -95,7 +98,16 @@ class DPT_RM_Admin {
 
 		$sent = wp_mail( $to, $subject, $message );
 
-		$args[ $sent ? 'dpt_test_sent' : 'dpt_test_failed' ] = 1;
+		// wp_mail() returning true is not enough: with fallback enabled a
+		// Resend rejection still goes out via the default mailer. Report
+		// what actually happened to the Resend call.
+		if ( $sent && 'sent' === DPT_RM_Sender::$last_result ) {
+			$args['dpt_test_sent'] = 1;
+		} elseif ( $sent ) {
+			$args['dpt_test_fallback'] = 1;
+		} else {
+			$args['dpt_test_failed'] = 1;
+		}
 		wp_safe_redirect( add_query_arg( $args, admin_url( 'admin.php' ) ) );
 		exit;
 	}

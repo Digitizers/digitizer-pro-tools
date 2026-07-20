@@ -18,6 +18,16 @@ class DPT_RM_Sender {
 	const MAX_RECIPIENTS_PER_CALL = 50;
 	const MAX_ATTACHMENT_BYTES    = 26214400; // 25MB of raw files
 
+	/**
+	 * Outcome of the most recent short_circuit() call: 'sent', 'fallback',
+	 * 'failed', 'passthrough' (not configured / unbuildable payload) or null
+	 * (no call yet). Lets the admin test tell a real Resend delivery apart
+	 * from one the default mailer rescued.
+	 *
+	 * @var string|null
+	 */
+	public static $last_result = null;
+
 	public function __construct() {
 		add_filter( 'pre_wp_mail', array( $this, 'short_circuit' ), 10, 2 );
 	}
@@ -28,6 +38,7 @@ class DPT_RM_Sender {
 	 * a boolean short-circuits wp_mail() with that result.
 	 */
 	public function short_circuit( $return, $atts ) {
+		self::$last_result = 'passthrough';
 		if ( null !== $return ) {
 			// Another plugin already claimed this email.
 			return $return;
@@ -50,6 +61,7 @@ class DPT_RM_Sender {
 
 		if ( is_wp_error( $result ) ) {
 			if ( '1' === DPT_RM_Settings::get( 'fallback_on_error' ) ) {
+				self::$last_result = 'fallback';
 				DPT_RM_Log::record( array(
 					'to'      => $to_display,
 					'subject' => $subject,
@@ -58,6 +70,7 @@ class DPT_RM_Sender {
 				) );
 				return null; // Core wp_mail() proceeds with the default mailer.
 			}
+			self::$last_result = 'failed';
 			DPT_RM_Log::record( array(
 				'to'      => $to_display,
 				'subject' => $subject,
@@ -70,6 +83,7 @@ class DPT_RM_Sender {
 			return false;
 		}
 
+		self::$last_result = 'sent';
 		DPT_RM_Log::record( array(
 			'to'        => $to_display,
 			'subject'   => $subject,
@@ -77,6 +91,9 @@ class DPT_RM_Sender {
 			'resend_id' => implode( ',', $result['ids'] ),
 			'note'      => $result['note'],
 		) );
+		// Mirror core's success contract too - audit/metrics listeners on
+		// wp_mail_succeeded must keep seeing short-circuited deliveries.
+		do_action( 'wp_mail_succeeded', $atts );
 		return true;
 	}
 

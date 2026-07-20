@@ -1416,3 +1416,6 @@ msgstr ""
 
 msgid "Unsigned webhook calls are rejected while this is empty."
 msgstr ""
+
+msgid "The Resend API rejected the test email - it went out through the default WordPress mailer instead. Check the log below for the error."
+msgstr ""

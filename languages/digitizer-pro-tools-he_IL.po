@@ -1417,3 +1417,6 @@ msgstr "אל"
 
 msgid "Unsigned webhook calls are rejected while this is empty."
 msgstr "כל עוד השדה ריק, קריאות webhook לא חתומות נדחות."
+
+msgid "The Resend API rejected the test email - it went out through the default WordPress mailer instead. Check the log below for the error."
+msgstr "ה-API של Resend דחה את מייל הבדיקה - הוא נשלח דרך מנגנון השליחה הרגיל של וורדפרס במקום. בדקו את השגיאה ביומן למטה."

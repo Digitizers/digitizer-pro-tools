@@ -16,7 +16,9 @@ class DPT_RM_Log {
 	/**
 	 * Status progression rank: webhook events can arrive out of order, so an
 	 * entry never moves backwards (a late "delivery_delayed" must not
-	 * overwrite "delivered") and terminal states are never downgraded.
+	 * overwrite "delivered", a late "opened" must not overwrite "clicked").
+	 * Every status has a distinct rank; "complained" outranks "bounced"
+	 * because a spam complaint implies the email was delivered and seen.
 	 */
 	private static function status_rank( $status ) {
 		$ranks = array(
@@ -26,9 +28,9 @@ class DPT_RM_Log {
 			'delivery_delayed' => 2,
 			'delivered'        => 3,
 			'opened'           => 4,
-			'clicked'          => 4,
-			'bounced'          => 5,
-			'complained'       => 5,
+			'clicked'          => 5,
+			'bounced'          => 6,
+			'complained'       => 7,
 		);
 		return isset( $ranks[ $status ] ) ? $ranks[ $status ] : 0;
 	}

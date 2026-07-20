@@ -409,6 +409,7 @@ return array (
     'That name is reserved (a role key or level_N) and cannot be used as a capability.' => 'השם הזה שמור (מפתח תפקיד או level_N) ולא ניתן להשתמש בו כהרשאה.',
     'That role cannot be deleted.' => 'לא ניתן למחוק את התפקיד הזה.',
     'That slug is empty, invalid or reserved by WordPress - the previous slug was kept.' => 'הסלאג ריק, לא תקין או שמור על ידי וורדפרס - הסלאג הקודם נשמר.',
+    'The Resend API rejected the test email - it went out through the default WordPress mailer instead. Check the log below for the error.' => 'ה-API של Resend דחה את מייל הבדיקה - הוא נשלח דרך מנגנון השליחה הרגיל של וורדפרס במקום. בדקו את השגיאה ביומן למטה.',
     'The banner picks the language automatically from the current page locale (WPML / Polylang / TranslatePress compatible), falling back to the default language.' => 'הבאנר בוחר את השפה אוטומטית לפי שפת העמוד הנוכחי (תואם WPML / Polylang / TranslatePress), עם נפילה לשפת ברירת המחדל.',
     'The final position is the corner plus the offsets below.' => 'המיקום הסופי הוא הפינה ועוד המרחקים שבהמשך.',
     'The number has %1$d digit(s) too many for a number starting with %2$s.' => 'יש %1$d ספרות מיותרות במספר שמתחיל ב-%2$s.',
