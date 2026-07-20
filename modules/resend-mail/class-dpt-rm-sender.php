@@ -83,13 +83,28 @@ class DPT_RM_Sender {
 			return false;
 		}
 
+		if ( '' !== $result['partial_error'] ) {
+			// Part of the recipients never got the email - that is a failed
+			// wp_mail() call, not a success. No fallback here either: it
+			// would double-send to the batches Resend already accepted.
+			self::$last_result = 'failed';
+			DPT_RM_Log::record( array(
+				'to'        => $to_display,
+				'subject'   => $subject,
+				'status'    => 'failed',
+				'resend_id' => implode( ',', $result['ids'] ),
+				'error'     => $result['partial_error'],
+			) );
+			do_action( 'wp_mail_failed', new WP_Error( 'wp_mail_failed', $result['partial_error'], $atts ) );
+			return false;
+		}
+
 		self::$last_result = 'sent';
 		DPT_RM_Log::record( array(
 			'to'        => $to_display,
 			'subject'   => $subject,
 			'status'    => 'sent',
 			'resend_id' => implode( ',', $result['ids'] ),
-			'note'      => $result['note'],
 		) );
 		// Mirror core's success contract too - audit/metrics listeners on
 		// wp_mail_succeeded must keep seeing short-circuited deliveries.
@@ -314,13 +329,14 @@ class DPT_RM_Sender {
 		if ( empty( $ids ) ) {
 			return new WP_Error( 'dpt_rm_api_error', implode( ' | ', $errors ) );
 		}
-		$note = '';
+		$partial_error = '';
 		if ( ! empty( $errors ) ) {
-			// Some chunks were already accepted - falling back now would
-			// double-send, so report success with a partial-failure note.
-			$note = sprintf( '%d of %d recipient batches failed: %s', count( $errors ), count( $chunks ), implode( ' | ', $errors ) );
+			// Some chunks were accepted, some rejected. Falling back would
+			// double-send to the accepted recipients, so the caller reports
+			// this as a failure instead of claiming everyone got the email.
+			$partial_error = sprintf( '%d of %d recipient batches were rejected (the rest were delivered): %s', count( $errors ), count( $chunks ), implode( ' | ', $errors ) );
 		}
-		return array( 'ids' => $ids, 'note' => $note );
+		return array( 'ids' => $ids, 'partial_error' => $partial_error );
 	}
 
 	/**
