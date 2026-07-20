@@ -116,16 +116,18 @@ class DPT_RM_Sender {
 		$headers = $this->parse_headers( isset( $atts['headers'] ) ? $atts['headers'] : '' );
 
 		// Sender resolution. force_from pins the verified address; otherwise
-		// stay wp_mail-compatible: filters apply, an explicit From header wins.
+		// mirror core wp_mail(): an explicit From header replaces the
+		// defaults first, then the wp_mail_from filters get the final say -
+		// sites use those filters to enforce a verified sender domain.
 		$from_email = (string) DPT_RM_Settings::get( 'from_email' );
 		$from_name  = (string) DPT_RM_Settings::get( 'from_name' );
 		if ( '1' !== DPT_RM_Settings::get( 'force_from' ) ) {
-			$from_email = apply_filters( 'wp_mail_from', $from_email );
-			$from_name  = apply_filters( 'wp_mail_from_name', $from_name );
 			if ( '' !== $headers['from_email'] ) {
 				$from_email = $headers['from_email'];
 				$from_name  = $headers['from_name'];
 			}
+			$from_email = apply_filters( 'wp_mail_from', $from_email );
+			$from_name  = apply_filters( 'wp_mail_from_name', $from_name );
 		}
 		if ( ! is_email( $from_email ) ) {
 			return null;
@@ -146,11 +148,17 @@ class DPT_RM_Sender {
 			$payload['text'] = $message;
 		}
 
+		// Unlike To (which deliver() chunks), Cc/Bcc cannot be split without
+		// changing what recipients see - over the API's per-field cap the
+		// whole email goes to the default mailer, never dropping recipients.
+		if ( count( $headers['cc'] ) > self::MAX_RECIPIENTS_PER_CALL || count( $headers['bcc'] ) > self::MAX_RECIPIENTS_PER_CALL ) {
+			return null;
+		}
 		if ( ! empty( $headers['cc'] ) ) {
-			$payload['cc'] = array_slice( $headers['cc'], 0, self::MAX_RECIPIENTS_PER_CALL );
+			$payload['cc'] = $headers['cc'];
 		}
 		if ( ! empty( $headers['bcc'] ) ) {
-			$payload['bcc'] = array_slice( $headers['bcc'], 0, self::MAX_RECIPIENTS_PER_CALL );
+			$payload['bcc'] = $headers['bcc'];
 		}
 
 		$reply_to = $headers['reply_to'];
