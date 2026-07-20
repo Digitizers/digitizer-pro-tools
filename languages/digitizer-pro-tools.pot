@@ -1267,3 +1267,152 @@ msgstr ""
 msgid "No WooCommerce shop page detected - enter the shop URL manually if needed."
 msgstr ""
 
+msgid "API key"
+msgstr ""
+
+msgid "Add an API key and a valid sender address first - until then emails go through the default WordPress mailer."
+msgstr ""
+
+msgid "Always send from the address above, even when another plugin sets its own From address. Recommended - Resend only accepts verified senders."
+msgstr ""
+
+msgid "Behavior"
+msgstr ""
+
+msgid "Bounced"
+msgstr ""
+
+msgid "Clear log"
+msgstr ""
+
+msgid "Clicked"
+msgstr ""
+
+msgid "Create a key in the Resend dashboard under API Keys. Leave empty to keep the saved key."
+msgstr ""
+
+msgid "Default Reply-To"
+msgstr ""
+
+msgid "Defined by the DPT_RESEND_API_KEY constant in wp-config.php - it overrides anything entered here."
+msgstr ""
+
+msgid "Delayed"
+msgstr ""
+
+msgid "Delivered"
+msgstr ""
+
+msgid "Delivers all site email (wp_mail) through the Resend API - verified-domain sending, a send log with delivery statuses, and automatic fallback to the default mailer on errors. Replaces WP Mail SMTP / FluentSMTP."
+msgstr ""
+
+msgid "Delivery webhook (optional)"
+msgstr ""
+
+msgid "Endpoint URL"
+msgstr ""
+
+msgid "Enter a valid email address for the test."
+msgstr ""
+
+msgid "Failed"
+msgstr ""
+
+msgid "Fallback on errors"
+msgstr ""
+
+msgid "Fell back to default mailer"
+msgstr ""
+
+msgid "Force sender"
+msgstr ""
+
+msgid "Forget the saved key"
+msgstr ""
+
+msgid "From email"
+msgstr ""
+
+msgid "From name"
+msgstr ""
+
+msgid "If the Resend API returns an error, hand the email to the default WordPress mailer instead of dropping it."
+msgstr ""
+
+msgid "If you are reading it, delivery works."
+msgstr ""
+
+msgid "Keep the last %d sends with their delivery status."
+msgstr ""
+
+msgid "Lets the send log show what happened after the send: delivered, bounced, opened, marked as spam. In the Resend dashboard add a webhook pointing at the URL below, pick the email events, then paste its signing secret here."
+msgstr ""
+
+msgid "Marked as spam"
+msgstr ""
+
+msgid "Must be an address on a domain you verified in Resend (Domains screen), otherwise the API rejects every email."
+msgstr ""
+
+msgid "No emails logged yet."
+msgstr ""
+
+msgid "Opened"
+msgstr ""
+
+msgid "Optional. Used when the email does not carry its own Reply-To header."
+msgstr ""
+
+msgid "Resend API"
+msgstr ""
+
+msgid "Resend Mail"
+msgstr ""
+
+msgid "Resend Mail test from %s"
+msgstr ""
+
+msgid "Send a test email"
+msgstr ""
+
+msgid "Send log"
+msgstr ""
+
+msgid "Send log cleared."
+msgstr ""
+
+msgid "Send test"
+msgstr ""
+
+msgid "Sends every email this site generates (wp_mail) through the Resend API instead of the server's PHP mailer. Deactivate any other SMTP plugin - two mailers will fight over the same emails."
+msgstr ""
+
+msgid "Sent"
+msgstr ""
+
+msgid "Signing secret"
+msgstr ""
+
+msgid "Status"
+msgstr ""
+
+msgid "Subject"
+msgstr ""
+
+msgid "Test email sent - check the inbox and the log below."
+msgstr ""
+
+msgid "The test email failed to send. Check the log below for the error."
+msgstr ""
+
+msgid "This is a test email sent through the Resend API by the Digitizer Pro Tools plugin."
+msgstr ""
+
+msgid "Time"
+msgstr ""
+
+msgid "To"
+msgstr ""
+
+msgid "Unsigned webhook calls are rejected while this is empty."
+msgstr ""

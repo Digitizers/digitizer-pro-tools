@@ -1268,3 +1268,152 @@ msgstr "חנות (אוטומטי)"
 msgid "No WooCommerce shop page detected - enter the shop URL manually if needed."
 msgstr "לא זוהה עמוד חנות של WooCommerce - יש להזין את כתובת החנות ידנית במידת הצורך."
 
+msgid "API key"
+msgstr "מפתח API"
+
+msgid "Add an API key and a valid sender address first - until then emails go through the default WordPress mailer."
+msgstr "יש להזין קודם מפתח API וכתובת שולח תקינה - עד אז המיילים נשלחים דרך מנגנון השליחה הרגיל של וורדפרס."
+
+msgid "Always send from the address above, even when another plugin sets its own From address. Recommended - Resend only accepts verified senders."
+msgstr "לשלוח תמיד מהכתובת שלמעלה, גם כשתוסף אחר מגדיר כתובת שולח משלו. מומלץ - Resend מקבל רק שולחים מאומתים."
+
+msgid "Behavior"
+msgstr "התנהגות"
+
+msgid "Bounced"
+msgstr "הוחזר (Bounce)"
+
+msgid "Clear log"
+msgstr "ניקוי יומן"
+
+msgid "Clicked"
+msgstr "נלחץ"
+
+msgid "Create a key in the Resend dashboard under API Keys. Leave empty to keep the saved key."
+msgstr "יש ליצור מפתח בלוח הבקרה של Resend תחת API Keys. השאירו ריק כדי לשמור על המפתח הקיים."
+
+msgid "Default Reply-To"
+msgstr "כתובת Reply-To ברירת מחדל"
+
+msgid "Defined by the DPT_RESEND_API_KEY constant in wp-config.php - it overrides anything entered here."
+msgstr "מוגדר על ידי הקבוע DPT_RESEND_API_KEY בקובץ wp-config.php - הוא גובר על כל מה שמוזן כאן."
+
+msgid "Delayed"
+msgstr "מתעכב"
+
+msgid "Delivered"
+msgstr "נמסר"
+
+msgid "Delivers all site email (wp_mail) through the Resend API - verified-domain sending, a send log with delivery statuses, and automatic fallback to the default mailer on errors. Replaces WP Mail SMTP / FluentSMTP."
+msgstr "שולח את כל המיילים של האתר (wp_mail) דרך ה-API של Resend - שליחה מדומיין מאומת, יומן שליחות עם סטטוסי מסירה, וחזרה אוטומטית למנגנון השליחה הרגיל בשגיאות. מחליף את WP Mail SMTP / FluentSMTP."
+
+msgid "Delivery webhook (optional)"
+msgstr "Webhook מסירה (אופציונלי)"
+
+msgid "Endpoint URL"
+msgstr "כתובת ה-Endpoint"
+
+msgid "Enter a valid email address for the test."
+msgstr "יש להזין כתובת אימייל תקינה לבדיקה."
+
+msgid "Failed"
+msgstr "נכשל"
+
+msgid "Fallback on errors"
+msgstr "חזרה למנגנון הרגיל בשגיאות"
+
+msgid "Fell back to default mailer"
+msgstr "נשלח דרך המנגנון הרגיל"
+
+msgid "Force sender"
+msgstr "כפיית שולח"
+
+msgid "Forget the saved key"
+msgstr "שכחת המפתח השמור"
+
+msgid "From email"
+msgstr "אימייל שולח"
+
+msgid "From name"
+msgstr "שם שולח"
+
+msgid "If the Resend API returns an error, hand the email to the default WordPress mailer instead of dropping it."
+msgstr "אם ה-API של Resend מחזיר שגיאה, המייל מועבר למנגנון השליחה הרגיל של וורדפרס במקום ללכת לאיבוד."
+
+msgid "If you are reading it, delivery works."
+msgstr "אם אתם קוראים את זה - השליחה עובדת."
+
+msgid "Keep the last %d sends with their delivery status."
+msgstr "שמירת %d השליחות האחרונות עם סטטוס המסירה שלהן."
+
+msgid "Lets the send log show what happened after the send: delivered, bounced, opened, marked as spam. In the Resend dashboard add a webhook pointing at the URL below, pick the email events, then paste its signing secret here."
+msgstr "מאפשר ליומן השליחות להציג מה קרה אחרי השליחה: נמסר, הוחזר, נפתח, סומן כספאם. בלוח הבקרה של Resend הוסיפו webhook שמצביע לכתובת שלמטה, בחרו את אירועי האימייל, והדביקו כאן את סוד החתימה שלו."
+
+msgid "Marked as spam"
+msgstr "סומן כספאם"
+
+msgid "Must be an address on a domain you verified in Resend (Domains screen), otherwise the API rejects every email."
+msgstr "חייבת להיות כתובת בדומיין שאומת ב-Resend (מסך Domains), אחרת ה-API ידחה כל מייל."
+
+msgid "No emails logged yet."
+msgstr "עוד לא נרשמו מיילים ביומן."
+
+msgid "Opened"
+msgstr "נפתח"
+
+msgid "Optional. Used when the email does not carry its own Reply-To header."
+msgstr "אופציונלי. משמש כשלמייל אין כותרת Reply-To משלו."
+
+msgid "Resend API"
+msgstr "Resend API"
+
+msgid "Resend Mail"
+msgstr "Resend Mail"
+
+msgid "Resend Mail test from %s"
+msgstr "בדיקת Resend Mail מהאתר %s"
+
+msgid "Send a test email"
+msgstr "שליחת מייל בדיקה"
+
+msgid "Send log"
+msgstr "יומן שליחות"
+
+msgid "Send log cleared."
+msgstr "יומן השליחות נוקה."
+
+msgid "Send test"
+msgstr "שליחת בדיקה"
+
+msgid "Sends every email this site generates (wp_mail) through the Resend API instead of the server's PHP mailer. Deactivate any other SMTP plugin - two mailers will fight over the same emails."
+msgstr "שולח כל מייל שהאתר מייצר (wp_mail) דרך ה-API של Resend במקום שרת ה-PHP. יש לכבות כל תוסף SMTP אחר - שני מנגנוני שליחה יתנגשו על אותם מיילים."
+
+msgid "Sent"
+msgstr "נשלח"
+
+msgid "Signing secret"
+msgstr "סוד חתימה"
+
+msgid "Status"
+msgstr "סטטוס"
+
+msgid "Subject"
+msgstr "נושא"
+
+msgid "Test email sent - check the inbox and the log below."
+msgstr "מייל הבדיקה נשלח - בדקו את תיבת הדואר ואת היומן למטה."
+
+msgid "The test email failed to send. Check the log below for the error."
+msgstr "שליחת מייל הבדיקה נכשלה. בדקו את השגיאה ביומן למטה."
+
+msgid "This is a test email sent through the Resend API by the Digitizer Pro Tools plugin."
+msgstr "זהו מייל בדיקה שנשלח דרך ה-API של Resend על ידי התוסף Digitizer Pro Tools."
+
+msgid "Time"
+msgstr "זמן"
+
+msgid "To"
+msgstr "אל"
+
+msgid "Unsigned webhook calls are rejected while this is empty."
+msgstr "כל עוד השדה ריק, קריאות webhook לא חתומות נדחות."

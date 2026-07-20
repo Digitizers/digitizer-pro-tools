@@ -83,6 +83,11 @@ class DPT_Plugin {
 				'class'   => 'DPT_RankMath_Breadcrumbs_Module',
 				'default' => '0',
 			),
+			'resend_mail' => array(
+				'file'    => DPT_PATH . 'modules/resend-mail/class-dpt-rm-module.php',
+				'class'   => 'DPT_Resend_Mail_Module',
+				'default' => '0',
+			),
 		);
 		return apply_filters( 'dpt_modules', $modules );
 	}

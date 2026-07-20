@@ -6,7 +6,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.10.0
+Stable tag: 1.11.0
 License: GPLv2 or later
 
 One toolbox plugin by Digitizer. Modules: multilingual cookie-consent banner, one-click post duplication, auto-update email silencing.
@@ -133,6 +133,18 @@ Adds extra crumbs to the Rank Math breadcrumb trail (disabled by default; enable
 * A crumb is not added if the same URL is already present in the trail
 * Applies only when Rank Math is active
 
+= Module: Resend Mail =
+
+Delivers all site email through the Resend API (disabled by default; enable it on the Modules screen):
+
+* Routes every wp_mail() call - order emails, form notifications, password resets - through Resend's HTTP API via the pre_wp_mail short-circuit; no SMTP credentials on the server
+* Verified-domain sender with an optional "force sender" mode (on by default), so plugins cannot send from unverified addresses that Resend would reject
+* Full wp_mail compatibility: To/Cc/Bcc and Reply-To headers, HTML and plain-text content types, custom headers and file attachments
+* Send log (last 100 emails) with per-email delivery status - delivered, bounced, opened, marked as spam - fed by a signed Resend webhook (Svix signature verification, replay protection)
+* Automatic fallback to the default WordPress mailer when the API errors, so emails are never silently dropped
+* Test-email button, masked API key storage with an optional DPT_RESEND_API_KEY wp-config.php constant override
+* Replaces WP Mail SMTP / FluentSMTP on Resend-backed sites
+
 Admin interface is in English with a full Hebrew translation.
 
 == Installation ==
@@ -144,6 +156,9 @@ Admin interface is in English with a full Hebrew translation.
 5. Save and check the site
 
 == Changelog ==
+
+= 1.11.0 =
+* New module: Resend Mail - delivers all wp_mail() email through the Resend API with a send log, webhook-fed delivery statuses (signed, replay-protected), forced verified sender and automatic fallback to the default mailer on API errors (module ships disabled; enable per site)
 
 = 1.10.0 =
 * New module: Rank Math Breadcrumbs - adds a Blog crumb on post contexts and a Shop crumb on WooCommerce product pages to the Rank Math breadcrumb trail, with auto-detected URLs/labels and manual overrides (module ships disabled; enable per site)
