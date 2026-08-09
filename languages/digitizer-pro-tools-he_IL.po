@@ -1420,3 +1420,70 @@ msgstr "כל עוד השדה ריק, קריאות webhook לא חתומות נד
 
 msgid "The Resend API rejected the test email - it went out through the default WordPress mailer instead. Check the log below for the error."
 msgstr "ה-API של Resend דחה את מייל הבדיקה - הוא נשלח דרך מנגנון השליחה הרגיל של וורדפרס במקום. בדקו את השגיאה ביומן למטה."
+
+msgid "Name Your Price"
+msgstr "קבע את המחיר"
+
+msgid "Let customers set their own price on chosen WooCommerce products (donations / pay-what-you-want), with optional minimum, maximum and suggested prices enforced on the server."
+msgstr "אפשרו ללקוחות לקבוע מחיר משלהם במוצרי WooCommerce נבחרים (תרומות / שלמו כמה שתרצו), עם מחיר מינימום, מקסימום והצעה אופציונליים הנאכפים בשרת."
+
+msgid "Let customers set their own price on chosen products. Enable it per product on the product edit screen (Product data > General), then set optional minimum, maximum and suggested prices."
+msgstr "אפשרו ללקוחות לקבוע מחיר משלהם במוצרים נבחרים. הפעילו זאת לכל מוצר במסך עריכת המוצר (נתוני מוצר > כללי), ואז הגדירו מחיר מינימום, מקסימום והצעה אופציונליים."
+
+msgid "WooCommerce is not active on this site right now - this module applies only when it is."
+msgstr "WooCommerce אינו פעיל באתר זה כרגע - מודול זה חל רק כשהוא פעיל."
+
+msgid "Let the customer set the price for this product."
+msgstr "אפשר ללקוח לקבוע את המחיר של מוצר זה."
+
+msgid "Minimum price"
+msgstr "מחיר מינימום"
+
+msgid "Maximum price"
+msgstr "מחיר מקסימום"
+
+msgid "Suggested price"
+msgstr "מחיר מוצע"
+
+msgid "Default (pre-filled) price"
+msgstr "מחיר ברירת מחדל (ממולא מראש)"
+
+msgid "Field label"
+msgstr "תווית שדה"
+
+msgid "Display"
+msgstr "תצוגה"
+
+msgid "Name your price"
+msgstr "קבעו את המחיר"
+
+msgid "Shown next to the price input on the product page."
+msgstr "מוצג ליד שדה המחיר בעמוד המוצר."
+
+msgid "Show allowed range"
+msgstr "הצגת טווח מותר"
+
+msgid "Display the allowed minimum/maximum under the price field."
+msgstr "הצגת המינימום/מקסימום המותר מתחת לשדה המחיר."
+
+msgid "Between %1$s and %2$s"
+msgstr "בין %1$s ל-%2$s"
+
+msgid "Minimum %s"
+msgstr "מינימום %s"
+
+msgid "Maximum %s"
+msgstr "מקסימום %s"
+
+msgid "Please enter a valid price."
+msgstr "נא להזין מחיר תקין."
+
+msgid "Please enter a price greater than zero."
+msgstr "נא להזין מחיר גדול מאפס."
+
+msgid "The price must be at least %s."
+msgstr "המחיר חייב להיות לפחות %s."
+
+msgid "The price must be no more than %s."
+msgstr "המחיר לא יכול להיות יותר מ-%s."
+

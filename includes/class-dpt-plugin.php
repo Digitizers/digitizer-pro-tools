@@ -88,6 +88,11 @@ class DPT_Plugin {
 				'class'   => 'DPT_Resend_Mail_Module',
 				'default' => '0',
 			),
+			'name_your_price' => array(
+				'file'    => DPT_PATH . 'modules/name-your-price/class-dpt-nyp-module.php',
+				'class'   => 'DPT_Name_Your_Price_Module',
+				'default' => '0',
+			),
 		);
 		return apply_filters( 'dpt_modules', $modules );
 	}
