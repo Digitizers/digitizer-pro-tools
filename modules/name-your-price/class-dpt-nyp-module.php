@@ -48,11 +48,11 @@ class DPT_Name_Your_Price_Module extends DPT_Module {
 		add_action( 'woocommerce_process_product_meta', array( $this, 'save_product_fields' ) );
 
 		// A donation / pay-what-you-want product often has no regular price, so
-		// WooCommerce would treat it as non-purchasable and never render the
-		// add-to-cart form (nor our input). Force purchasability and replace the
-		// (empty or fixed) price display.
-		add_filter( 'woocommerce_is_purchasable', array( $this, 'is_purchasable' ), 10, 2 );
-		add_filter( 'woocommerce_variation_is_purchasable', array( $this, 'is_purchasable' ), 10, 2 );
+		// WooCommerce would treat it as non-purchasable. Give it a base price
+		// (its suggested/default/minimum, else 0) so WooCommerce's own
+		// purchasability check passes - WITHOUT overriding the purchasability
+		// filter, so a catalog-mode / membership plugin's veto still wins.
+		add_filter( 'woocommerce_product_get_price', array( $this, 'product_price' ), 10, 2 );
 		add_filter( 'woocommerce_get_price_html', array( $this, 'price_html' ), 10, 2 );
 		// In archives, send NYP products to the single-product page instead of
 		// an AJAX quick-add: the price input only exists on the product form, so
@@ -131,22 +131,16 @@ class DPT_Name_Your_Price_Module extends DPT_Module {
 	 * @param WC_Product $product     Product object.
 	 * @return bool
 	 */
-	public function is_purchasable( $purchasable, $product ) {
-		if ( $purchasable ) {
-			return true;
+	public function product_price( $price, $product ) {
+		// Only fill in a base price when the product has no regular price of its
+		// own - never clobber an explicitly-priced product.
+		if ( '' !== (string) $price ) {
+			return $price;
 		}
 		if ( ! is_a( $product, 'WC_Product' ) || ! DPT_NYP_Settings::is_nyp( $product->get_id() ) ) {
-			return $purchasable;
+			return $price;
 		}
-		// Only override the "no price set" reason. Every other gate WooCommerce
-		// applies (draft/private status, out of stock) must still block the
-		// purchase, so a visitor cannot buy a non-published product.
-		$published = ( 'publish' === $product->get_status() ) || current_user_can( 'edit_post', $product->get_id() );
-		$in_stock  = ! method_exists( $product, 'is_in_stock' ) || $product->is_in_stock();
-		if ( $published && $in_stock && '' === (string) $product->get_price() ) {
-			return true;
-		}
-		return $purchasable;
+		return DPT_NYP_Settings::base_price( $product->get_id() );
 	}
 
 	/**

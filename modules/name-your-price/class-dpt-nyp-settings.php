@@ -115,6 +115,19 @@ class DPT_NYP_Settings {
 	}
 
 	/**
+	 * The base price given to an otherwise-unpriced NYP product so WooCommerce
+	 * treats it as purchasable: default (or suggested), else minimum, else 0.
+	 */
+	public static function base_price( $product_id ) {
+		$default = self::default_price( $product_id );
+		if ( null !== $default ) {
+			return $default;
+		}
+		$min = self::min_price( $product_id );
+		return ( null !== $min ) ? $min : 0.0;
+	}
+
+	/**
 	 * Parse a user/meta price into a non-negative float, or null if invalid.
 	 * Accepts comma or dot decimals; rejects anything non-numeric.
 	 */
@@ -211,7 +224,10 @@ class DPT_NYP_Settings {
 	 */
 	public static function format_price( $price ) {
 		if ( function_exists( 'wc_price' ) ) {
-			return wp_strip_all_tags( wc_price( $price ) );
+			// wc_price() returns HTML and some currency symbols are HTML entities
+			// (e.g. &euro;). Strip the tags AND decode the entities, so callers
+			// that esc_html() the result do not double-encode the symbol.
+			return html_entity_decode( wp_strip_all_tags( wc_price( $price ) ), ENT_QUOTES, 'UTF-8' );
 		}
 		return number_format( (float) $price, 2 );
 	}
