@@ -124,6 +124,17 @@ class DPT_Name_Your_Price_Module extends DPT_Module {
 			$prices[ DPT_NYP_Settings::META_MAX ] = null;
 		}
 
+		// A maximum that rounds to zero (e.g. 0 or 0.001 in a two-decimal
+		// currency) would reject every possible amount unless free is explicitly
+		// allowed (an explicit minimum of 0). Otherwise drop it (open-ended).
+		if ( null !== $prices[ DPT_NYP_Settings::META_MAX ]
+			&& round( $prices[ DPT_NYP_Settings::META_MAX ], DPT_NYP_Settings::price_decimals() ) <= 0 ) {
+			$explicit_zero_min = ( null !== $prices[ DPT_NYP_Settings::META_MIN ] && 0.0 === (float) $prices[ DPT_NYP_Settings::META_MIN ] );
+			if ( ! $explicit_zero_min ) {
+				$prices[ DPT_NYP_Settings::META_MAX ] = null;
+			}
+		}
+
 		// Keep the suggested/default (pre-filled) prices inside the range, so the
 		// storefront never pre-fills a value that would be rejected at add-to-cart.
 		$min = $prices[ DPT_NYP_Settings::META_MIN ];
@@ -305,9 +316,12 @@ class DPT_Name_Your_Price_Module extends DPT_Module {
 		if ( null !== DPT_NYP_Settings::validate_price( $product_id, $raw ) ) {
 			return $cart_item_data;
 		}
+		// The price becomes part of WooCommerce's cart-item id hash, so lines
+		// with different prices are already kept separate. We deliberately do
+		// NOT add a random uniqueness key: it would give every addition a
+		// different cart id and defeat "Sold individually" enforcement (and
+		// prevent same-price lines from merging).
 		$cart_item_data['dpt_nyp_price'] = DPT_NYP_Settings::sanitize_price( $raw );
-		// Make each custom-priced line a distinct cart item.
-		$cart_item_data['dpt_nyp_unique'] = md5( microtime() . wp_rand() );
 		return $cart_item_data;
 	}
 
@@ -340,18 +354,22 @@ class DPT_Name_Your_Price_Module extends DPT_Module {
 		}
 		$can_remove = method_exists( $cart, 'remove_cart_item' );
 		foreach ( $cart->get_cart() as $key => $cart_item ) {
-			if ( ! isset( $cart_item['dpt_nyp_price'] ) || ! isset( $cart_item['data'] ) ) {
+			if ( ! isset( $cart_item['data'] ) ) {
 				continue;
 			}
 			$product_id = isset( $cart_item['product_id'] ) ? (int) $cart_item['product_id'] : 0;
-			// If NYP was disabled for the product after this item entered the
-			// cart (persistent carts), leave the current fixed price alone.
+			// Only touch NYP products. If NYP was disabled for the product after
+			// the item entered the cart (persistent carts), leave its current
+			// fixed price alone.
 			if ( ! DPT_NYP_Settings::is_nyp( $product_id ) ) {
 				continue;
 			}
-			// The stored value is already a canonical float - read it directly,
-			// never back through the locale-aware input parser.
-			$stored = $cart_item['dpt_nyp_price'];
+			// Every NYP line must carry a valid customer price. A missing or
+			// non-numeric value means the item was added without going through
+			// our flow (e.g. a direct WC_Cart::add_to_cart() that bypassed the
+			// validation filter) - treat it as invalid so it is removed below
+			// rather than sold at the product's base price of 0.
+			$stored = isset( $cart_item['dpt_nyp_price'] ) ? $cart_item['dpt_nyp_price'] : null;
 			$price  = is_numeric( $stored ) ? (float) $stored : -1.0;
 
 			// Re-enforce the product's current range at calculation time. A
