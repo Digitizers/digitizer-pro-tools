@@ -143,7 +143,9 @@ class DPT_Name_Your_Price_Module extends DPT_Module {
 		$max           = $prices[ DPT_NYP_Settings::META_MAX ];
 		$allow_zero    = ( null !== $min && 0.0 === (float) $min );
 		$smallest_unit = pow( 10, -DPT_NYP_Settings::price_decimals() );
-		$prefill_floor = ( null !== $min ) ? $min : ( $allow_zero ? 0.0 : $smallest_unit );
+		// When free is not allowed, the floor must round above zero: at least the
+		// smallest currency unit, even if the configured minimum is a sub-unit.
+		$prefill_floor = $allow_zero ? 0.0 : max( ( null !== $min ) ? $min : 0.0, $smallest_unit );
 		foreach ( array( DPT_NYP_Settings::META_SUGGESTED, DPT_NYP_Settings::META_DEFAULT ) as $key ) {
 			if ( null === $prices[ $key ] ) {
 				continue;
@@ -250,7 +252,7 @@ class DPT_Name_Your_Price_Module extends DPT_Module {
 		if ( null !== $default ) {
 			$allow_zero    = ( null !== $min && 0.0 === (float) $min );
 			$smallest_unit = pow( 10, -DPT_NYP_Settings::price_decimals() );
-			$floor         = ( null !== $min ) ? $min : ( $allow_zero ? 0.0 : $smallest_unit );
+			$floor         = $allow_zero ? 0.0 : max( ( null !== $min ) ? $min : 0.0, $smallest_unit );
 			if ( $default < $floor ) {
 				$default = $floor;
 			}
