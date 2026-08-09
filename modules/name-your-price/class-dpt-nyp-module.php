@@ -128,7 +128,18 @@ class DPT_Name_Your_Price_Module extends DPT_Module {
 	 * @return bool
 	 */
 	public function is_purchasable( $purchasable, $product ) {
-		if ( is_a( $product, 'WC_Product' ) && DPT_NYP_Settings::is_nyp( $product->get_id() ) ) {
+		if ( $purchasable ) {
+			return true;
+		}
+		if ( ! is_a( $product, 'WC_Product' ) || ! DPT_NYP_Settings::is_nyp( $product->get_id() ) ) {
+			return $purchasable;
+		}
+		// Only override the "no price set" reason. Every other gate WooCommerce
+		// applies (draft/private status, out of stock) must still block the
+		// purchase, so a visitor cannot buy a non-published product.
+		$published = ( 'publish' === $product->get_status() ) || current_user_can( 'edit_post', $product->get_id() );
+		$in_stock  = ! method_exists( $product, 'is_in_stock' ) || $product->is_in_stock();
+		if ( $published && $in_stock && '' === (string) $product->get_price() ) {
 			return true;
 		}
 		return $purchasable;
@@ -278,7 +289,12 @@ class DPT_Name_Your_Price_Module extends DPT_Module {
 				continue;
 			}
 			$product_id = isset( $cart_item['product_id'] ) ? (int) $cart_item['product_id'] : 0;
-			$price      = DPT_NYP_Settings::sanitize_price( $cart_item['dpt_nyp_price'] );
+			// If NYP was disabled for the product after this item entered the
+			// cart (persistent carts), leave the current fixed price alone.
+			if ( ! DPT_NYP_Settings::is_nyp( $product_id ) ) {
+				continue;
+			}
+			$price = DPT_NYP_Settings::sanitize_price( $cart_item['dpt_nyp_price'] );
 			if ( null === $price ) {
 				continue;
 			}

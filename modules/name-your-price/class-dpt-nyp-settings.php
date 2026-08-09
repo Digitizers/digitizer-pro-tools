@@ -134,7 +134,11 @@ class DPT_NYP_Settings {
 			if ( '' !== $decimal ) {
 				$value = str_replace( $decimal, '.', $value );
 			}
-			$value = preg_replace( '/[^0-9.\-]/', '', $value );
+			// Do NOT strip unexpected characters - reject them instead, so
+			// "10oops20" or "1e309" fail validation rather than becoming 1020/1309.
+			if ( preg_match( '/[^0-9.\-]/', $value ) ) {
+				return null;
+			}
 		} else {
 			// No WooCommerce (e.g. tests): the last , or . is the decimal point.
 			$value = str_replace( ' ', '', $value );
