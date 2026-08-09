@@ -211,7 +211,7 @@ class DPT_Name_Your_Price_Module extends DPT_Module {
 				sprintf(
 					/* translators: %s: suggested price */
 					__( 'Suggested: %s', 'digitizer-pro-tools' ),
-					DPT_NYP_Settings::format_price( $suggested )
+					DPT_NYP_Settings::format_price( $suggested, $product )
 				)
 			) . '</span>';
 		}

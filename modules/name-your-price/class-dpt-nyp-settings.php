@@ -260,13 +260,23 @@ class DPT_NYP_Settings {
 	/**
 	 * Format a price for a message - uses WooCommerce when available.
 	 */
-	public static function format_price( $price ) {
+	public static function format_price( $price, $product = null ) {
+		$price = (float) $price;
+		// For a shop-price display context (a product is passed), convert the
+		// stored price-entry amount to the customer-facing display amount, so it
+		// honours the store's tax-inclusive/exclusive display setting.
+		if ( null !== $product && is_a( $product, 'WC_Product' ) && function_exists( 'wc_get_price_to_display' ) ) {
+			$display = wc_get_price_to_display( $product, array( 'price' => $price ) );
+			if ( is_numeric( $display ) ) {
+				$price = (float) $display;
+			}
+		}
 		if ( function_exists( 'wc_price' ) ) {
 			// wc_price() returns HTML and some currency symbols are HTML entities
 			// (e.g. &euro;). Strip the tags AND decode the entities, so callers
 			// that esc_html() the result do not double-encode the symbol.
 			return html_entity_decode( wp_strip_all_tags( wc_price( $price ) ), ENT_QUOTES, 'UTF-8' );
 		}
-		return number_format( (float) $price, 2 );
+		return number_format( $price, 2 );
 	}
 }
