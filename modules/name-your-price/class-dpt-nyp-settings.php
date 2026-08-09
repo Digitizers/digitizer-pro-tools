@@ -203,11 +203,27 @@ class DPT_NYP_Settings {
 		if ( null === $price ) {
 			return __( 'Please enter a valid price.', 'digitizer-pro-tools' );
 		}
+		return self::check_price_range( $product_id, $price );
+	}
+
+	/**
+	 * Range/precision check for an already-parsed float price. Returns an error
+	 * message, or null when acceptable. Used both for freshly-submitted input
+	 * and for re-checking a stored (canonical) cart price.
+	 *
+	 * @param int   $product_id Product id.
+	 * @param float $price      Parsed price.
+	 * @return string|null
+	 */
+	public static function check_price_range( $product_id, $price ) {
+		$price = (float) $price;
+		if ( ! is_finite( $price ) || $price < 0 ) {
+			return __( 'Please enter a valid price.', 'digitizer-pro-tools' );
+		}
 
 		$min = self::min_price( $product_id );
 		$max = self::max_price( $product_id );
 
-		// A price of 0 is only allowed when no positive minimum is set.
 		$floor = ( null !== $min ) ? $min : 0.0;
 		if ( $price < $floor ) {
 			return sprintf(
@@ -223,10 +239,12 @@ class DPT_NYP_Settings {
 				self::format_price( $max )
 			);
 		}
-		// With no minimum, the price must be a real positive amount: reject a
-		// value that rounds to zero at the store's decimal precision (e.g.
-		// 0.001 in a 2-decimal currency would otherwise be charged as 0.00).
-		if ( null === $min && round( $price, self::price_decimals() ) <= 0 ) {
+		// Free is allowed only when the minimum is explicitly 0. Otherwise the
+		// charged (rounded) price must be a real positive amount - this rejects
+		// a value that rounds to zero at the store's precision even when a
+		// misconfigured sub-unit minimum (e.g. 0.001) is set.
+		$allow_zero = ( null !== $min && 0.0 === (float) $min );
+		if ( ! $allow_zero && round( $price, self::price_decimals() ) <= 0 ) {
 			return __( 'Please enter a price greater than zero.', 'digitizer-pro-tools' );
 		}
 		return null;

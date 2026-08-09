@@ -301,7 +301,8 @@ class DPT_Name_Your_Price_Module extends DPT_Module {
 		if ( ! is_object( $cart ) || ! method_exists( $cart, 'get_cart' ) ) {
 			return;
 		}
-		foreach ( $cart->get_cart() as $cart_item ) {
+		$can_remove = method_exists( $cart, 'remove_cart_item' );
+		foreach ( $cart->get_cart() as $key => $cart_item ) {
 			if ( ! isset( $cart_item['dpt_nyp_price'] ) || ! isset( $cart_item['data'] ) ) {
 				continue;
 			}
@@ -314,30 +315,30 @@ class DPT_Name_Your_Price_Module extends DPT_Module {
 			// The stored value is already a canonical float - read it directly,
 			// never back through the locale-aware input parser.
 			$stored = $cart_item['dpt_nyp_price'];
-			if ( ! is_numeric( $stored ) ) {
-				continue;
-			}
-			$price = (float) $stored;
-			if ( ! is_finite( $price ) || $price < 0 ) {
-				continue;
-			}
+			$price  = is_numeric( $stored ) ? (float) $stored : -1.0;
 
-			// Re-enforce the product's current range at calculation time so a
-			// tampered session value - or rules changed after the item entered
-			// the cart - cannot apply an out-of-range price.
+			// Re-enforce the product's current range at calculation time. A
+			// tampered session value that is merely out of range is clamped back
+			// in; one that is genuinely invalid now (non-numeric, or rounds to a
+			// disallowed zero because the rules changed) is removed from the cart
+			// rather than sold at the product's base price, which for an unpriced
+			// NYP product is 0 - i.e. free.
 			$min = DPT_NYP_Settings::min_price( $product_id );
 			$max = DPT_NYP_Settings::max_price( $product_id );
-			if ( null === $min ) {
-				// No minimum: the price must round to a real positive amount.
-				// Skip a zero/negative/sub-cent value rather than applying it.
-				if ( round( $price, DPT_NYP_Settings::price_decimals() ) <= 0 ) {
-					continue;
+			if ( $price >= 0 ) {
+				if ( null !== $min && $price < $min ) {
+					$price = $min;
 				}
-			} elseif ( $price < $min ) {
-				$price = $min;
+				if ( null !== $max && $price > $max ) {
+					$price = $max;
+				}
 			}
-			if ( null !== $max && $price > $max ) {
-				$price = $max;
+
+			if ( null !== DPT_NYP_Settings::check_price_range( $product_id, $price ) ) {
+				if ( $can_remove ) {
+					$cart->remove_cart_item( $key );
+				}
+				continue;
 			}
 			$cart_item['data']->set_price( $price );
 		}
