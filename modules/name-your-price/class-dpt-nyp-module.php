@@ -124,6 +124,22 @@ class DPT_Name_Your_Price_Module extends DPT_Module {
 			$prices[ DPT_NYP_Settings::META_MAX ] = null;
 		}
 
+		// Keep the suggested/default (pre-filled) prices inside the range, so the
+		// storefront never pre-fills a value that would be rejected at add-to-cart.
+		$min = $prices[ DPT_NYP_Settings::META_MIN ];
+		$max = $prices[ DPT_NYP_Settings::META_MAX ];
+		foreach ( array( DPT_NYP_Settings::META_SUGGESTED, DPT_NYP_Settings::META_DEFAULT ) as $key ) {
+			if ( null === $prices[ $key ] ) {
+				continue;
+			}
+			if ( null !== $min && $prices[ $key ] < $min ) {
+				$prices[ $key ] = $min;
+			}
+			if ( null !== $max && $prices[ $key ] > $max ) {
+				$prices[ $key ] = $max;
+			}
+		}
+
 		foreach ( $prices as $key => $val ) {
 			if ( null === $val ) {
 				delete_post_meta( $product_id, $key );
@@ -212,6 +228,16 @@ class DPT_Name_Your_Price_Module extends DPT_Module {
 		$min     = DPT_NYP_Settings::min_price( $id );
 		$max     = DPT_NYP_Settings::max_price( $id );
 		$label   = DPT_NYP_Settings::label();
+
+		// Defensive clamp in case the range changed after the default was saved.
+		if ( null !== $default ) {
+			if ( null !== $min && $default < $min ) {
+				$default = $min;
+			}
+			if ( null !== $max && $default > $max ) {
+				$default = $max;
+			}
+		}
 
 		echo '<div class="dpt-nyp-input">';
 		echo '<label for="dpt_nyp_price">' . esc_html( $label ) . '</label> ';
