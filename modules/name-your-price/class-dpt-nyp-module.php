@@ -63,6 +63,10 @@ class DPT_Name_Your_Price_Module extends DPT_Module {
 		add_action( 'woocommerce_before_add_to_cart_button', array( $this, 'render_price_input' ) );
 		add_filter( 'woocommerce_add_to_cart_validation', array( $this, 'validate_add_to_cart' ), 10, 3 );
 		add_filter( 'woocommerce_add_cart_item_data', array( $this, 'add_cart_item_data' ), 10, 3 );
+		// Because the custom price is part of the cart-item id, WooCommerce would
+		// treat the same "Sold individually" product added at two prices as two
+		// different items. Enforce sold-individually by product id instead.
+		add_filter( 'woocommerce_add_to_cart_sold_individually_found_in_cart', array( $this, 'sold_individually_found' ), 10, 5 );
 		add_filter( 'woocommerce_get_cart_item_from_session', array( $this, 'cart_item_from_session' ), 10, 2 );
 		add_action( 'woocommerce_before_calculate_totals', array( $this, 'apply_custom_prices' ), 20 );
 	}
@@ -124,13 +128,14 @@ class DPT_Name_Your_Price_Module extends DPT_Module {
 			$prices[ DPT_NYP_Settings::META_MAX ] = null;
 		}
 
-		// A maximum that rounds to zero (e.g. 0 or 0.001 in a two-decimal
-		// currency) would reject every possible amount unless free is explicitly
+		// A maximum below the smallest currency unit (e.g. 0, 0.001 or 0.006 in a
+		// two-decimal currency) leaves no valid positive amount at or below it,
+		// so every submission would be rejected - unless free is explicitly
 		// allowed (an explicit minimum of 0). Otherwise drop it (open-ended).
-		if ( null !== $prices[ DPT_NYP_Settings::META_MAX ]
-			&& round( $prices[ DPT_NYP_Settings::META_MAX ], DPT_NYP_Settings::price_decimals() ) <= 0 ) {
+		if ( null !== $prices[ DPT_NYP_Settings::META_MAX ] ) {
 			$explicit_zero_min = ( null !== $prices[ DPT_NYP_Settings::META_MIN ] && 0.0 === (float) $prices[ DPT_NYP_Settings::META_MIN ] );
-			if ( ! $explicit_zero_min ) {
+			$smallest_unit     = pow( 10, -DPT_NYP_Settings::price_decimals() );
+			if ( ! $explicit_zero_min && $prices[ DPT_NYP_Settings::META_MAX ] < $smallest_unit ) {
 				$prices[ DPT_NYP_Settings::META_MAX ] = null;
 			}
 		}
@@ -343,6 +348,34 @@ class DPT_Name_Your_Price_Module extends DPT_Module {
 	 * @param array $values    Stored session values.
 	 * @return array
 	 */
+	/**
+	 * Enforce "Sold individually" by product id for NYP products: the same
+	 * product at a different custom price must still count as already in the
+	 * cart. This filter only fires for sold-individually products.
+	 *
+	 * @param bool  $found          Whether WooCommerce already found it in cart.
+	 * @param int   $product_id     Product id being added.
+	 * @param int   $variation_id   Variation id.
+	 * @param array $cart_item_data Cart item data.
+	 * @param string $cart_id       Generated cart id.
+	 * @return bool
+	 */
+	public function sold_individually_found( $found, $product_id, $variation_id, $cart_item_data, $cart_id ) {
+		if ( $found || ! DPT_NYP_Settings::is_nyp( $product_id ) ) {
+			return $found;
+		}
+		if ( ! function_exists( 'WC' ) || ! WC()->cart ) {
+			return $found;
+		}
+		foreach ( WC()->cart->get_cart() as $item ) {
+			if ( isset( $item['product_id'] ) && (int) $item['product_id'] === (int) $product_id
+				&& isset( $item['quantity'] ) && $item['quantity'] > 0 ) {
+				return true;
+			}
+		}
+		return $found;
+	}
+
 	public function cart_item_from_session( $cart_item, $values ) {
 		if ( isset( $values['dpt_nyp_price'] ) ) {
 			$cart_item['dpt_nyp_price'] = $values['dpt_nyp_price'];
