@@ -1490,3 +1490,6 @@ msgstr "המחיר לא יכול להיות יותר מ-%s."
 msgid "Suggested: %s"
 msgstr "מוצע: %s"
 
+msgid "Choose amount"
+msgstr "בחרו סכום"
+

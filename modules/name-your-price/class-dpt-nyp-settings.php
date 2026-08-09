@@ -82,11 +82,15 @@ class DPT_NYP_Settings {
 	 */
 	public static function meta_price( $product_id, $meta_key ) {
 		$raw = get_post_meta( (int) $product_id, $meta_key, true );
-		if ( '' === $raw || null === $raw ) {
+		// Meta is stored canonically (dot decimal, via wc_format_decimal), so it
+		// must be read as a plain float - NOT through the locale-aware input
+		// parser, which would misread the dot as a thousands separator in stores
+		// configured with a comma decimal separator.
+		if ( '' === $raw || null === $raw || ! is_numeric( $raw ) ) {
 			return null;
 		}
-		$val = self::sanitize_price( $raw );
-		return null === $val ? null : $val;
+		$val = (float) $raw;
+		return ( ! is_finite( $val ) || $val < 0 ) ? null : $val;
 	}
 
 	public static function min_price( $product_id ) {

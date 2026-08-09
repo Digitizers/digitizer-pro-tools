@@ -500,5 +500,6 @@ return array (
     'The price must be at least %s.' => 'המחיר חייב להיות לפחות %s.',
     'The price must be no more than %s.' => 'המחיר לא יכול להיות יותר מ-%s.',
     'Suggested: %s' => 'מוצע: %s',
+    'Choose amount' => 'בחרו סכום',
   ),
 );

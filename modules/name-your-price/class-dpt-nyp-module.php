@@ -54,6 +54,10 @@ class DPT_Name_Your_Price_Module extends DPT_Module {
 		add_filter( 'woocommerce_is_purchasable', array( $this, 'is_purchasable' ), 10, 2 );
 		add_filter( 'woocommerce_variation_is_purchasable', array( $this, 'is_purchasable' ), 10, 2 );
 		add_filter( 'woocommerce_get_price_html', array( $this, 'price_html' ), 10, 2 );
+		// In archives, send NYP products to the single-product page instead of
+		// an AJAX quick-add: the price input only exists on the product form, so
+		// a direct quick-add has no price and would be rejected.
+		add_filter( 'woocommerce_loop_add_to_cart_link', array( $this, 'loop_add_to_cart_link' ), 10, 2 );
 
 		// Front-end: price input + cart wiring.
 		add_action( 'woocommerce_before_add_to_cart_button', array( $this, 'render_price_input' ) );
@@ -168,6 +172,25 @@ class DPT_Name_Your_Price_Module extends DPT_Module {
 			) . '</span>';
 		}
 		return '<span class="dpt-nyp-price-html">' . esc_html( DPT_NYP_Settings::label() ) . '</span>';
+	}
+
+	/**
+	 * Replace the archive add-to-cart button with a link to the product page for
+	 * NYP products, so the price input is always used.
+	 *
+	 * @param string     $html    Button HTML.
+	 * @param WC_Product $product Product object.
+	 * @return string
+	 */
+	public function loop_add_to_cart_link( $html, $product ) {
+		if ( ! is_a( $product, 'WC_Product' ) || ! DPT_NYP_Settings::is_nyp( $product->get_id() ) ) {
+			return $html;
+		}
+		return sprintf(
+			'<a href="%s" class="button dpt-nyp-select">%s</a>',
+			esc_url( $product->get_permalink() ),
+			esc_html__( 'Choose amount', 'digitizer-pro-tools' )
+		);
 	}
 
 	public function render_price_input() {
@@ -294,14 +317,30 @@ class DPT_Name_Your_Price_Module extends DPT_Module {
 			if ( ! DPT_NYP_Settings::is_nyp( $product_id ) ) {
 				continue;
 			}
-			$price = DPT_NYP_Settings::sanitize_price( $cart_item['dpt_nyp_price'] );
-			if ( null === $price ) {
+			// The stored value is already a canonical float - read it directly,
+			// never back through the locale-aware input parser.
+			$stored = $cart_item['dpt_nyp_price'];
+			if ( ! is_numeric( $stored ) ) {
 				continue;
 			}
-			// Defence in depth: clamp to the allowed range at calculation time.
+			$price = (float) $stored;
+			if ( ! is_finite( $price ) || $price < 0 ) {
+				continue;
+			}
+
+			// Re-enforce the product's current range at calculation time so a
+			// tampered session value - or rules changed after the item entered
+			// the cart - cannot apply an out-of-range price.
 			$min = DPT_NYP_Settings::min_price( $product_id );
 			$max = DPT_NYP_Settings::max_price( $product_id );
-			if ( null !== $min && $price < $min ) {
+			if ( null === $min ) {
+				// No minimum: a zero/negative price is no longer allowed (it was
+				// only valid while an explicit minimum of 0 was set). Leave the
+				// product's own price rather than applying an invalid 0.
+				if ( $price <= 0 ) {
+					continue;
+				}
+			} elseif ( $price < $min ) {
 				$price = $min;
 			}
 			if ( null !== $max && $price > $max ) {

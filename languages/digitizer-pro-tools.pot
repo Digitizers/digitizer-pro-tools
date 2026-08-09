@@ -1490,3 +1490,6 @@ msgstr ""
 msgid "Suggested: %s"
 msgstr ""
 
+msgid "Choose amount"
+msgstr ""
+
