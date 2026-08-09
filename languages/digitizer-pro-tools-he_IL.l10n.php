@@ -499,5 +499,6 @@ return array (
     'Please enter a price greater than zero.' => 'נא להזין מחיר גדול מאפס.',
     'The price must be at least %s.' => 'המחיר חייב להיות לפחות %s.',
     'The price must be no more than %s.' => 'המחיר לא יכול להיות יותר מ-%s.',
+    'Suggested: %s' => 'מוצע: %s',
   ),
 );

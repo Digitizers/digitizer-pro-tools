@@ -122,18 +122,39 @@ class DPT_NYP_Settings {
 		if ( '' === $value ) {
 			return null;
 		}
-		// Normalise a decimal comma and strip thousands separators/spaces.
-		$value = str_replace( array( ' ', ',' ), array( '', '.' ), $value );
-		// Keep only the last dot as the decimal separator.
-		$parts = explode( '.', $value );
-		if ( count( $parts ) > 2 ) {
-			$dec   = array_pop( $parts );
-			$value = implode( '', $parts ) . '.' . $dec;
+
+		if ( function_exists( 'wc_get_price_decimal_separator' ) && function_exists( 'wc_get_price_thousand_separator' ) ) {
+			// Use the store's configured separators, so "1,000" is 1000 in a
+			// comma-grouping store and 1.0 in a comma-decimal store.
+			$decimal  = (string) wc_get_price_decimal_separator();
+			$thousand = (string) wc_get_price_thousand_separator();
+			if ( '' !== $thousand ) {
+				$value = str_replace( $thousand, '', $value );
+			}
+			if ( '' !== $decimal ) {
+				$value = str_replace( $decimal, '.', $value );
+			}
+			$value = preg_replace( '/[^0-9.\-]/', '', $value );
+		} else {
+			// No WooCommerce (e.g. tests): the last , or . is the decimal point.
+			$value = str_replace( ' ', '', $value );
+			if ( preg_match( '/[.,](\d+)$/', $value, $m ) ) {
+				$dec     = $m[1];
+				$intpart = preg_replace( '/[.,]/', '', substr( $value, 0, strlen( $value ) - strlen( $dec ) - 1 ) );
+				$value   = $intpart . '.' . $dec;
+			} else {
+				$value = preg_replace( '/[.,]/', '', $value );
+			}
 		}
+
 		if ( ! is_numeric( $value ) ) {
 			return null;
 		}
 		$num = (float) $value;
+		// Reject non-finite values (e.g. an overflowing "1e309" -> INF).
+		if ( ! is_finite( $num ) ) {
+			return null;
+		}
 		return $num < 0 ? null : $num;
 	}
 

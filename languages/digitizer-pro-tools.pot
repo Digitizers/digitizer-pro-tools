@@ -1487,3 +1487,6 @@ msgstr ""
 msgid "The price must be no more than %s."
 msgstr ""
 
+msgid "Suggested: %s"
+msgstr ""
+

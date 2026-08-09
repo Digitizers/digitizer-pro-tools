@@ -1487,3 +1487,6 @@ msgstr "המחיר חייב להיות לפחות %s."
 msgid "The price must be no more than %s."
 msgstr "המחיר לא יכול להיות יותר מ-%s."
 
+msgid "Suggested: %s"
+msgstr "מוצע: %s"
+

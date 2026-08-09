@@ -47,6 +47,14 @@ class DPT_Name_Your_Price_Module extends DPT_Module {
 		add_action( 'woocommerce_product_options_pricing', array( $this, 'render_product_fields' ) );
 		add_action( 'woocommerce_process_product_meta', array( $this, 'save_product_fields' ) );
 
+		// A donation / pay-what-you-want product often has no regular price, so
+		// WooCommerce would treat it as non-purchasable and never render the
+		// add-to-cart form (nor our input). Force purchasability and replace the
+		// (empty or fixed) price display.
+		add_filter( 'woocommerce_is_purchasable', array( $this, 'is_purchasable' ), 10, 2 );
+		add_filter( 'woocommerce_variation_is_purchasable', array( $this, 'is_purchasable' ), 10, 2 );
+		add_filter( 'woocommerce_get_price_html', array( $this, 'price_html' ), 10, 2 );
+
 		// Front-end: price input + cart wiring.
 		add_action( 'woocommerce_before_add_to_cart_button', array( $this, 'render_price_input' ) );
 		add_filter( 'woocommerce_add_to_cart_validation', array( $this, 'validate_add_to_cart' ), 10, 3 );
@@ -111,6 +119,45 @@ class DPT_Name_Your_Price_Module extends DPT_Module {
 	}
 
 	// --- Front-end ---------------------------------------------------------
+
+	/**
+	 * Make NYP products purchasable even without a regular price.
+	 *
+	 * @param bool       $purchasable Current purchasable state.
+	 * @param WC_Product $product     Product object.
+	 * @return bool
+	 */
+	public function is_purchasable( $purchasable, $product ) {
+		if ( is_a( $product, 'WC_Product' ) && DPT_NYP_Settings::is_nyp( $product->get_id() ) ) {
+			return true;
+		}
+		return $purchasable;
+	}
+
+	/**
+	 * Replace the (empty or fixed) price display for NYP products so a stale
+	 * regular price is not shown alongside the "name your price" input.
+	 *
+	 * @param string     $html    Price HTML.
+	 * @param WC_Product $product Product object.
+	 * @return string
+	 */
+	public function price_html( $html, $product ) {
+		if ( ! is_a( $product, 'WC_Product' ) || ! DPT_NYP_Settings::is_nyp( $product->get_id() ) ) {
+			return $html;
+		}
+		$suggested = DPT_NYP_Settings::suggested_price( $product->get_id() );
+		if ( null !== $suggested ) {
+			return '<span class="dpt-nyp-price-html">' . esc_html(
+				sprintf(
+					/* translators: %s: suggested price */
+					__( 'Suggested: %s', 'digitizer-pro-tools' ),
+					DPT_NYP_Settings::format_price( $suggested )
+				)
+			) . '</span>';
+		}
+		return '<span class="dpt-nyp-price-html">' . esc_html( DPT_NYP_Settings::label() ) . '</span>';
+	}
 
 	public function render_price_input() {
 		global $product;
