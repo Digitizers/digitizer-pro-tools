@@ -111,9 +111,20 @@ class DPT_Name_Your_Price_Module extends DPT_Module {
 		$enabled = ( isset( $_POST[ DPT_NYP_Settings::META_ENABLED ] ) && 'yes' === $_POST[ DPT_NYP_Settings::META_ENABLED ] ) ? 'yes' : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		update_post_meta( $product_id, DPT_NYP_Settings::META_ENABLED, $enabled );
 
+		$prices = array();
 		foreach ( array( DPT_NYP_Settings::META_MIN, DPT_NYP_Settings::META_MAX, DPT_NYP_Settings::META_SUGGESTED, DPT_NYP_Settings::META_DEFAULT ) as $key ) {
 			$raw = isset( $_POST[ $key ] ) ? wp_unslash( $_POST[ $key ] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
-			$val = DPT_NYP_Settings::sanitize_price( $raw );
+			$prices[ $key ] = DPT_NYP_Settings::sanitize_price( $raw );
+		}
+
+		// Cross-field validation: an inverted range (min > max) would make every
+		// price invalid, so drop the maximum and keep an open-ended minimum.
+		if ( null !== $prices[ DPT_NYP_Settings::META_MIN ] && null !== $prices[ DPT_NYP_Settings::META_MAX ]
+			&& $prices[ DPT_NYP_Settings::META_MIN ] > $prices[ DPT_NYP_Settings::META_MAX ] ) {
+			$prices[ DPT_NYP_Settings::META_MAX ] = null;
+		}
+
+		foreach ( $prices as $key => $val ) {
 			if ( null === $val ) {
 				delete_post_meta( $product_id, $key );
 			} else {
