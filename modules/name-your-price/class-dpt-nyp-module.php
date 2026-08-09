@@ -135,16 +135,21 @@ class DPT_Name_Your_Price_Module extends DPT_Module {
 			}
 		}
 
-		// Keep the suggested/default (pre-filled) prices inside the range, so the
-		// storefront never pre-fills a value that would be rejected at add-to-cart.
-		$min = $prices[ DPT_NYP_Settings::META_MIN ];
-		$max = $prices[ DPT_NYP_Settings::META_MAX ];
+		// Keep the suggested/default (pre-filled) prices inside a range the
+		// storefront can actually submit: at least the minimum, or - when free
+		// is not explicitly allowed - the smallest valid currency amount, so a
+		// pre-filled 0 (or sub-unit value) is never rejected at add-to-cart.
+		$min           = $prices[ DPT_NYP_Settings::META_MIN ];
+		$max           = $prices[ DPT_NYP_Settings::META_MAX ];
+		$allow_zero    = ( null !== $min && 0.0 === (float) $min );
+		$smallest_unit = pow( 10, -DPT_NYP_Settings::price_decimals() );
+		$prefill_floor = ( null !== $min ) ? $min : ( $allow_zero ? 0.0 : $smallest_unit );
 		foreach ( array( DPT_NYP_Settings::META_SUGGESTED, DPT_NYP_Settings::META_DEFAULT ) as $key ) {
 			if ( null === $prices[ $key ] ) {
 				continue;
 			}
-			if ( null !== $min && $prices[ $key ] < $min ) {
-				$prices[ $key ] = $min;
+			if ( $prices[ $key ] < $prefill_floor ) {
+				$prices[ $key ] = $prefill_floor;
 			}
 			if ( null !== $max && $prices[ $key ] > $max ) {
 				$prices[ $key ] = $max;
@@ -240,10 +245,14 @@ class DPT_Name_Your_Price_Module extends DPT_Module {
 		$max     = DPT_NYP_Settings::max_price( $id );
 		$label   = DPT_NYP_Settings::label();
 
-		// Defensive clamp in case the range changed after the default was saved.
+		// Defensive clamp in case the range changed after the default was saved -
+		// keep the pre-fill to a value the customer can actually submit.
 		if ( null !== $default ) {
-			if ( null !== $min && $default < $min ) {
-				$default = $min;
+			$allow_zero    = ( null !== $min && 0.0 === (float) $min );
+			$smallest_unit = pow( 10, -DPT_NYP_Settings::price_decimals() );
+			$floor         = ( null !== $min ) ? $min : ( $allow_zero ? 0.0 : $smallest_unit );
+			if ( $default < $floor ) {
+				$default = $floor;
 			}
 			if ( null !== $max && $default > $max ) {
 				$default = $max;
