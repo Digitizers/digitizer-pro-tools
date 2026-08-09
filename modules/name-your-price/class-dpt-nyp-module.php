@@ -328,10 +328,9 @@ class DPT_Name_Your_Price_Module extends DPT_Module {
 			$min = DPT_NYP_Settings::min_price( $product_id );
 			$max = DPT_NYP_Settings::max_price( $product_id );
 			if ( null === $min ) {
-				// No minimum: a zero/negative price is no longer allowed (it was
-				// only valid while an explicit minimum of 0 was set). Leave the
-				// product's own price rather than applying an invalid 0.
-				if ( $price <= 0 ) {
+				// No minimum: the price must round to a real positive amount.
+				// Skip a zero/negative/sub-cent value rather than applying it.
+				if ( round( $price, DPT_NYP_Settings::price_decimals() ) <= 0 ) {
 					continue;
 				}
 			} elseif ( $price < $min ) {

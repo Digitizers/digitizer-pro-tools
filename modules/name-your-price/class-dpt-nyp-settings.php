@@ -145,7 +145,17 @@ class DPT_NYP_Settings {
 			// comma-grouping store and 1.0 in a comma-decimal store.
 			$decimal  = (string) wc_get_price_decimal_separator();
 			$thousand = (string) wc_get_price_thousand_separator();
-			if ( '' !== $thousand ) {
+			// If a thousands separator is present, it must appear only in valid
+			// 3-digit grouping positions before we strip it. Otherwise the input
+			// is ambiguous (e.g. "12.50" in a dot-thousands store could be a
+			// dot-decimal amount) - reject it rather than silently mis-scale.
+			if ( '' !== $thousand && false !== strpos( $value, $thousand ) ) {
+				$t = preg_quote( $thousand, '/' );
+				$d = ( '' !== $decimal ) ? preg_quote( $decimal, '/' ) : '';
+				$grouping = '/^-?\d{1,3}(?:' . $t . '\d{3})+(?:' . ( '' !== $d ? $d . '\d+' : '' ) . ')?$/';
+				if ( ! preg_match( $grouping, $value ) ) {
+					return null;
+				}
 				$value = str_replace( $thousand, '', $value );
 			}
 			if ( '' !== $decimal ) {
@@ -213,10 +223,20 @@ class DPT_NYP_Settings {
 				self::format_price( $max )
 			);
 		}
-		if ( null === $min && $price <= 0 ) {
+		// With no minimum, the price must be a real positive amount: reject a
+		// value that rounds to zero at the store's decimal precision (e.g.
+		// 0.001 in a 2-decimal currency would otherwise be charged as 0.00).
+		if ( null === $min && round( $price, self::price_decimals() ) <= 0 ) {
 			return __( 'Please enter a price greater than zero.', 'digitizer-pro-tools' );
 		}
 		return null;
+	}
+
+	/**
+	 * The store's price decimal precision (default 2).
+	 */
+	public static function price_decimals() {
+		return function_exists( 'wc_get_price_decimals' ) ? max( 0, (int) wc_get_price_decimals() ) : 2;
 	}
 
 	/**
