@@ -22,9 +22,19 @@ class DPT_NYP_Settings {
 
 	public static function defaults() {
 		return array(
-			'label'          => 'Name your price',
+			// Empty is the sentinel for "use the translated default". Storing a
+			// literal string here would freeze the English text on non-English
+			// storefronts, since label() outputs the stored value verbatim.
+			'label'          => '',
 			'show_range_hint' => '1', // show the allowed min/max under the field
 		);
+	}
+
+	/**
+	 * The translated default storefront label, honouring the active locale.
+	 */
+	public static function default_label() {
+		return __( 'Name your price', 'digitizer-pro-tools' );
 	}
 
 	public static function install_defaults() {
@@ -39,7 +49,9 @@ class DPT_NYP_Settings {
 	public static function all() {
 		$opts = get_option( self::OPTION, array() );
 		$all  = array_merge( self::defaults(), is_array( $opts ) ? $opts : array() );
-		$all['label']           = is_string( $all['label'] ) && '' !== trim( $all['label'] ) ? $all['label'] : 'Name your price';
+		// Keep an empty label as the "use translated default" sentinel - do NOT
+		// coerce it to a literal here, or the English text would be frozen in.
+		$all['label']           = ( is_string( $all['label'] ) && '' !== trim( $all['label'] ) ) ? $all['label'] : '';
 		$all['show_range_hint'] = ( '1' === (string) $all['show_range_hint'] ) ? '1' : '0';
 		return $all;
 	}
@@ -54,7 +66,13 @@ class DPT_NYP_Settings {
 	}
 
 	public static function label() {
-		return (string) apply_filters( 'dpt_nyp_label', self::get( 'label' ) );
+		$label = (string) self::get( 'label' );
+		// Fall back to the translated default at render time, so the active
+		// storefront locale is honoured even when the setting was never changed.
+		if ( '' === trim( $label ) ) {
+			$label = self::default_label();
+		}
+		return (string) apply_filters( 'dpt_nyp_label', $label );
 	}
 
 	public static function save( $raw ) {
@@ -62,9 +80,11 @@ class DPT_NYP_Settings {
 			return false;
 		}
 		$clean = self::all();
-		$clean['label']           = isset( $raw['label'] ) ? sanitize_text_field( $raw['label'] ) : 'Name your price';
+		// Store an empty label as the sentinel for "use the translated default";
+		// only a non-empty admin entry overrides it (and is used verbatim).
+		$clean['label']           = isset( $raw['label'] ) ? sanitize_text_field( $raw['label'] ) : '';
 		if ( '' === trim( $clean['label'] ) ) {
-			$clean['label'] = 'Name your price';
+			$clean['label'] = '';
 		}
 		$clean['show_range_hint'] = ( isset( $raw['show_range_hint'] ) && '1' === (string) $raw['show_range_hint'] ) ? '1' : '0';
 		update_option( self::OPTION, $clean );
