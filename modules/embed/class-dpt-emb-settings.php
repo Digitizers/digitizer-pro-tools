@@ -151,7 +151,9 @@ class DPT_EMB_Settings {
 		// Forms: use the embedded viewform, preserving any pre-fill parameters
 		// (entry.NNN=...) already on the URL and just adding embedded=true.
 		if ( false !== strpos( $path, '/forms/' ) ) {
-			if ( preg_match( '#^/forms/d/(e/)?([a-zA-Z0-9_-]+)#', $path, $m ) ) {
+			// An optional /u/<n> account selector may precede /d/ on links copied
+			// from a multi-account Google session.
+			if ( preg_match( '#^/forms(?:/u/\d+)?/d/(e/)?([a-zA-Z0-9_-]+)#', $path, $m ) ) {
 				$base  = $origin . '/forms/d/' . ( ! empty( $m[1] ) ? 'e/' : '' ) . $m[2];
 				$query = (string) wp_parse_url( $url, PHP_URL_QUERY );
 				// Keep the raw query pairs verbatim - do NOT parse_str them, which
@@ -181,7 +183,7 @@ class DPT_EMB_Settings {
 
 		// Docs / Sheets / Slides / Drive files: swap the trailing action for
 		// /preview, which Google renders as a read-only embeddable view.
-		if ( preg_match( '#^/([a-zA-Z]+)/d/(e/)?([a-zA-Z0-9_-]+)#', $path, $m ) ) {
+		if ( preg_match( '#^/([a-zA-Z]+)(?:/u/\d+)?/d/(e/)?([a-zA-Z0-9_-]+)#', $path, $m ) ) {
 			$preview = $origin . '/' . strtolower( $m[1] ) . '/d/' . ( ! empty( $m[2] ) ? 'e/' : '' ) . $m[3] . '/preview';
 			return $preview . self::preview_suffix( $url );
 		}
