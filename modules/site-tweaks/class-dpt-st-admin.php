@@ -26,7 +26,7 @@ class DPT_ST_Admin {
 	}
 
 	public function maybe_show_notices() {
-		if ( isset( $_GET['page'] ) && self::PAGE_SLUG === sanitize_key( wp_unslash( $_GET['page'] ) ) && isset( $_GET['dpt_saved'] ) ) {
+		if ( isset( $_GET['page'] ) && self::PAGE_SLUG === dpt_current_admin_page() && isset( $_GET['dpt_saved'] ) ) {
 			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Settings saved.', 'digitizer-pro-tools' ) . '</p></div>';
 		}
 	}

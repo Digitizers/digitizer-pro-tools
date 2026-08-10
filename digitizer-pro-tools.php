@@ -46,6 +46,26 @@ function dpt_activate() {
 register_activation_hook( __FILE__, 'dpt_activate' );
 
 /**
+ * The sanitized `page` query argument of the current admin request, or '' when
+ * it is absent or malformed.
+ *
+ * Guards against an array-valued parameter (?page[]=x): sanitize_key() would
+ * hand the array to string functions and raise a TypeError on PHP 8, which - as
+ * these checks run on admin_notices - would break admin screens before they
+ * render. Read-only screen identification, so no nonce is involved.
+ *
+ * @return string
+ */
+function dpt_current_admin_page() {
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only screen check, not a state change.
+	if ( ! isset( $_GET['page'] ) || ! is_scalar( $_GET['page'] ) ) {
+		return '';
+	}
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only screen check, not a state change.
+	return sanitize_key( wp_unslash( $_GET['page'] ) );
+}
+
+/**
  * Add Settings link on the plugins list screen.
  */
 function dpt_plugin_action_links( $links ) {

@@ -43,7 +43,7 @@ class DPT_URE_Admin {
 	}
 
 	public function maybe_show_notices() {
-		if ( ! isset( $_GET['page'] ) || self::PAGE_SLUG !== sanitize_key( wp_unslash( $_GET['page'] ) ) ) {
+		if ( ! isset( $_GET['page'] ) || self::PAGE_SLUG !== dpt_current_admin_page() ) {
 			return;
 		}
 		$err = get_transient( 'dpt_ure_error_' . get_current_user_id() );
