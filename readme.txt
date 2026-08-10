@@ -6,14 +6,17 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.16.0
+Stable tag: 1.17.0
 License: GPLv2 or later
+License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 One toolbox plugin by Digitizer. Modules: multilingual cookie-consent banner, one-click post duplication, auto-update email silencing.
 
 == Description ==
 
 Digitizer Pro Tools is a modular plugin that consolidates the tools Digitizers deploys on client sites. Modules can be toggled on and off from the Modules dashboard.
+
+On activation only three modules are active - Cookie Banner, Duplicate Post and Update Emails - and each module below states whether it ships enabled or disabled. Everything else stays dormant until you switch it on.
 
 = Module: Cookie Banner =
 
@@ -106,7 +109,7 @@ Syntax-highlight code on the front end - dependency-free, no external CDN (disab
 * Languages: PHP, JavaScript, CSS, HTML/XML, SQL, Bash, Python, JSON (and plain text)
 * Light, dark and auto themes (auto follows the visitor's colour scheme), optional line numbers and a copy button
 * Code is always HTML-escaped and highlighted client-side from the escaped text, so nothing in a snippet can inject markup or scripts
-* Migration-friendly: the legacy `[enlighter]` shortcode and Enlighter's saved `data-enlighter-language` markup (block and inline) are recognised automatically; per-language shortcodes such as `[php]`/`[js]` can be enabled with the `dpt_en_language_shortcodes` filter
+* Migration-friendly: Enlighter's saved `data-enlighter-language` markup (block and inline) is recognised automatically. The standalone plugin's own tags are opt-in so the two can coexist - enable `[enlighter]` with the `dpt_en_legacy_shortcode` filter (it stands down if that plugin is active and already owns the tag), and per-language shortcodes such as `[php]`/`[js]` with `dpt_en_language_shortcodes`
 
 = Module: Site Tweaks =
 
@@ -181,6 +184,74 @@ Embed the sources WordPress core does not oEmbed on its own, with the [dpt_embed
 
 Admin interface is in English with a full Hebrew translation.
 
+== External services ==
+
+This plugin is self-contained: every script, style and font it ships is bundled locally, so no module loads assets from a CDN or a font service. There is no telemetry and no usage tracking. The outside connections it can make are listed below - the first two are made by your server, the third by the visitor's browser and only for content you choose to embed.
+
+= Resend (email delivery) =
+
+The Resend Mail module - disabled by default - delivers your site's email through the Resend API instead of the server's mail function. It is only ever contacted after you enable the module and enter an API key.
+
+* Service: Resend, https://resend.com
+* Endpoint: https://api.resend.com/emails
+* When: on every email WordPress sends (wp_mail), while the module is enabled and configured
+* Data sent: the sender and recipient addresses (including cc/bcc and reply-to), the subject, the message body, any attachments, any custom headers the sending code added to the message, and your API key for authentication. In other words, the complete message - whatever a plugin, theme or WordPress itself puts in an email passes through Resend.
+* Data received: delivery status events (delivered, bounced, opened, clicked) sent back to this site's webhook endpoint, which are stored in the module's local send log
+* Terms of Service: https://resend.com/legal/terms-of-service
+* Privacy Policy: https://resend.com/legal/privacy-policy
+
+The module keeps a local send log (recipient, subject, status - not the message body) of the most recent messages. It can be switched off in the module settings, and it is deleted when the plugin is uninstalled.
+
+= GitHub (update checks) =
+
+This plugin can update itself from its public GitHub repository. It periodically asks GitHub for the latest published release; no site data is sent beyond the request itself.
+
+* Service: GitHub, https://github.com
+* Endpoint: https://api.github.com/repos/Digitizers/digitizer-pro-tools/releases
+* When: during WordPress's normal update checks, and again when an administrator installs an offered update
+* Data sent: nothing about the site. Neither the check nor the download carries a site URL, admin details or usage data - on both requests the plugin replaces WordPress's default user agent (which would otherwise include the site address) with just its own name and version. As with any HTTP request, GitHub sees the originating IP address.
+* Terms of Service: https://docs.github.com/site-policy/github-terms/github-terms-of-service
+* Privacy Policy: https://docs.github.com/site-policy/privacy-policies/github-privacy-statement
+
+= Content you embed yourself (Embed module) =
+
+The Embed module - disabled by default - does not contact anything on its own. It is worth understanding, though, that the `[dpt_embed]` shortcode places the URL you give it in an iframe, so **the visitor's browser** loads that document directly from wherever it is hosted. Nothing is proxied through your site.
+
+* When: whenever a page containing a `[dpt_embed]` shortcode is viewed
+* Who: the visitor's browser, not your server
+* Data disclosed to that host: at minimum the visitor's IP address, browser user agent and the referring page, plus any cookies that host has already set in the browser
+* Typical hosts: Google (docs.google.com / drive.google.com) for Docs, Sheets, Slides, Forms and Drive previews - see https://policies.google.com/terms and https://policies.google.com/privacy - or whichever server hosts a PDF you link to
+
+If your site shows a cookie or privacy notice, embedded documents are third-party content and normally belong in it.
+
+== Frequently Asked Questions ==
+
+= Do I have to use every module? =
+
+No. Modules are toggled independently from the Modules screen, so you can enable only what a given site needs.
+
+= Which modules are active right after activation? =
+
+Three, and they are the only ones that change anything on their own:
+
+* **Cookie Banner** - starts showing the consent banner on the front end straight away. Open its settings to adapt the texts and design, or switch the module off if you do not want it.
+* **Duplicate Post** - adds "Duplicate" links to the post lists. Nothing changes for visitors.
+* **Update Emails** - stops the routine "site updated" emails after successful automatic updates. Failure and critical emails are always still sent.
+
+Every other module - including everything that touches WooCommerce, login URLs, roles, comments and content restrictions - ships **disabled** and does nothing until you turn it on.
+
+= Does the plugin send any data anywhere? =
+
+Not on its own. There is no telemetry, no analytics and no "phone home". Your server's only outbound traffic is the update check and, if you enable and configure the Resend Mail module, your outgoing email. Separately, a document you embed with the Embed module is loaded by the visitor's browser straight from its host. All three are described under "External services" above.
+
+= Does the cookie banner work with page caching? =
+
+Yes. The banner is rendered hidden and an inline head precheck decides whether to show it, so cached pages and CDNs never display it to visitors who already answered. Consented third-party tags are injected client-side rather than baked into cached HTML.
+
+= Which languages does the admin support? =
+
+The admin interface is English with a complete Hebrew translation. The cookie banner texts themselves can be set for any number of languages.
+
 == Installation ==
 
 1. Upload the plugin folder to /wp-content/plugins/
@@ -190,6 +261,16 @@ Admin interface is in English with a full Hebrew translation.
 5. Save and check the site
 
 == Changelog ==
+
+= 1.17.0 =
+* Added an "External services" section to this readme documenting the Resend email API, the GitHub update check and the third-party content the Embed module loads in the visitor's browser - what is sent, when, and links to each service's terms and privacy policy
+* Added a Frequently Asked Questions section, a LICENSE file and the License URI header
+* Update checks and update downloads no longer disclose the site address: WordPress's default user agent (which embeds the site URL) is replaced with just the plugin name and version on both requests
+* Documented exactly which three modules are active immediately after activation
+* Enlighter: the legacy [enlighter] shortcode is no longer claimed by default. It is opt-in via the dpt_en_legacy_shortcode filter and stands down when the standalone Enlighter plugin already owns the tag, so the two can coexist
+* Cookie Banner: font weight, border style and background size/position/repeat are now pinned to the values the settings screen offers, so a crafted request cannot inject CSS
+* Hardened admin screens: the page query argument is sanitized before comparison
+* Removed an unused parameter from the Site Tweaks settings renderer
 
 = 1.16.0 =
 * Cookie Banner: separate box width for desktop and mobile, so the banner can be a narrow corner card on desktop and full-width on phones

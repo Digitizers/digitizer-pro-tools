@@ -16,6 +16,9 @@ class DPT_Updater {
 	/** Public repository the updates are pulled from. */
 	const REPO = 'https://github.com/Digitizers/digitizer-pro-tools/';
 
+	/** Owner/name pair, used to recognise this plugin's own package URLs. */
+	const REPO_PATH = 'Digitizers/digitizer-pro-tools';
+
 	/** @var object|null The built update-checker instance. */
 	private static $checker = null;
 
@@ -58,21 +61,106 @@ class DPT_Updater {
 			$api->enableReleaseAssets( '/digitizer-pro-tools.*\.zip/i' );
 		}
 
-		// Enforce release-ONLY detection. By default the GitHub API strategy
-		// falls back latest-release -> latest-tag -> branch, so merely pushing a
-		// version tag (before its Release is published/approved) would already
-		// offer the update. Keep only the latest-release strategy so an update is
-		// offered strictly when a GitHub Release exists. 'latest_release' is the
-		// stable strategy key (Vcs\Api::STRATEGY_LATEST_RELEASE) across PUC 5.x.
 		if ( is_object( $checker ) && method_exists( $checker, 'getUniqueName' ) ) {
+			// Enforce release-ONLY detection. By default the GitHub API strategy
+			// falls back latest-release -> latest-tag -> branch, so merely pushing
+			// a version tag (before its Release is published/approved) would
+			// already offer the update. Keep only the latest-release strategy so
+			// an update is offered strictly when a GitHub Release exists.
+			// 'latest_release' is the stable strategy key
+			// (Vcs\Api::STRATEGY_LATEST_RELEASE) across PUC 5.x.
 			add_filter(
 				$checker->getUniqueName( 'vcs_update_detection_strategies' ),
 				array( __CLASS__, 'release_only_strategies' )
 			);
+			// Send a neutral user agent on the update check. WordPress's default
+			// is "WordPress/6.x; https://example.com", which would hand the site
+			// URL to GitHub - the plugin's privacy disclosure states that no site
+			// data leaves the site, so make that true rather than just documented.
+			add_filter(
+				$checker->getUniqueName( 'request_info_options' ),
+				array( __CLASS__, 'anonymous_request_options' )
+			);
 		}
+
+		// Installing an offered update is a separate path: WordPress downloads
+		// the package itself, outside the checker's API calls, so the filter
+		// above never sees it and the default user agent would go out with the
+		// download. Hook the request arguments for that download too.
+		add_filter( 'upgrader_pre_download', array( __CLASS__, 'before_package_download' ), 10, 2 );
 
 		self::$checker = $checker;
 		return $checker;
+	}
+
+	/**
+	 * The user agent sent to GitHub: identifies the plugin, nothing about the
+	 * site. GitHub's API rejects requests without one.
+	 *
+	 * @return string
+	 */
+	public static function user_agent() {
+		return 'digitizer-pro-tools/' . ( defined( 'DPT_VERSION' ) ? DPT_VERSION : '0' );
+	}
+
+	/**
+	 * Replace the outgoing user agent for the update check.
+	 *
+	 * @param array $options wp_remote_get() options.
+	 * @return array
+	 */
+	public static function anonymous_request_options( $options ) {
+		if ( ! is_array( $options ) ) {
+			$options = array();
+		}
+		$options['user-agent'] = self::user_agent();
+		return $options;
+	}
+
+	/**
+	 * Runs just before WordPress downloads a package. Passes the reply through
+	 * untouched; it only serves to hook the request arguments when the package
+	 * being fetched is this plugin's own.
+	 *
+	 * @param mixed  $reply   Short-circuit reply (false to continue normally).
+	 * @param string $package Package URL about to be downloaded.
+	 * @return mixed
+	 */
+	public static function before_package_download( $reply, $package = '' ) {
+		if ( is_string( $package ) && false !== strpos( $package, self::REPO_PATH ) ) {
+			add_filter( 'http_request_args', array( __CLASS__, 'anonymize_github_request' ), 10, 2 );
+		}
+		return $reply;
+	}
+
+	/**
+	 * Drop the site URL from the user agent on GitHub requests.
+	 *
+	 * Scoped to GitHub hosts, so an unrelated request in the same page load is
+	 * left alone. A release asset redirects from github.com to a separate
+	 * download host, which is why several hosts are listed - the arguments are
+	 * reused across the redirect.
+	 *
+	 * @param array  $args Request arguments.
+	 * @param string $url  Request URL.
+	 * @return array
+	 */
+	public static function anonymize_github_request( $args, $url = '' ) {
+		if ( ! is_array( $args ) ) {
+			return $args;
+		}
+		$host  = strtolower( (string) wp_parse_url( (string) $url, PHP_URL_HOST ) );
+		$hosts = array(
+			'github.com',
+			'api.github.com',
+			'codeload.github.com',
+			'objects.githubusercontent.com',
+			'release-assets.githubusercontent.com',
+		);
+		if ( in_array( $host, $hosts, true ) ) {
+			$args['user-agent'] = self::user_agent();
+		}
+		return $args;
 	}
 
 	/**

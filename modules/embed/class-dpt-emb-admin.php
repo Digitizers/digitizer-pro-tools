@@ -26,7 +26,7 @@ class DPT_EMB_Admin {
 	}
 
 	public function maybe_show_notices() {
-		if ( isset( $_GET['page'], $_GET['dpt_saved'] ) && self::PAGE_SLUG === $_GET['page'] ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		if ( isset( $_GET['page'], $_GET['dpt_saved'] ) && self::PAGE_SLUG === dpt_current_admin_page() ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Settings saved.', 'digitizer-pro-tools' ) . '</p></div>';
 		}
 	}

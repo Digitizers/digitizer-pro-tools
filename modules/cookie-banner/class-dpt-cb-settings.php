@@ -372,6 +372,19 @@ class DPT_CB_Settings {
 			$merged['font_family'] = 'inherit';
 		}
 
+		// These values are printed verbatim into the inline <style> block, and
+		// sanitize_text_field() leaves CSS punctuation intact. The admin only
+		// ever offers the values below (they are <select> fields), so pin them
+		// to that list: a hand-crafted POST cannot inject a CSS declaration.
+		foreach ( self::css_value_allowlists() as $key => $allowed ) {
+			if ( ! isset( $merged[ $key ], $defaults[ $key ] ) ) {
+				continue;
+			}
+			if ( ! in_array( (string) $merged[ $key ], $allowed, true ) ) {
+				$merged[ $key ] = $defaults[ $key ];
+			}
+		}
+
 		$saved_texts     = ( isset( $opts['texts'] ) && is_array( $opts['texts'] ) ) ? $opts['texts'] : array();
 		$merged['texts'] = array();
 		foreach ( $merged['languages'] as $lang ) {
@@ -387,6 +400,26 @@ class DPT_CB_Settings {
 	public static function get( $key ) {
 		$all = self::all();
 		return isset( $all[ $key ] ) ? $all[ $key ] : '';
+	}
+
+	/**
+	 * Settings whose value is written straight into the inline <style> block and
+	 * therefore must match one of the values the admin actually offers.
+	 *
+	 * @return array<string,string[]>
+	 */
+	public static function css_value_allowlists() {
+		return array(
+			'title_weight'      => array( '300', '400', '500', '600', '700', '800', '900' ),
+			'border_style'      => array( 'solid', 'dashed', 'dotted', 'double' ),
+			'bg_image_size'     => array( 'cover', 'contain', 'auto', '100% 100%' ),
+			'bg_image_repeat'   => array( 'no-repeat', 'repeat', 'repeat-x', 'repeat-y' ),
+			'bg_image_position' => array(
+				'center center', 'top center', 'bottom center',
+				'top left', 'top right', 'bottom left', 'bottom right',
+				'center left', 'center right',
+			),
+		);
 	}
 
 	// --- Typography --------------------------------------------------------

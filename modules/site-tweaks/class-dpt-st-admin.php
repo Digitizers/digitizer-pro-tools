@@ -26,7 +26,7 @@ class DPT_ST_Admin {
 	}
 
 	public function maybe_show_notices() {
-		if ( isset( $_GET['page'] ) && self::PAGE_SLUG === $_GET['page'] && isset( $_GET['dpt_saved'] ) ) {
+		if ( isset( $_GET['page'] ) && self::PAGE_SLUG === dpt_current_admin_page() && isset( $_GET['dpt_saved'] ) ) {
 			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Settings saved.', 'digitizer-pro-tools' ) . '</p></div>';
 		}
 	}
@@ -47,7 +47,7 @@ class DPT_ST_Admin {
 	/**
 	 * Render one on/off switch row.
 	 */
-	private function switch_row( $key, $label, $description, $value, $extra = '' ) {
+	private function switch_row( $key, $label, $description, $value ) {
 		?>
 		<tr>
 			<th><?php echo esc_html( $label ); ?></th>
@@ -60,7 +60,6 @@ class DPT_ST_Admin {
 				<?php if ( $description ) : ?>
 					<p class="description"><?php echo wp_kses( $description, array( 'code' => array(), 'em' => array(), 'strong' => array() ) ); ?></p>
 				<?php endif; ?>
-				<?php echo $extra; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- caller passes pre-escaped markup. ?>
 			</td>
 		</tr>
 		<?php

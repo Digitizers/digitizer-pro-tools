@@ -32,7 +32,7 @@ class DPT_CB_Admin {
 	}
 
 	public function maybe_show_notices() {
-		if ( ! isset( $_GET['page'] ) || self::PAGE_SLUG !== $_GET['page'] ) {
+		if ( ! isset( $_GET['page'] ) || self::PAGE_SLUG !== dpt_current_admin_page() ) {
 			return;
 		}
 		if ( isset( $_GET['dpt_saved'] ) ) {
