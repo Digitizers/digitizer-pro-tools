@@ -386,7 +386,8 @@ class DPT_CB_Frontend {
 		// corner box to 380px and force bars/corners to 100% on mobile). Same
 		// specificity as those rules + later source order = the setting wins.
 		$pos_sel   = '#dpt-cb-banner.dpt-cb-pos-' . preg_replace( '/[^a-z-]/', '', (string) $o['position'] ) . ' .dpt-cb-box';
-		$is_corner = in_array( $o['position'], array( 'bottom-left', 'bottom-right' ), true );
+		$is_corner      = in_array( $o['position'], array( 'bottom-left', 'bottom-right' ), true );
+		$mobile_margins = self::box_mobile_margins( $o['position'] );
 		?>
 		<style id="dpt-cb-inline-css">
 			#dpt-cb-overlay { background: <?php echo esc_attr( $overlay_rgba ); ?>; }
@@ -487,6 +488,15 @@ class DPT_CB_Frontend {
 				<?php echo $pos_sel; ?> {
 					max-width: <?php echo (int) $o['width_mobile']; ?>px !important;
 					width: <?php echo (int) $o['max_width_pct_mobile']; ?>% !important;
+					/* frontend.css stretches the mobile container to
+					   left:10px/right:10px, so a box narrower than 100% would
+					   sit against its left edge - a bottom-right banner would
+					   look bottom-left and bars would lose their centering.
+					   Keep the box on the side its position names. Physical
+					   margins on purpose: the position names are physical, so
+					   they must not flip with the RTL/LTR text direction. */
+					margin-left: <?php echo $mobile_margins[0]; ?> !important;
+					margin-right: <?php echo $mobile_margins[1]; ?> !important;
 				}
 				#dpt-cb-float-button {
 					width: <?php echo $fb_size_m; ?>px !important;
@@ -496,6 +506,31 @@ class DPT_CB_Frontend {
 			}
 		</style>
 		<?php
+	}
+
+	/**
+	 * Horizontal margins that keep a narrower-than-full mobile box on the side
+	 * its position names.
+	 *
+	 * On mobile frontend.css stretches the banner container to
+	 * left:10px/right:10px. The box is a block-level child, so at a width below
+	 * 100% it would sit against the container's left edge - a bottom-right
+	 * banner would render bottom-left and the bars would lose their centering.
+	 *
+	 * Physical (not logical) margins on purpose: the position names are
+	 * physical, so the box must not flip sides with the RTL/LTR text direction.
+	 *
+	 * @param string $position Stored banner position.
+	 * @return array{0:string,1:string} [margin-left, margin-right].
+	 */
+	public static function box_mobile_margins( $position ) {
+		if ( 'bottom-left' === $position ) {
+			return array( '0', 'auto' );   // hug the left edge
+		}
+		if ( 'bottom-right' === $position ) {
+			return array( 'auto', '0' );   // hug the right edge
+		}
+		return array( 'auto', 'auto' );    // bars and the centered modal stay centered
 	}
 
 	/**
