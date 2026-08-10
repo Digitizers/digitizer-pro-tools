@@ -16,6 +16,9 @@ class DPT_Woo_Checkout_Fields_Module extends DPT_Module {
 	/** @var DPT_WCF_Admin */
 	private $admin;
 
+	// Per-order snapshot of the custom-field definitions present at checkout.
+	const DEFS_META = '_dpt_wcf_defs';
+
 	public function id() {
 		return 'woo_checkout_fields';
 	}
@@ -69,11 +72,19 @@ class DPT_Woo_Checkout_Fields_Module extends DPT_Module {
 		if ( ! is_array( $fields ) ) {
 			return $fields;
 		}
-		$standard = DPT_WCF_Settings::standard();
+		$standard        = DPT_WCF_Settings::standard();
+		$order_available = $this->order_section_available();
 
 		foreach ( DPT_WCF_Settings::standard_defs() as $key => $def ) {
 			$section = $def['section'];
 			$fkey    = $def['field'];
+			// Never touch a field whose section the classic template will skip.
+			// Forcing the standard order-notes field required while its fieldset
+			// is hidden would let WooCommerce validate a field that can never be
+			// submitted, blocking every checkout.
+			if ( 'order' === $section && ! $order_available ) {
+				continue;
+			}
 			if ( ! isset( $fields[ $section ][ $fkey ] ) ) {
 				continue;
 			}
@@ -91,7 +102,6 @@ class DPT_Woo_Checkout_Fields_Module extends DPT_Module {
 			}
 		}
 
-		$order_available = $this->order_section_available();
 		foreach ( DPT_WCF_Settings::custom_fields() as $cf ) {
 			$section = $cf['section'];
 			// The classic checkout only renders the "order" (additional-info)
@@ -166,10 +176,20 @@ class DPT_Woo_Checkout_Fields_Module extends DPT_Module {
 			return;
 		}
 		$data = is_array( $data ) ? $data : array();
+		$defs = array();
 		foreach ( DPT_WCF_Settings::custom_fields() as $cf ) {
 			$name = DPT_WCF_Settings::input_name( $cf['key'] );
 			$meta = DPT_WCF_Settings::meta_key( $cf['key'] );
 			$raw  = isset( $data[ $name ] ) ? $data[ $name ] : null;
+
+			// Snapshot the field's identity on the order, so it still renders in
+			// the admin and in (re-sent) emails after the definition is later
+			// edited or removed from the settings.
+			$defs[] = array(
+				'key'   => $cf['key'],
+				'label' => $cf['label'],
+				'type'  => $cf['type'],
+			);
 
 			if ( 'checkbox' === $cf['type'] ) {
 				$order->update_meta_data( $meta, empty( $raw ) ? 'no' : 'yes' );
@@ -186,6 +206,25 @@ class DPT_Woo_Checkout_Fields_Module extends DPT_Module {
 				$order->update_meta_data( $meta, $val );
 			}
 		}
+		if ( ! empty( $defs ) ) {
+			$order->update_meta_data( self::DEFS_META, $defs );
+		}
+	}
+
+	/**
+	 * The custom-field definitions to render for a given order: the snapshot
+	 * taken when the order was placed, falling back to the current settings for
+	 * orders created before snapshots existed.
+	 *
+	 * @param WC_Order $order Order.
+	 * @return array[]
+	 */
+	private function order_field_defs( $order ) {
+		$defs = $order->get_meta( self::DEFS_META );
+		if ( is_array( $defs ) && ! empty( $defs ) ) {
+			return $defs;
+		}
+		return DPT_WCF_Settings::custom_fields();
 	}
 
 	/**
@@ -248,7 +287,7 @@ class DPT_Woo_Checkout_Fields_Module extends DPT_Module {
 			return;
 		}
 		$rows = '';
-		foreach ( DPT_WCF_Settings::custom_fields() as $cf ) {
+		foreach ( $this->order_field_defs( $order ) as $cf ) {
 			$val = $this->display_value( $order, $cf );
 			if ( '' === $val ) {
 				continue;
@@ -272,7 +311,7 @@ class DPT_Woo_Checkout_Fields_Module extends DPT_Module {
 		if ( ! is_array( $fields ) || ! is_object( $order ) || ! method_exists( $order, 'get_meta' ) ) {
 			return $fields;
 		}
-		foreach ( DPT_WCF_Settings::custom_fields() as $cf ) {
+		foreach ( $this->order_field_defs( $order ) as $cf ) {
 			$val = $this->display_value( $order, $cf );
 			if ( '' === $val ) {
 				continue;
