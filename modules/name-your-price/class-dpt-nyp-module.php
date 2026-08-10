@@ -288,6 +288,16 @@ class DPT_Name_Your_Price_Module extends DPT_Module {
 		if ( ! $this->is_simple( $product ) || ! DPT_NYP_Settings::is_nyp( $product->get_id() ) ) {
 			return $html;
 		}
+		// Preserve WooCommerce's own markup for unavailable products: out of stock,
+		// or made non-purchasable by a catalog-mode / membership plugin. The
+		// single-product page cannot sell those either, so keep the incoming
+		// read-more / out-of-stock button instead of an actionable "Choose amount".
+		if ( method_exists( $product, 'is_purchasable' ) && ! $product->is_purchasable() ) {
+			return $html;
+		}
+		if ( method_exists( $product, 'is_in_stock' ) && ! $product->is_in_stock() ) {
+			return $html;
+		}
 		return sprintf(
 			'<a href="%s" class="button dpt-nyp-select">%s</a>',
 			esc_url( $product->get_permalink() ),
@@ -419,15 +429,26 @@ class DPT_Name_Your_Price_Module extends DPT_Module {
 	 * @return bool
 	 */
 	public function sold_individually_found( $found, $product_id, $variation_id, $cart_item_data, $cart_id ) {
-		if ( $found || ! $this->nyp_active( $product_id ) ) {
+		if ( $found ) {
 			return $found;
 		}
 		if ( ! function_exists( 'WC' ) || ! WC()->cart ) {
 			return $found;
 		}
+		// Enforce sold-individually by product id when NYP is active OR when a
+		// still-present cart line carries our custom price data. The custom price
+		// is part of the cart-item id, so once NYP is disabled the new (dataless)
+		// line hashes to a different id and WooCommerce would not match the stale
+		// line - letting a second quantity of a sold-individually product in.
+		$active = $this->nyp_active( $product_id );
 		foreach ( WC()->cart->get_cart() as $item ) {
-			if ( isset( $item['product_id'] ) && (int) $item['product_id'] === (int) $product_id
-				&& isset( $item['quantity'] ) && $item['quantity'] > 0 ) {
+			if ( ! isset( $item['product_id'] ) || (int) $item['product_id'] !== (int) $product_id ) {
+				continue;
+			}
+			if ( ! isset( $item['quantity'] ) || $item['quantity'] <= 0 ) {
+				continue;
+			}
+			if ( $active || isset( $item['dpt_nyp_price'] ) ) {
 				return true;
 			}
 		}
