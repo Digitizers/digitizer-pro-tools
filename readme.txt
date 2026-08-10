@@ -208,8 +208,8 @@ This plugin can update itself from its public GitHub repository. It periodically
 
 * Service: GitHub, https://github.com
 * Endpoint: https://api.github.com/repos/Digitizers/digitizer-pro-tools/releases
-* When: during WordPress's normal update checks
-* Data sent: nothing about the site. The request carries no site URL, no admin details and no usage data - the plugin replaces WordPress's default user agent (which would otherwise include the site address) with just its own name and version. As with any HTTP request, GitHub sees the originating IP address.
+* When: during WordPress's normal update checks, and again when an administrator installs an offered update
+* Data sent: nothing about the site. Neither the check nor the download carries a site URL, admin details or usage data - on both requests the plugin replaces WordPress's default user agent (which would otherwise include the site address) with just its own name and version. As with any HTTP request, GitHub sees the originating IP address.
 * Terms of Service: https://docs.github.com/site-policy/github-terms/github-terms-of-service
 * Privacy Policy: https://docs.github.com/site-policy/privacy-policies/github-privacy-statement
 
@@ -254,7 +254,7 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 = 1.17.0 =
 * Added an "External services" section to this readme documenting the Resend email API and the GitHub update check - what is sent, when, and links to each service's terms and privacy policy
 * Added a Frequently Asked Questions section, a LICENSE file and the License URI header
-* Update checks no longer disclose the site address: WordPress's default user agent (which embeds the site URL) is replaced with just the plugin name and version
+* Update checks and update downloads no longer disclose the site address: WordPress's default user agent (which embeds the site URL) is replaced with just the plugin name and version on both requests
 * Documented exactly which three modules are active immediately after activation
 * Enlighter: the legacy [enlighter] shortcode is no longer claimed by default. It is opt-in via the dpt_en_legacy_shortcode filter and stands down when the standalone Enlighter plugin already owns the tag, so the two can coexist
 * Cookie Banner: font weight, border style and background size/position/repeat are now pinned to the values the settings screen offers, so a crafted request cannot inject CSS
