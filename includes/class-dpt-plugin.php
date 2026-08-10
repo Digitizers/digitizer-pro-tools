@@ -98,6 +98,11 @@ class DPT_Plugin {
 				'class'   => 'DPT_Woo_Checkout_Fields_Module',
 				'default' => '0',
 			),
+			'embed' => array(
+				'file'    => DPT_PATH . 'modules/embed/class-dpt-emb-module.php',
+				'class'   => 'DPT_Embed_Module',
+				'default' => '0',
+			),
 		);
 		return apply_filters( 'dpt_modules', $modules );
 	}

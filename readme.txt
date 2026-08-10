@@ -6,7 +6,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.13.0
+Stable tag: 1.14.0
 License: GPLv2 or later
 
 One toolbox plugin by Digitizer. Modules: multilingual cookie-consent banner, one-click post duplication, auto-update email silencing.
@@ -168,6 +168,17 @@ Tailor the WooCommerce (classic/shortcode) checkout without a snippet (disabled 
 
 Admin interface is in English with a full Hebrew translation.
 
+= Module: Embed =
+
+Embed the sources WordPress core does not oEmbed on its own, with the [dpt_embed] shortcode (disabled by default; enable it on the Modules screen):
+
+* PDF files and Google Docs / Sheets / Slides / Forms / Drive links in a responsive frame
+* Per-shortcode aspect ratio or fixed pixel height, optional accessible title, optional lazy-loading
+* Only http(s) PDF URLs and docs.google.com / drive.google.com links are embedded; anything else is left to core oEmbed
+* Usage: [dpt_embed url="https://example.com/file.pdf" ratio="16:9"]
+
+Admin interface is in English with a full Hebrew translation.
+
 == Installation ==
 
 1. Upload the plugin folder to /wp-content/plugins/
@@ -177,6 +188,9 @@ Admin interface is in English with a full Hebrew translation.
 5. Save and check the site
 
 == Changelog ==
+
+= 1.14.0 =
+* New module: Embed - a [dpt_embed] shortcode that embeds PDF files and Google Docs/Sheets/Slides/Forms/Drive links in a responsive frame, covering the sources WordPress core oEmbed does not (module ships disabled; enable per site)
 
 = 1.13.0 =
 * New module: Checkout Field Editor - show/hide/require/reorder standard WooCommerce checkout fields and add custom text/dropdown/checkbox fields saved to the order and shown in the admin and emails (classic checkout; module ships disabled; enable per site)

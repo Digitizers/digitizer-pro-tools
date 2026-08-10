@@ -1,0 +1,171 @@
+<?php
+/**
+ * Embed module - settings storage and URL resolution.
+ *
+ * A focused alternative to EmbedPress: a [dpt_embed] shortcode for the couple of
+ * sources WordPress core oEmbed does NOT handle - PDF files and Google Docs /
+ * Sheets / Slides / Forms / Drive previews - rendered in a responsive frame.
+ * Everything core already oEmbeds (YouTube, Vimeo, Twitter, ...) is left to core.
+ */
+
+if ( ! defined( 'ABSPATH' ) ) { exit; }
+
+class DPT_EMB_Settings {
+
+	const OPTION = 'dpt_embed';
+
+	public static function defaults() {
+		return array(
+			'default_ratio'  => '4:3',
+			'default_height' => '', // blank = use the responsive aspect ratio
+			'lazy_load'      => '1',
+		);
+	}
+
+	public static function install_defaults() {
+		$existing = get_option( self::OPTION );
+		if ( ! is_array( $existing ) ) {
+			add_option( self::OPTION, self::defaults() );
+			return;
+		}
+		update_option( self::OPTION, array_merge( self::defaults(), $existing ) );
+	}
+
+	public static function all() {
+		$opts = get_option( self::OPTION, array() );
+		$all  = array_merge( self::defaults(), is_array( $opts ) ? $opts : array() );
+
+		$all['default_ratio']  = self::sanitize_ratio( $all['default_ratio'], '4:3' );
+		$all['default_height'] = self::sanitize_height( $all['default_height'] );
+		$all['lazy_load']      = ( '1' === (string) $all['lazy_load'] ) ? '1' : '0';
+		return $all;
+	}
+
+	public static function get( $key ) {
+		$all = self::all();
+		return isset( $all[ $key ] ) ? $all[ $key ] : '';
+	}
+
+	public static function is_on( $key ) {
+		return '1' === (string) self::get( $key );
+	}
+
+	/**
+	 * A "W:H" ratio string, or the fallback when malformed / zero.
+	 *
+	 * @param mixed  $value    Raw ratio.
+	 * @param string $fallback Fallback ratio.
+	 * @return string
+	 */
+	public static function sanitize_ratio( $value, $fallback = '4:3' ) {
+		$value = is_scalar( $value ) ? trim( (string) $value ) : '';
+		if ( preg_match( '/^(\d{1,3}):(\d{1,3})$/', $value, $m ) && (int) $m[1] > 0 && (int) $m[2] > 0 ) {
+			return (int) $m[1] . ':' . (int) $m[2];
+		}
+		return $fallback;
+	}
+
+	/**
+	 * A non-negative pixel height, or '' when unset/blank/invalid.
+	 *
+	 * @param mixed $value Raw height.
+	 * @return string
+	 */
+	public static function sanitize_height( $value ) {
+		if ( ! is_scalar( $value ) ) {
+			return '';
+		}
+		$value = trim( (string) $value );
+		if ( '' === $value || ! preg_match( '/^\d{1,5}$/', $value ) ) {
+			return '';
+		}
+		$h = (int) $value;
+		return ( $h > 0 ) ? (string) $h : '';
+	}
+
+	/**
+	 * The responsive padding-top percentage for a ratio string (H / W * 100).
+	 *
+	 * @param string $ratio "W:H".
+	 * @return float
+	 */
+	public static function ratio_padding( $ratio ) {
+		$ratio = self::sanitize_ratio( $ratio, '4:3' );
+		list( $w, $h ) = array_map( 'intval', explode( ':', $ratio ) );
+		if ( $w <= 0 ) {
+			$w = 4;
+			$h = 3;
+		}
+		return round( ( $h / $w ) * 100, 4 );
+	}
+
+	/**
+	 * Resolve a raw URL into an embeddable source. Returns an array
+	 * [ 'type' => 'pdf'|'google', 'src' => string ] or null when the URL is not
+	 * a supported (PDF / Google) source.
+	 *
+	 * @param string $url Raw URL.
+	 * @return array|null
+	 */
+	public static function resolve( $url ) {
+		$url = is_scalar( $url ) ? trim( (string) $url ) : '';
+		if ( '' === $url ) {
+			return null;
+		}
+		// Only ever embed http(s) URLs - no javascript:, data:, etc.
+		$scheme = strtolower( (string) wp_parse_url( $url, PHP_URL_SCHEME ) );
+		if ( 'http' !== $scheme && 'https' !== $scheme ) {
+			return null;
+		}
+		$host = strtolower( (string) wp_parse_url( $url, PHP_URL_HOST ) );
+		$path = (string) wp_parse_url( $url, PHP_URL_PATH );
+
+		// Google Docs / Sheets / Slides / Forms / Drive previews.
+		if ( 'docs.google.com' === $host || 'drive.google.com' === $host ) {
+			$src = self::google_embed_src( $url, $path );
+			return ( null !== $src ) ? array( 'type' => 'google', 'src' => $src ) : null;
+		}
+
+		// A direct PDF file (ignore the query string / fragment when matching).
+		if ( preg_match( '/\.pdf$/i', (string) $path ) ) {
+			return array( 'type' => 'pdf', 'src' => $url );
+		}
+
+		return null;
+	}
+
+	/**
+	 * Convert a Google URL into its embeddable preview/embed URL, or null.
+	 *
+	 * @param string $url  Full URL.
+	 * @param string $path URL path.
+	 * @return string|null
+	 */
+	private static function google_embed_src( $url, $path ) {
+		// Forms: use the embedded viewform.
+		if ( false !== strpos( $path, '/forms/' ) ) {
+			if ( preg_match( '#^(https?://docs\.google\.com/forms/d/(?:e/)?[a-zA-Z0-9_-]+)#', $url, $m ) ) {
+				return $m[1] . '/viewform?embedded=true';
+			}
+			return null;
+		}
+		// Docs / Sheets / Slides / Drive files: swap the trailing action for
+		// /preview, which Google renders as a read-only embeddable view.
+		if ( preg_match( '#^(https?://(?:docs|drive)\.google\.com/[a-z]+/d/(?:e/)?[a-zA-Z0-9_-]+)#', $url, $m ) ) {
+			return $m[1] . '/preview';
+		}
+		return null;
+	}
+
+	public static function save( $raw ) {
+		if ( ! is_array( $raw ) ) {
+			return false;
+		}
+		$clean = self::all();
+		$clean['default_ratio']  = self::sanitize_ratio( isset( $raw['default_ratio'] ) ? $raw['default_ratio'] : '4:3', '4:3' );
+		$clean['default_height'] = self::sanitize_height( isset( $raw['default_height'] ) ? $raw['default_height'] : '' );
+		$clean['lazy_load']      = ( isset( $raw['lazy_load'] ) && '1' === (string) $raw['lazy_load'] ) ? '1' : '0';
+		update_option( self::OPTION, $clean );
+		return true;
+	}
+}

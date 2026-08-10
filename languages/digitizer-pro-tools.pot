@@ -1586,3 +1586,48 @@ msgstr ""
 msgid "One option per line"
 msgstr ""
 
+msgid "Embed"
+msgstr ""
+
+msgid "A [dpt_embed] shortcode that embeds PDF files and Google Docs, Sheets, Slides, Forms and Drive previews in a responsive frame - the sources WordPress does not embed on its own."
+msgstr ""
+
+msgid "dpt_embed: unsupported or missing URL. This shortcode handles PDF files and Google Docs/Sheets/Slides/Forms/Drive links."
+msgstr ""
+
+msgid "Embedded PDF document"
+msgstr ""
+
+msgid "Embedded Google document"
+msgstr ""
+
+msgid "Embed PDF files and Google Docs/Sheets/Slides/Forms/Drive links in a responsive frame with the [dpt_embed] shortcode."
+msgstr ""
+
+msgid "Frame defaults"
+msgstr ""
+
+msgid "Default aspect ratio"
+msgstr ""
+
+msgid "Width:height, e.g. 16:9 or 4:3. Used when a shortcode sets no height."
+msgstr ""
+
+msgid "Default height (px)"
+msgstr ""
+
+msgid "Leave blank to use the aspect ratio. A fixed height suits long PDFs."
+msgstr ""
+
+msgid "Lazy-load frames"
+msgstr ""
+
+msgid "Defer loading each frame until it scrolls into view."
+msgstr ""
+
+msgid "How to use"
+msgstr ""
+
+msgid "Add the shortcode to any post, page or widget:"
+msgstr ""
+
