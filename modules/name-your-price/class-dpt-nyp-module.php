@@ -111,6 +111,19 @@ class DPT_Name_Your_Price_Module extends DPT_Module {
 	public function save_product_fields( $product_id ) {
 		$product_id = (int) $product_id;
 
+		// NYP applies to simple products only (its fields are show_if_simple, so
+		// they are merely CSS-hidden for other types while staying in the form).
+		// When the product is not simple, clear any NYP metadata so a
+		// previously-enabled product doesn't keep customer pricing after being
+		// switched to external/grouped/variable.
+		$type = isset( $_POST['product-type'] ) ? sanitize_key( wp_unslash( $_POST['product-type'] ) ) : 'simple'; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		if ( 'simple' !== $type ) {
+			foreach ( array( DPT_NYP_Settings::META_ENABLED, DPT_NYP_Settings::META_MIN, DPT_NYP_Settings::META_MAX, DPT_NYP_Settings::META_SUGGESTED, DPT_NYP_Settings::META_DEFAULT ) as $key ) {
+				delete_post_meta( $product_id, $key );
+			}
+			return;
+		}
+
 		// Capability + nonce are enforced by WooCommerce before this hook.
 		$enabled = ( isset( $_POST[ DPT_NYP_Settings::META_ENABLED ] ) && 'yes' === $_POST[ DPT_NYP_Settings::META_ENABLED ] ) ? 'yes' : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		update_post_meta( $product_id, DPT_NYP_Settings::META_ENABLED, $enabled );
