@@ -186,7 +186,7 @@ Admin interface is in English with a full Hebrew translation.
 
 == External services ==
 
-This plugin is self-contained: every script, style and font it ships is bundled locally, so no module loads assets from a CDN or a font service. There is no telemetry and no usage tracking. The outside connections it can make are listed below - the first two are made by your server, the third by the visitor's browser and only for content you choose to embed.
+This plugin is self-contained: every script, style and font it ships is bundled locally, so no module loads assets from a CDN or a font service. There is no telemetry and no usage tracking. The outside connections it can make are listed below - the first is made by your server, the second by the visitor's browser and only for content you choose to embed.
 
 = Resend (email delivery) =
 
@@ -201,17 +201,6 @@ The Resend Mail module - disabled by default - delivers your site's email throug
 * Privacy Policy: https://resend.com/legal/privacy-policy
 
 The module keeps a local send log (recipient, subject, status - not the message body) of the most recent messages. It can be switched off in the module settings, and it is deleted when the plugin is uninstalled.
-
-= GitHub (update checks) =
-
-This plugin can update itself from its public GitHub repository. It periodically asks GitHub for the latest published release; no site data is sent beyond the request itself.
-
-* Service: GitHub, https://github.com
-* Endpoint: https://api.github.com/repos/Digitizers/digitizer-pro-tools/releases
-* When: during WordPress's normal update checks, and again when an administrator installs an offered update
-* Data sent: nothing about the site. Neither the check nor the download carries a site URL, admin details or usage data - on both requests the plugin replaces WordPress's default user agent (which would otherwise include the site address) with just its own name and version. As with any HTTP request, GitHub sees the originating IP address.
-* Terms of Service: https://docs.github.com/site-policy/github-terms/github-terms-of-service
-* Privacy Policy: https://docs.github.com/site-policy/privacy-policies/github-privacy-statement
 
 = Content you embed yourself (Embed module) =
 
@@ -242,7 +231,7 @@ Every other module - including everything that touches WooCommerce, login URLs, 
 
 = Does the plugin send any data anywhere? =
 
-Not on its own. There is no telemetry, no analytics and no "phone home". Your server's only outbound traffic is the update check and, if you enable and configure the Resend Mail module, your outgoing email. Separately, a document you embed with the Embed module is loaded by the visitor's browser straight from its host. All three are described under "External services" above.
+Not on its own. There is no telemetry, no analytics and no "phone home". Your server's only outbound traffic is your outgoing email, and only if you enable and configure the Resend Mail module. Separately, a document you embed with the Embed module is loaded by the visitor's browser straight from its host. Both are described under "External services" above.
 
 = Does the cookie banner work with page caching? =
 
@@ -263,9 +252,8 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 == Changelog ==
 
 = 1.17.0 =
-* Added an "External services" section to this readme documenting the Resend email API, the GitHub update check and the third-party content the Embed module loads in the visitor's browser - what is sent, when, and links to each service's terms and privacy policy
+* Added an "External services" section to this readme documenting the Resend email API and the third-party content the Embed module loads in the visitor's browser - what is sent, when, and links to each service's terms and privacy policy
 * Added a Frequently Asked Questions section, a LICENSE file and the License URI header
-* Update checks and update downloads no longer disclose the site address: WordPress's default user agent (which embeds the site URL) is replaced with just the plugin name and version on both requests
 * Documented exactly which three modules are active immediately after activation
 * Enlighter: the legacy [enlighter] shortcode is no longer claimed by default. It is opt-in via the dpt_en_legacy_shortcode filter and stands down when the standalone Enlighter plugin already owns the tag, so the two can coexist
 * Cookie Banner: font weight, border style and background size/position/repeat are now pinned to the values the settings screen offers, so a crafted request cannot inject CSS
@@ -277,7 +265,7 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 * Cookie Banner: font control - inherit the site font (default), follow Elementor's primary global font, or set a custom font stack; the close button no longer forces Arial
 
 = 1.15.0 =
-* Added self-updates from GitHub: the plugin now offers its own updates on the WordPress Plugins and Dashboard > Updates screens, pulled from tagged GitHub Releases of the public repository (via the bundled Plugin Update Checker library)
+* Internal release-tooling changes (not part of the WordPress.org build, which updates through the directory)
 
 = 1.14.0 =
 * New module: Embed - a [dpt_embed] shortcode that embeds PDF files and Google Docs/Sheets/Slides/Forms/Drive links in a responsive frame, covering the sources WordPress core oEmbed does not (module ships disabled; enable per site)

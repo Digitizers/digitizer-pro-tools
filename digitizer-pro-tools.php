@@ -27,13 +27,11 @@ define( 'DPT_OPTION', 'dpt_settings' );
 require_once DPT_PATH . 'includes/class-dpt-module.php';
 require_once DPT_PATH . 'includes/class-dpt-plugin.php';
 require_once DPT_PATH . 'includes/class-dpt-admin.php';
-require_once DPT_PATH . 'includes/class-dpt-updater.php';
 
-// Wire the GitHub self-updater as early as the main file loads, so updates are
-// offered on the normal Plugins / Dashboard > Updates screens (including cron
-// checks). Building it here rather than in a hook is the library's recommended
-// usage.
-DPT_Updater::init( __FILE__ );
+// NOTE: this build carries no self-updater. WordPress.org guideline 8 forbids a
+// plugin serving its own updates from outside the directory, so updates come
+// from WordPress.org. The GitHub-updater build lives on the repository's main
+// branch; keep the two in sync when releasing.
 
 function dpt_bootstrap() {
 	DPT_Plugin::instance()->boot();
