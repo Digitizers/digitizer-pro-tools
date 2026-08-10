@@ -89,13 +89,17 @@ class DPT_Embed_Module extends DPT_Module {
 
 		$defaults = DPT_EMB_Settings::all();
 
-		// A per-shortcode height wins; otherwise fall back to the configured
-		// default height, and failing that to a responsive aspect ratio.
+		$explicit_ratio = is_scalar( $atts['ratio'] ) && '' !== trim( (string) $atts['ratio'] );
+
+		// A per-shortcode height always wins. Otherwise fall back to the default
+		// height ONLY when the shortcode also gave no explicit ratio - an explicit
+		// ratio must stay responsive even on sites with a configured default
+		// height, or the documented ratio override would be unusable.
 		$height = DPT_EMB_Settings::sanitize_height( $atts['height'] );
-		if ( '' === $height ) {
+		if ( '' === $height && ! $explicit_ratio ) {
 			$height = $defaults['default_height'];
 		}
-		$ratio = DPT_EMB_Settings::sanitize_ratio( '' !== $atts['ratio'] ? $atts['ratio'] : $defaults['default_ratio'], $defaults['default_ratio'] );
+		$ratio = DPT_EMB_Settings::sanitize_ratio( $explicit_ratio ? $atts['ratio'] : $defaults['default_ratio'], $defaults['default_ratio'] );
 
 		$title = sanitize_text_field( $atts['title'] );
 		if ( '' === $title ) {

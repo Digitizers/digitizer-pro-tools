@@ -142,10 +142,23 @@ class DPT_EMB_Settings {
 	 * @return string|null
 	 */
 	private static function google_embed_src( $url, $path ) {
-		// Forms: use the embedded viewform.
+		// Forms: use the embedded viewform, preserving any pre-fill parameters
+		// (entry.NNN=...) already on the URL and just adding embedded=true.
 		if ( false !== strpos( $path, '/forms/' ) ) {
 			if ( preg_match( '#^(https?://docs\.google\.com/forms/d/(?:e/)?[a-zA-Z0-9_-]+)#', $url, $m ) ) {
-				return $m[1] . '/viewform?embedded=true';
+				$query = (string) wp_parse_url( $url, PHP_URL_QUERY );
+				// Keep the raw query pairs verbatim - do NOT parse_str them, which
+				// would mangle the dotted "entry.123" keys into "entry_123". Drop
+				// any existing embedded flag, then append our own.
+				$pairs = array();
+				foreach ( ( '' !== $query ) ? explode( '&', $query ) : array() as $pair ) {
+					if ( '' === $pair || 0 === stripos( $pair, 'embedded=' ) ) {
+						continue;
+					}
+					$pairs[] = $pair;
+				}
+				$pairs[] = 'embedded=true';
+				return $m[1] . '/viewform?' . implode( '&', $pairs );
 			}
 			return null;
 		}
