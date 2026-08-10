@@ -138,9 +138,16 @@ class DPT_Woo_Checkout_Module extends DPT_Module {
 		}
 		$error = self::phone_error( $phone );
 		if ( null !== $error && class_exists( '\Automattic\WooCommerce\StoreApi\Exceptions\RouteException' ) ) {
+			// The message is serialized into the Store API's JSON error
+			// response, not printed into a document, so it is passed through
+			// as plain text: HTML-escaping it here would reach the block
+			// checkout already encoded and show entities like &#039; to the
+			// customer. This matches how the same message is handed to
+			// wc_add_notice() on the classic checkout path above, and how
+			// WooCommerce itself throws RouteException.
 			throw new \Automattic\WooCommerce\StoreApi\Exceptions\RouteException(
 				'dpt_wcc_invalid_phone',
-				esc_html( $error ),
+				$error, // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- JSON API payload, escaped by whatever renders it.
 				400
 			);
 		}

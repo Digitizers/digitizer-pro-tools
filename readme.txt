@@ -266,7 +266,7 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 * Cookie Banner: the banner's inline CSS documents why HTML escaping is inapplicable inside a <style> element, and every value in it is int-cast, escaped at assignment or allowlisted
 * Cookie Banner: the admin preview's inline style attributes are escaped
 * Content Control, Cookie Banner: the page dropdowns escape their "no selection" label
-* WooCommerce Checkout: the block-checkout phone validation error is escaped before it is thrown
+* WooCommerce Checkout: documented why the block-checkout phone error is thrown as plain text - it is serialized into a JSON response, so escaping it here would show HTML entities to the customer
 * Documented, at each site, why a superglobal is read without a sanitizer or a nonce - covering read-only screen flags and values validated further down the call
 * Tested up to WordPress 7.0
 
