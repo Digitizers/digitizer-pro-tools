@@ -6,8 +6,9 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.16.0
+Stable tag: 1.17.0
 License: GPLv2 or later
+License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 One toolbox plugin by Digitizer. Modules: multilingual cookie-consent banner, one-click post duplication, auto-update email silencing.
 
@@ -106,7 +107,7 @@ Syntax-highlight code on the front end - dependency-free, no external CDN (disab
 * Languages: PHP, JavaScript, CSS, HTML/XML, SQL, Bash, Python, JSON (and plain text)
 * Light, dark and auto themes (auto follows the visitor's colour scheme), optional line numbers and a copy button
 * Code is always HTML-escaped and highlighted client-side from the escaped text, so nothing in a snippet can inject markup or scripts
-* Migration-friendly: the legacy `[enlighter]` shortcode and Enlighter's saved `data-enlighter-language` markup (block and inline) are recognised automatically; per-language shortcodes such as `[php]`/`[js]` can be enabled with the `dpt_en_language_shortcodes` filter
+* Migration-friendly: Enlighter's saved `data-enlighter-language` markup (block and inline) is recognised automatically. The standalone plugin's own tags are opt-in so the two can coexist - enable `[enlighter]` with the `dpt_en_legacy_shortcode` filter (it stands down if that plugin is active and already owns the tag), and per-language shortcodes such as `[php]`/`[js]` with `dpt_en_language_shortcodes`
 
 = Module: Site Tweaks =
 
@@ -181,6 +182,53 @@ Embed the sources WordPress core does not oEmbed on its own, with the [dpt_embed
 
 Admin interface is in English with a full Hebrew translation.
 
+== External services ==
+
+This plugin is self-contained: every script, style and font it uses is bundled locally, and no module contacts an outside server unless you enable and configure it. The exceptions are listed below.
+
+= Resend (email delivery) =
+
+The Resend Mail module - disabled by default - delivers your site's email through the Resend API instead of the server's mail function. It is only ever contacted after you enable the module and enter an API key.
+
+* Service: Resend, https://resend.com
+* Endpoint: https://api.resend.com/emails
+* When: on every email WordPress sends (wp_mail), while the module is enabled and configured
+* Data sent: the sender and recipient addresses (including cc/bcc), the subject, the message body, any attachments, and your API key for authentication
+* Data received: delivery status events (delivered, bounced, opened, clicked) sent back to this site's webhook endpoint, which are stored in the module's local send log
+* Terms of Service: https://resend.com/legal/terms-of-service
+* Privacy Policy: https://resend.com/legal/privacy-policy
+
+The module keeps a local send log (recipient, subject, status - not the message body) of the most recent messages. It can be switched off in the module settings, and it is deleted when the plugin is uninstalled.
+
+= GitHub (update checks) =
+
+This plugin can update itself from its public GitHub repository. It periodically asks GitHub for the latest published release; no site data is sent beyond the request itself.
+
+* Service: GitHub, https://github.com
+* Endpoint: https://api.github.com/repos/Digitizers/digitizer-pro-tools/releases
+* When: during WordPress's normal update checks
+* Data sent: none beyond the HTTP request (no site URL, no personal data)
+* Terms of Service: https://docs.github.com/site-policy/github-terms/github-terms-of-service
+* Privacy Policy: https://docs.github.com/site-policy/privacy-policies/github-privacy-statement
+
+== Frequently Asked Questions ==
+
+= Do I have to use every module? =
+
+No. Every module ships disabled and is toggled independently from the Modules screen. Enable only what a given site needs.
+
+= Does the plugin send any data anywhere? =
+
+Not on its own. There is no telemetry, no analytics and no "phone home". The only outbound traffic is the update check and, if you enable and configure the Resend Mail module, your outgoing email - both described under "External services" above.
+
+= Does the cookie banner work with page caching? =
+
+Yes. The banner is rendered hidden and an inline head precheck decides whether to show it, so cached pages and CDNs never display it to visitors who already answered. Consented third-party tags are injected client-side rather than baked into cached HTML.
+
+= Which languages does the admin support? =
+
+The admin interface is English with a complete Hebrew translation. The cookie banner texts themselves can be set for any number of languages.
+
 == Installation ==
 
 1. Upload the plugin folder to /wp-content/plugins/
@@ -190,6 +238,14 @@ Admin interface is in English with a full Hebrew translation.
 5. Save and check the site
 
 == Changelog ==
+
+= 1.17.0 =
+* Added an "External services" section to this readme documenting the Resend email API and the GitHub update check - what is sent, when, and links to each service's terms and privacy policy
+* Added a Frequently Asked Questions section, a LICENSE file and the License URI header
+* Enlighter: the legacy [enlighter] shortcode is no longer claimed by default. It is opt-in via the dpt_en_legacy_shortcode filter and stands down when the standalone Enlighter plugin already owns the tag, so the two can coexist
+* Cookie Banner: font weight, border style and background size/position/repeat are now pinned to the values the settings screen offers, so a crafted request cannot inject CSS
+* Hardened admin screens: the page query argument is sanitized before comparison
+* Removed an unused parameter from the Site Tweaks settings renderer
 
 = 1.16.0 =
 * Cookie Banner: separate box width for desktop and mobile, so the banner can be a narrow corner card on desktop and full-width on phones

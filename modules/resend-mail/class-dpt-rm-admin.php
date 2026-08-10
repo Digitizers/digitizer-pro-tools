@@ -28,7 +28,7 @@ class DPT_RM_Admin {
 	}
 
 	public function maybe_show_notices() {
-		if ( ! isset( $_GET['page'] ) || self::PAGE_SLUG !== $_GET['page'] ) {
+		if ( ! isset( $_GET['page'] ) || self::PAGE_SLUG !== sanitize_key( wp_unslash( $_GET['page'] ) ) ) {
 			return;
 		}
 		if ( isset( $_GET['dpt_saved'] ) ) {

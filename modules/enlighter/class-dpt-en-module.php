@@ -36,9 +36,11 @@ class DPT_Enlighter_Module extends DPT_Module {
 
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_assets' ) );
 		add_shortcode( 'dpt_code', array( $this, 'shortcode_code' ) );
-		// Legacy alias so posts written for the standalone Enlighter plugin
-		// keep rendering after switching to this module.
-		add_shortcode( 'enlighter', array( $this, 'shortcode_code' ) );
+		// Legacy alias so posts written for the standalone Enlighter plugin keep
+		// rendering after switching to this module. Registered late on init, so
+		// plugins that add their shortcodes on init (the usual place) have
+		// already run and shortcode_exists() can see them.
+		add_action( 'init', array( $this, 'register_legacy_alias' ), 20 );
 		// Enlighter's per-language shortcodes ([php], [js], ...). Off by
 		// default - those tags are generic enough to collide with real
 		// content - and opt-in per site via the dpt_en_language_shortcodes
@@ -86,11 +88,55 @@ class DPT_Enlighter_Module extends DPT_Module {
 	}
 
 	/**
+	 * Claim the standalone Enlighter plugin's [enlighter] tag, when opted in.
+	 */
+	public function register_legacy_alias() {
+		if ( $this->legacy_alias_enabled() ) {
+			add_shortcode( 'enlighter', array( $this, 'shortcode_code' ) );
+		}
+	}
+
+	/**
+	 * Whether to also answer the standalone Enlighter plugin's [enlighter] tag.
+	 *
+	 * Off by default: the tag is unprefixed and belongs to that plugin, so
+	 * claiming it would collide on any site running both. Sites migrating away
+	 * from it can opt in with the dpt_en_legacy_shortcode filter; even then we
+	 * stand down if that plugin already registered the tag, so it keeps its own.
+	 *
+	 * @return bool
+	 */
+	private function legacy_alias_enabled() {
+		if ( ! (bool) apply_filters( 'dpt_en_legacy_shortcode', false ) ) {
+			return false;
+		}
+		// Ours is registered by register_legacy_alias(); anyone else holding the
+		// tag means the original plugin is active and keeps it.
+		$handler = self::shortcode_handler( 'enlighter' );
+		return ( null === $handler || ( is_array( $handler ) && isset( $handler[0] ) && $handler[0] === $this ) );
+	}
+
+	/**
+	 * The callback currently registered for a shortcode tag, or null.
+	 *
+	 * @param string $tag Shortcode tag.
+	 * @return mixed
+	 */
+	private static function shortcode_handler( $tag ) {
+		global $shortcode_tags;
+		return ( is_array( $shortcode_tags ) && isset( $shortcode_tags[ $tag ] ) ) ? $shortcode_tags[ $tag ] : null;
+	}
+
+	/**
 	 * The shortcode tags this module renders before wpautop: [dpt_code], the
-	 * legacy [enlighter] tag and any opted-in per-language tags.
+	 * legacy [enlighter] tag when enabled, and any opted-in per-language tags.
 	 */
 	private function content_tags() {
-		return array_merge( array( 'dpt_code', 'enlighter' ), $this->language_shortcodes() );
+		$tags = array( 'dpt_code' );
+		if ( $this->legacy_alias_enabled() ) {
+			$tags[] = 'enlighter';
+		}
+		return array_merge( $tags, $this->language_shortcodes() );
 	}
 
 	/**
