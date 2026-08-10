@@ -20,20 +20,18 @@ STAGE="$(mktemp -d)"
 trap 'rm -rf "$STAGE"' EXIT
 
 # Ship only what git tracks: no stray local files, no dist/, no build output.
-# Development-only paths are excluded explicitly.
+# Development-only paths are skipped by the case below - deliberately filtered
+# in bash rather than with `grep -z`, whose --null-data flag is a GNU extension
+# missing from older macOS and busybox builds.
 cd "$ROOT"
 mkdir -p "$STAGE/$SLUG"
-git ls-files -z \
-	| grep -zv '^\.github/' \
-	| grep -zv '^bin/' \
-	| grep -zv '^dist/' \
-	| grep -zv '^\.gitignore$' \
-	| grep -zv '^WPORG\.md$' \
-	| grep -zv '\.code-workspace$' \
-	| while IFS= read -r -d '' f; do
-		mkdir -p "$STAGE/$SLUG/$(dirname "$f")"
-		cp "$f" "$STAGE/$SLUG/$f"
-	done
+while IFS= read -r -d '' f; do
+	case "$f" in
+		.github/*|bin/*|dist/*|.gitignore|WPORG.md|*.code-workspace) continue ;;
+	esac
+	mkdir -p "$STAGE/$SLUG/$(dirname "$f")"
+	cp "$f" "$STAGE/$SLUG/$f"
+done < <( git ls-files -z )
 
 mkdir -p "$DIST"
 rm -f "$DIST/$OUT_NAME"
