@@ -6,7 +6,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.14.0
+Stable tag: 1.15.0
 License: GPLv2 or later
 
 One toolbox plugin by Digitizer. Modules: multilingual cookie-consent banner, one-click post duplication, auto-update email silencing.
@@ -188,6 +188,9 @@ Admin interface is in English with a full Hebrew translation.
 5. Save and check the site
 
 == Changelog ==
+
+= 1.15.0 =
+* Added self-updates from GitHub: the plugin now offers its own updates on the WordPress Plugins and Dashboard > Updates screens, pulled from tagged GitHub Releases of the public repository (via the bundled Plugin Update Checker library)
 
 = 1.14.0 =
 * New module: Embed - a [dpt_embed] shortcode that embeds PDF files and Google Docs/Sheets/Slides/Forms/Drive links in a responsive frame, covering the sources WordPress core oEmbed does not (module ships disabled; enable per site)
