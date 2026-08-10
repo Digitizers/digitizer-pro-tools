@@ -6,7 +6,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.11.0
+Stable tag: 1.12.0
 License: GPLv2 or later
 
 One toolbox plugin by Digitizer. Modules: multilingual cookie-consent banner, one-click post duplication, auto-update email silencing.
@@ -145,6 +145,16 @@ Delivers all site email through the Resend API (disabled by default; enable it o
 * Test-email button, masked API key storage with an optional DPT_RESEND_API_KEY wp-config.php constant override
 * Replaces WP Mail SMTP / FluentSMTP on Resend-backed sites
 
+= Module: Name Your Price =
+
+Let customers set their own price on chosen WooCommerce products (disabled by default; enable it on the Modules screen):
+
+* Enable per product on the product edit screen (Product data > General), with optional minimum, maximum, suggested and default (pre-filled) prices
+* A price input replaces the fixed price on the product page, with an optional allowed-range hint
+* The price is enforced on the server: an out-of-range or invalid price is rejected at add-to-cart, re-validated when the cart line is created, and re-clamped to the range at total calculation - a tampered client value can never bypass the limits
+* Configurable field label; applies only when WooCommerce is active
+* Replaces the WPC "Name Your Price" plugin
+
 Admin interface is in English with a full Hebrew translation.
 
 == Installation ==
@@ -156,6 +166,9 @@ Admin interface is in English with a full Hebrew translation.
 5. Save and check the site
 
 == Changelog ==
+
+= 1.12.0 =
+* New module: Name Your Price - customer-set pricing on chosen WooCommerce products with server-enforced minimum/maximum/suggested prices (module ships disabled; enable per site)
 
 = 1.11.0 =
 * New module: Resend Mail - delivers all wp_mail() email through the Resend API with a send log, webhook-fed delivery statuses (signed, replay-protected), forced verified sender and automatic fallback to the default mailer on API errors (module ships disabled; enable per site)

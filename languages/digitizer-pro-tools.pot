@@ -6,7 +6,8 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "POT-Creation-Date: 2026-07-16 13:49+0000\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"PO-Revision-Date: 2026-07-16 13:49+0000\n"
+"Language: \n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "X-Generator: digitizer-pro-tools build-i18n\n"
 
@@ -1419,3 +1420,76 @@ msgstr ""
 
 msgid "The Resend API rejected the test email - it went out through the default WordPress mailer instead. Check the log below for the error."
 msgstr ""
+
+msgid "Name Your Price"
+msgstr ""
+
+msgid "Let customers set their own price on chosen WooCommerce products (donations / pay-what-you-want), with optional minimum, maximum and suggested prices enforced on the server."
+msgstr ""
+
+msgid "Let customers set their own price on chosen products. Enable it per product on the product edit screen (Product data > General), then set optional minimum, maximum and suggested prices."
+msgstr ""
+
+msgid "WooCommerce is not active on this site right now - this module applies only when it is."
+msgstr ""
+
+msgid "Let the customer set the price for this product."
+msgstr ""
+
+msgid "Minimum price"
+msgstr ""
+
+msgid "Maximum price"
+msgstr ""
+
+msgid "Suggested price"
+msgstr ""
+
+msgid "Default (pre-filled) price"
+msgstr ""
+
+msgid "Field label"
+msgstr ""
+
+msgid "Display"
+msgstr ""
+
+msgid "Name your price"
+msgstr ""
+
+msgid "Shown next to the price input on the product page."
+msgstr ""
+
+msgid "Show allowed range"
+msgstr ""
+
+msgid "Display the allowed minimum/maximum under the price field."
+msgstr ""
+
+msgid "Between %1$s and %2$s"
+msgstr ""
+
+msgid "Minimum %s"
+msgstr ""
+
+msgid "Maximum %s"
+msgstr ""
+
+msgid "Please enter a valid price."
+msgstr ""
+
+msgid "Please enter a price greater than zero."
+msgstr ""
+
+msgid "The price must be at least %s."
+msgstr ""
+
+msgid "The price must be no more than %s."
+msgstr ""
+
+msgid "Suggested: %s"
+msgstr ""
+
+msgid "Choose amount"
+msgstr ""
+
