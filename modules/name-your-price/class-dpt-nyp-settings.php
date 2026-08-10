@@ -220,6 +220,10 @@ class DPT_NYP_Settings {
 		if ( ! is_finite( $price ) || $price < 0 ) {
 			return __( 'Please enter a valid price.', 'digitizer-pro-tools' );
 		}
+		// Enforce bounds on the amount that will actually be charged, i.e. the
+		// price rounded to the store's precision - otherwise 10.006 slips past a
+		// 10.00 maximum (rounds up to 10.01) or 10.004 slips past a 10.01 minimum.
+		$price = round( $price, self::price_decimals() );
 
 		$min = self::min_price( $product_id );
 		$max = self::max_price( $product_id );

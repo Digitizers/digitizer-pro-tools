@@ -188,6 +188,35 @@ class DPT_Name_Your_Price_Module extends DPT_Module {
 	// --- Front-end ---------------------------------------------------------
 
 	/**
+	 * Whether a product object is a simple product (NYP applies to simple only).
+	 *
+	 * @param mixed $product Product object.
+	 * @return bool
+	 */
+	private function is_simple( $product ) {
+		return is_object( $product ) && method_exists( $product, 'is_type' ) && $product->is_type( 'simple' );
+	}
+
+	/**
+	 * Whether NYP is active for a product id at runtime: enabled AND still a
+	 * simple product. Guards against the type being changed to
+	 * external/grouped/variable via REST/import/CRUD (which never reaches the
+	 * classic $_POST save that clears the metadata).
+	 *
+	 * @param int $product_id Product id.
+	 * @return bool
+	 */
+	private function nyp_active( $product_id ) {
+		if ( ! DPT_NYP_Settings::is_nyp( $product_id ) ) {
+			return false;
+		}
+		if ( ! function_exists( 'wc_get_product' ) ) {
+			return true;
+		}
+		return $this->is_simple( wc_get_product( $product_id ) );
+	}
+
+	/**
 	 * Give an unpriced NYP product a base price so WooCommerce treats it as
 	 * purchasable, without overriding the purchasability filter.
 	 *
@@ -201,7 +230,7 @@ class DPT_Name_Your_Price_Module extends DPT_Module {
 		if ( '' !== (string) $price ) {
 			return $price;
 		}
-		if ( ! is_a( $product, 'WC_Product' ) || ! DPT_NYP_Settings::is_nyp( $product->get_id() ) ) {
+		if ( ! $this->is_simple( $product ) || ! DPT_NYP_Settings::is_nyp( $product->get_id() ) ) {
 			return $price;
 		}
 		return DPT_NYP_Settings::base_price( $product->get_id() );
@@ -216,7 +245,7 @@ class DPT_Name_Your_Price_Module extends DPT_Module {
 	 * @return string
 	 */
 	public function price_html( $html, $product ) {
-		if ( ! is_a( $product, 'WC_Product' ) || ! DPT_NYP_Settings::is_nyp( $product->get_id() ) ) {
+		if ( ! $this->is_simple( $product ) || ! DPT_NYP_Settings::is_nyp( $product->get_id() ) ) {
 			return $html;
 		}
 		$suggested = DPT_NYP_Settings::suggested_price( $product->get_id() );
@@ -241,7 +270,7 @@ class DPT_Name_Your_Price_Module extends DPT_Module {
 	 * @return string
 	 */
 	public function loop_add_to_cart_link( $html, $product ) {
-		if ( ! is_a( $product, 'WC_Product' ) || ! DPT_NYP_Settings::is_nyp( $product->get_id() ) ) {
+		if ( ! $this->is_simple( $product ) || ! DPT_NYP_Settings::is_nyp( $product->get_id() ) ) {
 			return $html;
 		}
 		return sprintf(
@@ -253,7 +282,7 @@ class DPT_Name_Your_Price_Module extends DPT_Module {
 
 	public function render_price_input() {
 		global $product;
-		if ( ! $product || ! is_a( $product, 'WC_Product' ) ) {
+		if ( ! $this->is_simple( $product ) ) {
 			return;
 		}
 		$id = $product->get_id();
@@ -314,7 +343,7 @@ class DPT_Name_Your_Price_Module extends DPT_Module {
 	 * @return bool
 	 */
 	public function validate_add_to_cart( $passed, $product_id, $quantity ) {
-		if ( ! DPT_NYP_Settings::is_nyp( $product_id ) ) {
+		if ( ! $this->nyp_active( $product_id ) ) {
 			return $passed;
 		}
 		$raw   = isset( $_POST['dpt_nyp_price'] ) ? wp_unslash( $_POST['dpt_nyp_price'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
@@ -337,7 +366,7 @@ class DPT_Name_Your_Price_Module extends DPT_Module {
 	 * @return array
 	 */
 	public function add_cart_item_data( $cart_item_data, $product_id, $variation_id ) {
-		if ( ! DPT_NYP_Settings::is_nyp( $product_id ) ) {
+		if ( ! $this->nyp_active( $product_id ) ) {
 			return $cart_item_data;
 		}
 		$raw = isset( $_POST['dpt_nyp_price'] ) ? wp_unslash( $_POST['dpt_nyp_price'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
@@ -375,7 +404,7 @@ class DPT_Name_Your_Price_Module extends DPT_Module {
 	 * @return bool
 	 */
 	public function sold_individually_found( $found, $product_id, $variation_id, $cart_item_data, $cart_id ) {
-		if ( $found || ! DPT_NYP_Settings::is_nyp( $product_id ) ) {
+		if ( $found || ! $this->nyp_active( $product_id ) ) {
 			return $found;
 		}
 		if ( ! function_exists( 'WC' ) || ! WC()->cart ) {
@@ -416,10 +445,10 @@ class DPT_Name_Your_Price_Module extends DPT_Module {
 				continue;
 			}
 			$product_id = isset( $cart_item['product_id'] ) ? (int) $cart_item['product_id'] : 0;
-			// Only touch NYP products. If NYP was disabled for the product after
-			// the item entered the cart (persistent carts), leave its current
-			// fixed price alone.
-			if ( ! DPT_NYP_Settings::is_nyp( $product_id ) ) {
+			// Only touch NYP simple products. If NYP was disabled, or the product
+			// is no longer simple (persistent carts / type changed via CRUD),
+			// leave its current fixed price alone.
+			if ( ! DPT_NYP_Settings::is_nyp( $product_id ) || ! $this->is_simple( $cart_item['data'] ) ) {
 				continue;
 			}
 			// Every NYP line must carry a valid customer price. A missing or
@@ -447,6 +476,9 @@ class DPT_Name_Your_Price_Module extends DPT_Module {
 				}
 			}
 
+			// Charge the price rounded to the store's precision, and validate that
+			// same amount, so what is enforced is what is charged.
+			$price = round( $price, DPT_NYP_Settings::price_decimals() );
 			if ( null !== DPT_NYP_Settings::check_price_range( $product_id, $price ) ) {
 				if ( $can_remove ) {
 					$cart->remove_cart_item( $key );
