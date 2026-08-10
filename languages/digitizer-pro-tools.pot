@@ -1691,3 +1691,8 @@ msgstr ""
 msgid "Only for the bottom-left / bottom-right corner positions, which sit next to the content instead of stretching across it. Try 380-450px for a compact card."
 msgstr ""
 
+msgid "Syntax-highlighted code block."
+msgstr ""
+
+msgid "Code settings"
+msgstr ""

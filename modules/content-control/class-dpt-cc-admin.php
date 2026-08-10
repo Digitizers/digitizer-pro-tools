@@ -26,7 +26,8 @@ class DPT_CC_Admin {
 	}
 
 	public function maybe_show_notices() {
-		if ( isset( $_GET['page'] ) && self::PAGE_SLUG === dpt_current_admin_page() && isset( $_GET['dpt_saved'] ) ) {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display flag set by our own post-save redirect.
+		if ( self::PAGE_SLUG === dpt_current_admin_page() && isset( $_GET['dpt_saved'] ) ) {
 			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Settings saved.', 'digitizer-pro-tools' ) . '</p></div>';
 		}
 	}
@@ -109,8 +110,8 @@ class DPT_CC_Admin {
 								wp_dropdown_pages(
 									array(
 										'name'              => 'dpt_cc[site_redirect]',
-										'selected'          => $o['site_redirect'],
-										'show_option_none'  => __( '— none —', 'digitizer-pro-tools' ),
+										'selected'          => (int) $o['site_redirect'],
+										'show_option_none'  => esc_html__( '— none —', 'digitizer-pro-tools' ),
 										'option_none_value' => 0,
 									)
 								);

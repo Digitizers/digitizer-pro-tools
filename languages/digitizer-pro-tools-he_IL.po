@@ -1691,3 +1691,8 @@ msgstr "רוחב פינה בדסקטופ (px)"
 msgid "Only for the bottom-left / bottom-right corner positions, which sit next to the content instead of stretching across it. Try 380-450px for a compact card."
 msgstr "רק עבור מיקומי הפינה (שמאל למטה / ימין למטה), היושבים לצד התוכן במקום להימתח לרוחבו. נסו 380-450px לכרטיס קומפקטי."
 
+msgid "Syntax-highlighted code block."
+msgstr "בלוק קוד עם הדגשת תחביר."
+
+msgid "Code settings"
+msgstr "הגדרות קוד"

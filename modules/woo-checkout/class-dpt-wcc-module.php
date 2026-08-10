@@ -140,7 +140,7 @@ class DPT_Woo_Checkout_Module extends DPT_Module {
 		if ( null !== $error && class_exists( '\Automattic\WooCommerce\StoreApi\Exceptions\RouteException' ) ) {
 			throw new \Automattic\WooCommerce\StoreApi\Exceptions\RouteException(
 				'dpt_wcc_invalid_phone',
-				$error,
+				esc_html( $error ),
 				400
 			);
 		}

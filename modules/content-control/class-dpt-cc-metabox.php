@@ -66,7 +66,7 @@ class DPT_CC_Metabox {
 	}
 
 	public function save( $post_id, $post ) {
-		if ( ! isset( $_POST[ self::NONCE ] ) || ! wp_verify_nonce( wp_unslash( $_POST[ self::NONCE ] ), self::NONCE ) ) {
+		if ( ! isset( $_POST[ self::NONCE ] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST[ self::NONCE ] ) ), self::NONCE ) ) {
 			return;
 		}
 		if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
@@ -77,11 +77,13 @@ class DPT_CC_Metabox {
 			return;
 		}
 
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitize_visibility() allowlists the value.
 		$visibility = DPT_CC_Access::sanitize_visibility( isset( $_POST['dpt_cc_visibility'] ) ? wp_unslash( $_POST['dpt_cc_visibility'] ) : 'public' );
 
 		$roles = array();
 		if ( isset( $_POST['dpt_cc_roles'] ) && is_array( $_POST['dpt_cc_roles'] ) ) {
 			$valid = array_keys( self::roles() );
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- Each member is unslashed and sanitized in the loop body.
 			foreach ( $_POST['dpt_cc_roles'] as $r ) {
 				$r = sanitize_key( is_array( $r ) ? '' : wp_unslash( $r ) );
 				if ( '' !== $r && in_array( $r, $valid, true ) ) {

@@ -89,12 +89,13 @@ class DPT_EN_Elementor_Widget extends \Elementor\Widget_Base {
 		if ( '' === trim( $code ) ) {
 			return;
 		}
-		// build_markup() is static and escapes the code; safe to echo.
-		echo DPT_Enlighter_Module::build_markup( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		$markup = DPT_Enlighter_Module::build_markup(
 			$code,
 			isset( $settings['language'] ) ? $settings['language'] : 'plain',
 			! empty( $settings['lines'] ) && 'yes' === $settings['lines'],
 			! empty( $settings['copy'] ) && 'yes' === $settings['copy']
 		);
+		// build_markup() escapes the code and emits a fixed <pre><code> wrapper.
+		echo $markup; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped in build_markup().
 	}
 }

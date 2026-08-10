@@ -188,7 +188,10 @@ class DPT_CB_Frontend {
 		if ( empty( $_COOKIE[ self::CONSENT_COOKIE ] ) ) {
 			return null;
 		}
-		$raw  = wp_unslash( $_COOKIE[ self::CONSENT_COOKIE ] );
+		// Not run through a sanitizer: the value is JSON and json_decode()
+		// either yields an array - whose individual members are cast below -
+		// or nothing. A string sanitizer would corrupt the JSON instead.
+		$raw  = wp_unslash( $_COOKIE[ self::CONSENT_COOKIE ] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Validated by json_decode() below.
 		$data = json_decode( $raw, true );
 		if ( ! is_array( $data ) ) {
 			return null;
@@ -253,7 +256,7 @@ class DPT_CB_Frontend {
 			return;
 		}
 		echo "\n<!-- DPT cookie consent script -->\n";
-		echo $raw . "\n";
+		echo $raw . "\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Raw tracking snippet; gated by unfiltered_html at save time and meaningless if escaped.
 		echo "<!-- /DPT -->\n";
 	}
 
@@ -389,6 +392,24 @@ class DPT_CB_Frontend {
 		$is_corner      = in_array( $o['position'], array( 'bottom-left', 'bottom-right' ), true );
 		$mobile_margins = self::box_mobile_margins( $o['position'] );
 		?>
+		<?php
+		/*
+		 * Everything printed between here and </style> is CSS, not HTML: each
+		 * value is either int-cast, run through esc_attr() where it was
+		 * assigned above, or built by a helper that only emits allowlisted
+		 * keywords (see DPT_CB_Settings::css_value_allowlists() and
+		 * sanitize_font_family()).
+		 *
+		 * HTML escaping at the echo site would be wrong here, not merely
+		 * redundant: the content of a <style> element is raw text, so a
+		 * browser never decodes entities inside it - esc_attr() would turn a
+		 * font stack like "Open Sans", sans-serif into &quot;Open Sans&quot;
+		 * and break the declaration.
+		 *
+		 * Anything added to this block must keep that contract.
+		 */
+		// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- CSS context; values sanitized at assignment, see above.
+		?>
 		<style id="dpt-cb-inline-css">
 			#dpt-cb-overlay { background: <?php echo esc_attr( $overlay_rgba ); ?>; }
 			<?php if ( '' !== $font_family ) : ?>
@@ -514,6 +535,7 @@ class DPT_CB_Frontend {
 			}
 		</style>
 		<?php
+		// phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
 	}
 
 	/**
@@ -578,10 +600,24 @@ class DPT_CB_Frontend {
 		return isset( $icons[ $name ] ) ? $icons[ $name ] : '';
 	}
 
+	/**
+	 * Print one of the built-in icons. The markup comes from the fixed map in
+	 * icon() and contains no variable input, so there is nothing to escape -
+	 * escaping it would print the SVG source as visible text.
+	 *
+	 * @param string $name Icon key.
+	 */
+	private function print_icon( $name ) {
+		echo $this->icon( $name ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Hardcoded SVG from the map in icon().
+	}
+
 	private function render_banner_markup( $o, $t, $lang, $dir ) {
-		$position_class = 'dpt-cb-pos-' . esc_attr( $o['position'] );
-		$anim_class     = ' dpt-cb-anim-' . esc_attr( $o['animation'] );
+		$position_class = 'dpt-cb-pos-' . $o['position'];
+		$anim_class     = ' dpt-cb-anim-' . $o['animation'];
 		$mobile_class   = $this->hide_mobile_class( $o );
+		// Presence-only check on a read-only display flag, paired with a
+		// capability check - no state changes, so no nonce is involved.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only preview flag, gated by manage_options.
 		$preview_mode   = isset( $_GET['dpt_cb_preview'] ) && current_user_can( 'manage_options' );
 
 		// CACHE-PROOF STRATEGY:
@@ -590,7 +626,7 @@ class DPT_CB_Frontend {
 		// never shows the banner to visitors who already answered.
 		// Exception: preview mode for admins, which forces the banner open.
 		$hidden_class = $preview_mode ? '' : ' dpt-cb-hidden';
-		$force_open   = $preview_mode ? 'data-force-open="1"' : '';
+		$banner_class = $position_class . $anim_class . $mobile_class . $hidden_class;
 
 		?>
 		<?php if ( '1' === $o['overlay_enabled'] ) : ?>
@@ -598,10 +634,10 @@ class DPT_CB_Frontend {
 		<?php endif; ?>
 
 		<div id="dpt-cb-banner"
-		     class="<?php echo $position_class; ?><?php echo $anim_class; ?><?php echo $mobile_class; ?><?php echo $hidden_class; ?>"
+		     class="<?php echo esc_attr( $banner_class ); ?>"
 		     dir="<?php echo esc_attr( $dir ); ?>"
 		     lang="<?php echo esc_attr( str_replace( '_', '-', $lang ) ); ?>"
-		     <?php echo $force_open; ?>
+		     <?php if ( $preview_mode ) : ?>data-force-open="1"<?php endif; ?>
 		     role="dialog" aria-labelledby="dpt-cb-title" aria-modal="true">
 			<div class="dpt-cb-box">
 				<?php if ( '1' === $o['show_close'] ) : ?>
@@ -637,7 +673,7 @@ class DPT_CB_Frontend {
 
 					<div class="dpt-cb-category">
 						<div class="dpt-cb-category-head">
-							<span class="dpt-cb-category-name"><?php echo $this->icon( 'lock' ); ?> <?php echo esc_html( $t['cat_essential_name'] ); ?></span>
+							<span class="dpt-cb-category-name"><?php $this->print_icon( 'lock' ); ?> <?php echo esc_html( $t['cat_essential_name'] ); ?></span>
 							<span class="dpt-cb-always-on"><?php echo esc_html( $t['always_on_label'] ); ?></span>
 						</div>
 						<p class="dpt-cb-category-desc"><?php echo wp_kses_post( $t['cat_essential_desc'] ); ?></p>
@@ -646,7 +682,7 @@ class DPT_CB_Frontend {
 					<?php if ( '1' === $o['cat_functional_enabled'] ) : ?>
 					<div class="dpt-cb-category">
 						<div class="dpt-cb-category-head">
-							<span class="dpt-cb-category-name"><?php echo $this->icon( 'sliders' ); ?> <?php echo esc_html( $t['cat_functional_name'] ); ?></span>
+							<span class="dpt-cb-category-name"><?php $this->print_icon( 'sliders' ); ?> <?php echo esc_html( $t['cat_functional_name'] ); ?></span>
 							<label class="dpt-cb-toggle"><input type="checkbox" data-dpt-cb-cat="functional" /><span class="dpt-cb-toggle-slider"></span></label>
 						</div>
 						<p class="dpt-cb-category-desc"><?php echo wp_kses_post( $t['cat_functional_desc'] ); ?></p>
@@ -656,7 +692,7 @@ class DPT_CB_Frontend {
 					<?php if ( '1' === $o['cat_analytics_enabled'] ) : ?>
 					<div class="dpt-cb-category">
 						<div class="dpt-cb-category-head">
-							<span class="dpt-cb-category-name"><?php echo $this->icon( 'chart' ); ?> <?php echo esc_html( $t['cat_analytics_name'] ); ?></span>
+							<span class="dpt-cb-category-name"><?php $this->print_icon( 'chart' ); ?> <?php echo esc_html( $t['cat_analytics_name'] ); ?></span>
 							<label class="dpt-cb-toggle"><input type="checkbox" data-dpt-cb-cat="analytics" /><span class="dpt-cb-toggle-slider"></span></label>
 						</div>
 						<p class="dpt-cb-category-desc"><?php echo wp_kses_post( $t['cat_analytics_desc'] ); ?></p>
@@ -666,7 +702,7 @@ class DPT_CB_Frontend {
 					<?php if ( '1' === $o['cat_marketing_enabled'] ) : ?>
 					<div class="dpt-cb-category">
 						<div class="dpt-cb-category-head">
-							<span class="dpt-cb-category-name"><?php echo $this->icon( 'megaphone' ); ?> <?php echo esc_html( $t['cat_marketing_name'] ); ?></span>
+							<span class="dpt-cb-category-name"><?php $this->print_icon( 'megaphone' ); ?> <?php echo esc_html( $t['cat_marketing_name'] ); ?></span>
 							<label class="dpt-cb-toggle"><input type="checkbox" data-dpt-cb-cat="marketing" /><span class="dpt-cb-toggle-slider"></span></label>
 						</div>
 						<p class="dpt-cb-category-desc"><?php echo wp_kses_post( $t['cat_marketing_desc'] ); ?></p>
@@ -712,7 +748,7 @@ class DPT_CB_Frontend {
 		?>
 		<button type="button" id="dpt-cb-float-button" class="<?php echo esc_attr( $mobile_class ); ?>" aria-label="<?php echo esc_attr( $t['float_button_aria'] ); ?>" onclick="<?php echo esc_attr( $inline_open ); ?>"><?php
 			if ( '' === $float_text || '🍪' === $float_text ) {
-				echo $this->icon( 'cookie' );
+				$this->print_icon( 'cookie' );
 			} else {
 				echo esc_html( $float_text );
 			}
