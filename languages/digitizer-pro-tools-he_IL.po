@@ -1493,3 +1493,96 @@ msgstr "מוצע: %s"
 msgid "Choose amount"
 msgstr "בחרו סכום"
 
+msgid "Checkout Field Editor"
+msgstr "עורך שדות תשלום"
+
+msgid "Checkout Fields"
+msgstr "שדות תשלום"
+
+msgid "Show, hide, require and reorder standard WooCommerce checkout fields, and add custom fields (text, select or checkbox) saved to the order and shown in the admin and order emails."
+msgstr "הצגה, הסתרה, חיוב וסידור מחדש של שדות התשלום הסטנדרטיים של WooCommerce, והוספת שדות מותאמים (טקסט, בחירה או תיבת סימון) הנשמרים בהזמנה ומוצגים בממשק הניהול ובמיילים."
+
+msgid "Choose an option"
+msgstr "בחרו אפשרות"
+
+msgid "\"%s\" is not a valid selection."
+msgstr "\"%s\" אינה בחירה תקינה."
+
+msgid "Additional checkout fields"
+msgstr "שדות תשלום נוספים"
+
+msgid "Yes"
+msgstr "כן"
+
+msgid "Company"
+msgstr "חברה"
+
+msgid "Address line 2"
+msgstr "שורת כתובת 2"
+
+msgid "Phone"
+msgstr "טלפון"
+
+msgid "Order notes"
+msgstr "הערות להזמנה"
+
+msgid "Show, hide, require and reorder standard checkout fields, and add your own. Applies to the classic (shortcode) checkout."
+msgstr "הצגה, הסתרה, חיוב וסידור מחדש של שדות תשלום סטנדרטיים, והוספת שדות משלכם. חל על עמוד התשלום הקלאסי (שורטקוד)."
+
+msgid "Billing"
+msgstr "חיוב"
+
+msgid "Shipping"
+msgstr "משלוח"
+
+msgid "Additional info"
+msgstr "מידע נוסף"
+
+msgid "Text"
+msgstr "טקסט"
+
+msgid "Dropdown"
+msgstr "רשימה נפתחת"
+
+msgid "Checkbox"
+msgstr "תיבת סימון"
+
+msgid "Standard fields"
+msgstr "שדות סטנדרטיים"
+
+msgid "Leave \"Order\" blank to keep WooCommerce's default position. Lower numbers appear first."
+msgstr "השאירו את \"סדר\" ריק כדי לשמור על המיקום המוגדר כברירת מחדל ב-WooCommerce. מספרים נמוכים מופיעים ראשונים."
+
+msgid "Field"
+msgstr "שדה"
+
+msgid "Show"
+msgstr "הצגה"
+
+msgid "Required"
+msgstr "חובה"
+
+msgid "Order"
+msgstr "סדר"
+
+msgid "Custom fields"
+msgstr "שדות מותאמים"
+
+msgid "Up to %d custom fields. Clear the label to remove a field. For a dropdown, put one option per line."
+msgstr "עד %d שדות מותאמים. מחקו את התווית כדי להסיר שדה. עבור רשימה נפתחת, כתבו אפשרות אחת בכל שורה."
+
+msgid "Type"
+msgstr "סוג"
+
+msgid "Section"
+msgstr "מקטע"
+
+msgid "Make this field required"
+msgstr "הפכו שדה זה לחובה"
+
+msgid "Dropdown options"
+msgstr "אפשרויות הרשימה"
+
+msgid "One option per line"
+msgstr "אפשרות אחת בכל שורה"
+

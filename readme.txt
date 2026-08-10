@@ -6,7 +6,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.12.0
+Stable tag: 1.13.0
 License: GPLv2 or later
 
 One toolbox plugin by Digitizer. Modules: multilingual cookie-consent banner, one-click post duplication, auto-update email silencing.
@@ -157,6 +157,17 @@ Let customers set their own price on chosen WooCommerce products (disabled by de
 
 Admin interface is in English with a full Hebrew translation.
 
+= Module: Checkout Field Editor =
+
+Tailor the WooCommerce (classic/shortcode) checkout without a snippet (disabled by default; enable it on the Modules screen):
+
+* Show, hide, require and reorder the standard Company, Address line 2, Phone and Order notes fields
+* Add up to 10 custom fields - text, dropdown or checkbox - in the billing, shipping or additional-info section
+* Custom values are validated on the server (a dropdown value outside the configured options is rejected), saved to the order, and shown on the admin order screen and in order emails
+* A scoped replacement for the "WooCommerce Checkout Field Editor" plugin; applies only when WooCommerce is active
+
+Admin interface is in English with a full Hebrew translation.
+
 == Installation ==
 
 1. Upload the plugin folder to /wp-content/plugins/
@@ -166,6 +177,9 @@ Admin interface is in English with a full Hebrew translation.
 5. Save and check the site
 
 == Changelog ==
+
+= 1.13.0 =
+* New module: Checkout Field Editor - show/hide/require/reorder standard WooCommerce checkout fields and add custom text/dropdown/checkbox fields saved to the order and shown in the admin and emails (classic checkout; module ships disabled; enable per site)
 
 = 1.12.0 =
 * New module: Name Your Price - customer-set pricing on chosen WooCommerce products with server-enforced minimum/maximum/suggested prices (module ships disabled; enable per site)
