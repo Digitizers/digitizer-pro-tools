@@ -31,8 +31,14 @@ class DPT_CB_Admin {
 		);
 	}
 
+	/**
+	 * The flags below are set by our own post-save redirects and only choose
+	 * which confirmation notice to draw. Nothing is read out of them and no
+	 * state changes, so there is no nonce to verify.
+	 */
+	// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only display flags from our own redirect.
 	public function maybe_show_notices() {
-		if ( ! isset( $_GET['page'] ) || self::PAGE_SLUG !== dpt_current_admin_page() ) {
+		if ( self::PAGE_SLUG !== dpt_current_admin_page() ) {
 			return;
 		}
 		if ( isset( $_GET['dpt_saved'] ) ) {
@@ -48,6 +54,7 @@ class DPT_CB_Admin {
 			echo '<div class="notice notice-error is-dismissible"><p>' . esc_html__( 'Invalid language code. Use formats like "en", "ru" or "pt_BR".', 'digitizer-pro-tools' ) . '</p></div>';
 		}
 	}
+	// phpcs:enable WordPress.Security.NonceVerification.Recommended
 
 	/* ============================================================
 	 *  POST handlers
@@ -59,17 +66,20 @@ class DPT_CB_Admin {
 		}
 		check_admin_referer( self::NONCE );
 
-		$data = isset( $_POST['dpt_cb'] ) && is_array( $_POST['dpt_cb'] ) ? $_POST['dpt_cb'] : array();
+		// Pass the raw POST array: DPT_CB_Settings::save() unslashes and
+		// sanitizes each field itself, so unslashing here would double-unslash
+		// text fields (a literal "C:\docs" would lose its backslash).
+		$data = isset( $_POST['dpt_cb'] ) && is_array( $_POST['dpt_cb'] ) ? $_POST['dpt_cb'] : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- Sanitized per field in DPT_CB_Settings::save().
 		DPT_CB_Settings::save( $data );
 
-		$tab  = isset( $_POST['current_tab'] ) ? sanitize_key( $_POST['current_tab'] ) : 'general';
+		$tab  = isset( $_POST['current_tab'] ) ? sanitize_key( wp_unslash( $_POST['current_tab'] ) ) : 'general';
 		$args = array(
 			'page'      => self::PAGE_SLUG,
 			'tab'       => $tab,
 			'dpt_saved' => 1,
 		);
 		if ( isset( $_POST['current_lang'] ) ) {
-			$lang = DPT_CB_Settings::normalize_lang_code( wp_unslash( $_POST['current_lang'] ) );
+			$lang = DPT_CB_Settings::normalize_lang_code( wp_unslash( $_POST['current_lang'] ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- normalize_lang_code() rejects anything but a locale code.
 			if ( $lang ) {
 				$args['lang'] = $lang;
 			}
@@ -84,7 +94,7 @@ class DPT_CB_Admin {
 		}
 		check_admin_referer( 'dpt_cb_add_lang' );
 
-		$code  = isset( $_POST['dpt_new_lang'] ) ? wp_unslash( $_POST['dpt_new_lang'] ) : '';
+		$code  = isset( $_POST['dpt_new_lang'] ) ? wp_unslash( $_POST['dpt_new_lang'] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- add_language() validates the code and rejects anything else.
 		$added = DPT_CB_Settings::add_language( $code );
 
 		$args = array( 'page' => self::PAGE_SLUG, 'tab' => 'texts' );
@@ -104,7 +114,7 @@ class DPT_CB_Admin {
 		}
 		check_admin_referer( 'dpt_cb_remove_lang' );
 
-		$code = isset( $_POST['dpt_remove_lang'] ) ? DPT_CB_Settings::normalize_lang_code( wp_unslash( $_POST['dpt_remove_lang'] ) ) : '';
+		$code = isset( $_POST['dpt_remove_lang'] ) ? DPT_CB_Settings::normalize_lang_code( wp_unslash( $_POST['dpt_remove_lang'] ) ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- normalize_lang_code() rejects anything but a locale code.
 		$args = array( 'page' => self::PAGE_SLUG, 'tab' => 'texts' );
 		if ( $code && DPT_CB_Settings::remove_language( $code ) ) {
 			$args['dpt_lang_removed'] = 1;
@@ -124,7 +134,8 @@ class DPT_CB_Admin {
 			return;
 		}
 		$opts        = DPT_CB_Settings::all();
-		$current_tab = isset( $_GET['tab'] ) ? sanitize_key( $_GET['tab'] ) : 'general';
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only tab selection, not a state change.
+		$current_tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'general';
 		$tabs        = array(
 			'general'    => __( 'General', 'digitizer-pro-tools' ),
 			'texts'      => __( 'Texts', 'digitizer-pro-tools' ),
@@ -190,6 +201,7 @@ class DPT_CB_Admin {
 	 * The language being edited on the Texts tab.
 	 */
 	private function current_lang( $opts ) {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Read-only language selection; normalize_lang_code() rejects anything but a locale code.
 		$lang = isset( $_GET['lang'] ) ? DPT_CB_Settings::normalize_lang_code( wp_unslash( $_GET['lang'] ) ) : '';
 		if ( $lang && in_array( $lang, $opts['languages'], true ) ) {
 			return $lang;
@@ -349,7 +361,7 @@ class DPT_CB_Admin {
 	private function tab_texts( $o, $lang ) {
 		$texts    = isset( $o['texts'][ $lang ] ) ? $o['texts'][ $lang ] : DPT_CB_Settings::default_texts( $lang );
 		$defaults = DPT_CB_Settings::default_texts( $lang );
-		$n        = 'dpt_cb[texts][' . esc_attr( $lang ) . ']';
+		$n        = 'dpt_cb[texts][' . $lang . ']';
 		?>
 		<h2><span class="dashicons dashicons-edit"></span> <?php esc_html_e( 'Texts', 'digitizer-pro-tools' ); ?></h2>
 		<p class="description dpt-big-desc"><?php esc_html_e( 'The banner picks the language automatically from the current page locale (WPML / Polylang / TranslatePress compatible), falling back to the default language.', 'digitizer-pro-tools' ); ?></p>
@@ -369,46 +381,46 @@ class DPT_CB_Admin {
 		<table class="form-table dpt-form">
 			<tr>
 				<th><label for="dpt_cb_title"><?php esc_html_e( 'Banner title', 'digitizer-pro-tools' ); ?></label></th>
-				<td><input type="text" id="dpt_cb_title" name="<?php echo $n; ?>[title]" value="<?php echo esc_attr( $texts['title'] ); ?>" class="large-text" placeholder="<?php echo esc_attr( $defaults['title'] ); ?>" /></td>
+				<td><input type="text" id="dpt_cb_title" name="<?php echo esc_attr( $n ); ?>[title]" value="<?php echo esc_attr( $texts['title'] ); ?>" class="large-text" placeholder="<?php echo esc_attr( $defaults['title'] ); ?>" /></td>
 			</tr>
 			<tr>
 				<th><label for="dpt_cb_message"><?php esc_html_e( 'Banner message', 'digitizer-pro-tools' ); ?></label></th>
 				<td>
-					<textarea id="dpt_cb_message" name="<?php echo $n; ?>[message]" rows="5" class="large-text"><?php echo esc_textarea( $texts['message'] ); ?></textarea>
+					<textarea id="dpt_cb_message" name="<?php echo esc_attr( $n ); ?>[message]" rows="5" class="large-text"><?php echo esc_textarea( $texts['message'] ); ?></textarea>
 					<p class="description"><?php esc_html_e( 'Basic HTML is allowed: <strong>, <em>, <a>, <br>', 'digitizer-pro-tools' ); ?></p>
 				</td>
 			</tr>
 			<tr>
 				<th><label for="dpt_cb_btn_accept"><?php esc_html_e( '"Accept all" button', 'digitizer-pro-tools' ); ?></label></th>
-				<td><input type="text" id="dpt_cb_btn_accept" name="<?php echo $n; ?>[btn_accept_text]" value="<?php echo esc_attr( $texts['btn_accept_text'] ); ?>" /></td>
+				<td><input type="text" id="dpt_cb_btn_accept" name="<?php echo esc_attr( $n ); ?>[btn_accept_text]" value="<?php echo esc_attr( $texts['btn_accept_text'] ); ?>" /></td>
 			</tr>
 			<tr>
 				<th><label for="dpt_cb_btn_reject"><?php esc_html_e( '"Reject all" button', 'digitizer-pro-tools' ); ?></label></th>
-				<td><input type="text" id="dpt_cb_btn_reject" name="<?php echo $n; ?>[btn_reject_text]" value="<?php echo esc_attr( $texts['btn_reject_text'] ); ?>" /></td>
+				<td><input type="text" id="dpt_cb_btn_reject" name="<?php echo esc_attr( $n ); ?>[btn_reject_text]" value="<?php echo esc_attr( $texts['btn_reject_text'] ); ?>" /></td>
 			</tr>
 			<tr>
 				<th><label for="dpt_cb_btn_settings"><?php esc_html_e( '"Settings" button', 'digitizer-pro-tools' ); ?></label></th>
-				<td><input type="text" id="dpt_cb_btn_settings" name="<?php echo $n; ?>[btn_settings_text]" value="<?php echo esc_attr( $texts['btn_settings_text'] ); ?>" /></td>
+				<td><input type="text" id="dpt_cb_btn_settings" name="<?php echo esc_attr( $n ); ?>[btn_settings_text]" value="<?php echo esc_attr( $texts['btn_settings_text'] ); ?>" /></td>
 			</tr>
 			<tr>
 				<th><label for="dpt_cb_btn_save"><?php esc_html_e( '"Save preferences" button', 'digitizer-pro-tools' ); ?></label></th>
-				<td><input type="text" id="dpt_cb_btn_save" name="<?php echo $n; ?>[btn_save_text]" value="<?php echo esc_attr( $texts['btn_save_text'] ); ?>" /></td>
+				<td><input type="text" id="dpt_cb_btn_save" name="<?php echo esc_attr( $n ); ?>[btn_save_text]" value="<?php echo esc_attr( $texts['btn_save_text'] ); ?>" /></td>
 			</tr>
 			<tr>
 				<th><label for="dpt_cb_settings_view_title"><?php esc_html_e( 'Preferences screen title', 'digitizer-pro-tools' ); ?></label></th>
-				<td><input type="text" id="dpt_cb_settings_view_title" name="<?php echo $n; ?>[settings_view_title]" value="<?php echo esc_attr( $texts['settings_view_title'] ); ?>" class="large-text" /></td>
+				<td><input type="text" id="dpt_cb_settings_view_title" name="<?php echo esc_attr( $n ); ?>[settings_view_title]" value="<?php echo esc_attr( $texts['settings_view_title'] ); ?>" class="large-text" /></td>
 			</tr>
 			<tr>
 				<th><label for="dpt_cb_always_on"><?php esc_html_e( '"Always active" label', 'digitizer-pro-tools' ); ?></label></th>
-				<td><input type="text" id="dpt_cb_always_on" name="<?php echo $n; ?>[always_on_label]" value="<?php echo esc_attr( $texts['always_on_label'] ); ?>" /></td>
+				<td><input type="text" id="dpt_cb_always_on" name="<?php echo esc_attr( $n ); ?>[always_on_label]" value="<?php echo esc_attr( $texts['always_on_label'] ); ?>" /></td>
 			</tr>
 			<tr>
 				<th><label for="dpt_cb_close_aria"><?php esc_html_e( 'Close button label (accessibility)', 'digitizer-pro-tools' ); ?></label></th>
-				<td><input type="text" id="dpt_cb_close_aria" name="<?php echo $n; ?>[close_aria]" value="<?php echo esc_attr( $texts['close_aria'] ); ?>" /></td>
+				<td><input type="text" id="dpt_cb_close_aria" name="<?php echo esc_attr( $n ); ?>[close_aria]" value="<?php echo esc_attr( $texts['close_aria'] ); ?>" /></td>
 			</tr>
 			<tr>
 				<th><label for="dpt_cb_policy_text"><?php esc_html_e( 'Privacy policy link text', 'digitizer-pro-tools' ); ?></label></th>
-				<td><input type="text" id="dpt_cb_policy_text" name="<?php echo $n; ?>[policy_text]" value="<?php echo esc_attr( $texts['policy_text'] ); ?>" /></td>
+				<td><input type="text" id="dpt_cb_policy_text" name="<?php echo esc_attr( $n ); ?>[policy_text]" value="<?php echo esc_attr( $texts['policy_text'] ); ?>" /></td>
 			</tr>
 		</table>
 
@@ -416,35 +428,35 @@ class DPT_CB_Admin {
 		<table class="form-table dpt-form">
 			<tr>
 				<th><label><?php esc_html_e( 'Essential - name', 'digitizer-pro-tools' ); ?></label></th>
-				<td><input type="text" name="<?php echo $n; ?>[cat_essential_name]" value="<?php echo esc_attr( $texts['cat_essential_name'] ); ?>" /></td>
+				<td><input type="text" name="<?php echo esc_attr( $n ); ?>[cat_essential_name]" value="<?php echo esc_attr( $texts['cat_essential_name'] ); ?>" /></td>
 			</tr>
 			<tr>
 				<th><label><?php esc_html_e( 'Essential - description', 'digitizer-pro-tools' ); ?></label></th>
-				<td><textarea name="<?php echo $n; ?>[cat_essential_desc]" rows="2" class="large-text"><?php echo esc_textarea( $texts['cat_essential_desc'] ); ?></textarea></td>
+				<td><textarea name="<?php echo esc_attr( $n ); ?>[cat_essential_desc]" rows="2" class="large-text"><?php echo esc_textarea( $texts['cat_essential_desc'] ); ?></textarea></td>
 			</tr>
 			<tr>
 				<th><label><?php esc_html_e( 'Functional - name', 'digitizer-pro-tools' ); ?></label></th>
-				<td><input type="text" name="<?php echo $n; ?>[cat_functional_name]" value="<?php echo esc_attr( $texts['cat_functional_name'] ); ?>" /></td>
+				<td><input type="text" name="<?php echo esc_attr( $n ); ?>[cat_functional_name]" value="<?php echo esc_attr( $texts['cat_functional_name'] ); ?>" /></td>
 			</tr>
 			<tr>
 				<th><label><?php esc_html_e( 'Functional - description', 'digitizer-pro-tools' ); ?></label></th>
-				<td><textarea name="<?php echo $n; ?>[cat_functional_desc]" rows="2" class="large-text"><?php echo esc_textarea( $texts['cat_functional_desc'] ); ?></textarea></td>
+				<td><textarea name="<?php echo esc_attr( $n ); ?>[cat_functional_desc]" rows="2" class="large-text"><?php echo esc_textarea( $texts['cat_functional_desc'] ); ?></textarea></td>
 			</tr>
 			<tr>
 				<th><label><?php esc_html_e( 'Analytics - name', 'digitizer-pro-tools' ); ?></label></th>
-				<td><input type="text" name="<?php echo $n; ?>[cat_analytics_name]" value="<?php echo esc_attr( $texts['cat_analytics_name'] ); ?>" /></td>
+				<td><input type="text" name="<?php echo esc_attr( $n ); ?>[cat_analytics_name]" value="<?php echo esc_attr( $texts['cat_analytics_name'] ); ?>" /></td>
 			</tr>
 			<tr>
 				<th><label><?php esc_html_e( 'Analytics - description', 'digitizer-pro-tools' ); ?></label></th>
-				<td><textarea name="<?php echo $n; ?>[cat_analytics_desc]" rows="2" class="large-text"><?php echo esc_textarea( $texts['cat_analytics_desc'] ); ?></textarea></td>
+				<td><textarea name="<?php echo esc_attr( $n ); ?>[cat_analytics_desc]" rows="2" class="large-text"><?php echo esc_textarea( $texts['cat_analytics_desc'] ); ?></textarea></td>
 			</tr>
 			<tr>
 				<th><label><?php esc_html_e( 'Marketing - name', 'digitizer-pro-tools' ); ?></label></th>
-				<td><input type="text" name="<?php echo $n; ?>[cat_marketing_name]" value="<?php echo esc_attr( $texts['cat_marketing_name'] ); ?>" /></td>
+				<td><input type="text" name="<?php echo esc_attr( $n ); ?>[cat_marketing_name]" value="<?php echo esc_attr( $texts['cat_marketing_name'] ); ?>" /></td>
 			</tr>
 			<tr>
 				<th><label><?php esc_html_e( 'Marketing - description', 'digitizer-pro-tools' ); ?></label></th>
-				<td><textarea name="<?php echo $n; ?>[cat_marketing_desc]" rows="2" class="large-text"><?php echo esc_textarea( $texts['cat_marketing_desc'] ); ?></textarea></td>
+				<td><textarea name="<?php echo esc_attr( $n ); ?>[cat_marketing_desc]" rows="2" class="large-text"><?php echo esc_textarea( $texts['cat_marketing_desc'] ); ?></textarea></td>
 			</tr>
 		</table>
 
@@ -453,13 +465,13 @@ class DPT_CB_Admin {
 			<tr>
 				<th><label><?php esc_html_e( 'Button content', 'digitizer-pro-tools' ); ?></label></th>
 				<td>
-					<input type="text" name="<?php echo $n; ?>[float_button_text]" value="<?php echo esc_attr( $texts['float_button_text'] ); ?>" />
+					<input type="text" name="<?php echo esc_attr( $n ); ?>[float_button_text]" value="<?php echo esc_attr( $texts['float_button_text'] ); ?>" />
 					<p class="description"><?php esc_html_e( 'Leave empty for the built-in cookie icon, or type short text of your own.', 'digitizer-pro-tools' ); ?></p>
 				</td>
 			</tr>
 			<tr>
 				<th><label><?php esc_html_e( 'Button label (accessibility)', 'digitizer-pro-tools' ); ?></label></th>
-				<td><input type="text" name="<?php echo $n; ?>[float_button_aria]" value="<?php echo esc_attr( $texts['float_button_aria'] ); ?>" /></td>
+				<td><input type="text" name="<?php echo esc_attr( $n ); ?>[float_button_aria]" value="<?php echo esc_attr( $texts['float_button_aria'] ); ?>" /></td>
 			</tr>
 		</table>
 
@@ -472,7 +484,7 @@ class DPT_CB_Admin {
 					wp_dropdown_pages( array(
 						'name'              => 'dpt_cb[policy_page_id]',
 						'id'                => 'dpt_cb_policy_page_id',
-						'show_option_none'  => __( '— No link —', 'digitizer-pro-tools' ),
+						'show_option_none'  => esc_html__( '— No link —', 'digitizer-pro-tools' ),
 						'option_none_value' => '0',
 						'selected'          => (int) $o['policy_page_id'],
 					) );
@@ -1209,19 +1221,19 @@ class DPT_CB_Admin {
 		<div class="dpt-preview-wrap">
 			<h3><span class="dashicons dashicons-visibility"></span> <?php esc_html_e( 'Preview', 'digitizer-pro-tools' ); ?> <span class="dpt-preview-lang">(<?php echo esc_html( $this->lang_label( $lang ) ); ?>)</span></h3>
 			<p class="description"><?php esc_html_e( 'Updates after saving.', 'digitizer-pro-tools' ); ?></p>
-			<div class="dpt-preview-box" dir="<?php echo esc_attr( $dir ); ?>" style="<?php echo $box_style; ?>">
+			<div class="dpt-preview-box" dir="<?php echo esc_attr( $dir ); ?>" style="<?php echo esc_attr( $box_style ); ?>">
 				<?php if ( '1' === $o['show_close'] ) : ?>
 					<span class="dpt-preview-close" style="color:<?php echo esc_attr( $o['close_color'] ?: $text ); ?>;font-size:<?php echo (int) $o['close_size']; ?>px;<?php echo $o['close_bg_color'] ? 'background:' . esc_attr( $o['close_bg_color'] ) . ';border-radius:50%;' : ''; ?>">&times;</span>
 				<?php endif; ?>
-				<h4 style="<?php echo $title_style; ?>"><?php echo esc_html( $texts['title'] ); ?></h4>
-				<div style="<?php echo $content_style; ?>"><?php echo wp_kses_post( wpautop( $texts['message'] ) ); ?></div>
+				<h4 style="<?php echo esc_attr( $title_style ); ?>"><?php echo esc_html( $texts['title'] ); ?></h4>
+				<div style="<?php echo esc_attr( $content_style ); ?>"><?php echo wp_kses_post( wpautop( $texts['message'] ) ); ?></div>
 				<div class="dpt-preview-buttons">
-					<span class="dpt-preview-btn" style="<?php echo $btn_accept_style; ?>"><?php echo esc_html( $texts['btn_accept_text'] ); ?></span>
+					<span class="dpt-preview-btn" style="<?php echo esc_attr( $btn_accept_style ); ?>"><?php echo esc_html( $texts['btn_accept_text'] ); ?></span>
 					<?php if ( '1' === $o['btn_reject_show'] ) : ?>
-						<span class="dpt-preview-btn" style="<?php echo $btn_reject_style; ?>"><?php echo esc_html( $texts['btn_reject_text'] ); ?></span>
+						<span class="dpt-preview-btn" style="<?php echo esc_attr( $btn_reject_style ); ?>"><?php echo esc_html( $texts['btn_reject_text'] ); ?></span>
 					<?php endif; ?>
 					<?php if ( '1' === $o['btn_settings_show'] ) : ?>
-						<span class="dpt-preview-btn" style="<?php echo $btn_settings_style; ?>"><?php echo esc_html( $texts['btn_settings_text'] ); ?></span>
+						<span class="dpt-preview-btn" style="<?php echo esc_attr( $btn_settings_style ); ?>"><?php echo esc_html( $texts['btn_settings_text'] ); ?></span>
 					<?php endif; ?>
 				</div>
 			</div>

@@ -26,7 +26,8 @@ class DPT_NYP_Admin {
 	}
 
 	public function maybe_show_notices() {
-		if ( isset( $_GET['page'] ) && self::PAGE_SLUG === dpt_current_admin_page() && isset( $_GET['dpt_saved'] ) ) {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display flag set by our own post-save redirect.
+		if ( self::PAGE_SLUG === dpt_current_admin_page() && isset( $_GET['dpt_saved'] ) ) {
 			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Settings saved.', 'digitizer-pro-tools' ) . '</p></div>';
 		}
 	}
@@ -37,7 +38,9 @@ class DPT_NYP_Admin {
 		}
 		check_admin_referer( 'dpt_nyp_settings' );
 
-		$data = isset( $_POST['dpt_nyp'] ) && is_array( $_POST['dpt_nyp'] ) ? wp_unslash( $_POST['dpt_nyp'] ) : array();
+		// Each field is sanitized by the settings class; the array itself
+		// only needs unslashing.
+		$data = isset( $_POST['dpt_nyp'] ) && is_array( $_POST['dpt_nyp'] ) ? wp_unslash( $_POST['dpt_nyp'] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized per field in the settings class.
 		DPT_NYP_Settings::save( $data );
 
 		wp_safe_redirect( add_query_arg( array( 'page' => self::PAGE_SLUG, 'dpt_saved' => 1 ), admin_url( 'admin.php' ) ) );

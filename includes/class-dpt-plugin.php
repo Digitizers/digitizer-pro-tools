@@ -126,6 +126,13 @@ class DPT_Plugin {
 		new DPT_Admin( $this );
 	}
 
+	/**
+	 * Kept even though WordPress 4.6+ can load translations on its own: the
+	 * just-in-time loader only finds a plugin's bundled /languages folder once
+	 * the path is in the textdomain registry, and WordPress did not populate
+	 * that from the plugin headers until 6.7. This plugin supports 5.8, where
+	 * dropping the call would silently lose the bundled Hebrew catalog.
+	 */
 	public function load_textdomain() {
 		load_plugin_textdomain( 'digitizer-pro-tools', false, dirname( DPT_BASENAME ) . '/languages' );
 	}

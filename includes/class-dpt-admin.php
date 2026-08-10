@@ -59,7 +59,9 @@ class DPT_Admin {
 		}
 		check_admin_referer( 'dpt_save_modules' );
 
-		$raw = isset( $_POST['dpt_modules'] ) && is_array( $_POST['dpt_modules'] ) ? wp_unslash( $_POST['dpt_modules'] ) : array();
+		// Keys are matched against the module registry in save_enabled_map(),
+		// so anything unknown is discarded rather than sanitized.
+		$raw = isset( $_POST['dpt_modules'] ) && is_array( $_POST['dpt_modules'] ) ? wp_unslash( $_POST['dpt_modules'] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Validated against the registry in save_enabled_map().
 		$this->plugin->save_enabled_map( $raw );
 
 		wp_safe_redirect( add_query_arg( array( 'page' => self::MENU_SLUG, 'updated' => '1' ), admin_url( 'admin.php' ) ) );
@@ -71,6 +73,7 @@ class DPT_Admin {
 			return;
 		}
 		$enabled = $this->plugin->enabled_map();
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display flag set by our own post-save redirect.
 		if ( isset( $_GET['updated'] ) ) {
 			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Modules saved.', 'digitizer-pro-tools' ) . '</p></div>';
 		}

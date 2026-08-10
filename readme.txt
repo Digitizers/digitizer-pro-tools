@@ -2,9 +2,9 @@
 Contributors: benkalsky
 Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
-Tested up to: 6.8
+Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.17.0
+Stable tag: 1.18.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -259,6 +259,16 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 5. Save and check the site
 
 == Changelog ==
+
+= 1.18.0 =
+* Cleared every error reported by the official Plugin Check tool, so the codebase now passes the WordPress.org automated review
+* Enlighter: the block editor's own labels are now extractable by translation tools - two of them ("Code settings" and the block description) had never reached the Hebrew catalog and were showing in English
+* Cookie Banner: the banner's inline CSS documents why HTML escaping is inapplicable inside a <style> element, and every value in it is int-cast, escaped at assignment or allowlisted
+* Cookie Banner: the admin preview's inline style attributes are escaped
+* Content Control, Cookie Banner: the page dropdowns escape their "no selection" label
+* WooCommerce Checkout: documented why the block-checkout phone error is thrown as plain text - it is serialized into a JSON response, so escaping it here would show HTML entities to the customer
+* Documented, at each site, why a superglobal is read without a sanitizer or a nonce - covering read-only screen flags and values validated further down the call
+* Tested up to WordPress 7.0
 
 = 1.17.0 =
 * Added an "External services" section to this readme documenting the Resend email API, the GitHub update check and the third-party content the Embed module loads in the visitor's browser - what is sent, when, and links to each service's terms and privacy policy
