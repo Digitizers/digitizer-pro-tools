@@ -128,10 +128,25 @@ class DPT_Name_Your_Price_Module extends DPT_Module {
 		$enabled = ( isset( $_POST[ DPT_NYP_Settings::META_ENABLED ] ) && 'yes' === $_POST[ DPT_NYP_Settings::META_ENABLED ] ) ? 'yes' : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		update_post_meta( $product_id, DPT_NYP_Settings::META_ENABLED, $enabled );
 
-		$prices = array();
+		$decimals = DPT_NYP_Settings::price_decimals();
+		$prices   = array();
 		foreach ( array( DPT_NYP_Settings::META_MIN, DPT_NYP_Settings::META_MAX, DPT_NYP_Settings::META_SUGGESTED, DPT_NYP_Settings::META_DEFAULT ) as $key ) {
 			$raw = isset( $_POST[ $key ] ) ? wp_unslash( $_POST[ $key ] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
-			$prices[ $key ] = DPT_NYP_Settings::sanitize_price( $raw );
+			$val = DPT_NYP_Settings::sanitize_price( $raw );
+			// Persist the bounds at the store's precision, so the stored config is
+			// the same interval that check_price_range() enforces at runtime (a raw
+			// 10.004/10.006 would otherwise form an empty, unsatisfiable range).
+			if ( null !== $val ) {
+				$rounded = round( $val, $decimals );
+				// A positive sub-unit minimum (e.g. 0.001) must not round down to 0,
+				// which would read as an explicit "free" minimum; keep it positive at
+				// the smallest chargeable unit. Max/prefills are handled further down.
+				if ( DPT_NYP_Settings::META_MIN === $key && $val > 0 && $rounded <= 0 ) {
+					$rounded = pow( 10, -$decimals );
+				}
+				$val = $rounded;
+			}
+			$prices[ $key ] = $val;
 		}
 
 		// Cross-field validation: an inverted range (min > max) would make every

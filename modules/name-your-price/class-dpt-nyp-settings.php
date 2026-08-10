@@ -223,10 +223,26 @@ class DPT_NYP_Settings {
 		// Enforce bounds on the amount that will actually be charged, i.e. the
 		// price rounded to the store's precision - otherwise 10.006 slips past a
 		// 10.00 maximum (rounds up to 10.01) or 10.004 slips past a 10.01 minimum.
-		$price = round( $price, self::price_decimals() );
+		$decimals = self::price_decimals();
+		$price    = round( $price, $decimals );
 
-		$min = self::min_price( $product_id );
-		$max = self::max_price( $product_id );
+		// Round the configured bounds to the same precision, so the interval that
+		// is enforced is the one that can actually be charged. A raw minimum of
+		// 10.004 and maximum of 10.006 both round to a submittable amount (10.00
+		// and 10.01) instead of forming an empty interval no rounded price can hit.
+		$min_raw = self::min_price( $product_id );
+		$max_raw = self::max_price( $product_id );
+		$min     = ( null !== $min_raw ) ? round( $min_raw, $decimals ) : null;
+		$max     = ( null !== $max_raw ) ? round( $max_raw, $decimals ) : null;
+
+		// "Free" is allowed only when the merchant set the minimum to exactly 0.
+		// A positive sub-unit minimum (e.g. 0.001) rounds to 0.00 but must NOT be
+		// read as an explicit zero - it stays positive, floored to the smallest
+		// chargeable unit, so the product does not silently become free.
+		$allow_zero = ( null !== $min_raw && 0.0 === (float) $min_raw );
+		if ( null !== $min_raw && $min_raw > 0 && ( null === $min || $min <= 0 ) ) {
+			$min = pow( 10, -$decimals );
+		}
 
 		$floor = ( null !== $min ) ? $min : 0.0;
 		if ( $price < $floor ) {
@@ -243,12 +259,11 @@ class DPT_NYP_Settings {
 				self::format_price( $max )
 			);
 		}
-		// Free is allowed only when the minimum is explicitly 0. Otherwise the
-		// charged (rounded) price must be a real positive amount - this rejects
-		// a value that rounds to zero at the store's precision even when a
-		// misconfigured sub-unit minimum (e.g. 0.001) is set.
-		$allow_zero = ( null !== $min && 0.0 === (float) $min );
-		if ( ! $allow_zero && round( $price, self::price_decimals() ) <= 0 ) {
+		// Otherwise the charged (rounded) price must be a real positive amount -
+		// this rejects a value that rounds to zero at the store's precision even
+		// when a misconfigured sub-unit minimum (e.g. 0.001) is set. $allow_zero
+		// was computed above from the raw (unrounded) minimum.
+		if ( ! $allow_zero && $price <= 0 ) {
 			return __( 'Please enter a price greater than zero.', 'digitizer-pro-tools' );
 		}
 		return null;
