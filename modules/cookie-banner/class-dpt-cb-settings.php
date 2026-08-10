@@ -40,6 +40,15 @@ class DPT_CB_Settings {
 			'text_color'         => '#333333',
 			'width'              => '700',
 			'max_width_pct'      => '100',
+			// Mobile (<= 640px) box sizing. Defaults mirror the desktop values,
+			// so existing sites keep their current appearance until changed.
+			'width_mobile'         => '700',
+			'max_width_pct_mobile' => '100',
+
+			// Typography: inherit the site/theme font (default), take Elementor's
+			// primary global font, or set an explicit font stack.
+			'font_family'        => 'inherit', // inherit | elementor | custom
+			'font_family_custom' => '',
 			'border_radius'      => '12',
 			'padding'            => '24',
 			'box_shadow'         => '1',
@@ -325,6 +334,12 @@ class DPT_CB_Settings {
 			$merged['default_lang'] = $merged['languages'][0];
 		}
 
+		// Only the three known font modes are meaningful; anything else (older
+		// data, a hand-edited option) falls back to inheriting the site font.
+		if ( ! in_array( $merged['font_family'], array( 'inherit', 'elementor', 'custom' ), true ) ) {
+			$merged['font_family'] = 'inherit';
+		}
+
 		$saved_texts     = ( isset( $opts['texts'] ) && is_array( $opts['texts'] ) ) ? $opts['texts'] : array();
 		$merged['texts'] = array();
 		foreach ( $merged['languages'] as $lang ) {
@@ -340,6 +355,73 @@ class DPT_CB_Settings {
 	public static function get( $key ) {
 		$all = self::all();
 		return isset( $all[ $key ] ) ? $all[ $key ] : '';
+	}
+
+	// --- Typography --------------------------------------------------------
+
+	/**
+	 * Sanitize a CSS font stack. The value is printed inside an inline <style>
+	 * block, so anything that could terminate the declaration or open a new
+	 * rule (;{}()<>@\ and newlines) is stripped rather than escaped - only font
+	 * names, quotes, commas, spaces, dots, hyphens and underscores survive.
+	 *
+	 * @param mixed $value Raw font stack.
+	 * @return string Safe font stack, or '' when nothing usable remains.
+	 */
+	public static function sanitize_font_family( $value ) {
+		if ( ! is_scalar( $value ) ) {
+			return '';
+		}
+		$value = preg_replace( '/[^A-Za-z0-9 ,\'"_.\-]/', '', (string) $value );
+		$value = trim( preg_replace( '/\s+/', ' ', $value ), " \t\n\r\0\x0B," );
+		// A stack this long is not a real font list - treat it as junk.
+		return ( '' === $value || strlen( $value ) > 200 ) ? '' : $value;
+	}
+
+	/**
+	 * Elementor's primary global font family, or '' when Elementor is inactive
+	 * or the active kit does not define one.
+	 *
+	 * @return string
+	 */
+	public static function elementor_primary_font() {
+		if ( ! did_action( 'elementor/loaded' ) && ! class_exists( '\\Elementor\\Plugin' ) ) {
+			return '';
+		}
+		$kit_id = (int) get_option( 'elementor_active_kit' );
+		if ( $kit_id <= 0 ) {
+			return '';
+		}
+		$kit = get_post_meta( $kit_id, '_elementor_page_settings', true );
+		if ( ! is_array( $kit ) || empty( $kit['system_typography'] ) || ! is_array( $kit['system_typography'] ) ) {
+			return '';
+		}
+		foreach ( $kit['system_typography'] as $item ) {
+			if ( is_array( $item ) && isset( $item['_id'] ) && 'primary' === $item['_id'] && ! empty( $item['typography_font_family'] ) ) {
+				return self::sanitize_font_family( $item['typography_font_family'] );
+			}
+		}
+		return '';
+	}
+
+	/**
+	 * The font-family CSS value for the banner, or '' to inherit from the site.
+	 *
+	 * @return string
+	 */
+	public static function font_family_css() {
+		$mode = (string) self::get( 'font_family' );
+
+		if ( 'custom' === $mode ) {
+			return self::sanitize_font_family( self::get( 'font_family_custom' ) );
+		}
+		if ( 'elementor' === $mode ) {
+			$font = self::elementor_primary_font();
+			// Quote the family name and keep a generic fallback, so a missing
+			// Elementor font degrades to the browser default rather than nothing.
+			return ( '' !== $font ) ? '"' . $font . '", sans-serif' : '';
+		}
+		return ''; // inherit - emit no font-family at all.
 	}
 
 	/**

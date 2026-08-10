@@ -1631,3 +1631,51 @@ msgstr "איך להשתמש"
 msgid "Add the shortcode to any post, page or widget:"
 msgstr "הוסיפו את השורטקוד לכל פוסט, עמוד או וידג׳ט:"
 
+msgid "Font"
+msgstr "פונט"
+
+msgid "Font family"
+msgstr "משפחת פונט"
+
+msgid "Inherit from the site (recommended)"
+msgstr "ירושה מהאתר (מומלץ)"
+
+msgid "Elementor primary font"
+msgstr "הפונט הראשי של אלמנטור"
+
+msgid "Custom font stack"
+msgstr "פונט מותאם אישית"
+
+msgid "By default the banner inherits the font of the page, so it matches your theme automatically. Pick Elementor to follow its primary global font explicitly, or set your own stack below."
+msgstr "כברירת מחדל הבאנר יורש את הפונט של העמוד, כך שהוא מתאים לתבנית שלכם אוטומטית. בחרו באלמנטור כדי לעקוב במפורש אחרי הפונט הגלובלי הראשי שלו, או הגדירו פונט משלכם למטה."
+
+msgid "Elementor primary font detected: %s"
+msgstr "זוהה פונט ראשי של אלמנטור: %s"
+
+msgid "No Elementor primary font detected on this site - that option will fall back to inheriting."
+msgstr "לא זוהה פונט ראשי של אלמנטור באתר זה - אפשרות זו תחזור לירושה מהאתר."
+
+msgid "Used only when \"Custom font stack\" is selected. The font itself must already be loaded by the theme - this setting does not load web fonts."
+msgstr "בשימוש רק כאשר נבחר \"פונט מותאם אישית\". הפונט עצמו חייב להיות כבר נטען על ידי התבנית - הגדרה זו אינה טוענת פונטים."
+
+msgid "Max width on desktop (px)"
+msgstr "רוחב מרבי בדסקטופ (px)"
+
+msgid "Width on desktop (%)"
+msgstr "רוחב בדסקטופ (%)"
+
+msgid "Percentage of the available width, capped by the max width above."
+msgstr "אחוז מהרוחב הזמין, מוגבל ברוחב המרבי שלמעלה."
+
+msgid "Max width on mobile (px)"
+msgstr "רוחב מרבי במובייל (px)"
+
+msgid "Applied below 640px wide, so the banner can be a narrow card on desktop and full-width on phones."
+msgstr "חל מתחת לרוחב 640px, כך שהבאנר יכול להיות כרטיס צר בדסקטופ ורוחב מלא בטלפונים."
+
+msgid "Width on mobile (%)"
+msgstr "רוחב במובייל (%)"
+
+msgid "Relevant for the centered modal and corner positions - full-width bars size automatically. For a compact corner card try 380-450px."
+msgstr "רלוונטי למודאל הממורכז ולמיקומי הפינות - פסים ברוחב מלא מתאימים את עצמם. לכרטיס פינה קומפקטי נסו 380-450px."
+

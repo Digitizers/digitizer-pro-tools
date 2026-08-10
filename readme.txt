@@ -6,7 +6,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.15.0
+Stable tag: 1.16.0
 License: GPLv2 or later
 
 One toolbox plugin by Digitizer. Modules: multilingual cookie-consent banner, one-click post duplication, auto-update email silencing.
@@ -26,6 +26,8 @@ A multilingual cookie-consent banner:
 * 4 cookie categories (essential, functional, analytics, marketing) with per-category script blocking until consent (GA, GTM, Facebook Pixel, any snippet)
 * Floating "manage cookies" button so visitors can change preferences at any time
 * Rich design controls: colors, background image with overlay, typography with shadows, per-button styling, border, page overlay
+* Separate box width for desktop and mobile - a narrow corner card on desktop, full-width on phones
+* Font control: inherit the site font (default), follow Elementor's primary global font, or set a custom font stack
 * Cache-proof: banner renders hidden and an inline head precheck decides visibility, so page caches / CDNs never show it to visitors who already answered
 * Consent stored in a cookie and localStorage (cross-healing), with correct cookie domain on double-suffix TLDs (.co.il, .co.uk, .com.au)
 * Consent version field - bump it to re-prompt all visitors (popular page caches are purged automatically on change)
@@ -188,6 +190,10 @@ Admin interface is in English with a full Hebrew translation.
 5. Save and check the site
 
 == Changelog ==
+
+= 1.16.0 =
+* Cookie Banner: separate box width for desktop and mobile, so the banner can be a narrow corner card on desktop and full-width on phones
+* Cookie Banner: font control - inherit the site font (default), follow Elementor's primary global font, or set a custom font stack; the close button no longer forces Arial
 
 = 1.15.0 =
 * Added self-updates from GitHub: the plugin now offers its own updates on the WordPress Plugins and Dashboard > Updates screens, pulled from tagged GitHub Releases of the public repository (via the bundled Plugin Update Checker library)

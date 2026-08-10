@@ -1631,3 +1631,51 @@ msgstr ""
 msgid "Add the shortcode to any post, page or widget:"
 msgstr ""
 
+msgid "Font"
+msgstr ""
+
+msgid "Font family"
+msgstr ""
+
+msgid "Inherit from the site (recommended)"
+msgstr ""
+
+msgid "Elementor primary font"
+msgstr ""
+
+msgid "Custom font stack"
+msgstr ""
+
+msgid "By default the banner inherits the font of the page, so it matches your theme automatically. Pick Elementor to follow its primary global font explicitly, or set your own stack below."
+msgstr ""
+
+msgid "Elementor primary font detected: %s"
+msgstr ""
+
+msgid "No Elementor primary font detected on this site - that option will fall back to inheriting."
+msgstr ""
+
+msgid "Used only when \"Custom font stack\" is selected. The font itself must already be loaded by the theme - this setting does not load web fonts."
+msgstr ""
+
+msgid "Max width on desktop (px)"
+msgstr ""
+
+msgid "Width on desktop (%)"
+msgstr ""
+
+msgid "Percentage of the available width, capped by the max width above."
+msgstr ""
+
+msgid "Max width on mobile (px)"
+msgstr ""
+
+msgid "Applied below 640px wide, so the banner can be a narrow card on desktop and full-width on phones."
+msgstr ""
+
+msgid "Width on mobile (%)"
+msgstr ""
+
+msgid "Relevant for the centered modal and corner positions - full-width bars size automatically. For a compact corner card try 380-450px."
+msgstr ""
+

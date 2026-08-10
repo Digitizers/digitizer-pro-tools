@@ -142,7 +142,9 @@
     align-items: center;
     justify-content: center;
     line-height: 1;
-    font-family: Arial, sans-serif;
+    /* Inherit like the rest of the banner, so the close glyph matches the
+       site (or the configured) font instead of being pinned to Arial. */
+    font-family: inherit;
     z-index: 2;
 }
 #dpt-cb-banner .dpt-cb-close:hover {

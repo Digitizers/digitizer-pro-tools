@@ -377,9 +377,20 @@ class DPT_CB_Frontend {
 		$fb_offset_y_m = max( 0, (int) $o['float_offset_y_mobile'] );
 		$fb_pos_d      = $this->float_button_position_css( $fb_corner, $fb_offset_x_d, $fb_offset_y_d );
 		$fb_pos_m      = $this->float_button_position_css( $fb_corner, $fb_offset_x_m, $fb_offset_y_m );
+		// '' when the banner should inherit the site font; already sanitized to
+		// a bare font stack (no ; { } etc.), so it is safe inside <style>.
+		$font_family   = DPT_CB_Settings::font_family_css();
 		?>
 		<style id="dpt-cb-inline-css">
 			#dpt-cb-overlay { background: <?php echo esc_attr( $overlay_rgba ); ?>; }
+			<?php if ( '' !== $font_family ) : ?>
+			/* Explicit font stack (Elementor's primary font or a custom one).
+			   When set to "inherit" nothing is emitted and the banner keeps
+			   inheriting the site/theme font. */
+			#dpt-cb-banner, #dpt-cb-banner .dpt-cb-box, #dpt-cb-float-button {
+				font-family: <?php echo $font_family; // Already sanitized to a bare font stack. ?>;
+			}
+			<?php endif; ?>
 			#dpt-cb-banner .dpt-cb-box {
 				background-color: <?php echo esc_attr( $o['bg_color'] ); ?>;
 				color: <?php echo $text_color; ?>;
@@ -446,6 +457,10 @@ class DPT_CB_Frontend {
 				<?php echo $fb_pos_d; ?>
 			}
 			@media (max-width: 640px) {
+				#dpt-cb-banner .dpt-cb-box {
+					max-width: <?php echo (int) $o['width_mobile']; ?>px;
+					width: <?php echo (int) $o['max_width_pct_mobile']; ?>%;
+				}
 				#dpt-cb-float-button {
 					width: <?php echo $fb_size_m; ?>px !important;
 					height: <?php echo $fb_size_m; ?>px !important;
