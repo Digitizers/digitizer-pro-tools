@@ -169,43 +169,85 @@ class DPT_EMB_Settings {
 			}
 			return null;
 		}
+		// Legacy Drive share link: drive.google.com/open?id=FILE_ID. Map it to
+		// the modern /file/d/FILE_ID/preview shape.
+		if ( 'drive.google.com' === $host && '/open' === $path ) {
+			$id = self::query_param( $url, 'id' );
+			if ( null !== $id && preg_match( '/^[a-zA-Z0-9_-]+$/', $id ) ) {
+				return $origin . '/file/d/' . $id . '/preview' . self::preview_suffix( $url );
+			}
+			return null;
+		}
+
 		// Docs / Sheets / Slides / Drive files: swap the trailing action for
 		// /preview, which Google renders as a read-only embeddable view.
 		if ( preg_match( '#^/([a-zA-Z]+)/d/(e/)?([a-zA-Z0-9_-]+)#', $path, $m ) ) {
 			$preview = $origin . '/' . strtolower( $m[1] ) . '/d/' . ( ! empty( $m[2] ) ? 'e/' : '' ) . $m[3] . '/preview';
-			// Carry the parameters that change what the preview shows:
-			//  - resourcekey: without it a link-protected file shows an error page.
-			//  - gid: selects a specific Sheets worksheet (else the first is shown).
-			//  - tab: selects a specific Google Docs tab (else the default tab).
-			// Everything else (usp, etc.) is dropped as noise.
-			$allowed = array( 'resourcekey', 'gid', 'tab' );
-			$carry   = array();
-			$query   = (string) wp_parse_url( $url, PHP_URL_QUERY );
-			foreach ( ( '' !== $query ) ? explode( '&', $query ) : array() as $pair ) {
-				$key = strstr( $pair, '=', true );
-				if ( false !== $key && in_array( $key, $allowed, true ) && strlen( $pair ) > strlen( $key ) + 1 ) {
-					$carry[ $key ] = $pair;
-				}
-			}
-			// A worksheet gid is often only in the fragment (#gid=NNN).
-			if ( ! isset( $carry['gid'] ) ) {
-				$fragment = (string) wp_parse_url( $url, PHP_URL_FRAGMENT );
-				if ( preg_match( '/^gid=(\d+)$/', $fragment, $fm ) ) {
-					$carry['gid'] = 'gid=' . $fm[1];
-				}
-			}
-			$ordered = array();
-			foreach ( $allowed as $key ) {
-				if ( isset( $carry[ $key ] ) ) {
-					$ordered[] = $carry[ $key ];
-				}
-			}
-			if ( ! empty( $ordered ) ) {
-				$preview .= '?' . implode( '&', $ordered );
-			}
-			return $preview;
+			return $preview . self::preview_suffix( $url );
 		}
 		return null;
+	}
+
+	/**
+	 * The raw value of a named query parameter, or null. Values are kept verbatim
+	 * (no parse_str), so dotted keys/values are not mangled.
+	 *
+	 * @param string $url  Full URL.
+	 * @param string $name Parameter name.
+	 * @return string|null
+	 */
+	private static function query_param( $url, $name ) {
+		$query = (string) wp_parse_url( $url, PHP_URL_QUERY );
+		foreach ( ( '' !== $query ) ? explode( '&', $query ) : array() as $pair ) {
+			if ( 0 === strpos( $pair, $name . '=' ) ) {
+				return substr( $pair, strlen( $name ) + 1 );
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * The query/fragment suffix to carry onto a Google /preview URL: only the
+	 * parameters that change what is shown.
+	 *  - resourcekey (query): without it a link-protected file errors.
+	 *  - gid (query or #fragment): selects a Sheets worksheet.
+	 *  - tab (query): selects a Google Docs tab.
+	 *  - slide (#fragment): selects a Google Slides slide.
+	 * Everything else (usp, etc.) is dropped as noise.
+	 *
+	 * @param string $url Full URL.
+	 * @return string
+	 */
+	private static function preview_suffix( $url ) {
+		$allowed = array( 'resourcekey', 'gid', 'tab' );
+		$carry   = array();
+		$query   = (string) wp_parse_url( $url, PHP_URL_QUERY );
+		foreach ( ( '' !== $query ) ? explode( '&', $query ) : array() as $pair ) {
+			$key = strstr( $pair, '=', true );
+			if ( false !== $key && in_array( $key, $allowed, true ) && strlen( $pair ) > strlen( $key ) + 1 ) {
+				$carry[ $key ] = $pair;
+			}
+		}
+
+		$fragment = (string) wp_parse_url( $url, PHP_URL_FRAGMENT );
+		// A worksheet gid is often only in the fragment (#gid=NNN).
+		if ( ! isset( $carry['gid'] ) && preg_match( '/^gid=(\d+)$/', $fragment, $fm ) ) {
+			$carry['gid'] = 'gid=' . $fm[1];
+		}
+
+		$ordered = array();
+		foreach ( $allowed as $key ) {
+			if ( isset( $carry[ $key ] ) ) {
+				$ordered[] = $carry[ $key ];
+			}
+		}
+		$suffix = ! empty( $ordered ) ? '?' . implode( '&', $ordered ) : '';
+
+		// The Slides slide selector stays a fragment (#slide=id.gXXX).
+		if ( preg_match( '/^slide=([a-zA-Z0-9_.\-]+)$/', $fragment, $sm ) ) {
+			$suffix .= '#slide=' . $sm[1];
+		}
+		return $suffix;
 	}
 
 	public static function save( $raw ) {
