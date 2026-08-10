@@ -1,7 +1,5 @@
 === Digitizer Pro Tools ===
-Contributors: digitizers
-Author: Digitizer
-Author URI: https://www.digitizer.co.il
+Contributors: benkalsky
 Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 6.8
