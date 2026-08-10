@@ -1679,3 +1679,6 @@ msgstr "רוחב במובייל (%)"
 msgid "Relevant for the centered modal and corner positions - full-width bars size automatically. For a compact corner card try 380-450px."
 msgstr "רלוונטי למודאל הממורכז ולמיקומי הפינות - פסים ברוחב מלא מתאימים את עצמם. לכרטיס פינה קומפקטי נסו 380-450px."
 
+msgid "For a compact corner card try 380-450px. Corner positions use this pixel width directly (the percentage below does not apply to them)."
+msgstr "לכרטיס פינה קומפקטי נסו 380-450px. מיקומי פינה משתמשים ברוחב בפיקסלים ישירות (האחוז שלמטה אינו חל עליהם)."
+

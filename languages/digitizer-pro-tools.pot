@@ -1679,3 +1679,6 @@ msgstr ""
 msgid "Relevant for the centered modal and corner positions - full-width bars size automatically. For a compact corner card try 380-450px."
 msgstr ""
 
+msgid "For a compact corner card try 380-450px. Corner positions use this pixel width directly (the percentage below does not apply to them)."
+msgstr ""
+

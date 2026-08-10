@@ -563,5 +563,6 @@ return array (
     'Applied below 640px wide, so the banner can be a narrow card on desktop and full-width on phones.' => 'חל מתחת לרוחב 640px, כך שהבאנר יכול להיות כרטיס צר בדסקטופ ורוחב מלא בטלפונים.',
     'Width on mobile (%)' => 'רוחב במובייל (%)',
     'Relevant for the centered modal and corner positions - full-width bars size automatically. For a compact corner card try 380-450px.' => 'רלוונטי למודאל הממורכז ולמיקומי הפינות - פסים ברוחב מלא מתאימים את עצמם. לכרטיס פינה קומפקטי נסו 380-450px.',
+    'For a compact corner card try 380-450px. Corner positions use this pixel width directly (the percentage below does not apply to them).' => 'לכרטיס פינה קומפקטי נסו 380-450px. מיקומי פינה משתמשים ברוחב בפיקסלים ישירות (האחוז שלמטה אינו חל עליהם).',
   ),
 );

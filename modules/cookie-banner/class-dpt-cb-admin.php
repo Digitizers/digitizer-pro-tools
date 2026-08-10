@@ -713,7 +713,7 @@ class DPT_CB_Admin {
 				<th><label for="dpt_cb_width"><?php esc_html_e( 'Max width on desktop (px)', 'digitizer-pro-tools' ); ?></label></th>
 				<td>
 					<input type="number" min="200" id="dpt_cb_width" name="dpt_cb[width]" value="<?php echo esc_attr( $o['width'] ); ?>" /> px
-					<p class="description"><?php esc_html_e( 'Relevant for the centered modal and corner positions - full-width bars size automatically. For a compact corner card try 380-450px.', 'digitizer-pro-tools' ); ?></p>
+					<p class="description"><?php esc_html_e( 'For a compact corner card try 380-450px. Corner positions use this pixel width directly (the percentage below does not apply to them).', 'digitizer-pro-tools' ); ?></p>
 				</td>
 			</tr>
 			<tr>

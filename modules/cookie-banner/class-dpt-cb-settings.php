@@ -274,6 +274,36 @@ class DPT_CB_Settings {
 			$merged['max_width_pct'] = '100';
 		}
 
+		// Responsive width: the box used to be sized by hard-coded CSS per
+		// position, so the stored width/max_width_pct were NOT what a corner or
+		// a phone actually rendered. Now that the settings are authoritative for
+		// every position and breakpoint, seed the new keys from each site's
+		// EFFECTIVE current rendering, so upgrading changes nothing on screen.
+		// Fresh installs (no saved options) just take defaults().
+		if ( ! empty( $existing ) && ! isset( $existing['width_mobile'], $existing['max_width_pct_mobile'] ) ) {
+			$pos       = isset( $existing['position'] ) ? (string) $existing['position'] : 'bottom';
+			$is_corner = in_array( $pos, array( 'bottom-left', 'bottom-right' ), true );
+			$is_bar    = in_array( $pos, array( 'bottom', 'top' ), true );
+
+			// Desktop: corners rendered a fixed 380px box regardless of the
+			// setting, so capture that as their (now editable) width.
+			if ( $is_corner ) {
+				$merged['width']         = '380';
+				$merged['max_width_pct'] = '100';
+			}
+
+			// Mobile: bars and corners were forced full width by CSS; the
+			// centered modal kept using the desktop values.
+			if ( $is_bar || $is_corner ) {
+				// 640px is the mobile breakpoint itself, so this never caps.
+				$merged['width_mobile']         = '640';
+				$merged['max_width_pct_mobile'] = '100';
+			} else {
+				$merged['width_mobile']         = isset( $existing['width'] ) ? (string) $existing['width'] : $defaults['width'];
+				$merged['max_width_pct_mobile'] = isset( $existing['max_width_pct'] ) ? (string) $existing['max_width_pct'] : $defaults['max_width_pct'];
+			}
+		}
+
 		// Deep-merge texts: keep saved languages, fill in missing keys per language.
 		$languages = ( isset( $existing['languages'] ) && is_array( $existing['languages'] ) ) ? $existing['languages'] : $defaults['languages'];
 		$texts     = ( isset( $existing['texts'] ) && is_array( $existing['texts'] ) ) ? $existing['texts'] : array();
