@@ -423,8 +423,10 @@ class DPT_CB_Frontend {
 			<?php if ( $is_corner ) : ?>
 				/* A corner banner is shrink-to-fit (only bottom/left|right are
 				   set), so a percentage width has nothing to resolve against -
-				   the box takes an explicit pixel width, capped to the viewport. */
-				width: <?php echo (int) $o['width']; ?>px !important;
+				   it takes its own explicit pixel width, capped to the viewport.
+				   Kept separate from the width/percentage pair so switching
+				   positions does not overwrite either setting. */
+				width: <?php echo (int) $o['width_corner']; ?>px !important;
 				max-width: 95vw !important;
 			<?php else : ?>
 				max-width: <?php echo (int) $o['width']; ?>px !important;

@@ -44,6 +44,11 @@ class DPT_CB_Settings {
 			// so existing sites keep their current appearance until changed.
 			'width_mobile'         => '700',
 			'max_width_pct_mobile' => '100',
+			// Corner banners are shrink-to-fit, so they take an explicit pixel
+			// width of their own instead of the width/percentage pair. 380 is
+			// what the corner CSS hard-coded before this became configurable,
+			// so existing corner banners keep their exact size.
+			'width_corner'         => '380',
 
 			// Typography: inherit the site/theme font (default), take Elementor's
 			// primary global font, or set an explicit font stack.
@@ -280,17 +285,14 @@ class DPT_CB_Settings {
 		// every position and breakpoint, seed the new keys from each site's
 		// EFFECTIVE current rendering, so upgrading changes nothing on screen.
 		// Fresh installs (no saved options) just take defaults().
+		// Only the NEW keys are initialised here - the saved desktop width and
+		// percentage are left exactly as the site stored them. What a corner
+		// banner used to render (a hard-coded 380px) is carried by the separate
+		// width_corner setting, whose default is that same 380px.
 		if ( ! empty( $existing ) && ! isset( $existing['width_mobile'], $existing['max_width_pct_mobile'] ) ) {
 			$pos       = isset( $existing['position'] ) ? (string) $existing['position'] : 'bottom';
 			$is_corner = in_array( $pos, array( 'bottom-left', 'bottom-right' ), true );
 			$is_bar    = in_array( $pos, array( 'bottom', 'top' ), true );
-
-			// Desktop: corners rendered a fixed 380px box regardless of the
-			// setting, so capture that as their (now editable) width.
-			if ( $is_corner ) {
-				$merged['width']         = '380';
-				$merged['max_width_pct'] = '100';
-			}
 
 			// Mobile: bars and corners were forced full width by CSS; the
 			// centered modal kept using the desktop values.

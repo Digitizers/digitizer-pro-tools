@@ -564,5 +564,8 @@ return array (
     'Width on mobile (%)' => 'רוחב במובייל (%)',
     'Relevant for the centered modal and corner positions - full-width bars size automatically. For a compact corner card try 380-450px.' => 'רלוונטי למודאל הממורכז ולמיקומי הפינות - פסים ברוחב מלא מתאימים את עצמם. לכרטיס פינה קומפקטי נסו 380-450px.',
     'For a compact corner card try 380-450px. Corner positions use this pixel width directly (the percentage below does not apply to them).' => 'לכרטיס פינה קומפקטי נסו 380-450px. מיקומי פינה משתמשים ברוחב בפיקסלים ישירות (האחוז שלמטה אינו חל עליהם).',
+    'Used by the full-width bars and the centered modal. Corner positions have their own width below.' => 'בשימוש עבור הפסים ברוחב מלא והמודאל הממורכז. למיקומי פינה יש רוחב משלהם למטה.',
+    'Corner width on desktop (px)' => 'רוחב פינה בדסקטופ (px)',
+    'Only for the bottom-left / bottom-right corner positions, which sit next to the content instead of stretching across it. Try 380-450px for a compact card.' => 'רק עבור מיקומי הפינה (שמאל למטה / ימין למטה), היושבים לצד התוכן במקום להימתח לרוחבו. נסו 380-450px לכרטיס קומפקטי.',
   ),
 );
