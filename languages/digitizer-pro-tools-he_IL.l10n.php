@@ -567,5 +567,7 @@ return array (
     'Used by the full-width bars and the centered modal. Corner positions have their own width below.' => 'בשימוש עבור הפסים ברוחב מלא והמודאל הממורכז. למיקומי פינה יש רוחב משלהם למטה.',
     'Corner width on desktop (px)' => 'רוחב פינה בדסקטופ (px)',
     'Only for the bottom-left / bottom-right corner positions, which sit next to the content instead of stretching across it. Try 380-450px for a compact card.' => 'רק עבור מיקומי הפינה (שמאל למטה / ימין למטה), היושבים לצד התוכן במקום להימתח לרוחבו. נסו 380-450px לכרטיס קומפקטי.',
+    'Syntax-highlighted code block.' => 'בלוק קוד עם הדגשת תחביר.',
+    'Code settings' => 'הגדרות קוד',
   ),
 );

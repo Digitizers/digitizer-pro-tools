@@ -70,7 +70,10 @@ class DPT_Hide_Login_Module extends DPT_Module {
 	public function classify_request() {
 		global $pagenow;
 
-		$uri  = isset( $_SERVER['REQUEST_URI'] ) ? rawurldecode( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '';
+		// Not passed through a text sanitizer: only the path component is read
+		// out of it by wp_parse_url() below and compared against a known slug,
+		// and sanitizing would corrupt legitimately encoded characters.
+		$uri  = isset( $_SERVER['REQUEST_URI'] ) ? rawurldecode( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Only the parsed path is used, see above.
 		$path = (string) wp_parse_url( $uri, PHP_URL_PATH );
 
 		if ( ! is_admin() && 'wp-login.php' === strtolower( basename( $path ) ) ) {
@@ -93,6 +96,7 @@ class DPT_Hide_Login_Module extends DPT_Module {
 			// Plain permalinks: the slug is a query key, but only the home
 			// URL form (/?slug) is the login endpoint - a normal page like
 			// /some-page/?login=1 must not be hijacked.
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Presence-only routing check on a public URL, not a state change.
 			$match = isset( $_GET[ DPT_HL_Settings::slug() ] ) && untrailingslashit( $path ) === $home_path;
 		}
 

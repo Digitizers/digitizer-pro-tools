@@ -27,8 +27,9 @@ class DPT_RM_Admin {
 		);
 	}
 
+	// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only display flags set by our own post-save redirects.
 	public function maybe_show_notices() {
-		if ( ! isset( $_GET['page'] ) || self::PAGE_SLUG !== dpt_current_admin_page() ) {
+		if ( self::PAGE_SLUG !== dpt_current_admin_page() ) {
 			return;
 		}
 		if ( isset( $_GET['dpt_saved'] ) ) {
@@ -53,6 +54,7 @@ class DPT_RM_Admin {
 			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Send log cleared.', 'digitizer-pro-tools' ) . '</p></div>';
 		}
 	}
+	// phpcs:enable WordPress.Security.NonceVerification.Recommended
 
 	public function handle_save() {
 		if ( ! current_user_can( 'manage_options' ) ) {
@@ -60,7 +62,10 @@ class DPT_RM_Admin {
 		}
 		check_admin_referer( 'dpt_rm_settings' );
 
-		$data = isset( $_POST['dpt_rm'] ) && is_array( $_POST['dpt_rm'] ) ? $_POST['dpt_rm'] : array();
+		// Pass the raw POST array: the settings class unslashes and sanitizes
+		// each field itself, so unslashing here would double-unslash text
+		// fields (a literal "C:\\docs" would lose its backslash).
+		$data = isset( $_POST['dpt_rm'] ) && is_array( $_POST['dpt_rm'] ) ? $_POST['dpt_rm'] : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- Sanitized per field in the settings class.
 		DPT_RM_Settings::save( $data );
 
 		wp_safe_redirect( add_query_arg( array( 'page' => self::PAGE_SLUG, 'dpt_saved' => 1 ), admin_url( 'admin.php' ) ) );

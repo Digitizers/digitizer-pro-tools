@@ -25,8 +25,9 @@ class DPT_HL_Admin {
 		);
 	}
 
+	// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only display flags set by our own post-save redirects.
 	public function maybe_show_notices() {
-		if ( ! isset( $_GET['page'] ) || self::PAGE_SLUG !== dpt_current_admin_page() ) {
+		if ( self::PAGE_SLUG !== dpt_current_admin_page() ) {
 			return;
 		}
 		if ( isset( $_GET['dpt_saved'] ) ) {
@@ -36,6 +37,7 @@ class DPT_HL_Admin {
 			echo '<div class="notice notice-error is-dismissible"><p>' . esc_html__( 'That slug is empty, invalid or reserved by WordPress - the previous slug was kept.', 'digitizer-pro-tools' ) . '</p></div>';
 		}
 	}
+	// phpcs:enable WordPress.Security.NonceVerification.Recommended
 
 	public function handle_save() {
 		if ( ! current_user_can( 'manage_options' ) ) {
@@ -43,7 +45,10 @@ class DPT_HL_Admin {
 		}
 		check_admin_referer( 'dpt_hl_settings' );
 
-		$data = isset( $_POST['dpt_hl'] ) && is_array( $_POST['dpt_hl'] ) ? $_POST['dpt_hl'] : array();
+		// Pass the raw POST array: the settings class unslashes and sanitizes
+		// each field itself, so unslashing here would double-unslash text
+		// fields (a literal "C:\\docs" would lose its backslash).
+		$data = isset( $_POST['dpt_hl'] ) && is_array( $_POST['dpt_hl'] ) ? $_POST['dpt_hl'] : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- Sanitized per field in the settings class.
 
 		$requested = isset( $data['slug'] ) && ! is_array( $data['slug'] ) ? wp_unslash( $data['slug'] ) : '';
 		$rejected  = '' === DPT_HL_Settings::sanitize_slug( $requested );

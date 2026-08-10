@@ -337,21 +337,23 @@ class DPT_Enlighter_Module extends DPT_Module {
 		if ( ! function_exists( 'wp_add_inline_script' ) ) {
 			return;
 		}
+		// Source string => its translation. Written out one literal call per
+		// string rather than looping over a list: the string extractor (and
+		// WPCS) only recognises literal arguments to __().
 		$strings = array(
-			'Code (Enlighter)',
-			'Syntax-highlighted code block.',
-			'Code settings',
-			'Language',
-			'Line numbers',
-			'Copy button',
-			'Code',
+			'Code (Enlighter)'               => __( 'Code (Enlighter)', 'digitizer-pro-tools' ),
+			'Syntax-highlighted code block.' => __( 'Syntax-highlighted code block.', 'digitizer-pro-tools' ),
+			'Code settings'                  => __( 'Code settings', 'digitizer-pro-tools' ),
+			'Language'                       => __( 'Language', 'digitizer-pro-tools' ),
+			'Line numbers'                   => __( 'Line numbers', 'digitizer-pro-tools' ),
+			'Copy button'                    => __( 'Copy button', 'digitizer-pro-tools' ),
+			'Code'                           => __( 'Code', 'digitizer-pro-tools' ),
 		);
 		$data = array( '' => array( 'domain' => 'digitizer-pro-tools', 'lang' => get_locale() ) );
 		$has  = false;
-		foreach ( $strings as $s ) {
-			$t = __( $s, 'digitizer-pro-tools' );
-			if ( $t !== $s ) {
-				$data[ $s ] = array( $t );
+		foreach ( $strings as $source => $translated ) {
+			if ( $translated !== $source ) {
+				$data[ $source ] = array( $translated );
 				$has = true;
 			}
 		}

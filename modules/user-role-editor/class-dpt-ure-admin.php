@@ -42,8 +42,9 @@ class DPT_URE_Admin {
 		set_transient( 'dpt_ure_error_' . get_current_user_id(), $message, 60 );
 	}
 
+	// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only display flags set by our own post-save redirects.
 	public function maybe_show_notices() {
-		if ( ! isset( $_GET['page'] ) || self::PAGE_SLUG !== dpt_current_admin_page() ) {
+		if ( self::PAGE_SLUG !== dpt_current_admin_page() ) {
 			return;
 		}
 		$err = get_transient( 'dpt_ure_error_' . get_current_user_id() );
@@ -55,6 +56,7 @@ class DPT_URE_Admin {
 			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Changes saved.', 'digitizer-pro-tools' ) . '</p></div>';
 		}
 	}
+	// phpcs:enable WordPress.Security.NonceVerification.Recommended
 
 	private function guard() {
 		if ( ! current_user_can( $this->cap() ) ) {
@@ -70,6 +72,15 @@ class DPT_URE_Admin {
 		$this->redirect( $ok_args );
 	}
 
+	/*
+	 * Every handler below verifies a nonce and a capability first, then hands
+	 * the unslashed input to DPT_URE_Manager, which is the single place that
+	 * validates it: role and capability keys go through sanitize_role_key() /
+	 * sanitize_capability() and anything else is rejected with a WP_Error. The
+	 * values are deliberately not pre-sanitized here - a role key mangled on
+	 * the way in would silently address the wrong role.
+	 */
+	// phpcs:disable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Validated in DPT_URE_Manager, see above.
 	public function handle_save_caps() {
 		$this->guard();
 		check_admin_referer( 'dpt_ure_save_caps' );
@@ -103,10 +114,12 @@ class DPT_URE_Admin {
 		$grants = isset( $_POST['dpt_ure_grant'] ) && is_array( $_POST['dpt_ure_grant'] ) ? wp_unslash( $_POST['dpt_ure_grant'] ) : array();
 		$this->result( DPT_URE_Manager::add_capability( $cap, $grants ), array( 'dpt_saved' => 1 ) );
 	}
+	// phpcs:enable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 
 	private function current_role() {
 		$roles   = DPT_URE_Manager::get_roles();
 		$default = isset( $roles['administrator'] ) ? 'administrator' : ( $roles ? array_key_first( $roles ) : '' );
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Read-only role selection; sanitize_role_key() rejects anything else.
 		$role    = isset( $_GET['role'] ) ? DPT_URE_Manager::sanitize_role_key( wp_unslash( $_GET['role'] ) ) : $default;
 		if ( ! DPT_URE_Manager::role_exists( $role ) ) {
 			$role = $default;

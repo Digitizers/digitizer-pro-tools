@@ -131,7 +131,7 @@ class DPT_Name_Your_Price_Module extends DPT_Module {
 		$decimals = DPT_NYP_Settings::price_decimals();
 		$prices   = array();
 		foreach ( array( DPT_NYP_Settings::META_MIN, DPT_NYP_Settings::META_MAX, DPT_NYP_Settings::META_SUGGESTED, DPT_NYP_Settings::META_DEFAULT ) as $key ) {
-			$raw = isset( $_POST[ $key ] ) ? wp_unslash( $_POST[ $key ] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+			$raw = isset( $_POST[ $key ] ) ? wp_unslash( $_POST[ $key ] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitize_price() below rejects anything that is not a number.
 			$val = DPT_NYP_Settings::sanitize_price( $raw );
 			// Persist the bounds at the store's precision, so the stored config is
 			// the same interval that check_price_range() enforces at runtime (a raw
@@ -371,7 +371,7 @@ class DPT_Name_Your_Price_Module extends DPT_Module {
 		if ( ! $this->nyp_active( $product_id ) ) {
 			return $passed;
 		}
-		$raw   = isset( $_POST['dpt_nyp_price'] ) ? wp_unslash( $_POST['dpt_nyp_price'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$raw   = isset( $_POST['dpt_nyp_price'] ) ? wp_unslash( $_POST['dpt_nyp_price'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- validate_price() below rejects anything that is not a number in range.
 		$error = DPT_NYP_Settings::validate_price( $product_id, $raw );
 		if ( null !== $error ) {
 			if ( function_exists( 'wc_add_notice' ) ) {
@@ -394,7 +394,7 @@ class DPT_Name_Your_Price_Module extends DPT_Module {
 		if ( ! $this->nyp_active( $product_id ) ) {
 			return $cart_item_data;
 		}
-		$raw = isset( $_POST['dpt_nyp_price'] ) ? wp_unslash( $_POST['dpt_nyp_price'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$raw = isset( $_POST['dpt_nyp_price'] ) ? wp_unslash( $_POST['dpt_nyp_price'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- validate_price() below rejects anything that is not a number in range.
 		// Re-validate here too: add_cart_item_data can be reached directly
 		// (e.g. programmatic add) without passing through the validation filter.
 		if ( null !== DPT_NYP_Settings::validate_price( $product_id, $raw ) ) {

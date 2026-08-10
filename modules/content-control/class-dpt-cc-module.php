@@ -159,7 +159,9 @@ class DPT_Content_Control_Module extends DPT_Module {
 		// the site lives in, so combine it with the trusted scheme+host from
 		// home_url() rather than home_url( $req ), which would double the
 		// subdirectory prefix (e.g. /site/site/page/).
-		$req    = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '/';
+		// Not passed through a text sanitizer: the value is re-assembled into a
+		// URL below and only ever compared, never printed.
+		$req    = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '/'; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Compared, never output, see above.
 		$home   = wp_parse_url( home_url() );
 		$scheme = ! empty( $home['scheme'] ) ? $home['scheme'] : ( is_ssl() ? 'https' : 'http' );
 		$host   = ! empty( $home['host'] ) ? $home['host'] : '';

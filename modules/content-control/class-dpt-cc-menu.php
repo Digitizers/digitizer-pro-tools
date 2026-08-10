@@ -46,7 +46,7 @@ class DPT_CC_Menu {
 
 	public function save( $menu_id, $item_id, $args ) {
 		$nonce_key = self::NONCE . '_' . $item_id;
-		if ( ! isset( $_POST[ $nonce_key ] ) || ! wp_verify_nonce( wp_unslash( $_POST[ $nonce_key ] ), self::NONCE ) ) {
+		if ( ! isset( $_POST[ $nonce_key ] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST[ $nonce_key ] ) ), self::NONCE ) ) {
 			return;
 		}
 		if ( ! current_user_can( 'edit_theme_options' ) ) {
@@ -55,11 +55,13 @@ class DPT_CC_Menu {
 
 		$visibility = 'public';
 		if ( isset( $_POST['dpt_cc_menu_visibility'][ $item_id ] ) ) {
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitize_visibility() allowlists the value.
 			$visibility = DPT_CC_Access::sanitize_visibility( wp_unslash( $_POST['dpt_cc_menu_visibility'][ $item_id ] ) );
 		}
 
 		$roles = array();
 		if ( isset( $_POST['dpt_cc_menu_roles'][ $item_id ] ) ) {
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Split and passed through sanitize_key() on the next line.
 			$raw = (string) wp_unslash( $_POST['dpt_cc_menu_roles'][ $item_id ] );
 			$roles = array_values( array_filter( array_map( 'sanitize_key', preg_split( '/[\s,]+/', $raw ) ) ) );
 		}
