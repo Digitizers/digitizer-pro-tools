@@ -16,6 +16,8 @@ One toolbox plugin by Digitizer. Modules: multilingual cookie-consent banner, on
 
 Digitizer Pro Tools is a modular plugin that consolidates the tools Digitizers deploys on client sites. Modules can be toggled on and off from the Modules dashboard.
 
+On activation only three modules are active - Cookie Banner, Duplicate Post and Update Emails - and each module below states whether it ships enabled or disabled. Everything else stays dormant until you switch it on.
+
 = Module: Cookie Banner =
 
 A multilingual cookie-consent banner:
@@ -207,7 +209,7 @@ This plugin can update itself from its public GitHub repository. It periodically
 * Service: GitHub, https://github.com
 * Endpoint: https://api.github.com/repos/Digitizers/digitizer-pro-tools/releases
 * When: during WordPress's normal update checks
-* Data sent: none beyond the HTTP request (no site URL, no personal data)
+* Data sent: nothing about the site. The request carries no site URL, no admin details and no usage data - the plugin replaces WordPress's default user agent (which would otherwise include the site address) with just its own name and version. As with any HTTP request, GitHub sees the originating IP address.
 * Terms of Service: https://docs.github.com/site-policy/github-terms/github-terms-of-service
 * Privacy Policy: https://docs.github.com/site-policy/privacy-policies/github-privacy-statement
 
@@ -215,7 +217,17 @@ This plugin can update itself from its public GitHub repository. It periodically
 
 = Do I have to use every module? =
 
-No. Every module ships disabled and is toggled independently from the Modules screen. Enable only what a given site needs.
+No. Modules are toggled independently from the Modules screen, so you can enable only what a given site needs.
+
+= Which modules are active right after activation? =
+
+Three, and they are the only ones that change anything on their own:
+
+* **Cookie Banner** - starts showing the consent banner on the front end straight away. Open its settings to adapt the texts and design, or switch the module off if you do not want it.
+* **Duplicate Post** - adds "Duplicate" links to the post lists. Nothing changes for visitors.
+* **Update Emails** - stops the routine "site updated" emails after successful automatic updates. Failure and critical emails are always still sent.
+
+Every other module - including everything that touches WooCommerce, login URLs, roles, comments and content restrictions - ships **disabled** and does nothing until you turn it on.
 
 = Does the plugin send any data anywhere? =
 
@@ -242,6 +254,8 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 = 1.17.0 =
 * Added an "External services" section to this readme documenting the Resend email API and the GitHub update check - what is sent, when, and links to each service's terms and privacy policy
 * Added a Frequently Asked Questions section, a LICENSE file and the License URI header
+* Update checks no longer disclose the site address: WordPress's default user agent (which embeds the site URL) is replaced with just the plugin name and version
+* Documented exactly which three modules are active immediately after activation
 * Enlighter: the legacy [enlighter] shortcode is no longer claimed by default. It is opt-in via the dpt_en_legacy_shortcode filter and stands down when the standalone Enlighter plugin already owns the tag, so the two can coexist
 * Cookie Banner: font weight, border style and background size/position/repeat are now pinned to the values the settings screen offers, so a crafted request cannot inject CSS
 * Hardened admin screens: the page query argument is sanitized before comparison

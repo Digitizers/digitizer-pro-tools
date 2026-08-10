@@ -69,6 +69,15 @@ class DPT_Updater {
 				$checker->getUniqueName( 'vcs_update_detection_strategies' ),
 				array( __CLASS__, 'release_only_strategies' )
 			);
+			// Send a neutral user agent. WordPress's default is
+			// "WordPress/6.x; https://example.com", which would hand the site URL
+			// to GitHub on every update check - the plugin's privacy disclosure
+			// states that no site data leaves the site during the check, so make
+			// that true rather than merely documented.
+			add_filter(
+				$checker->getUniqueName( 'request_info_options' ),
+				array( __CLASS__, 'anonymous_request_options' )
+			);
 		}
 
 		self::$checker = $checker;
@@ -82,6 +91,24 @@ class DPT_Updater {
 	 * @param array $strategies Strategy key => callable.
 	 * @return array
 	 */
+	/**
+	 * Replace the outgoing user agent for the update check.
+	 *
+	 * WordPress defaults to "WordPress/<version>; <site url>", so leaving it
+	 * alone would disclose the site URL to GitHub on every check. GitHub's API
+	 * still requires *some* user agent, so send the plugin's name and version.
+	 *
+	 * @param array $options wp_remote_get() options.
+	 * @return array
+	 */
+	public static function anonymous_request_options( $options ) {
+		if ( ! is_array( $options ) ) {
+			$options = array();
+		}
+		$options['user-agent'] = 'digitizer-pro-tools/' . ( defined( 'DPT_VERSION' ) ? DPT_VERSION : '0' );
+		return $options;
+	}
+
 	public static function release_only_strategies( $strategies ) {
 		if ( is_array( $strategies ) && isset( $strategies['latest_release'] ) ) {
 			return array( 'latest_release' => $strategies['latest_release'] );
