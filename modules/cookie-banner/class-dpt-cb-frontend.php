@@ -394,9 +394,15 @@ class DPT_CB_Frontend {
 			<?php if ( '' !== $font_family ) : ?>
 			/* Explicit font stack (Elementor's primary font or a custom one).
 			   When set to "inherit" nothing is emitted and the banner keeps
-			   inheriting the site/theme font. */
-			#dpt-cb-banner, #dpt-cb-banner .dpt-cb-box, #dpt-cb-float-button {
-				font-family: <?php echo $font_family; // Already sanitized to a bare font stack. ?>;
+			   inheriting the site/theme font.
+			   Applied to every descendant, not just the wrappers: a theme that
+			   sets font-family directly on h2/p wins over inheritance no matter
+			   how specific an ancestor rule is, which would leave the title and
+			   message on the theme font. !important because the admin asked for
+			   this exact font. */
+			#dpt-cb-banner, #dpt-cb-banner *,
+			#dpt-cb-float-button, #dpt-cb-float-button * {
+				font-family: <?php echo $font_family; // Already sanitized to a bare font stack. ?> !important;
 			}
 			<?php endif; ?>
 			#dpt-cb-banner .dpt-cb-box {

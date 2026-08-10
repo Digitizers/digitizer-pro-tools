@@ -402,10 +402,29 @@ class DPT_CB_Settings {
 		if ( ! is_scalar( $value ) ) {
 			return '';
 		}
-		$value = preg_replace( '/[^A-Za-z0-9 ,\'"_.\-]/', '', (string) $value );
-		$value = trim( preg_replace( '/\s+/', ' ', $value ), " \t\n\r\0\x0B," );
-		// A stack this long is not a real font list - treat it as junk.
-		return ( '' === $value || strlen( $value ) > 200 ) ? '' : $value;
+		$value = (string) $value;
+		// Invalid UTF-8 cannot be reasoned about safely - reject it outright.
+		if ( '' !== $value && 1 !== preg_match( '//u', $value ) ) {
+			return '';
+		}
+		// Drop control and formatting characters (newlines, RTL marks, ...).
+		$value = preg_replace( '/[\p{Cc}\p{Cf}]/u', '', $value );
+		// Remove ONLY the characters that could terminate the declaration or
+		// open a new rule / comment / at-rule / function. A denylist rather than
+		// an ASCII allowlist, so non-Latin family names ("微软雅黑", "רוביק",
+		// "Роботo") survive instead of being emptied out.
+		$value = preg_replace( '/[;{}()\[\]<>@\\\\\/:!*&=]/u', '', $value );
+		if ( null === $value ) {
+			return ''; // preg failure (e.g. backtrack limit) - fail closed.
+		}
+		$value = trim( preg_replace( '/\s+/u', ' ', $value ), " \t\n\r\0\x0B," );
+		if ( '' === $value ) {
+			return '';
+		}
+		// A stack this long is not a real font list - treat it as junk. Counted
+		// in characters, so multibyte names are not penalised.
+		$length = function_exists( 'mb_strlen' ) ? mb_strlen( $value, 'UTF-8' ) : strlen( $value );
+		return ( $length > 200 ) ? '' : $value;
 	}
 
 	/**
