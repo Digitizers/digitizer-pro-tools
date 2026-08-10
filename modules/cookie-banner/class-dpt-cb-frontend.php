@@ -377,9 +377,34 @@ class DPT_CB_Frontend {
 		$fb_offset_y_m = max( 0, (int) $o['float_offset_y_mobile'] );
 		$fb_pos_d      = $this->float_button_position_css( $fb_corner, $fb_offset_x_d, $fb_offset_y_d );
 		$fb_pos_m      = $this->float_button_position_css( $fb_corner, $fb_offset_x_m, $fb_offset_y_m );
+		// '' when the banner should inherit the site font; already sanitized to
+		// a bare font stack (no ; { } etc.), so it is safe inside <style>.
+		$font_family   = DPT_CB_Settings::font_family_css();
+
+		// Box sizing is emitted with the position class and !important so it
+		// overrides the position-specific rules in frontend.css (which pin the
+		// corner box to 380px and force bars/corners to 100% on mobile). Same
+		// specificity as those rules + later source order = the setting wins.
+		$pos_sel   = '#dpt-cb-banner.dpt-cb-pos-' . preg_replace( '/[^a-z-]/', '', (string) $o['position'] ) . ' .dpt-cb-box';
+		$is_corner      = in_array( $o['position'], array( 'bottom-left', 'bottom-right' ), true );
+		$mobile_margins = self::box_mobile_margins( $o['position'] );
 		?>
 		<style id="dpt-cb-inline-css">
 			#dpt-cb-overlay { background: <?php echo esc_attr( $overlay_rgba ); ?>; }
+			<?php if ( '' !== $font_family ) : ?>
+			/* Explicit font stack (Elementor's primary font or a custom one).
+			   When set to "inherit" nothing is emitted and the banner keeps
+			   inheriting the site/theme font.
+			   Applied to every descendant, not just the wrappers: a theme that
+			   sets font-family directly on h2/p wins over inheritance no matter
+			   how specific an ancestor rule is, which would leave the title and
+			   message on the theme font. !important because the admin asked for
+			   this exact font. */
+			#dpt-cb-banner, #dpt-cb-banner *,
+			#dpt-cb-float-button, #dpt-cb-float-button * {
+				font-family: <?php echo $font_family; // Already sanitized to a bare font stack. ?> !important;
+			}
+			<?php endif; ?>
 			#dpt-cb-banner .dpt-cb-box {
 				background-color: <?php echo esc_attr( $o['bg_color'] ); ?>;
 				color: <?php echo $text_color; ?>;
@@ -390,6 +415,23 @@ class DPT_CB_Frontend {
 				<?php echo $bg_image_css; ?>
 				<?php echo $border_css; ?>
 				<?php echo $box_shadow_css; ?>
+			}
+			/* Authoritative desktop sizing for the active position. Needed
+			   because frontend.css pins the corner box to a fixed 380px with
+			   !important, which would otherwise ignore the width setting. */
+			<?php echo $pos_sel; ?> {
+			<?php if ( $is_corner ) : ?>
+				/* A corner banner is shrink-to-fit (only bottom/left|right are
+				   set), so a percentage width has nothing to resolve against -
+				   it takes its own explicit pixel width, capped to the viewport.
+				   Kept separate from the width/percentage pair so switching
+				   positions does not overwrite either setting. */
+				width: <?php echo (int) $o['width_corner']; ?>px !important;
+				max-width: 95vw !important;
+			<?php else : ?>
+				max-width: <?php echo (int) $o['width']; ?>px !important;
+				width: <?php echo (int) $o['max_width_pct']; ?>% !important;
+			<?php endif; ?>
 			}
 			#dpt-cb-banner .dpt-cb-title {
 				color: <?php echo $title_color; ?>;
@@ -446,6 +488,24 @@ class DPT_CB_Frontend {
 				<?php echo $fb_pos_d; ?>
 			}
 			@media (max-width: 640px) {
+				/* Same selector shape and !important as the position rules in
+				   frontend.css (which force bars/corners to 100%), so the
+				   configured mobile size wins on later source order. On mobile
+				   the corner banner is stretched to left/right:10px, so it is no
+				   longer shrink-to-fit and a percentage width resolves normally. */
+				<?php echo $pos_sel; ?> {
+					max-width: <?php echo (int) $o['width_mobile']; ?>px !important;
+					width: <?php echo (int) $o['max_width_pct_mobile']; ?>% !important;
+					/* frontend.css stretches the mobile container to
+					   left:10px/right:10px, so a box narrower than 100% would
+					   sit against its left edge - a bottom-right banner would
+					   look bottom-left and bars would lose their centering.
+					   Keep the box on the side its position names. Physical
+					   margins on purpose: the position names are physical, so
+					   they must not flip with the RTL/LTR text direction. */
+					margin-left: <?php echo $mobile_margins[0]; ?> !important;
+					margin-right: <?php echo $mobile_margins[1]; ?> !important;
+				}
 				#dpt-cb-float-button {
 					width: <?php echo $fb_size_m; ?>px !important;
 					height: <?php echo $fb_size_m; ?>px !important;
@@ -454,6 +514,31 @@ class DPT_CB_Frontend {
 			}
 		</style>
 		<?php
+	}
+
+	/**
+	 * Horizontal margins that keep a narrower-than-full mobile box on the side
+	 * its position names.
+	 *
+	 * On mobile frontend.css stretches the banner container to
+	 * left:10px/right:10px. The box is a block-level child, so at a width below
+	 * 100% it would sit against the container's left edge - a bottom-right
+	 * banner would render bottom-left and the bars would lose their centering.
+	 *
+	 * Physical (not logical) margins on purpose: the position names are
+	 * physical, so the box must not flip sides with the RTL/LTR text direction.
+	 *
+	 * @param string $position Stored banner position.
+	 * @return array{0:string,1:string} [margin-left, margin-right].
+	 */
+	public static function box_mobile_margins( $position ) {
+		if ( 'bottom-left' === $position ) {
+			return array( '0', 'auto' );   // hug the left edge
+		}
+		if ( 'bottom-right' === $position ) {
+			return array( 'auto', '0' );   // hug the right edge
+		}
+		return array( 'auto', 'auto' );    // bars and the centered modal stay centered
 	}
 
 	/**

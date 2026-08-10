@@ -542,6 +542,51 @@ class DPT_CB_Admin {
 		?>
 		<h2><span class="dashicons dashicons-admin-appearance"></span> <?php esc_html_e( 'Banner Design', 'digitizer-pro-tools' ); ?></h2>
 
+		<?php
+		$elementor_font = DPT_CB_Settings::elementor_primary_font();
+		$font_modes     = array(
+			'inherit'   => __( 'Inherit from the site (recommended)', 'digitizer-pro-tools' ),
+			'elementor' => __( 'Elementor primary font', 'digitizer-pro-tools' ),
+			'custom'    => __( 'Custom font stack', 'digitizer-pro-tools' ),
+		);
+		?>
+		<h3 class="dpt-section-heading"><span class="dashicons dashicons-editor-textcolor"></span> <?php esc_html_e( 'Font', 'digitizer-pro-tools' ); ?></h3>
+		<table class="form-table dpt-form">
+			<tr>
+				<th><label for="dpt_cb_font_family"><?php esc_html_e( 'Font family', 'digitizer-pro-tools' ); ?></label></th>
+				<td>
+					<select id="dpt_cb_font_family" name="dpt_cb[font_family]">
+						<?php foreach ( $font_modes as $k => $l ) : ?>
+							<option value="<?php echo esc_attr( $k ); ?>" <?php selected( $o['font_family'], $k ); ?>><?php echo esc_html( $l ); ?></option>
+						<?php endforeach; ?>
+					</select>
+					<p class="description">
+						<?php esc_html_e( 'By default the banner inherits the font of the page, so it matches your theme automatically. Pick Elementor to follow its primary global font explicitly, or set your own stack below.', 'digitizer-pro-tools' ); ?>
+					</p>
+					<?php if ( '' !== $elementor_font ) : ?>
+						<p class="description">
+							<?php
+							printf(
+								/* translators: %s: font family name detected from Elementor */
+								esc_html__( 'Elementor primary font detected: %s', 'digitizer-pro-tools' ),
+								'<code>' . esc_html( $elementor_font ) . '</code>'
+							);
+							?>
+						</p>
+					<?php else : ?>
+						<p class="description"><?php esc_html_e( 'No Elementor primary font detected on this site - that option will fall back to inheriting.', 'digitizer-pro-tools' ); ?></p>
+					<?php endif; ?>
+				</td>
+			</tr>
+			<tr>
+				<th><label for="dpt_cb_font_family_custom"><?php esc_html_e( 'Custom font stack', 'digitizer-pro-tools' ); ?></label></th>
+				<td>
+					<input type="text" class="regular-text" id="dpt_cb_font_family_custom" name="dpt_cb[font_family_custom]" value="<?php echo esc_attr( $o['font_family_custom'] ); ?>" placeholder="&quot;Rubik&quot;, sans-serif" />
+					<p class="description"><?php esc_html_e( 'Used only when "Custom font stack" is selected. The font itself must already be loaded by the theme - this setting does not load web fonts.', 'digitizer-pro-tools' ); ?></p>
+				</td>
+			</tr>
+		</table>
+
 		<h3 class="dpt-section-heading"><span class="dashicons dashicons-admin-appearance"></span> <?php esc_html_e( 'Colors and background', 'digitizer-pro-tools' ); ?></h3>
 		<table class="form-table dpt-form">
 			<tr>
@@ -665,15 +710,36 @@ class DPT_CB_Admin {
 		<h3 class="dpt-section-heading"><span class="dashicons dashicons-grid-view"></span> <?php esc_html_e( 'Layout and border', 'digitizer-pro-tools' ); ?></h3>
 		<table class="form-table dpt-form">
 			<tr>
-				<th><label for="dpt_cb_width"><?php esc_html_e( 'Max width (px)', 'digitizer-pro-tools' ); ?></label></th>
+				<th><label for="dpt_cb_width"><?php esc_html_e( 'Max width on desktop (px)', 'digitizer-pro-tools' ); ?></label></th>
 				<td>
 					<input type="number" min="200" id="dpt_cb_width" name="dpt_cb[width]" value="<?php echo esc_attr( $o['width'] ); ?>" /> px
-					<p class="description"><?php esc_html_e( 'Relevant for the centered modal and corner positions - full-width bars size automatically.', 'digitizer-pro-tools' ); ?></p>
+					<p class="description"><?php esc_html_e( 'Used by the full-width bars and the centered modal. Corner positions have their own width below.', 'digitizer-pro-tools' ); ?></p>
 				</td>
 			</tr>
 			<tr>
-				<th><label for="dpt_cb_max_width_pct"><?php esc_html_e( 'Max width on small screens (%)', 'digitizer-pro-tools' ); ?></label></th>
-				<td><input type="number" min="10" max="100" id="dpt_cb_max_width_pct" name="dpt_cb[max_width_pct]" value="<?php echo esc_attr( $o['max_width_pct'] ); ?>" /> %</td>
+				<th><label for="dpt_cb_width_corner"><?php esc_html_e( 'Corner width on desktop (px)', 'digitizer-pro-tools' ); ?></label></th>
+				<td>
+					<input type="number" min="200" id="dpt_cb_width_corner" name="dpt_cb[width_corner]" value="<?php echo esc_attr( $o['width_corner'] ); ?>" /> px
+					<p class="description"><?php esc_html_e( 'Only for the bottom-left / bottom-right corner positions, which sit next to the content instead of stretching across it. Try 380-450px for a compact card.', 'digitizer-pro-tools' ); ?></p>
+				</td>
+			</tr>
+			<tr>
+				<th><label for="dpt_cb_max_width_pct"><?php esc_html_e( 'Width on desktop (%)', 'digitizer-pro-tools' ); ?></label></th>
+				<td>
+					<input type="number" min="10" max="100" id="dpt_cb_max_width_pct" name="dpt_cb[max_width_pct]" value="<?php echo esc_attr( $o['max_width_pct'] ); ?>" /> %
+					<p class="description"><?php esc_html_e( 'Percentage of the available width, capped by the max width above.', 'digitizer-pro-tools' ); ?></p>
+				</td>
+			</tr>
+			<tr>
+				<th><label for="dpt_cb_width_mobile"><?php esc_html_e( 'Max width on mobile (px)', 'digitizer-pro-tools' ); ?></label></th>
+				<td>
+					<input type="number" min="200" id="dpt_cb_width_mobile" name="dpt_cb[width_mobile]" value="<?php echo esc_attr( $o['width_mobile'] ); ?>" /> px
+					<p class="description"><?php esc_html_e( 'Applied below 640px wide, so the banner can be a narrow card on desktop and full-width on phones.', 'digitizer-pro-tools' ); ?></p>
+				</td>
+			</tr>
+			<tr>
+				<th><label for="dpt_cb_max_width_pct_mobile"><?php esc_html_e( 'Width on mobile (%)', 'digitizer-pro-tools' ); ?></label></th>
+				<td><input type="number" min="10" max="100" id="dpt_cb_max_width_pct_mobile" name="dpt_cb[max_width_pct_mobile]" value="<?php echo esc_attr( $o['max_width_pct_mobile'] ); ?>" /> %</td>
 			</tr>
 			<tr>
 				<th><label for="dpt_cb_border_radius"><?php esc_html_e( 'Corner radius (px)', 'digitizer-pro-tools' ); ?></label></th>

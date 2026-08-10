@@ -40,6 +40,20 @@ class DPT_CB_Settings {
 			'text_color'         => '#333333',
 			'width'              => '700',
 			'max_width_pct'      => '100',
+			// Mobile (<= 640px) box sizing. Defaults mirror the desktop values,
+			// so existing sites keep their current appearance until changed.
+			'width_mobile'         => '700',
+			'max_width_pct_mobile' => '100',
+			// Corner banners are shrink-to-fit, so they take an explicit pixel
+			// width of their own instead of the width/percentage pair. 380 is
+			// what the corner CSS hard-coded before this became configurable,
+			// so existing corner banners keep their exact size.
+			'width_corner'         => '380',
+
+			// Typography: inherit the site/theme font (default), take Elementor's
+			// primary global font, or set an explicit font stack.
+			'font_family'        => 'inherit', // inherit | elementor | custom
+			'font_family_custom' => '',
 			'border_radius'      => '12',
 			'padding'            => '24',
 			'box_shadow'         => '1',
@@ -265,6 +279,33 @@ class DPT_CB_Settings {
 			$merged['max_width_pct'] = '100';
 		}
 
+		// Responsive width: the box used to be sized by hard-coded CSS per
+		// position, so the stored width/max_width_pct were NOT what a corner or
+		// a phone actually rendered. Now that the settings are authoritative for
+		// every position and breakpoint, seed the new keys from each site's
+		// EFFECTIVE current rendering, so upgrading changes nothing on screen.
+		// Fresh installs (no saved options) just take defaults().
+		// Only the NEW keys are initialised here - the saved desktop width and
+		// percentage are left exactly as the site stored them. What a corner
+		// banner used to render (a hard-coded 380px) is carried by the separate
+		// width_corner setting, whose default is that same 380px.
+		if ( ! empty( $existing ) && ! isset( $existing['width_mobile'], $existing['max_width_pct_mobile'] ) ) {
+			$pos       = isset( $existing['position'] ) ? (string) $existing['position'] : 'bottom';
+			$is_corner = in_array( $pos, array( 'bottom-left', 'bottom-right' ), true );
+			$is_bar    = in_array( $pos, array( 'bottom', 'top' ), true );
+
+			// Mobile: bars and corners were forced full width by CSS; the
+			// centered modal kept using the desktop values.
+			if ( $is_bar || $is_corner ) {
+				// 640px is the mobile breakpoint itself, so this never caps.
+				$merged['width_mobile']         = '640';
+				$merged['max_width_pct_mobile'] = '100';
+			} else {
+				$merged['width_mobile']         = isset( $existing['width'] ) ? (string) $existing['width'] : $defaults['width'];
+				$merged['max_width_pct_mobile'] = isset( $existing['max_width_pct'] ) ? (string) $existing['max_width_pct'] : $defaults['max_width_pct'];
+			}
+		}
+
 		// Deep-merge texts: keep saved languages, fill in missing keys per language.
 		$languages = ( isset( $existing['languages'] ) && is_array( $existing['languages'] ) ) ? $existing['languages'] : $defaults['languages'];
 		$texts     = ( isset( $existing['texts'] ) && is_array( $existing['texts'] ) ) ? $existing['texts'] : array();
@@ -325,6 +366,12 @@ class DPT_CB_Settings {
 			$merged['default_lang'] = $merged['languages'][0];
 		}
 
+		// Only the three known font modes are meaningful; anything else (older
+		// data, a hand-edited option) falls back to inheriting the site font.
+		if ( ! in_array( $merged['font_family'], array( 'inherit', 'elementor', 'custom' ), true ) ) {
+			$merged['font_family'] = 'inherit';
+		}
+
 		$saved_texts     = ( isset( $opts['texts'] ) && is_array( $opts['texts'] ) ) ? $opts['texts'] : array();
 		$merged['texts'] = array();
 		foreach ( $merged['languages'] as $lang ) {
@@ -340,6 +387,92 @@ class DPT_CB_Settings {
 	public static function get( $key ) {
 		$all = self::all();
 		return isset( $all[ $key ] ) ? $all[ $key ] : '';
+	}
+
+	// --- Typography --------------------------------------------------------
+
+	/**
+	 * Sanitize a CSS font stack. The value is printed inside an inline <style>
+	 * block, so anything that could terminate the declaration or open a new
+	 * rule (;{}()<>@\ and newlines) is stripped rather than escaped - only font
+	 * names, quotes, commas, spaces, dots, hyphens and underscores survive.
+	 *
+	 * @param mixed $value Raw font stack.
+	 * @return string Safe font stack, or '' when nothing usable remains.
+	 */
+	public static function sanitize_font_family( $value ) {
+		if ( ! is_scalar( $value ) ) {
+			return '';
+		}
+		$value = (string) $value;
+		// Invalid UTF-8 cannot be reasoned about safely - reject it outright.
+		if ( '' !== $value && 1 !== preg_match( '//u', $value ) ) {
+			return '';
+		}
+		// Drop control and formatting characters (newlines, RTL marks, ...).
+		$value = preg_replace( '/[\p{Cc}\p{Cf}]/u', '', $value );
+		// Remove ONLY the characters that could terminate the declaration or
+		// open a new rule / comment / at-rule / function. A denylist rather than
+		// an ASCII allowlist, so non-Latin family names ("微软雅黑", "רוביק",
+		// "Роботo") survive instead of being emptied out.
+		$value = preg_replace( '/[;{}()\[\]<>@\\\\\/:!*&=]/u', '', $value );
+		if ( null === $value ) {
+			return ''; // preg failure (e.g. backtrack limit) - fail closed.
+		}
+		$value = trim( preg_replace( '/\s+/u', ' ', $value ), " \t\n\r\0\x0B," );
+		if ( '' === $value ) {
+			return '';
+		}
+		// A stack this long is not a real font list - treat it as junk. Counted
+		// in characters, so multibyte names are not penalised.
+		$length = function_exists( 'mb_strlen' ) ? mb_strlen( $value, 'UTF-8' ) : strlen( $value );
+		return ( $length > 200 ) ? '' : $value;
+	}
+
+	/**
+	 * Elementor's primary global font family, or '' when Elementor is inactive
+	 * or the active kit does not define one.
+	 *
+	 * @return string
+	 */
+	public static function elementor_primary_font() {
+		if ( ! did_action( 'elementor/loaded' ) && ! class_exists( '\\Elementor\\Plugin' ) ) {
+			return '';
+		}
+		$kit_id = (int) get_option( 'elementor_active_kit' );
+		if ( $kit_id <= 0 ) {
+			return '';
+		}
+		$kit = get_post_meta( $kit_id, '_elementor_page_settings', true );
+		if ( ! is_array( $kit ) || empty( $kit['system_typography'] ) || ! is_array( $kit['system_typography'] ) ) {
+			return '';
+		}
+		foreach ( $kit['system_typography'] as $item ) {
+			if ( is_array( $item ) && isset( $item['_id'] ) && 'primary' === $item['_id'] && ! empty( $item['typography_font_family'] ) ) {
+				return self::sanitize_font_family( $item['typography_font_family'] );
+			}
+		}
+		return '';
+	}
+
+	/**
+	 * The font-family CSS value for the banner, or '' to inherit from the site.
+	 *
+	 * @return string
+	 */
+	public static function font_family_css() {
+		$mode = (string) self::get( 'font_family' );
+
+		if ( 'custom' === $mode ) {
+			return self::sanitize_font_family( self::get( 'font_family_custom' ) );
+		}
+		if ( 'elementor' === $mode ) {
+			$font = self::elementor_primary_font();
+			// Quote the family name and keep a generic fallback, so a missing
+			// Elementor font degrades to the browser default rather than nothing.
+			return ( '' !== $font ) ? '"' . $font . '", sans-serif' : '';
+		}
+		return ''; // inherit - emit no font-family at all.
 	}
 
 	/**
