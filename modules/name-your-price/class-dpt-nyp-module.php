@@ -175,11 +175,12 @@ class DPT_Name_Your_Price_Module extends DPT_Module {
 	// --- Front-end ---------------------------------------------------------
 
 	/**
-	 * Make NYP products purchasable even without a regular price.
+	 * Give an unpriced NYP product a base price so WooCommerce treats it as
+	 * purchasable, without overriding the purchasability filter.
 	 *
-	 * @param bool       $purchasable Current purchasable state.
-	 * @param WC_Product $product     Product object.
-	 * @return bool
+	 * @param string     $price   Current price ('' when unset).
+	 * @param WC_Product $product Product object.
+	 * @return mixed
 	 */
 	public function product_price( $price, $product ) {
 		// Only fill in a base price when the product has no regular price of its
@@ -211,7 +212,7 @@ class DPT_Name_Your_Price_Module extends DPT_Module {
 				sprintf(
 					/* translators: %s: suggested price */
 					__( 'Suggested: %s', 'digitizer-pro-tools' ),
-					DPT_NYP_Settings::format_price( $suggested, $product )
+					DPT_NYP_Settings::format_price( $suggested )
 				)
 			) . '</span>';
 		}
