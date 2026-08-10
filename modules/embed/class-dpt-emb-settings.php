@@ -166,14 +166,34 @@ class DPT_EMB_Settings {
 		// /preview, which Google renders as a read-only embeddable view.
 		if ( preg_match( '#^(https?://(?:docs|drive)\.google\.com/[a-z]+/d/(?:e/)?[a-zA-Z0-9_-]+)#', $url, $m ) ) {
 			$preview = $m[1] . '/preview';
-			// A link-shared file can be protected by a resourcekey; without it the
-			// embed shows an access-error page. Carry it through to the preview.
-			$query = (string) wp_parse_url( $url, PHP_URL_QUERY );
+			// Carry the parameters that change what the preview shows:
+			//  - resourcekey: without it a link-protected file shows an error page.
+			//  - gid: selects a specific Sheets worksheet (else the first is shown).
+			// Everything else (usp, etc.) is dropped as noise.
+			$allowed = array( 'resourcekey', 'gid' );
+			$carry   = array();
+			$query   = (string) wp_parse_url( $url, PHP_URL_QUERY );
 			foreach ( ( '' !== $query ) ? explode( '&', $query ) : array() as $pair ) {
-				if ( 0 === strpos( $pair, 'resourcekey=' ) && strlen( $pair ) > strlen( 'resourcekey=' ) ) {
-					$preview .= '?' . $pair;
-					break;
+				$key = strstr( $pair, '=', true );
+				if ( false !== $key && in_array( $key, $allowed, true ) && strlen( $pair ) > strlen( $key ) + 1 ) {
+					$carry[ $key ] = $pair;
 				}
+			}
+			// A worksheet gid is often only in the fragment (#gid=NNN).
+			if ( ! isset( $carry['gid'] ) ) {
+				$fragment = (string) wp_parse_url( $url, PHP_URL_FRAGMENT );
+				if ( preg_match( '/^gid=(\d+)$/', $fragment, $fm ) ) {
+					$carry['gid'] = 'gid=' . $fm[1];
+				}
+			}
+			$ordered = array();
+			foreach ( $allowed as $key ) {
+				if ( isset( $carry[ $key ] ) ) {
+					$ordered[] = $carry[ $key ];
+				}
+			}
+			if ( ! empty( $ordered ) ) {
+				$preview .= '?' . implode( '&', $ordered );
 			}
 			return $preview;
 		}
