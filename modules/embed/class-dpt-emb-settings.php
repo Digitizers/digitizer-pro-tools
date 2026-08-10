@@ -161,11 +161,19 @@ class DPT_EMB_Settings {
 		if ( ! is_array( $raw ) ) {
 			return false;
 		}
-		$clean = self::all();
+		$before = self::all();
+		$clean  = $before;
 		$clean['default_ratio']  = self::sanitize_ratio( isset( $raw['default_ratio'] ) ? $raw['default_ratio'] : '4:3', '4:3' );
 		$clean['default_height'] = self::sanitize_height( isset( $raw['default_height'] ) ? $raw['default_height'] : '' );
 		$clean['lazy_load']      = ( isset( $raw['lazy_load'] ) && '1' === (string) $raw['lazy_load'] ) ? '1' : '0';
 		update_option( self::OPTION, $clean );
+
+		// The defaults are baked into cached shortcode HTML (inline ratio/height,
+		// the loading attribute), so a full-page cache would keep serving the old
+		// markup. Purge it when the cleaned settings actually change.
+		if ( $clean != $before && class_exists( 'DPT_CB_Settings' ) && method_exists( 'DPT_CB_Settings', 'purge_page_caches' ) ) {
+			DPT_CB_Settings::purge_page_caches();
+		}
 		return true;
 	}
 }

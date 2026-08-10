@@ -14,9 +14,6 @@ class DPT_Embed_Module extends DPT_Module {
 	/** @var DPT_EMB_Admin */
 	private $admin;
 
-	/** @var bool Whether the frame CSS has been enqueued. */
-	private $enqueued = false;
-
 	public function id() {
 		return 'embed';
 	}
@@ -56,6 +53,11 @@ class DPT_Embed_Module extends DPT_Module {
 			array(),
 			DPT_VERSION
 		);
+		// Enqueue here, on wp_enqueue_scripts, rather than at shortcode-render
+		// time: shortcodes in the_content run after wp_head() has already printed
+		// styles, so a late enqueue would leave the frame unstyled. The stylesheet
+		// is tiny and the module is opt-in, so loading it on the front end is fine.
+		wp_enqueue_style( 'dpt-embed' );
 	}
 
 	/**
@@ -102,9 +104,12 @@ class DPT_Embed_Module extends DPT_Module {
 				: __( 'Embedded Google document', 'digitizer-pro-tools' );
 		}
 
-		if ( ! $this->enqueued ) {
+		// The stylesheet is enqueued on wp_enqueue_scripts (see register_assets),
+		// which fires before the head is printed - a shortcode-time enqueue would
+		// be too late. Fall back to a late enqueue only if it somehow was not run
+		// (e.g. the shortcode is rendered outside a normal front-end request).
+		if ( ! wp_style_is( 'dpt-embed', 'enqueued' ) ) {
 			wp_enqueue_style( 'dpt-embed' );
-			$this->enqueued = true;
 		}
 
 		$loading = DPT_EMB_Settings::is_on( 'lazy_load' ) ? 'lazy' : 'eager';
