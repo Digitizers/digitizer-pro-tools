@@ -1493,3 +1493,96 @@ msgstr ""
 msgid "Choose amount"
 msgstr ""
 
+msgid "Checkout Field Editor"
+msgstr ""
+
+msgid "Checkout Fields"
+msgstr ""
+
+msgid "Show, hide, require and reorder standard WooCommerce checkout fields, and add custom fields (text, select or checkbox) saved to the order and shown in the admin and order emails."
+msgstr ""
+
+msgid "Choose an option"
+msgstr ""
+
+msgid "\"%s\" is not a valid selection."
+msgstr ""
+
+msgid "Additional checkout fields"
+msgstr ""
+
+msgid "Yes"
+msgstr ""
+
+msgid "Company"
+msgstr ""
+
+msgid "Address line 2"
+msgstr ""
+
+msgid "Phone"
+msgstr ""
+
+msgid "Order notes"
+msgstr ""
+
+msgid "Show, hide, require and reorder standard checkout fields, and add your own. Applies to the classic (shortcode) checkout."
+msgstr ""
+
+msgid "Billing"
+msgstr ""
+
+msgid "Shipping"
+msgstr ""
+
+msgid "Additional info"
+msgstr ""
+
+msgid "Text"
+msgstr ""
+
+msgid "Dropdown"
+msgstr ""
+
+msgid "Checkbox"
+msgstr ""
+
+msgid "Standard fields"
+msgstr ""
+
+msgid "Leave \"Order\" blank to keep WooCommerce's default position. Lower numbers appear first."
+msgstr ""
+
+msgid "Field"
+msgstr ""
+
+msgid "Show"
+msgstr ""
+
+msgid "Required"
+msgstr ""
+
+msgid "Order"
+msgstr ""
+
+msgid "Custom fields"
+msgstr ""
+
+msgid "Up to %d custom fields. Clear the label to remove a field. For a dropdown, put one option per line."
+msgstr ""
+
+msgid "Type"
+msgstr ""
+
+msgid "Section"
+msgstr ""
+
+msgid "Make this field required"
+msgstr ""
+
+msgid "Dropdown options"
+msgstr ""
+
+msgid "One option per line"
+msgstr ""
+

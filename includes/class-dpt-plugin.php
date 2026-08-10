@@ -93,6 +93,11 @@ class DPT_Plugin {
 				'class'   => 'DPT_Name_Your_Price_Module',
 				'default' => '0',
 			),
+			'woo_checkout_fields' => array(
+				'file'    => DPT_PATH . 'modules/woo-checkout-fields/class-dpt-wcf-module.php',
+				'class'   => 'DPT_Woo_Checkout_Fields_Module',
+				'default' => '0',
+			),
 		);
 		return apply_filters( 'dpt_modules', $modules );
 	}

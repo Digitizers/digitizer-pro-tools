@@ -21,6 +21,7 @@ delete_option( 'dpt_woo_checkout' );
 delete_option( 'dpt_rankmath_breadcrumbs' );
 delete_option( 'dpt_resend_mail' );
 delete_option( 'dpt_name_your_price' );
+delete_option( 'dpt_woo_checkout_fields' );
 delete_option( 'dpt_resend_mail_log' );
 
 // Remove the User Role Editor's dedicated gating capability from every role.
