@@ -122,7 +122,7 @@ class DPT_EMB_Settings {
 
 		// Google Docs / Sheets / Slides / Forms / Drive previews.
 		if ( 'docs.google.com' === $host || 'drive.google.com' === $host ) {
-			$src = self::google_embed_src( $url, $path );
+			$src = self::google_embed_src( $url, $scheme, $host, $path );
 			return ( null !== $src ) ? array( 'type' => 'google', 'src' => $src ) : null;
 		}
 
@@ -136,16 +136,23 @@ class DPT_EMB_Settings {
 
 	/**
 	 * Convert a Google URL into its embeddable preview/embed URL, or null.
+	 * The base is rebuilt from the already-normalised (lower-cased) scheme and
+	 * host and the path segments, so a mixed-case host still resolves.
 	 *
-	 * @param string $url  Full URL.
-	 * @param string $path URL path.
+	 * @param string $url    Full URL (for its query/fragment).
+	 * @param string $scheme Lower-cased scheme.
+	 * @param string $host   Lower-cased host.
+	 * @param string $path   URL path.
 	 * @return string|null
 	 */
-	private static function google_embed_src( $url, $path ) {
+	private static function google_embed_src( $url, $scheme, $host, $path ) {
+		$origin = $scheme . '://' . $host;
+
 		// Forms: use the embedded viewform, preserving any pre-fill parameters
 		// (entry.NNN=...) already on the URL and just adding embedded=true.
 		if ( false !== strpos( $path, '/forms/' ) ) {
-			if ( preg_match( '#^(https?://docs\.google\.com/forms/d/(?:e/)?[a-zA-Z0-9_-]+)#', $url, $m ) ) {
+			if ( preg_match( '#^/forms/d/(e/)?([a-zA-Z0-9_-]+)#', $path, $m ) ) {
+				$base  = $origin . '/forms/d/' . ( ! empty( $m[1] ) ? 'e/' : '' ) . $m[2];
 				$query = (string) wp_parse_url( $url, PHP_URL_QUERY );
 				// Keep the raw query pairs verbatim - do NOT parse_str them, which
 				// would mangle the dotted "entry.123" keys into "entry_123". Drop
@@ -158,19 +165,20 @@ class DPT_EMB_Settings {
 					$pairs[] = $pair;
 				}
 				$pairs[] = 'embedded=true';
-				return $m[1] . '/viewform?' . implode( '&', $pairs );
+				return $base . '/viewform?' . implode( '&', $pairs );
 			}
 			return null;
 		}
 		// Docs / Sheets / Slides / Drive files: swap the trailing action for
 		// /preview, which Google renders as a read-only embeddable view.
-		if ( preg_match( '#^(https?://(?:docs|drive)\.google\.com/[a-z]+/d/(?:e/)?[a-zA-Z0-9_-]+)#', $url, $m ) ) {
-			$preview = $m[1] . '/preview';
+		if ( preg_match( '#^/([a-zA-Z]+)/d/(e/)?([a-zA-Z0-9_-]+)#', $path, $m ) ) {
+			$preview = $origin . '/' . strtolower( $m[1] ) . '/d/' . ( ! empty( $m[2] ) ? 'e/' : '' ) . $m[3] . '/preview';
 			// Carry the parameters that change what the preview shows:
 			//  - resourcekey: without it a link-protected file shows an error page.
 			//  - gid: selects a specific Sheets worksheet (else the first is shown).
+			//  - tab: selects a specific Google Docs tab (else the default tab).
 			// Everything else (usp, etc.) is dropped as noise.
-			$allowed = array( 'resourcekey', 'gid' );
+			$allowed = array( 'resourcekey', 'gid', 'tab' );
 			$carry   = array();
 			$query   = (string) wp_parse_url( $url, PHP_URL_QUERY );
 			foreach ( ( '' !== $query ) ? explode( '&', $query ) : array() as $pair ) {
