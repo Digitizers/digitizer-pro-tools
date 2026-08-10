@@ -1586,3 +1586,48 @@ msgstr "אפשרויות הרשימה"
 msgid "One option per line"
 msgstr "אפשרות אחת בכל שורה"
 
+msgid "Embed"
+msgstr "הטמעה"
+
+msgid "A [dpt_embed] shortcode that embeds PDF files and Google Docs, Sheets, Slides, Forms and Drive previews in a responsive frame - the sources WordPress does not embed on its own."
+msgstr "שורטקוד [dpt_embed] שמטמיע קובצי PDF ומסמכי Google Docs, Sheets, Slides, Forms ו-Drive במסגרת רספונסיבית - המקורות ש-WordPress אינו מטמיע בעצמו."
+
+msgid "dpt_embed: unsupported or missing URL. This shortcode handles PDF files and Google Docs/Sheets/Slides/Forms/Drive links."
+msgstr "dpt_embed: כתובת לא נתמכת או חסרה. שורטקוד זה מטמיע קובצי PDF וקישורי Google Docs/Sheets/Slides/Forms/Drive."
+
+msgid "Embedded PDF document"
+msgstr "מסמך PDF מוטמע"
+
+msgid "Embedded Google document"
+msgstr "מסמך Google מוטמע"
+
+msgid "Embed PDF files and Google Docs/Sheets/Slides/Forms/Drive links in a responsive frame with the [dpt_embed] shortcode."
+msgstr "הטמיעו קובצי PDF וקישורי Google Docs/Sheets/Slides/Forms/Drive במסגרת רספונסיבית עם השורטקוד [dpt_embed]."
+
+msgid "Frame defaults"
+msgstr "ברירות מחדל למסגרת"
+
+msgid "Default aspect ratio"
+msgstr "יחס גובה-רוחב ברירת מחדל"
+
+msgid "Width:height, e.g. 16:9 or 4:3. Used when a shortcode sets no height."
+msgstr "רוחב:גובה, למשל 16:9 או 4:3. בשימוש כאשר שורטקוד לא מגדיר גובה."
+
+msgid "Default height (px)"
+msgstr "גובה ברירת מחדל (px)"
+
+msgid "Leave blank to use the aspect ratio. A fixed height suits long PDFs."
+msgstr "השאירו ריק כדי להשתמש ביחס הגובה-רוחב. גובה קבוע מתאים לקובצי PDF ארוכים."
+
+msgid "Lazy-load frames"
+msgstr "טעינה עצלה של מסגרות"
+
+msgid "Defer loading each frame until it scrolls into view."
+msgstr "דחיית טעינת כל מסגרת עד שהיא נכנסת לתצוגה."
+
+msgid "How to use"
+msgstr "איך להשתמש"
+
+msgid "Add the shortcode to any post, page or widget:"
+msgstr "הוסיפו את השורטקוד לכל פוסט, עמוד או וידג׳ט:"
+

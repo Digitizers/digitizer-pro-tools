@@ -1,0 +1,40 @@
+/* Digitizer Pro Tools - Embed module frames */
+.dpt-embed {
+	position: relative;
+	width: 100%;
+	max-width: 100%;
+	margin: 1em 0;
+	background: #f6f7f7;
+}
+
+/* Responsive aspect-ratio frame: the padding-top holds the ratio. */
+.dpt-embed--ratio {
+	height: 0;
+	overflow: hidden;
+}
+
+.dpt-embed--ratio .dpt-embed-frame {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+}
+
+/* Fixed-height frame (e.g. long PDFs). */
+.dpt-embed--fixed .dpt-embed-frame {
+	width: 100%;
+	height: 100%;
+}
+
+.dpt-embed-frame {
+	display: block;
+	border: 0;
+}
+
+.dpt-embed-error {
+	padding: 8px 12px;
+	border-left: 4px solid #d63638;
+	background: #fcf0f1;
+	color: #8a1f21;
+	font-size: 13px;
+}
