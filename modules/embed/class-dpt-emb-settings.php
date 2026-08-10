@@ -165,7 +165,17 @@ class DPT_EMB_Settings {
 		// Docs / Sheets / Slides / Drive files: swap the trailing action for
 		// /preview, which Google renders as a read-only embeddable view.
 		if ( preg_match( '#^(https?://(?:docs|drive)\.google\.com/[a-z]+/d/(?:e/)?[a-zA-Z0-9_-]+)#', $url, $m ) ) {
-			return $m[1] . '/preview';
+			$preview = $m[1] . '/preview';
+			// A link-shared file can be protected by a resourcekey; without it the
+			// embed shows an access-error page. Carry it through to the preview.
+			$query = (string) wp_parse_url( $url, PHP_URL_QUERY );
+			foreach ( ( '' !== $query ) ? explode( '&', $query ) : array() as $pair ) {
+				if ( 0 === strpos( $pair, 'resourcekey=' ) && strlen( $pair ) > strlen( 'resourcekey=' ) ) {
+					$preview .= '?' . $pair;
+					break;
+				}
+			}
+			return $preview;
 		}
 		return null;
 	}
