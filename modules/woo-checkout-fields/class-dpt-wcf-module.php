@@ -91,8 +91,18 @@ class DPT_Woo_Checkout_Fields_Module extends DPT_Module {
 			}
 		}
 
+		$order_available = $this->order_section_available();
 		foreach ( DPT_WCF_Settings::custom_fields() as $cf ) {
 			$section = $cf['section'];
+			// The classic checkout only renders the "order" (additional-info)
+			// fieldset when order notes are enabled. WooCommerce still validates
+			// that fieldset, so a required custom field placed there when the
+			// section is hidden could never be submitted and would block every
+			// checkout (and an optional one would just vanish). Relocate such
+			// fields to the always-rendered billing section instead.
+			if ( 'order' === $section && ! $order_available ) {
+				$section = 'billing';
+			}
 			if ( ! isset( $fields[ $section ] ) || ! is_array( $fields[ $section ] ) ) {
 				$fields[ $section ] = array();
 			}
@@ -100,6 +110,18 @@ class DPT_Woo_Checkout_Fields_Module extends DPT_Module {
 		}
 
 		return $fields;
+	}
+
+	/**
+	 * Whether the classic checkout will render the "order" (additional info)
+	 * fieldset. Mirrors WooCommerce's own gate so we never place a field in a
+	 * section the template skips.
+	 *
+	 * @return bool
+	 */
+	private function order_section_available() {
+		$enabled = 'yes' === get_option( 'woocommerce_enable_order_comments', 'yes' );
+		return (bool) apply_filters( 'woocommerce_enable_order_notes_field', $enabled );
 	}
 
 	/**

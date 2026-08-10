@@ -148,6 +148,7 @@ class DPT_WCF_Admin {
 								$opts_text = isset( $cf['options'] ) && is_array( $cf['options'] ) ? implode( "\n", $cf['options'] ) : '';
 								?>
 								<fieldset class="dpt-wcf-custom-row" style="border:1px solid #dcdcde;padding:12px 16px;margin:0 0 12px;border-radius:6px;">
+									<input type="hidden" name="dpt_wcf[custom][<?php echo (int) $i; ?>][key]" value="<?php echo esc_attr( isset( $cf['key'] ) ? $cf['key'] : '' ); ?>" />
 									<table class="form-table dpt-form">
 										<tr>
 											<th><?php esc_html_e( 'Label', 'digitizer-pro-tools' ); ?></th>
