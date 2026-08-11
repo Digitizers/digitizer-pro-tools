@@ -129,15 +129,17 @@ class DPT_Plugin {
 	/**
 	 * Kept deliberately, despite the "discouraged since 4.6" warning.
 	 *
-	 * Dropping the call is only safe for a plugin that is hosted on
-	 * WordPress.org and only supports current WordPress. Core's own 6.7
-	 * announcement gives the rule for everyone else: "If you still support
-	 * older WordPress versions or do not host your plugin/theme on
-	 * WordPress.org, move the function call to a later hook such as init."
-	 * Both halves apply here - this plugin supports 5.8 and its Hebrew
-	 * catalog is bundled rather than served as a language pack - so the call
-	 * stays and is hooked on init, which is also what avoids the early-loading
-	 * notice 6.7 added.
+	 * The warning assumes a plugin whose translations arrive as WordPress.org
+	 * language packs, which are found without any call. This one ships its
+	 * own Hebrew catalog in /languages and is also distributed outside the
+	 * directory, and that is the case core's 6.7 guidance keeps the call for:
+	 * "If you still support older WordPress versions or do not host your
+	 * plugin/theme on WordPress.org, move the function call to a later hook
+	 * such as init." Hence the init hook above, which is also what avoids the
+	 * early-loading notice 6.7 added.
+	 *
+	 * The reason is the bundled catalog, not the supported WordPress range -
+	 * raising "Requires at least" would not make the call removable.
 	 *
 	 * @link https://make.wordpress.org/core/2024/10/21/i18n-improvements-6-7/
 	 */
