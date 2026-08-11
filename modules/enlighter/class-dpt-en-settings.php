@@ -1,6 +1,9 @@
 <?php
 /**
- * Enlighter module - settings storage.
+ * Code Highlighter module - settings storage.
+ *
+ * The option key keeps its original name: renaming it would orphan the saved
+ * settings on every site already running the module.
  */
 
 if ( ! defined( 'ABSPATH' ) ) { exit; }
