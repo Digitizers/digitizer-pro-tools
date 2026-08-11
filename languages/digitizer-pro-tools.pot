@@ -845,11 +845,7 @@ msgstr ""
 msgid "Moves the login page to a custom URL and returns a 404 for wp-login.php and logged-out wp-admin requests. Replaces the WPS Hide Login plugin."
 msgstr ""
 
-msgid "Enlighter"
-msgstr ""
 
-msgid "Syntax-highlight code on the front end. Insert code with the \"Code (Enlighter)\" block, the [dpt_code lang=\"php\"]…[/dpt_code] shortcode, or the Elementor widget. Optionally highlight every existing pre/code block automatically."
-msgstr ""
 
 msgid "Appearance"
 msgstr ""
@@ -878,8 +874,6 @@ msgstr ""
 msgid "Highlight every existing <pre><code> block, detecting the language from its class (e.g. language-php)."
 msgstr ""
 
-msgid "Syntax-highlight code with a block, the [dpt_code] shortcode, automatic pre/code highlighting and an Elementor widget. Replaces the Enlighter plugin."
-msgstr ""
 
 msgid "Copy"
 msgstr ""
@@ -887,8 +881,6 @@ msgstr ""
 msgid "Copied"
 msgstr ""
 
-msgid "Code (Enlighter)"
-msgstr ""
 
 msgid "Code"
 msgstr ""
@@ -1695,4 +1687,13 @@ msgid "Syntax-highlighted code block."
 msgstr ""
 
 msgid "Code settings"
+msgstr ""
+
+msgid "Code Highlighter"
+msgstr ""
+
+msgid "Syntax-highlight code with a block, the [dpt_code] shortcode, automatic pre/code highlighting and an Elementor widget."
+msgstr ""
+
+msgid "Syntax-highlight code on the front end. Insert code with the \"Code Highlighter\" block, the [dpt_code lang=\"php\"]…[/dpt_code] shortcode, or the Elementor widget. Optionally highlight every existing pre/code block automatically."
 msgstr ""

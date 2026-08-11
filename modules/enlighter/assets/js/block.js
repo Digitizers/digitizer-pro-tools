@@ -1,5 +1,5 @@
 /**
- * Digitizer Pro Tools - Enlighter block (server-rendered, no build step).
+ * Digitizer Pro Tools - Code Highlighter block (server-rendered, no build step).
  */
 ( function ( blocks, element, blockEditor, components, i18n ) {
 	'use strict';
@@ -22,7 +22,7 @@
 
 	blocks.registerBlockType( 'digitizer/enlighter', {
 		apiVersion: 2,
-		title: __( 'Code (Enlighter)', 'digitizer-pro-tools' ),
+		title: __( 'Code Highlighter', 'digitizer-pro-tools' ),
 		description: __( 'Syntax-highlighted code block.', 'digitizer-pro-tools' ),
 		icon: 'editor-code',
 		category: 'text',

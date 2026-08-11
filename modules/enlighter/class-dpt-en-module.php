@@ -1,8 +1,14 @@
 <?php
 /**
- * Enlighter module - dependency-free code syntax highlighting via a block,
+ * Code Highlighter module - dependency-free code syntax highlighting via a block,
  * the [dpt_code] shortcode, automatic <pre><code> highlighting and an
- * Elementor widget. Replaces the standalone "Enlighter" plugin.
+ * Elementor widget.
+ *
+ * Reads the markup format the standalone Enlighter plugin saves
+ * (data-enlighter-language attributes and EnlighterJSRAW classes) so content
+ * written for it keeps highlighting after a switch. That plugin's own
+ * shortcode tags are opt-in and stand down when it is active - the two are
+ * meant to coexist, not compete.
  */
 
 if ( ! defined( 'ABSPATH' ) ) { exit; }
@@ -16,15 +22,18 @@ class DPT_Enlighter_Module extends DPT_Module {
 	private $admin;
 
 	public function id() {
+		// Stored as a key in the modules on/off option: renaming it would read
+		// as a brand-new module and silently switch the feature off on every
+		// site that has it enabled. The displayed name is title() below.
 		return 'enlighter';
 	}
 
 	public function title() {
-		return __( 'Enlighter', 'digitizer-pro-tools' );
+		return __( 'Code Highlighter', 'digitizer-pro-tools' );
 	}
 
 	public function description() {
-		return __( 'Syntax-highlight code with a block, the [dpt_code] shortcode, automatic pre/code highlighting and an Elementor widget. Replaces the Enlighter plugin.', 'digitizer-pro-tools' );
+		return __( 'Syntax-highlight code with a block, the [dpt_code] shortcode, automatic pre/code highlighting and an Elementor widget.', 'digitizer-pro-tools' );
 	}
 
 	public function install_defaults() {
@@ -341,7 +350,7 @@ class DPT_Enlighter_Module extends DPT_Module {
 		// string rather than looping over a list: the string extractor (and
 		// WPCS) only recognises literal arguments to __().
 		$strings = array(
-			'Code (Enlighter)'               => __( 'Code (Enlighter)', 'digitizer-pro-tools' ),
+			'Code Highlighter'               => __( 'Code Highlighter', 'digitizer-pro-tools' ),
 			'Syntax-highlighted code block.' => __( 'Syntax-highlighted code block.', 'digitizer-pro-tools' ),
 			'Code settings'                  => __( 'Code settings', 'digitizer-pro-tools' ),
 			'Language'                       => __( 'Language', 'digitizer-pro-tools' ),

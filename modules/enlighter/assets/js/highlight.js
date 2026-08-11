@@ -1,5 +1,5 @@
 /**
- * Digitizer Pro Tools - Enlighter
+ * Digitizer Pro Tools - Code Highlighter
  * Dependency-free syntax highlighter. It reads each block's textContent
  * (already HTML-escaped by the browser), tokenises it and rebuilds the markup
  * from individually escaped pieces, so nothing in the source code can inject
