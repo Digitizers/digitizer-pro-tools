@@ -1,6 +1,6 @@
 <?php
 /**
- * Enlighter module - Elementor widget. Loaded only when Elementor registers
+ * Code Highlighter module - Elementor widget. Loaded only when Elementor registers
  * its widgets, so the class safely extends the Elementor base.
  */
 
@@ -17,7 +17,7 @@ class DPT_EN_Elementor_Widget extends \Elementor\Widget_Base {
 	}
 
 	public function get_title() {
-		return __( 'Code (Enlighter)', 'digitizer-pro-tools' );
+		return __( 'Code Highlighter', 'digitizer-pro-tools' );
 	}
 
 	public function get_icon() {
@@ -29,7 +29,7 @@ class DPT_EN_Elementor_Widget extends \Elementor\Widget_Base {
 	}
 
 	public function get_keywords() {
-		return array( 'code', 'highlight', 'syntax', 'enlighter' );
+		return array( 'code', 'highlight', 'syntax' );
 	}
 
 	protected function register_controls() {

@@ -1,13 +1,13 @@
 <?php
 /**
- * Enlighter module - settings page.
+ * Code Highlighter module - settings page.
  */
 
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 class DPT_EN_Admin {
 
-	const PAGE_SLUG = 'dpt-enlighter';
+	const PAGE_SLUG = 'dpt-code-highlighter';
 
 	public function __construct() {
 		add_action( 'admin_post_dpt_en_save', array( $this, 'handle_save' ) );
@@ -17,8 +17,8 @@ class DPT_EN_Admin {
 	public function register_menu( $parent_slug ) {
 		add_submenu_page(
 			$parent_slug,
-			__( 'Enlighter', 'digitizer-pro-tools' ),
-			__( 'Enlighter', 'digitizer-pro-tools' ),
+			__( 'Code Highlighter', 'digitizer-pro-tools' ),
+			__( 'Code Highlighter', 'digitizer-pro-tools' ),
 			'manage_options',
 			self::PAGE_SLUG,
 			array( $this, 'render_page' )
@@ -52,10 +52,10 @@ class DPT_EN_Admin {
 		<div class="wrap dpt-wrap">
 			<h1 class="dpt-title">
 				<span class="dashicons dashicons-editor-code"></span>
-				<?php esc_html_e( 'Enlighter', 'digitizer-pro-tools' ); ?>
+				<?php esc_html_e( 'Code Highlighter', 'digitizer-pro-tools' ); ?>
 				<span class="dpt-version">v<?php echo esc_html( DPT_VERSION ); ?></span>
 			</h1>
-			<p class="dpt-intro"><?php esc_html_e( 'Syntax-highlight code on the front end. Insert code with the "Code (Enlighter)" block, the [dpt_code lang="php"]…[/dpt_code] shortcode, or the Elementor widget. Optionally highlight every existing pre/code block automatically.', 'digitizer-pro-tools' ); ?></p>
+			<p class="dpt-intro"><?php esc_html_e( 'Syntax-highlight code on the front end. Insert code with the "Code Highlighter" block, the [dpt_code lang="php"]…[/dpt_code] shortcode, or the Elementor widget. Optionally highlight every existing pre/code block automatically.', 'digitizer-pro-tools' ); ?></p>
 
 			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 				<input type="hidden" name="action" value="dpt_en_save" />

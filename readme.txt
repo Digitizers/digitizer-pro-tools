@@ -4,7 +4,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.18.0
+Stable tag: 1.19.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -96,18 +96,18 @@ Restrict who can see what (disabled by default; enable it on the Modules screen)
 * Restricted content is replaced in listings, single views, feeds and the REST API - not just hidden with CSS
 * Administrators always retain access so they cannot lock themselves out
 
-= Module: Enlighter =
+= Module: Code Highlighter =
 
 Syntax-highlight code on the front end - dependency-free, no external CDN (disabled by default; enable it on the Modules screen):
 
-* "Code (Enlighter)" block for the block editor
+* "Code Highlighter" block for the block editor
 * `[dpt_code lang="php"]…[/dpt_code]` shortcode (works in the classic editor and Elementor)
 * Optional automatic highlighting of every existing `<pre><code class="language-…">` block
-* Elementor "Code (Enlighter)" widget when Elementor is active
+* Elementor "Code Highlighter" widget when Elementor is active
 * Languages: PHP, JavaScript, CSS, HTML/XML, SQL, Bash, Python, JSON (and plain text)
 * Light, dark and auto themes (auto follows the visitor's colour scheme), optional line numbers and a copy button
 * Code is always HTML-escaped and highlighted client-side from the escaped text, so nothing in a snippet can inject markup or scripts
-* Migration-friendly: Enlighter's saved `data-enlighter-language` markup (block and inline) is recognised automatically. The standalone plugin's own tags are opt-in so the two can coexist - enable `[enlighter]` with the `dpt_en_legacy_shortcode` filter (it stands down if that plugin is active and already owns the tag), and per-language shortcodes such as `[php]`/`[js]` with `dpt_en_language_shortcodes`
+* Migration-friendly: code already saved with `data-enlighter-language` attributes or `EnlighterJSRAW` classes - the markup format of the standalone Enlighter plugin - is recognised and highlighted without editing the post. Its shortcode tags are not claimed unless you ask: `[enlighter]` is enabled with the `dpt_en_legacy_shortcode` filter and stands down while that plugin is active and already owns the tag, and per-language tags such as `[php]`/`[js]` with `dpt_en_language_shortcodes`. The two are designed to coexist
 
 = Module: Site Tweaks =
 
@@ -146,7 +146,6 @@ Delivers all site email through the Resend API (disabled by default; enable it o
 * Send log (last 100 emails) with per-email delivery status - delivered, bounced, opened, marked as spam - fed by a signed Resend webhook (Svix signature verification, replay protection)
 * Automatic fallback to the default WordPress mailer when the API errors, so emails are never silently dropped
 * Test-email button, masked API key storage with an optional DPT_RESEND_API_KEY wp-config.php constant override
-* Replaces WP Mail SMTP / FluentSMTP on Resend-backed sites
 
 = Module: Name Your Price =
 
@@ -167,7 +166,7 @@ Tailor the WooCommerce (classic/shortcode) checkout without a snippet (disabled 
 * Show, hide, require and reorder the standard Company, Address line 2, Phone and Order notes fields
 * Add up to 10 custom fields - text, dropdown or checkbox - in the billing, shipping or additional-info section
 * Custom values are validated on the server (a dropdown value outside the configured options is rejected), saved to the order, and shown on the admin order screen and in order emails
-* A scoped replacement for the "WooCommerce Checkout Field Editor" plugin; applies only when WooCommerce is active
+* Covers the common checkout-field edits without a dedicated field-editor plugin; applies only when WooCommerce is active
 
 Admin interface is in English with a full Hebrew translation.
 
@@ -260,9 +259,13 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 
 == Changelog ==
 
+= 1.19.0 =
+* The code-highlighting module is now called Code Highlighter, in the modules list, its settings page, the block inserter and the Elementor widget. Nothing about it changes otherwise - saved settings, existing blocks and existing shortcodes are untouched
+* Module descriptions no longer name other plugins. What each module does, and which saved markup it can read, is described directly instead
+
 = 1.18.0 =
 * Cleared every error reported by the official Plugin Check tool, so the codebase now passes the WordPress.org automated review
-* Enlighter: the block editor's own labels are now extractable by translation tools - two of them ("Code settings" and the block description) had never reached the Hebrew catalog and were showing in English
+* Code Highlighter: the block editor's own labels are now extractable by translation tools - two of them ("Code settings" and the block description) had never reached the Hebrew catalog and were showing in English
 * Cookie Banner: the banner's inline CSS documents why HTML escaping is inapplicable inside a <style> element, and every value in it is int-cast, escaped at assignment or allowlisted
 * Cookie Banner: the admin preview's inline style attributes are escaped
 * Content Control, Cookie Banner: the page dropdowns escape their "no selection" label
@@ -275,7 +278,7 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 * Added a Frequently Asked Questions section, a LICENSE file and the License URI header
 * Update checks and update downloads no longer disclose the site address: WordPress's default user agent (which embeds the site URL) is replaced with just the plugin name and version on both requests
 * Documented exactly which three modules are active immediately after activation
-* Enlighter: the legacy [enlighter] shortcode is no longer claimed by default. It is opt-in via the dpt_en_legacy_shortcode filter and stands down when the standalone Enlighter plugin already owns the tag, so the two can coexist
+* Code Highlighter: the legacy [enlighter] shortcode is no longer claimed by default. It is opt-in via the dpt_en_legacy_shortcode filter and stands down when the plugin that owns that tag is active, so the two can coexist
 * Cookie Banner: font weight, border style and background size/position/repeat are now pinned to the values the settings screen offers, so a crafted request cannot inject CSS
 * Hardened admin screens: the page query argument is sanitized before comparison
 * Removed an unused parameter from the Site Tweaks settings renderer
@@ -309,7 +312,7 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 * New module: Site Tweaks - HTTP security headers, sanitised SVG uploads, hiding the WordPress version, and Elementor helpers (disable Google Fonts, phone-field validation), each an independent toggle (module ships disabled; enable per site)
 
 = 1.7.0 =
-* New module: Enlighter - dependency-free code syntax highlighting via a block, the [dpt_code] shortcode, automatic pre/code highlighting and an Elementor widget (module ships disabled; enable per site)
+* New module: Code Highlighter - dependency-free code syntax highlighting via a block, the [dpt_code] shortcode, automatic pre/code highlighting and an Elementor widget (module ships disabled; enable per site)
 
 = 1.6.0 =
 * New module: Content Control - per-page/role restrictions, whole-site protection, per-menu-item visibility and a [dpt_restrict] shortcode, enforced across listings, feeds and REST (module ships disabled; enable per site)
