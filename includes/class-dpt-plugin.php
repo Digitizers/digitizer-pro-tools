@@ -127,11 +127,19 @@ class DPT_Plugin {
 	}
 
 	/**
-	 * Kept even though WordPress 4.6+ can load translations on its own: the
-	 * just-in-time loader only finds a plugin's bundled /languages folder once
-	 * the path is in the textdomain registry, and WordPress did not populate
-	 * that from the plugin headers until 6.7. This plugin supports 5.8, where
-	 * dropping the call would silently lose the bundled Hebrew catalog.
+	 * Kept deliberately, despite the "discouraged since 4.6" warning.
+	 *
+	 * Dropping the call is only safe for a plugin that is hosted on
+	 * WordPress.org and only supports current WordPress. Core's own 6.7
+	 * announcement gives the rule for everyone else: "If you still support
+	 * older WordPress versions or do not host your plugin/theme on
+	 * WordPress.org, move the function call to a later hook such as init."
+	 * Both halves apply here - this plugin supports 5.8 and its Hebrew
+	 * catalog is bundled rather than served as a language pack - so the call
+	 * stays and is hooked on init, which is also what avoids the early-loading
+	 * notice 6.7 added.
+	 *
+	 * @link https://make.wordpress.org/core/2024/10/21/i18n-improvements-6-7/
 	 */
 	public function load_textdomain() {
 		load_plugin_textdomain( 'digitizer-pro-tools', false, dirname( DPT_BASENAME ) . '/languages' );
