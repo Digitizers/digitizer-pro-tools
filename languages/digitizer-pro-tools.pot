@@ -1697,3 +1697,126 @@ msgstr ""
 
 msgid "Syntax-highlight code on the front end. Insert code with the \"Code Highlighter\" block, the [dpt_code lang=\"php\"]…[/dpt_code] shortcode, or the Elementor widget. Optionally highlight every existing pre/code block automatically."
 msgstr ""
+
+msgid "Onboarding"
+msgstr ""
+
+msgid "Item"
+msgstr ""
+
+msgid "Source"
+msgstr ""
+
+msgid "theme"
+msgstr ""
+
+msgid "Active"
+msgstr ""
+
+msgid "Installed, not active"
+msgstr ""
+
+msgid "Not installed"
+msgstr ""
+
+msgid "Set up this site"
+msgstr ""
+
+msgid "Working..."
+msgstr ""
+
+msgid "Done"
+msgstr ""
+
+msgid "Skipped"
+msgstr ""
+
+msgid "WordPress.org"
+msgstr ""
+
+msgid "Already active."
+msgstr ""
+
+msgid "Installed and activated."
+msgstr ""
+
+msgid "Activated."
+msgstr ""
+
+msgid "That item is not part of the baseline."
+msgstr ""
+
+msgid "This site does not allow installing from the dashboard."
+msgstr ""
+
+msgid "You are not allowed to switch themes on this site."
+msgstr ""
+
+msgid "The plugin is not where it was expected after installation."
+msgstr ""
+
+msgid "Could not normalise the downloaded folder name."
+msgstr ""
+
+msgid "GitHub returned a response that could not be read."
+msgstr ""
+
+msgid "That release has no downloadable archive."
+msgstr ""
+
+msgid "GitHub answered %2$d for %1$s."
+msgstr ""
+
+msgid "WordPress.org returned no download for %s."
+msgstr ""
+
+
+msgid "The installation did not complete. The site may not be able to write to its own files - see FS_METHOD."
+msgstr ""
+
+msgid "Installed. Not activated, because this site already uses a custom theme - switch it under Appearance > Themes when you are ready."
+msgstr ""
+
+msgid "Installed, but could not be activated: %s"
+msgstr ""
+
+msgid "The request did not complete. Check the site can reach WordPress.org and GitHub."
+msgstr ""
+
+msgid "Installs and activates the Digitizer baseline on this site. Anything already active is left exactly as it is - nothing here updates, downgrades or reconfigures a plugin you already have. Safe to run more than once."
+msgstr ""
+
+msgid "Installs and activates the Digitizer baseline - Hello Elementor with the Digitizer child theme, and the standard plugin set - on a new site. Nothing already installed is updated or reconfigured, and the run can be repeated safely."
+msgstr ""
+
+msgid "Installed."
+msgstr ""
+
+msgid "Already installed."
+msgstr ""
+
+
+msgid "You are not allowed to activate plugins on this site."
+msgstr ""
+
+msgid "Installed"
+msgstr ""
+
+
+msgid "%1$d installed, %2$d activated, %3$d skipped, %4$d failed."
+msgstr ""
+
+msgid "Already installed. Not activated, because this site already uses a custom theme - switch it under Appearance > Themes when you are ready."
+msgstr ""
+
+msgid "Installed, but not activated: its parent theme (%s) is missing or unusable, and switching to it would leave the site without a template."
+msgstr ""
+
+msgid "Installed, but not activated: WordPress reports the theme as broken, and activating it would take the site down."
+msgstr ""
+
+msgid "The theme switch did not take effect."
+msgstr ""
+
+msgid "It was activated but switched itself off again, which usually means it needs something this site does not have yet."
+msgstr ""

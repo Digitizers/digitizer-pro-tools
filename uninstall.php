@@ -8,6 +8,7 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 }
 
 delete_option( 'dpt_settings' );
+delete_option( 'dpt_onboarding' );
 delete_option( 'dpt_cookie_banner' );
 delete_option( 'dpt_duplicate_post' );
 delete_option( 'dpt_update_emails' );

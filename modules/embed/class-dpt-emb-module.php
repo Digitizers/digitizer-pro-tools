@@ -26,10 +26,6 @@ class DPT_Embed_Module extends DPT_Module {
 		return __( 'A [dpt_embed] shortcode that embeds PDF files and Google Docs, Sheets, Slides, Forms and Drive previews in a responsive frame - the sources WordPress does not embed on its own.', 'digitizer-pro-tools' );
 	}
 
-	public function enabled_by_default() {
-		return false;
-	}
-
 	public function install_defaults() {
 		DPT_EMB_Settings::install_defaults();
 	}

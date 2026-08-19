@@ -4,7 +4,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.19.0
+Stable tag: 1.20.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -14,7 +14,20 @@ One toolbox plugin by Digitizer. Modules: multilingual cookie-consent banner, on
 
 Digitizer Pro Tools is a modular plugin that consolidates the tools Digitizers deploys on client sites. Modules can be toggled on and off from the Modules dashboard.
 
-On activation only three modules are active - Cookie Banner, Duplicate Post and Update Emails - and each module below states whether it ships enabled or disabled. Everything else stays dormant until you switch it on.
+On activation only the Onboarding module is active. Every other module below ships disabled and stays dormant until you switch it on, so a new site starts with exactly what you chose for it.
+
+= Module: Onboarding =
+
+Brings a new site up to the Digitizer baseline in one pass (the only module that ships enabled):
+
+* Checklist of the baseline - Hello Elementor with the Hello Digitizer child theme, and twelve plugins - showing what this site already has
+* Untick anything a given client does not need, then install and activate the rest
+* Installs from WordPress.org, and from the public GitHub repositories for Hello Digitizer, Elementor MCP and MCP Adapter
+* Nothing already installed is updated, downgraded or reconfigured - an item that is already active is skipped
+* Safe to run again: the second pass finds everything in place and does nothing
+* One request per item, so a slow download cannot time out the whole run, and each row reports what happened
+* The theme is switched only while the site is still on a WordPress default - a site with a live custom theme keeps it, and the summary says so
+* The list is fixed in code. There is no field for pasting a plugin URL
 
 = Module: Cookie Banner =
 
@@ -199,16 +212,30 @@ The Resend Mail module - disabled by default - delivers your site's email throug
 
 The module keeps a local send log (recipient, subject, status - not the message body) of the most recent messages. It can be switched off in the module settings, and it is deleted when the plugin is uninstalled.
 
-= GitHub (update checks) =
+= GitHub (update checks, and the Onboarding module) =
 
-This plugin can update itself from its public GitHub repository. It periodically asks GitHub for the latest published release; no site data is sent beyond the request itself.
+Two things reach GitHub, both only from your server and never from a visitor's browser.
+
+This plugin can update itself from its public GitHub repository, periodically asking for the latest published release.
+
+The Onboarding module additionally installs three items from public GitHub repositories - the Hello Digitizer child theme, Elementor MCP and MCP Adapter. It asks for each repository's latest release and then downloads the archive. This happens only when an administrator opens the Onboarding screen and presses its button, never on a schedule and never on the front end.
 
 * Service: GitHub, https://github.com
-* Endpoint: https://api.github.com/repos/Digitizers/digitizer-pro-tools/releases
-* When: during WordPress's normal update checks, and again when an administrator installs an offered update
-* Data sent: nothing about the site. Neither the check nor the download carries a site URL, admin details or usage data - on both requests the plugin replaces WordPress's default user agent (which would otherwise include the site address) with just its own name and version. As with any HTTP request, GitHub sees the originating IP address.
+* Endpoints: https://api.github.com/repos/Digitizers/digitizer-pro-tools/releases for updates; https://api.github.com/repos/{owner}/{repo}/releases/latest for each onboarding item, followed by the archive download it points to (codeload.github.com, objects.githubusercontent.com or release-assets.githubusercontent.com)
+* When: updates during WordPress's normal update checks and when an administrator installs an offered update; onboarding only while a run is in progress. Release lookups are cached for six hours
+* Data sent: nothing about the site, on any of these requests. No site URL, admin details or usage data - the plugin replaces WordPress's default user agent (which would otherwise include the site address) with just its own name and version, on the lookups and on the downloads alike. As with any HTTP request, GitHub sees the originating IP address.
 * Terms of Service: https://docs.github.com/site-policy/github-terms/github-terms-of-service
 * Privacy Policy: https://docs.github.com/site-policy/privacy-policies/github-privacy-statement
+
+= WordPress.org (Onboarding module) =
+
+The Onboarding module installs the rest of its list from the WordPress.org plugin and theme directories, using the same APIs the built-in "Add Plugin" screen uses.
+
+* Service: WordPress.org, https://wordpress.org
+* Endpoints: https://api.wordpress.org/plugins/info/1.2/ and https://api.wordpress.org/themes/info/1.2/, followed by the package download at https://downloads.wordpress.org
+* When: only while an administrator is running the Onboarding wizard
+* Data sent: the slug being installed, plus whatever WordPress itself attaches to its API requests. Nothing is added by this plugin
+* Privacy Policy: https://wordpress.org/about/privacy/
 
 = Content you embed yourself (Embed module) =
 
@@ -229,17 +256,24 @@ No. Modules are toggled independently from the Modules screen, so you can enable
 
 = Which modules are active right after activation? =
 
-Three, and they are the only ones that change anything on their own:
+One: **Onboarding**. It adds a screen to the admin menu and does nothing at all until you press its button, so activating the plugin changes nothing on the front end and nothing for visitors.
 
-* **Cookie Banner** - starts showing the consent banner on the front end straight away. Open its settings to adapt the texts and design, or switch the module off if you do not want it.
-* **Duplicate Post** - adds "Duplicate" links to the post lists. Nothing changes for visitors.
-* **Update Emails** - stops the routine "site updated" emails after successful automatic updates. Failure and critical emails are always still sent.
+Every other module - the cookie banner, post duplication, update emails, and everything that touches WooCommerce, login URLs, roles, comments and content restrictions - ships **disabled**. Turn on the ones a given site needs from the Modules screen.
 
-Every other module - including everything that touches WooCommerce, login URLs, roles, comments and content restrictions - ships **disabled** and does nothing until you turn it on.
+Updating an existing site does not change what it already has: a module you switched on stays on, and one you switched off stays off. The new default applies only to modules that site has never saved a choice for.
 
 = Does the plugin send any data anywhere? =
 
-Not on its own. There is no telemetry, no analytics and no "phone home". Your server's only outbound traffic is the update check and, if you enable and configure the Resend Mail module, your outgoing email. Separately, a document you embed with the Embed module is loaded by the visitor's browser straight from its host. All three are described under "External services" above.
+There is no telemetry, no analytics and no "phone home": the plugin never collects information about your site or its visitors and sends it anywhere on its own initiative.
+
+Data does leave, but only where a module's job is to send it, and only for the modules you switch on. Everything below is described in full under "External services" above:
+
+* **Resend Mail**, if you enable it and enter an API key, sends your site's email through the Resend API - the complete message, including recipients, subject, body and attachments. That is what the module is for.
+* **Embed** makes the *visitor's browser* load the document you embedded straight from its host, so that host sees the visitor. The request comes from the visitor, not from your server.
+* **Onboarding**, while an administrator is running it, asks WordPress.org and GitHub for the packages it installs. Nothing about the site is sent.
+* **The update check** asks GitHub for the latest release, on WordPress's normal schedule. Nothing about the site is sent.
+
+Nothing else in the plugin makes an outbound request.
 
 = Does the cookie banner work with page caching? =
 
@@ -253,11 +287,17 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 
 1. Upload the plugin folder to /wp-content/plugins/
 2. Activate the plugin through the Plugins menu
-3. Open "Digitizer Pro Tools" in the admin menu and make sure the Cookie Banner module is enabled
-4. Open "Cookie Banner", review the texts per language, paste your analytics/marketing snippets in the Scripts tab
-5. Save and check the site
+3. On a new site, open "Onboarding" and run it to install and activate the standard theme and plugin set
+4. Open "Digitizer Pro Tools" in the admin menu and switch on the modules this site needs - everything except Onboarding ships disabled
+5. Configure each module you enabled from its own screen. For the Cookie Banner that means reviewing the texts per language and pasting your analytics/marketing snippets in the Scripts tab, then checking the site
 
 == Changelog ==
+
+= 1.20.0 =
+* New module: Onboarding - a wizard that installs and activates the Digitizer baseline (Hello Elementor plus the Digitizer child theme, and twelve plugins) on a new site. Anything already active is left alone, the run is repeatable, and each item reports what happened
+* Every other module now ships disabled. A new site starts empty and you turn on what that client needs. Existing sites are unaffected - a module you already switched on stays on
+* Onboarding is the one module that ships enabled, so a fresh site has a reachable wizard
+* The test suite moved into the repository, and neither it nor the design documents are included in the built ZIP
 
 = 1.19.0 =
 * The code-highlighting module is now called Code Highlighter, in the modules list, its settings page, the block inserter and the Elementor widget. Nothing about it changes otherwise - saved settings, existing blocks and existing shortcodes are untouched

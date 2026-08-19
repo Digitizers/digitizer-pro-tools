@@ -1,0 +1,250 @@
+<?php
+require_once __DIR__ . '/bootstrap.php';
+require_once dirname( __DIR__ ) . '/modules/onboarding/class-dpt-onb-manifest.php';
+require_once dirname( __DIR__ ) . '/modules/onboarding/class-dpt-onb-state.php';
+require_once dirname( __DIR__ ) . '/modules/onboarding/class-dpt-onb-source.php';
+require_once dirname( __DIR__ ) . '/modules/onboarding/class-dpt-onb-installer.php';
+
+/* ---- the decision table ---- */
+
+dpt_test_eq( DPT_ONB_Installer::action_for( 'missing' ), 'install', 'a missing item is installed' );
+dpt_test_eq( DPT_ONB_Installer::action_for( 'inactive' ), 'activate', 'an installed item is only activated' );
+dpt_test_eq( DPT_ONB_Installer::action_for( 'active' ), 'skip', 'an active item is left alone' );
+dpt_test_eq( DPT_ONB_Installer::action_for( 'nonsense' ), 'skip', 'an unknown state is skipped, never installed' );
+
+/* ---- theme activation gate ---- */
+
+dpt_test_ok( DPT_ONB_Installer::may_activate_theme( 'twentytwentyfour', 'the WordPress team' ), 'a default theme may be replaced' );
+dpt_test_ok( DPT_ONB_Installer::may_activate_theme( 'twentytwentysix', 'the WordPress team' ), 'the theme WordPress 7.0 bundles may be replaced' );
+// The hardcoded list always lags the next release, and lagging breaks the main
+// flow: a fresh site would be read as one with a chosen design. Core's own
+// WP_DEFAULT_THEME closes that gap for whatever comes next.
+$GLOBALS['dpt_stub_theme_authors'] = array(
+	'astra'           => 'Brainstorm Force',
+	'hello-digitizer' => 'Digitizer',
+	'hello-elementor' => 'Elementor Team',
+);
+
+$CORE = 'the WordPress team';
+dpt_test_ok( DPT_ONB_Installer::may_activate_theme( 'twentythirty', $CORE, 'twentythirty' ), 'a future bundled default is recognised through WP_DEFAULT_THEME' );
+dpt_test_ok( ! DPT_ONB_Installer::may_activate_theme( 'astra', 'Brainstorm Force', 'twentythirty' ), 'a custom theme is still refused when a bundled default is known' );
+
+// The authorship check applies to the allowlist too. A host can ship its own
+// design in a directory named twentytwentyfour, and trusting the directory name
+// alone would hand that design over as a replaceable default.
+dpt_test_ok( ! DPT_ONB_Installer::may_activate_theme( 'twentytwentyfour', 'Some Host Ltd' ), 'an allowlisted slug carrying a third-party theme is refused' );
+dpt_test_ok( ! DPT_ONB_Installer::may_activate_theme( 'twentytwentyfour', '' ), 'and refused when its author cannot be read' );
+dpt_test_ok( DPT_ONB_Installer::may_activate_theme( 'twentytwentyfour', $CORE ), 'a genuine bundled theme still passes' );
+
+// WP_DEFAULT_THEME is a hint, not proof: a site may redefine it in wp-config.php
+// to any theme, and a host pointing it at their own theme must not turn a
+// deliberately chosen design into a replaceable default.
+dpt_test_ok( ! DPT_ONB_Installer::may_activate_theme( 'astra', 'Brainstorm Force', 'astra' ), 'a redefined WP_DEFAULT_THEME does not make a custom theme replaceable' );
+dpt_test_ok( ! DPT_ONB_Installer::may_activate_theme( 'hello-digitizer', 'Digitizer', 'hello-digitizer' ), 'nor does pointing it at our own child theme' );
+dpt_test_ok( ! DPT_ONB_Installer::may_activate_theme( 'twenty-twenty-seven', $CORE, 'twenty-twenty-seven' ), 'a hyphenated look-alike is refused' );
+
+// The name alone is not enough. "Twenty Agency" is an ordinary name for an
+// agency's own theme, and replacing it would destroy a chosen design.
+dpt_test_ok( ! DPT_ONB_Installer::may_activate_theme( 'twentyagency', 'Some Agency', 'twentyagency' ), 'a custom theme with a core-shaped name is refused' );
+
+// Authorship alone is not enough either - both signals are required.
+dpt_test_ok( ! DPT_ONB_Installer::may_activate_theme( 'astra', $CORE, 'astra' ), 'core authorship does not excuse a non-core name' );
+
+dpt_test_ok( DPT_ONB_Installer::looks_like_core_theme( 'twentytwentyseven' ), 'an unreleased core theme name is recognised' );
+dpt_test_ok( ! DPT_ONB_Installer::looks_like_core_theme( 'astra' ), 'a custom name is not' );
+dpt_test_ok( ! DPT_ONB_Installer::looks_like_core_theme( 'twenty' ), 'the bare prefix is not a theme name' );
+dpt_test_ok( ! DPT_ONB_Installer::looks_like_core_theme( 'twentyfour7' ), 'digits are not part of the convention' );
+
+dpt_test_ok( DPT_ONB_Installer::authored_by_core( 'the WordPress team' ), 'core authorship is recognised' );
+dpt_test_ok( DPT_ONB_Installer::authored_by_core( '  the wordpress team  ' ), 'whitespace and case do not matter' );
+dpt_test_ok( ! DPT_ONB_Installer::authored_by_core( 'the WordPress team of Acme Ltd' ), 'a superstring is not core authorship' );
+dpt_test_ok( ! DPT_ONB_Installer::authored_by_core( '' ), 'an unreadable author is not core authorship' );
+dpt_test_eq( DPT_ONB_Installer::bundled_default_theme(), '', 'the bundled default is empty when WP_DEFAULT_THEME is undefined' );
+dpt_test_ok( DPT_ONB_Installer::may_activate_theme( 'twentyten', 'the WordPress team' ), 'an old default theme may be replaced' );
+dpt_test_ok( ! DPT_ONB_Installer::may_activate_theme( 'astra', 'Brainstorm Force' ), 'a live custom theme is never replaced' );
+dpt_test_ok( ! DPT_ONB_Installer::may_activate_theme( 'hello-digitizer', 'Digitizer' ), 'an already-correct theme is not re-activated here' );
+// Guard against a theme that merely starts with the same letters.
+dpt_test_ok( ! DPT_ONB_Installer::may_activate_theme( 'twenty-something-custom', 'the WordPress team' ), 'only real default theme slugs count' );
+
+/* ---- extracted-directory rename ---- */
+
+dpt_test_eq(
+	DPT_ONB_Installer::desired_source_path( '/tmp/wp/upgrade/elementor-mcp-a1b2c3d/', 'elementor-mcp' ),
+	'/tmp/wp/upgrade/elementor-mcp/',
+	'a zipball directory is renamed to the manifest slug'
+);
+dpt_test_eq(
+	DPT_ONB_Installer::desired_source_path( '/tmp/wp/upgrade/elementor-mcp/', 'elementor-mcp' ),
+	'/tmp/wp/upgrade/elementor-mcp/',
+	'an already-correct directory is unchanged'
+);
+dpt_test_eq(
+	DPT_ONB_Installer::desired_source_path( '/tmp/wp/upgrade/WordPress-mcp-adapter-9f8e7d6/', 'mcp-adapter' ),
+	'/tmp/wp/upgrade/mcp-adapter/',
+	'the owner prefix GitHub adds is stripped too'
+);
+
+/* ---- apply(): unknown ids never reach the upgrader ---- */
+
+$res = DPT_ONB_Installer::apply( 'no-such-item' );
+dpt_test_eq( $res['outcome'], 'failed', 'an unknown id fails' );
+dpt_test_eq( $res['id'], 'no-such-item', 'the result echoes the id it was given' );
+
+$res = DPT_ONB_Installer::apply( '../../../wp-config' );
+dpt_test_eq( $res['outcome'], 'failed', 'a traversal attempt fails' );
+
+/* ---- apply(): an active item short-circuits before any network work ---- */
+
+$GLOBALS['dpt_stub_plugins']        = array( 'elementor/elementor.php' => array( 'Name' => 'Elementor' ) );
+$GLOBALS['dpt_stub_active_plugins'] = array( 'elementor/elementor.php' );
+$GLOBALS['dpt_stub_http']           = array(); // any HTTP call would be a stub miss
+$res = DPT_ONB_Installer::apply( 'elementor' );
+dpt_test_eq( $res['outcome'], 'skipped', 'an already-active plugin is skipped' );
+dpt_test_ok( '' !== $res['message'], 'a skip still carries a message for the summary' );
+
+/* ---- regression: a child theme is never activated without its parent ---- */
+
+// The parent can be absent for ordinary reasons - the operator unticked it, or
+// its own install failed earlier in a run that deliberately does not stop on
+// failure. Switching anyway leaves the public site with no template.
+$GLOBALS['dpt_stub_themes']     = array( 'twentytwentyfour', 'hello-digitizer' ); // child present, parent not
+$GLOBALS['dpt_stub_stylesheet'] = 'twentytwentyfour';         // switching would be allowed
+$res = DPT_ONB_Installer::apply( 'hello_digitizer' );
+dpt_test_eq( $res['outcome'], 'failed', 'the child theme is not activated when its parent is missing' );
+dpt_test_eq( $GLOBALS['dpt_stub_stylesheet'], 'twentytwentyfour', 'the live theme is left alone' );
+dpt_test_ok( false !== strpos( $res['message'], 'hello-elementor' ), 'the message names the missing parent' );
+
+// With the parent present it switches as designed.
+$GLOBALS['dpt_stub_themes']     = array( 'twentytwentyfour', 'hello-elementor', 'hello-digitizer' );
+$GLOBALS['dpt_stub_stylesheet'] = 'twentytwentyfour';
+$res = DPT_ONB_Installer::apply( 'hello_digitizer' );
+dpt_test_eq( $res['outcome'], 'activated', 'the child theme activates once its parent is present' );
+dpt_test_eq( $GLOBALS['dpt_stub_stylesheet'], 'hello-digitizer', 'the child theme became the active theme' );
+
+// A live custom theme still wins over both checks. The child theme is missing
+// here, so this request really does install it.
+$GLOBALS['dpt_stub_themes']     = array( 'astra' );
+$GLOBALS['dpt_stub_stylesheet'] = 'astra';
+$res = DPT_ONB_Installer::apply( 'hello_digitizer' );
+dpt_test_eq( $GLOBALS['dpt_stub_stylesheet'], 'astra', 'the custom theme is untouched' );
+
+// The same deferral on an item that was already on disk installed nothing.
+// Reporting it as installed would record a fresh success on every single run.
+$GLOBALS['dpt_stub_themes']     = array( 'astra', 'hello-elementor', 'hello-digitizer' );
+$GLOBALS['dpt_stub_stylesheet'] = 'astra';
+$res = DPT_ONB_Installer::apply( 'hello_digitizer' );
+dpt_test_eq( $res['outcome'], 'skipped', 'deferring an already-installed theme is not an installation' );
+dpt_test_ok( false !== strpos( $res['message'], 'Already installed' ), 'and the message says so' );
+$again = DPT_ONB_Installer::apply( 'hello_digitizer' );
+dpt_test_eq( $again['outcome'], 'skipped', 'and it reports the same on the next run' );
+dpt_test_eq( $again['message'], $res['message'], 'with the same message, so the row converges' );
+
+/* ---- regression: the parent theme is never reported as activated ---- */
+
+$GLOBALS['dpt_stub_themes']     = array( 'twentytwentyfour', 'hello-elementor' );
+$GLOBALS['dpt_stub_stylesheet'] = 'twentytwentyfour';
+$parent = DPT_ONB_Manifest::get( 'hello_elementor' );
+// Its own state, not ACTIVE: the status column prints the state, so calling it
+// active would put the false claim back on screen instead of in the message.
+dpt_test_eq( DPT_ONB_State::of( $parent ), DPT_ONB_State::PRESENT, 'an install-only item is satisfied once present' );
+dpt_test_ok( DPT_ONB_State::PRESENT !== DPT_ONB_State::ACTIVE, 'present and active are distinct states' );
+dpt_test_eq( DPT_ONB_Installer::action_for( DPT_ONB_State::PRESENT ), 'skip', 'a present item needs no action' );
+dpt_test_eq( DPT_ONB_Installer::capability_for( $parent, DPT_ONB_State::PRESENT ), '', 'and needs no capability' );
+
+$res = DPT_ONB_Installer::apply( 'hello_elementor' );
+dpt_test_eq( $res['outcome'], 'skipped', 'a present parent theme is skipped, not re-activated' );
+dpt_test_eq( $GLOBALS['dpt_stub_stylesheet'], 'twentytwentyfour', 'the parent theme is never made the active theme' );
+// The message overwrites the row's status text, so it must not reintroduce the
+// claim the PRESENT state exists to prevent.
+dpt_test_eq( $res['message'], 'Already installed.', 'the skip message does not claim the parent theme is active' );
+dpt_test_ok( false === strpos( $res['message'], 'active' ), 'and the word does not appear at all' );
+
+// An item that really is active still says so.
+$GLOBALS['dpt_stub_plugins']        = array( 'elementor/elementor.php' => array( 'Name' => 'Elementor' ) );
+$GLOBALS['dpt_stub_active_plugins'] = array( 'elementor/elementor.php' );
+dpt_test_eq( DPT_ONB_Installer::apply( 'elementor' )['message'], 'Already active.', 'a genuinely active item still reports as active' );
+
+// Running again must reach the same answer - the row has to converge.
+$res = DPT_ONB_Installer::apply( 'hello_elementor' );
+dpt_test_eq( $res['outcome'], 'skipped', 'and it stays skipped on a second run' );
+dpt_test_eq( $res['message'], 'Already installed.', 'with the same message on the second run' );
+
+/* ---- regression: capability matches the action, not the worst case ---- */
+
+$plugin_item = DPT_ONB_Manifest::get( 'elementor' );
+$theme_item  = DPT_ONB_Manifest::get( 'hello_digitizer' );
+
+dpt_test_eq( DPT_ONB_Installer::capability_for( $plugin_item, 'missing' ), 'install_plugins', 'installing a plugin needs install_plugins' );
+dpt_test_eq( DPT_ONB_Installer::capability_for( $plugin_item, 'inactive' ), 'activate_plugins', 'activating an installed plugin needs only activate_plugins' );
+dpt_test_eq( DPT_ONB_Installer::capability_for( $plugin_item, 'active' ), '', 'skipping needs no extra capability' );
+dpt_test_eq( DPT_ONB_Installer::capability_for( $theme_item, 'missing' ), 'install_themes', 'installing a theme needs install_themes' );
+dpt_test_eq( DPT_ONB_Installer::capability_for( $theme_item, 'inactive' ), 'switch_themes', 'activating an installed theme needs only switch_themes' );
+
+/* ---- regression: installing and activating are two permissions ---- */
+
+// activate_plugin() performs no capability check of its own, so a role granted
+// install_plugins but deliberately not activate_plugins must not end up
+// activating everything it installed.
+$GLOBALS['dpt_stub_plugins']        = array( 'elementor/elementor.php' => array( 'Name' => 'Elementor' ) );
+$GLOBALS['dpt_stub_active_plugins'] = array();
+$GLOBALS['dpt_stub_denied_caps']    = array( 'activate_plugins' );
+$res = DPT_ONB_Installer::apply( 'elementor' );
+dpt_test_eq( $res['outcome'], 'failed', 'a user who cannot activate plugins does not activate one' );
+dpt_test_eq( $GLOBALS['dpt_stub_active_plugins'], array(), 'and nothing was activated' );
+
+$GLOBALS['dpt_stub_denied_caps'] = array();
+$res = DPT_ONB_Installer::apply( 'elementor' );
+dpt_test_eq( $res['outcome'], 'activated', 'with the capability it activates normally' );
+dpt_test_eq( $GLOBALS['dpt_stub_active_plugins'], array( 'elementor/elementor.php' ), 'and the plugin is active' );
+
+// Same rule on the theme side.
+$GLOBALS['dpt_stub_themes']      = array( 'twentytwentyfour', 'hello-elementor', 'hello-digitizer' );
+$GLOBALS['dpt_stub_stylesheet']  = 'twentytwentyfour';
+$GLOBALS['dpt_stub_denied_caps'] = array( 'switch_themes' );
+$res = DPT_ONB_Installer::apply( 'hello_digitizer' );
+dpt_test_eq( $res['outcome'], 'failed', 'a user who cannot switch themes does not switch one' );
+dpt_test_eq( $GLOBALS['dpt_stub_stylesheet'], 'twentytwentyfour', 'and the live theme is unchanged' );
+$GLOBALS['dpt_stub_denied_caps'] = array();
+
+/* ---- regression: never switch to a theme WordPress calls broken ---- */
+
+// exists() only says a directory with a stylesheet is there. A theme can
+// satisfy that and still be unusable, and switching to it takes the site down.
+$GLOBALS['dpt_stub_themes']        = array( 'twentytwentyfour', 'hello-elementor', 'hello-digitizer' );
+$GLOBALS['dpt_stub_broken_themes'] = array( 'hello-digitizer' );
+$GLOBALS['dpt_stub_stylesheet']    = 'twentytwentyfour';
+$res = DPT_ONB_Installer::apply( 'hello_digitizer' );
+dpt_test_eq( $res['outcome'], 'failed', 'a broken child theme is not activated' );
+dpt_test_eq( $GLOBALS['dpt_stub_stylesheet'], 'twentytwentyfour', 'and the live theme is untouched' );
+
+// A broken parent is refused for the same reason.
+$GLOBALS['dpt_stub_broken_themes'] = array( 'hello-elementor' );
+$res = DPT_ONB_Installer::apply( 'hello_digitizer' );
+dpt_test_eq( $res['outcome'], 'failed', 'a broken parent theme blocks activation' );
+dpt_test_eq( $GLOBALS['dpt_stub_stylesheet'], 'twentytwentyfour', 'and still nothing switched' );
+
+$GLOBALS['dpt_stub_broken_themes'] = array();
+$res = DPT_ONB_Installer::apply( 'hello_digitizer' );
+dpt_test_eq( $res['outcome'], 'activated', 'two usable themes activate normally' );
+dpt_test_eq( $GLOBALS['dpt_stub_stylesheet'], 'hello-digitizer', 'and the switch took effect' );
+
+dpt_test_ok( ! DPT_ONB_Installer::theme_is_usable( 'not-installed-at-all' ), 'an absent theme is not usable' );
+
+/* ---- regression: a plugin that switches itself off is not a success ---- */
+
+// activate_plugin() reports success even when the plugin deactivated itself
+// from its own activation hook - which is what a plugin does when it finds an
+// unmet prerequisite. Reporting that as activated puts a claim on screen the
+// next run contradicts.
+$GLOBALS['dpt_stub_plugins']            = array( 'elementor-mcp/elementor-mcp.php' => array( 'Name' => 'Elementor MCP' ) );
+$GLOBALS['dpt_stub_active_plugins']     = array();
+$GLOBALS['dpt_stub_self_deactivating']  = array( 'elementor-mcp/elementor-mcp.php' );
+$res = DPT_ONB_Installer::apply( 'elementor_mcp' );
+dpt_test_eq( $res['outcome'], 'failed', 'a plugin that switches itself off is reported as failed' );
+dpt_test_ok( false !== strpos( $res['message'], 'switched itself off' ), 'and the message says what happened' );
+
+$GLOBALS['dpt_stub_self_deactivating'] = array();
+$res = DPT_ONB_Installer::apply( 'elementor_mcp' );
+dpt_test_eq( $res['outcome'], 'activated', 'and one that stays on is reported as activated' );
+
+exit( dpt_test_summary() > 0 ? 1 : 0 );

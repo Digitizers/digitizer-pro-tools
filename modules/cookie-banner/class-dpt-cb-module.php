@@ -26,10 +26,6 @@ class DPT_Cookie_Banner_Module extends DPT_Module {
 		return __( 'Multilingual cookie-consent banner with cookie categories, script blocking until consent, and a floating preferences button.', 'digitizer-pro-tools' );
 	}
 
-	public function enabled_by_default() {
-		return true;
-	}
-
 	public function init() {
 		new DPT_CB_Frontend();
 		$this->admin = new DPT_CB_Admin();

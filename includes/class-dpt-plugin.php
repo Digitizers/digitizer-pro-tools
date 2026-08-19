@@ -28,20 +28,25 @@ class DPT_Plugin {
 	 */
 	public function registry() {
 		$modules = array(
+			'onboarding' => array(
+				'file'    => DPT_PATH . 'modules/onboarding/class-dpt-onb-module.php',
+				'class'   => 'DPT_Onboarding_Module',
+				'default' => '1',
+			),
 			'cookie_banner' => array(
 				'file'    => DPT_PATH . 'modules/cookie-banner/class-dpt-cb-module.php',
 				'class'   => 'DPT_Cookie_Banner_Module',
-				'default' => '1',
+				'default' => '0',
 			),
 			'duplicate_post' => array(
 				'file'    => DPT_PATH . 'modules/duplicate-post/class-dpt-dp-module.php',
 				'class'   => 'DPT_Duplicate_Post_Module',
-				'default' => '1',
+				'default' => '0',
 			),
 			'update_emails' => array(
 				'file'    => DPT_PATH . 'modules/update-emails/class-dpt-ue-module.php',
 				'class'   => 'DPT_Update_Emails_Module',
-				'default' => '1',
+				'default' => '0',
 			),
 			'disable_comments' => array(
 				'file'    => DPT_PATH . 'modules/disable-comments/class-dpt-dc-module.php',

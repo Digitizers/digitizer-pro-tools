@@ -31,10 +31,6 @@ class DPT_Woo_Checkout_Fields_Module extends DPT_Module {
 		return __( 'Show, hide, require and reorder standard WooCommerce checkout fields, and add custom fields (text, select or checkbox) saved to the order and shown in the admin and order emails.', 'digitizer-pro-tools' );
 	}
 
-	public function enabled_by_default() {
-		return false;
-	}
-
 	public function install_defaults() {
 		DPT_WCF_Settings::install_defaults();
 	}

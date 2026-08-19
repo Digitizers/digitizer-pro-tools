@@ -26,10 +26,6 @@ class DPT_Name_Your_Price_Module extends DPT_Module {
 		return __( 'Let customers set their own price on chosen WooCommerce products (donations / pay-what-you-want), with optional minimum, maximum and suggested prices enforced on the server.', 'digitizer-pro-tools' );
 	}
 
-	public function enabled_by_default() {
-		return false;
-	}
-
 	public function install_defaults() {
 		DPT_NYP_Settings::install_defaults();
 	}

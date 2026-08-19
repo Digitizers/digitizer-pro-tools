@@ -29,10 +29,6 @@ class DPT_Update_Emails_Module extends DPT_Module {
 		return __( 'Silences the "site updated" email notifications WordPress sends after automatic plugin, theme and core updates. Failure emails are always kept.', 'digitizer-pro-tools' );
 	}
 
-	public function enabled_by_default() {
-		return true;
-	}
-
 	public function init() {
 		$o = DPT_UE_Settings::all();
 

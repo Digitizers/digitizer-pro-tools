@@ -28,10 +28,6 @@ class DPT_Site_Tweaks_Module extends DPT_Module {
 		return __( 'Small site-wide tweaks: HTTP security headers, sanitised SVG uploads, hiding the WordPress version, and Elementor helpers. Each tweak is an independent toggle.', 'digitizer-pro-tools' );
 	}
 
-	public function enabled_by_default() {
-		return false;
-	}
-
 	public function install_defaults() {
 		DPT_ST_Settings::install_defaults();
 	}
