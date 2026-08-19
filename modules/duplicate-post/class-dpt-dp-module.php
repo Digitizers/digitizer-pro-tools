@@ -26,10 +26,6 @@ class DPT_Duplicate_Post_Module extends DPT_Module {
 		return __( 'One-click duplication of posts, pages and custom post types as drafts - including custom fields (Elementor data), taxonomies and the featured image.', 'digitizer-pro-tools' );
 	}
 
-	public function enabled_by_default() {
-		return true;
-	}
-
 	public function init() {
 		if ( is_admin() ) {
 			$this->admin = new DPT_DP_Admin();

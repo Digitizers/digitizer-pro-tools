@@ -26,10 +26,6 @@ class DPT_Disable_Comments_Module extends DPT_Module {
 		return __( 'Turns off comments globally or per post type - closes forms, hides existing comments and removes the admin comments UI. WooCommerce product reviews are protected by default.', 'digitizer-pro-tools' );
 	}
 
-	public function enabled_by_default() {
-		return true;
-	}
-
 	public function init() {
 		// Frontend gates - per post type.
 		add_filter( 'comments_open', array( $this, 'filter_comments_open' ), 20, 2 );

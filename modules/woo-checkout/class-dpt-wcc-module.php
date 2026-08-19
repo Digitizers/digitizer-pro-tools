@@ -26,10 +26,6 @@ class DPT_Woo_Checkout_Module extends DPT_Module {
 		return __( 'Checkout helpers for WooCommerce: suggest corrections for mistyped email domains, and validate Israeli phone numbers (client-side hint plus a server-side check).', 'digitizer-pro-tools' );
 	}
 
-	public function enabled_by_default() {
-		return false;
-	}
-
 	public function install_defaults() {
 		DPT_WCC_Settings::install_defaults();
 	}

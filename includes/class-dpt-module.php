@@ -29,13 +29,6 @@ abstract class DPT_Module {
 	abstract public function init();
 
 	/**
-	 * Whether this module is enabled on fresh installs.
-	 */
-	public function enabled_by_default() {
-		return false;
-	}
-
-	/**
 	 * Seed / migrate the module's own options. Called on activation and
 	 * on version upgrades, regardless of the enabled flag.
 	 */

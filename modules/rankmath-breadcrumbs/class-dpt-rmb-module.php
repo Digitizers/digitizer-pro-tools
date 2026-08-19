@@ -26,10 +26,6 @@ class DPT_RankMath_Breadcrumbs_Module extends DPT_Module {
 		return __( 'Adds a Blog crumb on post pages and a Shop crumb on WooCommerce product pages to the Rank Math breadcrumb trail. URLs are detected automatically and can be overridden.', 'digitizer-pro-tools' );
 	}
 
-	public function enabled_by_default() {
-		return false;
-	}
-
 	public function install_defaults() {
 		DPT_RMB_Settings::install_defaults();
 	}
