@@ -147,7 +147,18 @@ class DPT_ONB_Installer {
 		$action = self::action_for( $state );
 
 		if ( 'skip' === $action ) {
-			return self::result( $item_id, 'skipped', __( 'Already active.', 'digitizer-pro-tools' ) );
+			// The message replaces the row's status text, so it has to be as
+			// true as the status it overwrites. An install-only item that is
+			// already present was never activated, and saying "already active"
+			// here would put that claim back on screen - which is the whole
+			// reason PRESENT exists as a state of its own.
+			return self::result(
+				$item_id,
+				'skipped',
+				DPT_ONB_State::PRESENT === $state
+					? __( 'Already installed.', 'digitizer-pro-tools' )
+					: __( 'Already active.', 'digitizer-pro-tools' )
+			);
 		}
 
 		if ( 'install' === $action ) {
@@ -175,14 +186,10 @@ class DPT_ONB_Installer {
 			);
 		}
 
+		// Only reachable after an install: an install-only item that was
+		// already present is skipped above.
 		if ( 'present' === $activated ) {
-			return self::result(
-				$item_id,
-				'installed',
-				'install' === $action
-					? __( 'Installed.', 'digitizer-pro-tools' )
-					: __( 'Already installed.', 'digitizer-pro-tools' )
-			);
+			return self::result( $item_id, 'installed', __( 'Installed.', 'digitizer-pro-tools' ) );
 		}
 
 		if ( 'deferred' === $activated ) {

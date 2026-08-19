@@ -105,10 +105,20 @@ dpt_test_eq( DPT_ONB_Installer::capability_for( $parent, DPT_ONB_State::PRESENT 
 $res = DPT_ONB_Installer::apply( 'hello_elementor' );
 dpt_test_eq( $res['outcome'], 'skipped', 'a present parent theme is skipped, not re-activated' );
 dpt_test_eq( $GLOBALS['dpt_stub_stylesheet'], 'twentytwentyfour', 'the parent theme is never made the active theme' );
+// The message overwrites the row's status text, so it must not reintroduce the
+// claim the PRESENT state exists to prevent.
+dpt_test_eq( $res['message'], 'Already installed.', 'the skip message does not claim the parent theme is active' );
+dpt_test_ok( false === strpos( $res['message'], 'active' ), 'and the word does not appear at all' );
+
+// An item that really is active still says so.
+$GLOBALS['dpt_stub_plugins']        = array( 'elementor/elementor.php' => array( 'Name' => 'Elementor' ) );
+$GLOBALS['dpt_stub_active_plugins'] = array( 'elementor/elementor.php' );
+dpt_test_eq( DPT_ONB_Installer::apply( 'elementor' )['message'], 'Already active.', 'a genuinely active item still reports as active' );
 
 // Running again must reach the same answer - the row has to converge.
 $res = DPT_ONB_Installer::apply( 'hello_elementor' );
 dpt_test_eq( $res['outcome'], 'skipped', 'and it stays skipped on a second run' );
+dpt_test_eq( $res['message'], 'Already installed.', 'with the same message on the second run' );
 
 /* ---- regression: capability matches the action, not the worst case ---- */
 
