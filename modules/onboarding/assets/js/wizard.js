@@ -70,7 +70,11 @@
 		run.disabled = true;
 		out.textContent = '';
 
-		var done = 0;
+		// Counted separately, because the rows distinguish them and a summary
+		// that calls an activation an installation contradicts what the
+		// operator just watched happen.
+		var installed = 0;
+		var activated = 0;
 		var skipped = 0;
 		var failed = 0;
 
@@ -83,17 +87,20 @@
 						failed++;
 					} else if ( 'skipped' === res.outcome ) {
 						skipped++;
+					} else if ( 'activated' === res.outcome ) {
+						activated++;
 					} else {
-						done++;
+						installed++;
 					}
 					setStatus( id, res.message, res.outcome );
 				} );
 			} );
 		}, Promise.resolve() ).then( function () {
 			out.textContent = cfg.strings.summary
-				.replace( '%1$d', done )
-				.replace( '%2$d', skipped )
-				.replace( '%3$d', failed );
+				.replace( '%1$d', installed )
+				.replace( '%2$d', activated )
+				.replace( '%3$d', skipped )
+				.replace( '%4$d', failed );
 			run.disabled = false;
 		} );
 	} );

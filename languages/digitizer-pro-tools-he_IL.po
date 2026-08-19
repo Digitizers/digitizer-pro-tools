@@ -1770,8 +1770,6 @@ msgstr "GitHub החזיר %2$d עבור %1$s."
 msgid "WordPress.org returned no download for %s."
 msgstr "WordPress.org לא החזיר קובץ להורדה עבור %s."
 
-msgid "%1$d installed, %2$d skipped, %3$d failed."
-msgstr "%1$d הותקנו, %2$d דולגו, %3$d נכשלו."
 
 msgid "The installation did not complete. The site may not be able to write to its own files - see FS_METHOD."
 msgstr "ההתקנה לא הושלמה. ייתכן שהאתר לא יכול לכתוב לקבצים של עצמו - ראו FS_METHOD."
@@ -1805,3 +1803,10 @@ msgstr "אין לך הרשאה להפעיל תוספים באתר הזה."
 
 msgid "Installed"
 msgstr "מותקן"
+
+
+msgid "%1$d installed, %2$d activated, %3$d skipped, %4$d failed."
+msgstr "%1$d הותקנו, %2$d הופעלו, %3$d דולגו, %4$d נכשלו."
+
+msgid "Already installed. Not activated, because this site already uses a custom theme - switch it under Appearance > Themes when you are ready."
+msgstr "כבר מותקן. לא הופעל, כי האתר כבר משתמש בתבנית משלו - החליפו תחת עיצוב > תבניות כשתהיו מוכנים."

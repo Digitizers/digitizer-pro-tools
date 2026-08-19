@@ -592,7 +592,6 @@ return array (
     'That release has no downloadable archive.' => 'לגרסה הזו אין קובץ להורדה.',
     'GitHub answered %2$d for %1$s.' => 'GitHub החזיר %2$d עבור %1$s.',
     'WordPress.org returned no download for %s.' => 'WordPress.org לא החזיר קובץ להורדה עבור %s.',
-    '%1$d installed, %2$d skipped, %3$d failed.' => '%1$d הותקנו, %2$d דולגו, %3$d נכשלו.',
     'The installation did not complete. The site may not be able to write to its own files - see FS_METHOD.' => 'ההתקנה לא הושלמה. ייתכן שהאתר לא יכול לכתוב לקבצים של עצמו - ראו FS_METHOD.',
     'Installed. Not activated, because this site already uses a custom theme - switch it under Appearance > Themes when you are ready.' => 'הותקן. לא הופעל, כי האתר כבר משתמש בתבנית משלו - החליפו תחת עיצוב > תבניות כשתהיו מוכנים.',
     'Installed, but could not be activated: %s' => 'הותקן, אך לא ניתן היה להפעיל: %s',
@@ -604,5 +603,7 @@ return array (
     'Installed, but not activated: its parent theme (%s) is missing, and switching to it would leave the site without a template.' => 'הותקן, אך לא הופעל: תבנית האב שלו (%s) חסרה, והפעלה שלו הייתה משאירה את האתר בלי תבנית.',
     'You are not allowed to activate plugins on this site.' => 'אין לך הרשאה להפעיל תוספים באתר הזה.',
     'Installed' => 'מותקן',
+    '%1$d installed, %2$d activated, %3$d skipped, %4$d failed.' => '%1$d הותקנו, %2$d הופעלו, %3$d דולגו, %4$d נכשלו.',
+    'Already installed. Not activated, because this site already uses a custom theme - switch it under Appearance > Themes when you are ready.' => 'כבר מותקן. לא הופעל, כי האתר כבר משתמש בתבנית משלו - החליפו תחת עיצוב > תבניות כשתהיו מוכנים.',
   ),
 );

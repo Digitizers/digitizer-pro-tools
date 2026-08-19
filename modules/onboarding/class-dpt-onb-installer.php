@@ -253,11 +253,20 @@ class DPT_ONB_Installer {
 		}
 
 		if ( 'deferred' === $activated ) {
-			return self::result(
-				$item_id,
-				'installed',
-				__( 'Installed. Not activated, because this site already uses a custom theme - switch it under Appearance > Themes when you are ready.', 'digitizer-pro-tools' )
-			);
+			// A deferral after an install did install something. A deferral on
+			// an item that was already on disk did nothing at all, and calling
+			// that an installation would record a fresh success on every run.
+			return 'install' === $action
+				? self::result(
+					$item_id,
+					'installed',
+					__( 'Installed. Not activated, because this site already uses a custom theme - switch it under Appearance > Themes when you are ready.', 'digitizer-pro-tools' )
+				)
+				: self::result(
+					$item_id,
+					'skipped',
+					__( 'Already installed. Not activated, because this site already uses a custom theme - switch it under Appearance > Themes when you are ready.', 'digitizer-pro-tools' )
+				);
 		}
 
 		return self::result(

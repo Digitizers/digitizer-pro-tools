@@ -45,8 +45,8 @@ class DPT_ONB_Admin {
 					'failed'  => __( 'Failed', 'digitizer-pro-tools' ),
 					'skipped' => __( 'Skipped', 'digitizer-pro-tools' ),
 					'network' => __( 'The request did not complete. Check the site can reach WordPress.org and GitHub.', 'digitizer-pro-tools' ),
-					/* translators: 1: number succeeded, 2: number skipped, 3: number failed */
-					'summary' => __( '%1$d installed, %2$d skipped, %3$d failed.', 'digitizer-pro-tools' ),
+					/* translators: 1: number installed, 2: number activated, 3: number skipped, 4: number failed */
+					'summary' => __( '%1$d installed, %2$d activated, %3$d skipped, %4$d failed.', 'digitizer-pro-tools' ),
 				),
 			)
 		);

@@ -109,12 +109,23 @@ $res = DPT_ONB_Installer::apply( 'hello_digitizer' );
 dpt_test_eq( $res['outcome'], 'activated', 'the child theme activates once its parent is present' );
 dpt_test_eq( $GLOBALS['dpt_stub_stylesheet'], 'hello-digitizer', 'the child theme became the active theme' );
 
-// A live custom theme still wins over both checks.
-$GLOBALS['dpt_stub_themes']     = array( 'hello-digitizer' );
+// A live custom theme still wins over both checks. The child theme is missing
+// here, so this request really does install it.
+$GLOBALS['dpt_stub_themes']     = array();
 $GLOBALS['dpt_stub_stylesheet'] = 'astra';
 $res = DPT_ONB_Installer::apply( 'hello_digitizer' );
-dpt_test_eq( $res['outcome'], 'installed', 'a live custom theme defers activation before the parent check' );
 dpt_test_eq( $GLOBALS['dpt_stub_stylesheet'], 'astra', 'the custom theme is untouched' );
+
+// The same deferral on an item that was already on disk installed nothing.
+// Reporting it as installed would record a fresh success on every single run.
+$GLOBALS['dpt_stub_themes']     = array( 'hello-elementor', 'hello-digitizer' );
+$GLOBALS['dpt_stub_stylesheet'] = 'astra';
+$res = DPT_ONB_Installer::apply( 'hello_digitizer' );
+dpt_test_eq( $res['outcome'], 'skipped', 'deferring an already-installed theme is not an installation' );
+dpt_test_ok( false !== strpos( $res['message'], 'Already installed' ), 'and the message says so' );
+$again = DPT_ONB_Installer::apply( 'hello_digitizer' );
+dpt_test_eq( $again['outcome'], 'skipped', 'and it reports the same on the next run' );
+dpt_test_eq( $again['message'], $res['message'], 'with the same message, so the row converges' );
 
 /* ---- regression: the parent theme is never reported as activated ---- */
 
