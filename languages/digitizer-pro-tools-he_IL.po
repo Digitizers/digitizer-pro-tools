@@ -1802,3 +1802,6 @@ msgstr "הותקן, אך לא הופעל: תבנית האב שלו (%s) חסרה
 
 msgid "You are not allowed to activate plugins on this site."
 msgstr "אין לך הרשאה להפעיל תוספים באתר הזה."
+
+msgid "Installed"
+msgstr "מותקן"

@@ -141,6 +141,10 @@ class DPT_ONB_Admin {
 							<?php
 							if ( DPT_ONB_State::ACTIVE === $state ) {
 								esc_html_e( 'Active', 'digitizer-pro-tools' );
+							} elseif ( DPT_ONB_State::PRESENT === $state ) {
+								// The parent theme: installed is all it needs,
+								// and it is not the site's active theme.
+								esc_html_e( 'Installed', 'digitizer-pro-tools' );
 							} elseif ( DPT_ONB_State::INACTIVE === $state ) {
 								esc_html_e( 'Installed, not active', 'digitizer-pro-tools' );
 							} else {

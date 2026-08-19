@@ -51,6 +51,8 @@ class DPT_ONB_Installer {
 		if ( DPT_ONB_State::INACTIVE === $state ) {
 			return 'activate';
 		}
+		// ACTIVE and PRESENT are both goal states, and anything unrecognised
+		// falls here too.
 		return 'skip';
 	}
 
@@ -221,6 +223,17 @@ class DPT_ONB_Installer {
 		// place. The filter is attached for this one install and detached
 		// immediately, so it can never rename an archive belonging to some
 		// other plugin's install running in the same request.
+		// The upgrader fetches the archive itself, in a request of its own that
+		// would otherwise carry WordPress's default agent - and that agent
+		// embeds the site URL. Setting it on the release lookup alone leaves
+		// the address disclosed on the download, which is the request that
+		// actually happens for every install.
+		$anonymize = null;
+		if ( 'github' === $item['source'] ) {
+			$anonymize = array( 'DPT_ONB_Source', 'anonymize_request' );
+			add_filter( 'http_request_args', $anonymize, 10, 2 );
+		}
+
 		$rename = null;
 		if ( 'github' === $item['source'] ) {
 			$slug   = $item['slug'];
@@ -253,6 +266,9 @@ class DPT_ONB_Installer {
 
 		if ( null !== $rename ) {
 			remove_filter( 'upgrader_source_selection', $rename, 10 );
+		}
+		if ( null !== $anonymize ) {
+			remove_filter( 'http_request_args', $anonymize, 10 );
 		}
 
 		if ( is_wp_error( $result ) ) {

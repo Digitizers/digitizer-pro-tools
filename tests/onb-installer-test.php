@@ -95,7 +95,12 @@ dpt_test_eq( $GLOBALS['dpt_stub_stylesheet'], 'astra', 'the custom theme is unto
 $GLOBALS['dpt_stub_themes']     = array( 'hello-elementor' );
 $GLOBALS['dpt_stub_stylesheet'] = 'twentytwentyfour';
 $parent = DPT_ONB_Manifest::get( 'hello_elementor' );
-dpt_test_eq( DPT_ONB_State::of( $parent ), 'active', 'an install-only item is satisfied once present' );
+// Its own state, not ACTIVE: the status column prints the state, so calling it
+// active would put the false claim back on screen instead of in the message.
+dpt_test_eq( DPT_ONB_State::of( $parent ), DPT_ONB_State::PRESENT, 'an install-only item is satisfied once present' );
+dpt_test_ok( DPT_ONB_State::PRESENT !== DPT_ONB_State::ACTIVE, 'present and active are distinct states' );
+dpt_test_eq( DPT_ONB_Installer::action_for( DPT_ONB_State::PRESENT ), 'skip', 'a present item needs no action' );
+dpt_test_eq( DPT_ONB_Installer::capability_for( $parent, DPT_ONB_State::PRESENT ), '', 'and needs no capability' );
 
 $res = DPT_ONB_Installer::apply( 'hello_elementor' );
 dpt_test_eq( $res['outcome'], 'skipped', 'a present parent theme is skipped, not re-activated' );

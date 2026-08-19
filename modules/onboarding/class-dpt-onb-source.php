@@ -11,6 +11,53 @@ class DPT_ONB_Source {
 	const CACHE_TTL        = 6 * HOUR_IN_SECONDS;
 
 	/**
+	 * Hosts a GitHub download can legitimately touch, including the redirect
+	 * targets an asset or zipball URL lands on.
+	 */
+	const GITHUB_HOSTS = array(
+		'github.com',
+		'api.github.com',
+		'codeload.github.com',
+		'objects.githubusercontent.com',
+		'release-assets.githubusercontent.com',
+	);
+
+	/**
+	 * The agent this module identifies itself with.
+	 *
+	 * WordPress's default user agent embeds the site's own URL. There is no
+	 * reason to hand a client's address to GitHub for a public download.
+	 *
+	 * @return string
+	 */
+	public static function user_agent() {
+		return 'Digitizer Pro Tools/' . DPT_VERSION;
+	}
+
+	/**
+	 * Replace the user agent on requests to GitHub.
+	 *
+	 * Attached to http_request_args around a download, because the release
+	 * lookup and the package download are two separate requests: setting the
+	 * agent on the lookup alone still discloses the site URL when the archive
+	 * itself is fetched.
+	 *
+	 * @param array  $args Request arguments.
+	 * @param string $url  Request URL.
+	 * @return array
+	 */
+	public static function anonymize_request( $args, $url = '' ) {
+		if ( ! is_array( $args ) ) {
+			return $args;
+		}
+		$host = strtolower( (string) wp_parse_url( (string) $url, PHP_URL_HOST ) );
+		if ( in_array( $host, self::GITHUB_HOSTS, true ) ) {
+			$args['user-agent'] = self::user_agent();
+		}
+		return $args;
+	}
+
+	/**
 	 * The best ZIP URL in a GitHub release payload.
 	 *
 	 * Prefers a published release asset, because that is a real build; falls
@@ -71,11 +118,7 @@ class DPT_ONB_Source {
 				'timeout' => 15,
 				'headers' => array(
 					'Accept'     => 'application/vnd.github+json',
-					// A bare wp_remote_get() sends WordPress's default agent,
-					// which embeds the site URL. There is no reason to
-					// disclose a client's address to GitHub for a public
-					// release lookup.
-					'User-Agent' => 'Digitizer Pro Tools/' . DPT_VERSION,
+					'User-Agent' => self::user_agent(),
 				),
 			)
 		);

@@ -1802,3 +1802,6 @@ msgstr ""
 
 msgid "You are not allowed to activate plugins on this site."
 msgstr ""
+
+msgid "Installed"
+msgstr ""

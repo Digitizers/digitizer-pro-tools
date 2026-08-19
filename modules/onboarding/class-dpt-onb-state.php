@@ -12,6 +12,13 @@ class DPT_ONB_State {
 	const ACTIVE   = 'active';
 
 	/**
+	 * Installed, and that is all this item needs - the parent theme. Distinct
+	 * from ACTIVE so the wizard does not tell the operator a theme is running
+	 * the site when it is not.
+	 */
+	const PRESENT = 'present';
+
+	/**
 	 * The installed plugin whose directory is $slug.
 	 *
 	 * Matching is on the directory, not on the file name: a plugin's main file
@@ -56,9 +63,10 @@ class DPT_ONB_State {
 			// For an install-only item, being present IS the goal state.
 			// Reporting it as inactive would make the wizard "activate" it on
 			// every run - it would never converge, and the row would claim an
-			// activation that never happened.
+			// activation that never happened. Reporting it as active would be
+			// a different lie, printed in the status column.
 			if ( isset( $item['activate'] ) && false === $item['activate'] ) {
-				return self::ACTIVE;
+				return self::PRESENT;
 			}
 			return ( get_stylesheet() === $item['slug'] ) ? self::ACTIVE : self::INACTIVE;
 		}

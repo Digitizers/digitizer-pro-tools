@@ -242,13 +242,11 @@ No. Modules are toggled independently from the Modules screen, so you can enable
 
 = Which modules are active right after activation? =
 
-Three, and they are the only ones that change anything on their own:
+One: **Onboarding**. It adds a screen to the admin menu and does nothing at all until you press its button, so activating the plugin changes nothing on the front end and nothing for visitors.
 
-* **Cookie Banner** - starts showing the consent banner on the front end straight away. Open its settings to adapt the texts and design, or switch the module off if you do not want it.
-* **Duplicate Post** - adds "Duplicate" links to the post lists. Nothing changes for visitors.
-* **Update Emails** - stops the routine "site updated" emails after successful automatic updates. Failure and critical emails are always still sent.
+Every other module - the cookie banner, post duplication, update emails, and everything that touches WooCommerce, login URLs, roles, comments and content restrictions - ships **disabled**. Turn on the ones a given site needs from the Modules screen.
 
-Every other module - including everything that touches WooCommerce, login URLs, roles, comments and content restrictions - ships **disabled** and does nothing until you turn it on.
+Updating an existing site does not change what it already has: a module you switched on stays on, and one you switched off stays off. The new default applies only to modules that site has never saved a choice for.
 
 = Does the plugin send any data anywhere? =
 
@@ -266,9 +264,9 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 
 1. Upload the plugin folder to /wp-content/plugins/
 2. Activate the plugin through the Plugins menu
-3. Open "Digitizer Pro Tools" in the admin menu and make sure the Cookie Banner module is enabled
-4. Open "Cookie Banner", review the texts per language, paste your analytics/marketing snippets in the Scripts tab
-5. Save and check the site
+3. On a new site, open "Onboarding" and run it to install and activate the standard theme and plugin set
+4. Open "Digitizer Pro Tools" in the admin menu and switch on the modules this site needs - everything except Onboarding ships disabled
+5. Configure each module you enabled from its own screen. For the Cookie Banner that means reviewing the texts per language and pasting your analytics/marketing snippets in the Scripts tab, then checking the site
 
 == Changelog ==
 
