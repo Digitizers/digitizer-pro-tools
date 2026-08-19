@@ -69,17 +69,40 @@ class DPT_ONB_Installer {
 	 * a genuinely fresh site would be mistaken for one with a chosen design,
 	 * and the wizard would refuse to activate the child theme. So the caller
 	 * also passes WP_DEFAULT_THEME, which core defines as the theme that
-	 * version bundles - whatever it is named.
+	 * version bundles.
+	 *
+	 * That constant is only a hint, never proof. A site may redefine it in
+	 * wp-config.php to any theme at all, and hosts do - point it at Astra and
+	 * a deliberately chosen design would be read as an untouched default, the
+	 * one thing this gate exists to prevent. So it is trusted only when its
+	 * value also carries core's naming convention for a bundled theme.
 	 *
 	 * @param string $current_stylesheet Active theme slug.
 	 * @param string $bundled_default    WP_DEFAULT_THEME, or '' when undefined.
 	 * @return bool
 	 */
 	public static function may_activate_theme( $current_stylesheet, $bundled_default = '' ) {
-		if ( '' !== $bundled_default && $current_stylesheet === $bundled_default ) {
+		if ( in_array( $current_stylesheet, self::DEFAULT_THEMES, true ) ) {
 			return true;
 		}
-		return in_array( $current_stylesheet, self::DEFAULT_THEMES, true );
+		return '' !== $bundled_default
+			&& $current_stylesheet === $bundled_default
+			&& self::looks_like_core_theme( $bundled_default );
+	}
+
+	/**
+	 * Whether a slug carries core's naming convention for a bundled theme.
+	 *
+	 * Every default theme WordPress has shipped since 2010 is named
+	 * "twenty" followed by the year in words, with no separators. The check is
+	 * deliberately narrow: it lets an unreleased twentytwentyseven through
+	 * without letting an arbitrary redefinition of WP_DEFAULT_THEME through.
+	 *
+	 * @param string $slug Theme slug.
+	 * @return bool
+	 */
+	public static function looks_like_core_theme( $slug ) {
+		return 1 === preg_match( '/^twenty[a-z]+$/', (string) $slug );
 	}
 
 	/**

@@ -21,6 +21,17 @@ dpt_test_ok( DPT_ONB_Installer::may_activate_theme( 'twentytwentysix' ), 'the th
 // WP_DEFAULT_THEME closes that gap for whatever comes next.
 dpt_test_ok( DPT_ONB_Installer::may_activate_theme( 'twentythirty', 'twentythirty' ), 'a future bundled default is recognised through WP_DEFAULT_THEME' );
 dpt_test_ok( ! DPT_ONB_Installer::may_activate_theme( 'astra', 'twentythirty' ), 'a custom theme is still refused when a bundled default is known' );
+
+// WP_DEFAULT_THEME is a hint, not proof: a site may redefine it in wp-config.php
+// to any theme, and a host pointing it at their own theme must not turn a
+// deliberately chosen design into a replaceable default.
+dpt_test_ok( ! DPT_ONB_Installer::may_activate_theme( 'astra', 'astra' ), 'a redefined WP_DEFAULT_THEME does not make a custom theme replaceable' );
+dpt_test_ok( ! DPT_ONB_Installer::may_activate_theme( 'hello-digitizer', 'hello-digitizer' ), 'nor does pointing it at our own child theme' );
+dpt_test_ok( ! DPT_ONB_Installer::may_activate_theme( 'twenty-twenty-seven', 'twenty-twenty-seven' ), 'a hyphenated look-alike is refused' );
+dpt_test_ok( DPT_ONB_Installer::looks_like_core_theme( 'twentytwentyseven' ), 'an unreleased core theme name is recognised' );
+dpt_test_ok( ! DPT_ONB_Installer::looks_like_core_theme( 'astra' ), 'a custom name is not' );
+dpt_test_ok( ! DPT_ONB_Installer::looks_like_core_theme( 'twenty' ), 'the bare prefix is not a theme name' );
+dpt_test_ok( ! DPT_ONB_Installer::looks_like_core_theme( 'twentyfour7' ), 'digits are not part of the convention' );
 dpt_test_eq( DPT_ONB_Installer::bundled_default_theme(), '', 'the bundled default is empty when WP_DEFAULT_THEME is undefined' );
 dpt_test_ok( DPT_ONB_Installer::may_activate_theme( 'twentyten' ), 'an old default theme may be replaced' );
 dpt_test_ok( ! DPT_ONB_Installer::may_activate_theme( 'astra' ), 'a live custom theme is never replaced' );
