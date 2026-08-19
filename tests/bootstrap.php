@@ -113,13 +113,25 @@ function current_user_can( $cap ) { return ! in_array( $cap, $GLOBALS['dpt_stub_
 function switch_theme( $slug ) { $GLOBALS['dpt_stub_stylesheet'] = $slug; }
 function activate_plugin( $file ) { $GLOBALS['dpt_stub_active_plugins'][] = $file; return null; }
 
+$GLOBALS['dpt_stub_theme_authors'] = array();
+
 class DPT_Stub_Theme {
 	private $exists;
-	public function __construct( $exists ) { $this->exists = $exists; }
+	private $slug;
+	public function __construct( $exists, $slug = '' ) {
+		$this->exists = $exists;
+		$this->slug   = $slug;
+	}
 	public function exists() { return $this->exists; }
+	public function get( $header ) {
+		if ( 'Author' !== $header ) { return ''; }
+		return isset( $GLOBALS['dpt_stub_theme_authors'][ $this->slug ] )
+			? $GLOBALS['dpt_stub_theme_authors'][ $this->slug ]
+			: 'the WordPress team';
+	}
 }
 function wp_get_theme( $slug = '' ) {
-	return new DPT_Stub_Theme( in_array( $slug, $GLOBALS['dpt_stub_themes'], true ) );
+	return new DPT_Stub_Theme( in_array( $slug, $GLOBALS['dpt_stub_themes'], true ), $slug );
 }
 
 /**

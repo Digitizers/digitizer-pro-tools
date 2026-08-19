@@ -72,37 +72,74 @@ class DPT_ONB_Installer {
 	 * version bundles.
 	 *
 	 * That constant is only a hint, never proof. A site may redefine it in
-	 * wp-config.php to any theme at all, and hosts do - point it at Astra and
-	 * a deliberately chosen design would be read as an untouched default, the
-	 * one thing this gate exists to prevent. So it is trusted only when its
-	 * value also carries core's naming convention for a bundled theme.
+	 * wp-config.php to any theme at all, and hosts do. So the fallback demands
+	 * two independent signals before it will call an unlisted theme a core
+	 * default: core's naming convention, and core's authorship in the theme's
+	 * own style.css. A name alone is not enough - "twentyagency" is a
+	 * perfectly ordinary name for an agency's theme, and treating it as a
+	 * default would replace a design someone chose.
+	 *
+	 * The two failure directions are not symmetric. Refusing a genuine default
+	 * costs the operator one manual switch under Appearance > Themes, which the
+	 * summary already tells them to do. Accepting a custom theme replaces a
+	 * live site's design. When in doubt this returns false.
 	 *
 	 * @param string $current_stylesheet Active theme slug.
 	 * @param string $bundled_default    WP_DEFAULT_THEME, or '' when undefined.
+	 * @param string $default_author     Author header of $bundled_default's theme.
 	 * @return bool
 	 */
-	public static function may_activate_theme( $current_stylesheet, $bundled_default = '' ) {
+	public static function may_activate_theme( $current_stylesheet, $bundled_default = '', $default_author = '' ) {
 		if ( in_array( $current_stylesheet, self::DEFAULT_THEMES, true ) ) {
 			return true;
 		}
 		return '' !== $bundled_default
 			&& $current_stylesheet === $bundled_default
-			&& self::looks_like_core_theme( $bundled_default );
+			&& self::looks_like_core_theme( $bundled_default )
+			&& self::authored_by_core( $default_author );
 	}
 
 	/**
 	 * Whether a slug carries core's naming convention for a bundled theme.
 	 *
-	 * Every default theme WordPress has shipped since 2010 is named
-	 * "twenty" followed by the year in words, with no separators. The check is
-	 * deliberately narrow: it lets an unreleased twentytwentyseven through
-	 * without letting an arbitrary redefinition of WP_DEFAULT_THEME through.
+	 * Every default theme WordPress has shipped since 2010 is named "twenty"
+	 * followed by the year in words, with no separators or digits. Necessary
+	 * but not sufficient - see authored_by_core().
 	 *
 	 * @param string $slug Theme slug.
 	 * @return bool
 	 */
 	public static function looks_like_core_theme( $slug ) {
 		return 1 === preg_match( '/^twenty[a-z]+$/', (string) $slug );
+	}
+
+	/**
+	 * Whether a theme's Author header is the one core's own themes carry.
+	 *
+	 * Every bundled theme declares "the WordPress team". A third-party theme
+	 * would have to claim WordPress's authorship in its own style.css to pass,
+	 * which is a considerably higher bar than choosing a name.
+	 *
+	 * @param string $author Theme Author header.
+	 * @return bool
+	 */
+	public static function authored_by_core( $author ) {
+		return 'the wordpress team' === strtolower( trim( (string) $author ) );
+	}
+
+	/**
+	 * Author header of the theme WP_DEFAULT_THEME names, or '' when there is
+	 * no such constant or no such theme.
+	 *
+	 * @return string
+	 */
+	public static function bundled_default_author() {
+		$slug = self::bundled_default_theme();
+		if ( '' === $slug ) {
+			return '';
+		}
+		$theme = wp_get_theme( $slug );
+		return $theme->exists() ? (string) $theme->get( 'Author' ) : '';
 	}
 
 	/**
@@ -332,7 +369,7 @@ class DPT_ONB_Installer {
 		}
 
 		if ( 'theme' === $item['type'] ) {
-			if ( ! self::may_activate_theme( get_stylesheet(), self::bundled_default_theme() ) ) {
+			if ( ! self::may_activate_theme( get_stylesheet(), self::bundled_default_theme(), self::bundled_default_author() ) ) {
 				return 'deferred';
 			}
 			// Switching to a child theme whose parent is absent leaves the
