@@ -212,16 +212,30 @@ The Resend Mail module - disabled by default - delivers your site's email throug
 
 The module keeps a local send log (recipient, subject, status - not the message body) of the most recent messages. It can be switched off in the module settings, and it is deleted when the plugin is uninstalled.
 
-= GitHub (update checks) =
+= GitHub (update checks, and the Onboarding module) =
 
-This plugin can update itself from its public GitHub repository. It periodically asks GitHub for the latest published release; no site data is sent beyond the request itself.
+Two things reach GitHub, both only from your server and never from a visitor's browser.
+
+This plugin can update itself from its public GitHub repository, periodically asking for the latest published release.
+
+The Onboarding module additionally installs three items from public GitHub repositories - the Hello Digitizer child theme, Elementor MCP and MCP Adapter. It asks for each repository's latest release and then downloads the archive. This happens only when an administrator opens the Onboarding screen and presses its button, never on a schedule and never on the front end.
 
 * Service: GitHub, https://github.com
-* Endpoint: https://api.github.com/repos/Digitizers/digitizer-pro-tools/releases
-* When: during WordPress's normal update checks, and again when an administrator installs an offered update
-* Data sent: nothing about the site. Neither the check nor the download carries a site URL, admin details or usage data - on both requests the plugin replaces WordPress's default user agent (which would otherwise include the site address) with just its own name and version. As with any HTTP request, GitHub sees the originating IP address.
+* Endpoints: https://api.github.com/repos/Digitizers/digitizer-pro-tools/releases for updates; https://api.github.com/repos/{owner}/{repo}/releases/latest for each onboarding item, followed by the archive download it points to (codeload.github.com, objects.githubusercontent.com or release-assets.githubusercontent.com)
+* When: updates during WordPress's normal update checks and when an administrator installs an offered update; onboarding only while a run is in progress. Release lookups are cached for six hours
+* Data sent: nothing about the site, on any of these requests. No site URL, admin details or usage data - the plugin replaces WordPress's default user agent (which would otherwise include the site address) with just its own name and version, on the lookups and on the downloads alike. As with any HTTP request, GitHub sees the originating IP address.
 * Terms of Service: https://docs.github.com/site-policy/github-terms/github-terms-of-service
 * Privacy Policy: https://docs.github.com/site-policy/privacy-policies/github-privacy-statement
+
+= WordPress.org (Onboarding module) =
+
+The Onboarding module installs the rest of its list from the WordPress.org plugin and theme directories, using the same APIs the built-in "Add Plugin" screen uses.
+
+* Service: WordPress.org, https://wordpress.org
+* Endpoints: https://api.wordpress.org/plugins/info/1.2/ and https://api.wordpress.org/themes/info/1.2/, followed by the package download at https://downloads.wordpress.org
+* When: only while an administrator is running the Onboarding wizard
+* Data sent: the slug being installed, plus whatever WordPress itself attaches to its API requests. Nothing is added by this plugin
+* Privacy Policy: https://wordpress.org/about/privacy/
 
 = Content you embed yourself (Embed module) =
 
@@ -250,7 +264,16 @@ Updating an existing site does not change what it already has: a module you swit
 
 = Does the plugin send any data anywhere? =
 
-Not on its own. There is no telemetry, no analytics and no "phone home". Your server's only outbound traffic is the update check and, if you enable and configure the Resend Mail module, your outgoing email. Separately, a document you embed with the Embed module is loaded by the visitor's browser straight from its host. All three are described under "External services" above.
+Not on its own. There is no telemetry, no analytics and no "phone home", and nothing about your site or its visitors is ever sent anywhere.
+
+Your server makes outbound requests in four situations, all described in full under "External services" above:
+
+* The update check, on WordPress's normal schedule.
+* Running the Onboarding wizard, which asks WordPress.org and GitHub for the packages it installs. Only while a run is in progress.
+* Sending email, if you enable and configure the Resend Mail module.
+* Nothing else.
+
+Separately, a document you embed with the Embed module is loaded by the visitor's browser straight from its host - that request comes from the visitor, not from your server.
 
 = Does the cookie banner work with page caching? =
 

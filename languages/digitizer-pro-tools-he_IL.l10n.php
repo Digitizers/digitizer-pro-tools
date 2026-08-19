@@ -600,10 +600,12 @@ return array (
     'Installs and activates the Digitizer baseline - Hello Elementor with the Digitizer child theme, and the standard plugin set - on a new site. Nothing already installed is updated or reconfigured, and the run can be repeated safely.' => 'מתקין ומפעיל את רשימת הבסיס של Digitizer - Hello Elementor עם תבנית הבת של Digitizer, ואת מערך התוספים הסטנדרטי - באתר חדש. שום דבר שכבר מותקן לא מעודכן ולא משתנה, ואפשר להריץ שוב בבטחה.',
     'Installed.' => 'הותקן.',
     'Already installed.' => 'כבר מותקן.',
-    'Installed, but not activated: its parent theme (%s) is missing, and switching to it would leave the site without a template.' => 'הותקן, אך לא הופעל: תבנית האב שלו (%s) חסרה, והפעלה שלו הייתה משאירה את האתר בלי תבנית.',
     'You are not allowed to activate plugins on this site.' => 'אין לך הרשאה להפעיל תוספים באתר הזה.',
     'Installed' => 'מותקן',
     '%1$d installed, %2$d activated, %3$d skipped, %4$d failed.' => '%1$d הותקנו, %2$d הופעלו, %3$d דולגו, %4$d נכשלו.',
     'Already installed. Not activated, because this site already uses a custom theme - switch it under Appearance > Themes when you are ready.' => 'כבר מותקן. לא הופעל, כי האתר כבר משתמש בתבנית משלו - החליפו תחת עיצוב > תבניות כשתהיו מוכנים.',
+    'Installed, but not activated: its parent theme (%s) is missing or unusable, and switching to it would leave the site without a template.' => 'הותקן, אך לא הופעל: תבנית האב שלו (%s) חסרה או שבורה, והפעלה שלו הייתה משאירה את האתר בלי תבנית.',
+    'Installed, but not activated: WordPress reports the theme as broken, and activating it would take the site down.' => 'הותקן, אך לא הופעל: וורדפרס מדווחת שהתבנית שבורה, והפעלה שלה הייתה מפילה את האתר.',
+    'The theme switch did not take effect.' => 'החלפת התבנית לא נכנסה לתוקף.',
   ),
 );

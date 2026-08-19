@@ -84,19 +84,32 @@ class DPT_ONB_Installer {
 	 * summary already tells them to do. Accepting a custom theme replaces a
 	 * live site's design. When in doubt this returns false.
 	 *
+	 * The authorship check applies to the allowlisted slugs as well, not only
+	 * to the WP_DEFAULT_THEME fallback: a host can ship its own design in a
+	 * directory named twentytwentyfour, and the directory name alone would then
+	 * hand it over as a replaceable default.
+	 *
+	 * Its limits are worth stating. It catches a bundled theme that was
+	 * replaced, because a different theme carries a different author. It does
+	 * not catch one that was edited in place, since an edit rarely touches the
+	 * Author header. For that case the operator's remedy is the checklist -
+	 * untick the theme rows and the wizard will not touch the design at all.
+	 *
 	 * @param string $current_stylesheet Active theme slug.
+	 * @param string $current_author     Author header of the active theme.
 	 * @param string $bundled_default    WP_DEFAULT_THEME, or '' when undefined.
-	 * @param string $default_author     Author header of $bundled_default's theme.
 	 * @return bool
 	 */
-	public static function may_activate_theme( $current_stylesheet, $bundled_default = '', $default_author = '' ) {
+	public static function may_activate_theme( $current_stylesheet, $current_author = '', $bundled_default = '' ) {
+		if ( ! self::authored_by_core( $current_author ) ) {
+			return false;
+		}
 		if ( in_array( $current_stylesheet, self::DEFAULT_THEMES, true ) ) {
 			return true;
 		}
 		return '' !== $bundled_default
 			&& $current_stylesheet === $bundled_default
-			&& self::looks_like_core_theme( $bundled_default )
-			&& self::authored_by_core( $default_author );
+			&& self::looks_like_core_theme( $bundled_default );
 	}
 
 	/**
@@ -128,18 +141,38 @@ class DPT_ONB_Installer {
 	}
 
 	/**
-	 * Author header of the theme WP_DEFAULT_THEME names, or '' when there is
-	 * no such constant or no such theme.
+	 * Author header of a theme, or '' when it is not installed.
 	 *
+	 * @param string $slug Theme slug.
 	 * @return string
 	 */
-	public static function bundled_default_author() {
-		$slug = self::bundled_default_theme();
-		if ( '' === $slug ) {
+	public static function theme_author( $slug ) {
+		if ( '' === (string) $slug ) {
 			return '';
 		}
 		$theme = wp_get_theme( $slug );
 		return $theme->exists() ? (string) $theme->get( 'Author' ) : '';
+	}
+
+	/**
+	 * Whether a theme is installed and free of the errors that would make it
+	 * unusable - a missing template, an unreadable stylesheet, an absent
+	 * parent.
+	 *
+	 * exists() only reports that a directory with a stylesheet is there. A
+	 * theme can satisfy that and still be broken, and switching to a broken
+	 * theme takes the public site down.
+	 *
+	 * @param string $slug Theme slug.
+	 * @return bool
+	 */
+	public static function theme_is_usable( $slug ) {
+		$theme = wp_get_theme( $slug );
+		if ( ! $theme->exists() ) {
+			return false;
+		}
+		$errors = $theme->errors();
+		return ! is_wp_error( $errors );
 	}
 
 	/**
@@ -378,7 +411,8 @@ class DPT_ONB_Installer {
 		}
 
 		if ( 'theme' === $item['type'] ) {
-			if ( ! self::may_activate_theme( get_stylesheet(), self::bundled_default_theme(), self::bundled_default_author() ) ) {
+			$current = get_stylesheet();
+			if ( ! self::may_activate_theme( $current, self::theme_author( $current ), self::bundled_default_theme() ) ) {
 				return 'deferred';
 			}
 			// Switching to a child theme whose parent is absent leaves the
@@ -387,20 +421,31 @@ class DPT_ONB_Installer {
 			// install failed earlier in a run that deliberately does not stop
 			// on failure - so this is checked here rather than assumed from
 			// the manifest order.
-			if ( ! empty( $item['parent'] ) && ! wp_get_theme( $item['parent'] )->exists() ) {
+			if ( ! empty( $item['parent'] ) && ! self::theme_is_usable( $item['parent'] ) ) {
 				return new WP_Error(
 					'dpt_onb_parent_missing',
 					sprintf(
 						/* translators: %s: parent theme slug */
-						__( 'Installed, but not activated: its parent theme (%s) is missing, and switching to it would leave the site without a template.', 'digitizer-pro-tools' ),
+						__( 'Installed, but not activated: its parent theme (%s) is missing or unusable, and switching to it would leave the site without a template.', 'digitizer-pro-tools' ),
 						$item['parent']
 					)
 				);
+			}
+			// The theme we are about to make public has to be usable itself,
+			// not merely present on disk.
+			if ( ! self::theme_is_usable( $item['slug'] ) ) {
+				return new WP_Error( 'dpt_onb_theme_broken', __( 'Installed, but not activated: WordPress reports the theme as broken, and activating it would take the site down.', 'digitizer-pro-tools' ) );
 			}
 			if ( ! current_user_can( 'switch_themes' ) ) {
 				return new WP_Error( 'dpt_onb_cannot_switch', __( 'You are not allowed to switch themes on this site.', 'digitizer-pro-tools' ) );
 			}
 			switch_theme( $item['slug'] );
+			// Confirm it took. switch_theme() returns nothing, and reporting a
+			// switch that silently did not happen is worse than reporting a
+			// failure.
+			if ( get_stylesheet() !== $item['slug'] ) {
+				return new WP_Error( 'dpt_onb_switch_failed', __( 'The theme switch did not take effect.', 'digitizer-pro-tools' ) );
+			}
 			return true;
 		}
 

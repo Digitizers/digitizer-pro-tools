@@ -1795,8 +1795,6 @@ msgstr "הותקן."
 msgid "Already installed."
 msgstr "כבר מותקן."
 
-msgid "Installed, but not activated: its parent theme (%s) is missing, and switching to it would leave the site without a template."
-msgstr "הותקן, אך לא הופעל: תבנית האב שלו (%s) חסרה, והפעלה שלו הייתה משאירה את האתר בלי תבנית."
 
 msgid "You are not allowed to activate plugins on this site."
 msgstr "אין לך הרשאה להפעיל תוספים באתר הזה."
@@ -1810,3 +1808,12 @@ msgstr "%1$d הותקנו, %2$d הופעלו, %3$d דולגו, %4$d נכשלו."
 
 msgid "Already installed. Not activated, because this site already uses a custom theme - switch it under Appearance > Themes when you are ready."
 msgstr "כבר מותקן. לא הופעל, כי האתר כבר משתמש בתבנית משלו - החליפו תחת עיצוב > תבניות כשתהיו מוכנים."
+
+msgid "Installed, but not activated: its parent theme (%s) is missing or unusable, and switching to it would leave the site without a template."
+msgstr "הותקן, אך לא הופעל: תבנית האב שלו (%s) חסרה או שבורה, והפעלה שלו הייתה משאירה את האתר בלי תבנית."
+
+msgid "Installed, but not activated: WordPress reports the theme as broken, and activating it would take the site down."
+msgstr "הותקן, אך לא הופעל: וורדפרס מדווחת שהתבנית שבורה, והפעלה שלה הייתה מפילה את האתר."
+
+msgid "The theme switch did not take effect."
+msgstr "החלפת התבנית לא נכנסה לתוקף."

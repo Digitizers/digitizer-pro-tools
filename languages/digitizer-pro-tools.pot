@@ -1795,8 +1795,6 @@ msgstr ""
 msgid "Already installed."
 msgstr ""
 
-msgid "Installed, but not activated: its parent theme (%s) is missing, and switching to it would leave the site without a template."
-msgstr ""
 
 msgid "You are not allowed to activate plugins on this site."
 msgstr ""
@@ -1809,4 +1807,13 @@ msgid "%1$d installed, %2$d activated, %3$d skipped, %4$d failed."
 msgstr ""
 
 msgid "Already installed. Not activated, because this site already uses a custom theme - switch it under Appearance > Themes when you are ready."
+msgstr ""
+
+msgid "Installed, but not activated: its parent theme (%s) is missing or unusable, and switching to it would leave the site without a template."
+msgstr ""
+
+msgid "Installed, but not activated: WordPress reports the theme as broken, and activating it would take the site down."
+msgstr ""
+
+msgid "The theme switch did not take effect."
 msgstr ""
