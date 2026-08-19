@@ -53,6 +53,13 @@ class DPT_ONB_State {
 			if ( ! $theme->exists() ) {
 				return self::MISSING;
 			}
+			// For an install-only item, being present IS the goal state.
+			// Reporting it as inactive would make the wizard "activate" it on
+			// every run - it would never converge, and the row would claim an
+			// activation that never happened.
+			if ( isset( $item['activate'] ) && false === $item['activate'] ) {
+				return self::ACTIVE;
+			}
 			return ( get_stylesheet() === $item['slug'] ) ? self::ACTIVE : self::INACTIVE;
 		}
 

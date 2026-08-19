@@ -1790,3 +1790,12 @@ msgstr "מתקין ומפעיל את רשימת הבסיס של Digitizer באת
 
 msgid "Installs and activates the Digitizer baseline - Hello Elementor with the Digitizer child theme, and the standard plugin set - on a new site. Nothing already installed is updated or reconfigured, and the run can be repeated safely."
 msgstr "מתקין ומפעיל את רשימת הבסיס של Digitizer - Hello Elementor עם תבנית הבת של Digitizer, ואת מערך התוספים הסטנדרטי - באתר חדש. שום דבר שכבר מותקן לא מעודכן ולא משתנה, ואפשר להריץ שוב בבטחה."
+
+msgid "Installed."
+msgstr "הותקן."
+
+msgid "Already installed."
+msgstr "כבר מותקן."
+
+msgid "Installed, but not activated: its parent theme (%s) is missing, and switching to it would leave the site without a template."
+msgstr "הותקן, אך לא הופעל: תבנית האב שלו (%s) חסרה, והפעלה שלו הייתה משאירה את האתר בלי תבנית."

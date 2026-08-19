@@ -29,19 +29,24 @@ class DPT_ONB_Manifest {
 	 *   slug   - the directory the item must end up in. For wporg items this
 	 *            is also the API slug; for github items it is the name we
 	 *            rename the extracted directory to.
-	 *   repo   - 'owner/name', github items only.
-	 *   parent - parent theme slug, child themes only.
+	 *   repo     - 'owner/name', github items only.
+	 *   parent   - parent theme slug, child themes only.
+	 *   activate - false for an item that only has to be present. The parent
+	 *              theme is one: activating it would replace the child.
 	 *
 	 * @return array[]
 	 */
 	public static function items() {
 		return array(
 			array(
-				'id'     => 'hello_elementor',
-				'label'  => 'Hello Elementor',
-				'type'   => 'theme',
-				'source' => 'wporg',
-				'slug'   => 'hello-elementor',
+				'id'       => 'hello_elementor',
+				'label'    => 'Hello Elementor',
+				'type'     => 'theme',
+				'source'   => 'wporg',
+				'slug'     => 'hello-elementor',
+				// Present is the goal state: it exists to be the child's
+				// parent, and activating it would undo the child.
+				'activate' => false,
 			),
 			array(
 				'id'     => 'hello_digitizer',

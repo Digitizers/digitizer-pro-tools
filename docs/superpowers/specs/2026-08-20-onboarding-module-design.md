@@ -152,7 +152,17 @@ A site that already has a live custom theme must never have it swapped out by a
 tool the operator ran expecting it to install plugins.
 
 The parent theme is never activated. Hello Elementor exists to be the parent of
-Hello Digitizer; activating it would be a step backwards.
+Hello Digitizer; activating it would be a step backwards. It is marked
+install-only in the manifest, and **present is its goal state** - reporting it
+as merely installed-and-inactive would make the wizard "activate" it on every
+run, so the row would never converge and would claim an activation that never
+happened.
+
+The child theme is activated only after confirming its parent is actually
+installed. Manifest order is not a guarantee: checklist items are independently
+selectable and a failure does not stop the run, so the parent can be absent when
+the child's turn comes. Switching anyway would leave the public site with no
+template at all.
 
 ## Failure handling
 

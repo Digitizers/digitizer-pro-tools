@@ -1790,3 +1790,12 @@ msgstr ""
 
 msgid "Installs and activates the Digitizer baseline - Hello Elementor with the Digitizer child theme, and the standard plugin set - on a new site. Nothing already installed is updated or reconfigured, and the run can be repeated safely."
 msgstr ""
+
+msgid "Installed."
+msgstr ""
+
+msgid "Already installed."
+msgstr ""
+
+msgid "Installed, but not activated: its parent theme (%s) is missing, and switching to it would leave the site without a template."
+msgstr ""

@@ -57,4 +57,56 @@ $res = DPT_ONB_Installer::apply( 'elementor' );
 dpt_test_eq( $res['outcome'], 'skipped', 'an already-active plugin is skipped' );
 dpt_test_ok( '' !== $res['message'], 'a skip still carries a message for the summary' );
 
+/* ---- regression: a child theme is never activated without its parent ---- */
+
+// The parent can be absent for ordinary reasons - the operator unticked it, or
+// its own install failed earlier in a run that deliberately does not stop on
+// failure. Switching anyway leaves the public site with no template.
+$GLOBALS['dpt_stub_themes']     = array( 'hello-digitizer' ); // child present, parent not
+$GLOBALS['dpt_stub_stylesheet'] = 'twentytwentyfour';         // switching would be allowed
+$res = DPT_ONB_Installer::apply( 'hello_digitizer' );
+dpt_test_eq( $res['outcome'], 'failed', 'the child theme is not activated when its parent is missing' );
+dpt_test_eq( $GLOBALS['dpt_stub_stylesheet'], 'twentytwentyfour', 'the live theme is left alone' );
+dpt_test_ok( false !== strpos( $res['message'], 'hello-elementor' ), 'the message names the missing parent' );
+
+// With the parent present it switches as designed.
+$GLOBALS['dpt_stub_themes']     = array( 'hello-elementor', 'hello-digitizer' );
+$GLOBALS['dpt_stub_stylesheet'] = 'twentytwentyfour';
+$res = DPT_ONB_Installer::apply( 'hello_digitizer' );
+dpt_test_eq( $res['outcome'], 'activated', 'the child theme activates once its parent is present' );
+dpt_test_eq( $GLOBALS['dpt_stub_stylesheet'], 'hello-digitizer', 'the child theme became the active theme' );
+
+// A live custom theme still wins over both checks.
+$GLOBALS['dpt_stub_themes']     = array( 'hello-digitizer' );
+$GLOBALS['dpt_stub_stylesheet'] = 'astra';
+$res = DPT_ONB_Installer::apply( 'hello_digitizer' );
+dpt_test_eq( $res['outcome'], 'installed', 'a live custom theme defers activation before the parent check' );
+dpt_test_eq( $GLOBALS['dpt_stub_stylesheet'], 'astra', 'the custom theme is untouched' );
+
+/* ---- regression: the parent theme is never reported as activated ---- */
+
+$GLOBALS['dpt_stub_themes']     = array( 'hello-elementor' );
+$GLOBALS['dpt_stub_stylesheet'] = 'twentytwentyfour';
+$parent = DPT_ONB_Manifest::get( 'hello_elementor' );
+dpt_test_eq( DPT_ONB_State::of( $parent ), 'active', 'an install-only item is satisfied once present' );
+
+$res = DPT_ONB_Installer::apply( 'hello_elementor' );
+dpt_test_eq( $res['outcome'], 'skipped', 'a present parent theme is skipped, not re-activated' );
+dpt_test_eq( $GLOBALS['dpt_stub_stylesheet'], 'twentytwentyfour', 'the parent theme is never made the active theme' );
+
+// Running again must reach the same answer - the row has to converge.
+$res = DPT_ONB_Installer::apply( 'hello_elementor' );
+dpt_test_eq( $res['outcome'], 'skipped', 'and it stays skipped on a second run' );
+
+/* ---- regression: capability matches the action, not the worst case ---- */
+
+$plugin_item = DPT_ONB_Manifest::get( 'elementor' );
+$theme_item  = DPT_ONB_Manifest::get( 'hello_digitizer' );
+
+dpt_test_eq( DPT_ONB_Installer::capability_for( $plugin_item, 'missing' ), 'install_plugins', 'installing a plugin needs install_plugins' );
+dpt_test_eq( DPT_ONB_Installer::capability_for( $plugin_item, 'inactive' ), 'activate_plugins', 'activating an installed plugin needs only activate_plugins' );
+dpt_test_eq( DPT_ONB_Installer::capability_for( $plugin_item, 'active' ), '', 'skipping needs no extra capability' );
+dpt_test_eq( DPT_ONB_Installer::capability_for( $theme_item, 'missing' ), 'install_themes', 'installing a theme needs install_themes' );
+dpt_test_eq( DPT_ONB_Installer::capability_for( $theme_item, 'inactive' ), 'switch_themes', 'activating an installed theme needs only switch_themes' );
+
 exit( dpt_test_summary() > 0 ? 1 : 0 );

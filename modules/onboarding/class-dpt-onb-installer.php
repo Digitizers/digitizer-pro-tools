@@ -69,6 +69,30 @@ class DPT_ONB_Installer {
 	}
 
 	/**
+	 * The capability an item needs for the action its state implies.
+	 *
+	 * Requiring install_plugins for everything would refuse to activate a
+	 * plugin that is already on disk - which is exactly the case on a site
+	 * running DISALLOW_FILE_MODS, and on a role granted activate_plugins
+	 * without the right to install new code.
+	 *
+	 * @param array  $item  Manifest item.
+	 * @param string $state One of the DPT_ONB_State constants.
+	 * @return string Capability name, or '' when the action needs none.
+	 */
+	public static function capability_for( $item, $state ) {
+		$action  = self::action_for( $state );
+		$is_theme = ( 'theme' === $item['type'] );
+		if ( 'install' === $action ) {
+			return $is_theme ? 'install_themes' : 'install_plugins';
+		}
+		if ( 'activate' === $action ) {
+			return $is_theme ? 'switch_themes' : 'activate_plugins';
+		}
+		return '';
+	}
+
+	/**
 	 * Where an extracted archive must be moved before it is installed.
 	 *
 	 * A GitHub zipball extracts to <owner>-<repo>-<sha>, which changes with
@@ -125,6 +149,16 @@ class DPT_ONB_Installer {
 						$activated->get_error_message()
 					)
 					: $activated->get_error_message()
+			);
+		}
+
+		if ( 'present' === $activated ) {
+			return self::result(
+				$item_id,
+				'installed',
+				'install' === $action
+					? __( 'Installed.', 'digitizer-pro-tools' )
+					: __( 'Already installed.', 'digitizer-pro-tools' )
 			);
 		}
 
@@ -224,14 +258,31 @@ class DPT_ONB_Installer {
 	 *                              deliberately left inactive, or an error.
 	 */
 	private static function activate( $item ) {
+		// An install-only item is finished once it is present. Saying it was
+		// activated would be a lie the summary repeats on every run.
+		if ( isset( $item['activate'] ) && false === $item['activate'] ) {
+			return 'present';
+		}
+
 		if ( 'theme' === $item['type'] ) {
-			// The parent exists to be a parent; activating it would undo the
-			// child.
-			if ( empty( $item['parent'] ) ) {
-				return true;
-			}
 			if ( ! self::may_activate_theme( get_stylesheet() ) ) {
 				return 'deferred';
+			}
+			// Switching to a child theme whose parent is absent leaves the
+			// public site with no template at all. The parent can be missing
+			// for ordinary reasons - the operator unticked it, or its own
+			// install failed earlier in a run that deliberately does not stop
+			// on failure - so this is checked here rather than assumed from
+			// the manifest order.
+			if ( ! empty( $item['parent'] ) && ! wp_get_theme( $item['parent'] )->exists() ) {
+				return new WP_Error(
+					'dpt_onb_parent_missing',
+					sprintf(
+						/* translators: %s: parent theme slug */
+						__( 'Installed, but not activated: its parent theme (%s) is missing, and switching to it would leave the site without a template.', 'digitizer-pro-tools' ),
+						$item['parent']
+					)
+				);
 			}
 			if ( ! current_user_can( 'switch_themes' ) ) {
 				return new WP_Error( 'dpt_onb_cannot_switch', __( 'You are not allowed to switch themes on this site.', 'digitizer-pro-tools' ) );

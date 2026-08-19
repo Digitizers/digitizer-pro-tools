@@ -72,12 +72,22 @@ class DPT_ONB_Admin {
 			wp_send_json_error( array( 'message' => __( 'That item is not part of the baseline.', 'digitizer-pro-tools' ) ), 400 );
 		}
 
-		// Core removes these capabilities when DISALLOW_FILE_MODS is set, which
-		// is exactly the signal that this host does not want code installed
-		// from the dashboard. Respect it rather than working around it.
-		$needed = ( 'theme' === $item['type'] ) ? 'install_themes' : 'install_plugins';
-		if ( ! current_user_can( $needed ) ) {
-			wp_send_json_error( array( 'message' => __( 'This site does not allow installing from the dashboard.', 'digitizer-pro-tools' ) ), 403 );
+		// Ask only for what this item's current state actually requires.
+		// Core removes install_plugins/install_themes when DISALLOW_FILE_MODS
+		// is set - the host saying it does not want new code from the
+		// dashboard - but activating something already on disk is a different
+		// permission, and demanding the install capability for it would refuse
+		// work the operator is entitled to do.
+		$needed = DPT_ONB_Installer::capability_for( $item, DPT_ONB_State::of( $item ) );
+		if ( '' !== $needed && ! current_user_can( $needed ) ) {
+			wp_send_json_error(
+				array(
+					'message' => 'install_plugins' === $needed || 'install_themes' === $needed
+						? __( 'This site does not allow installing from the dashboard.', 'digitizer-pro-tools' )
+						: __( 'You are not allowed to do that.', 'digitizer-pro-tools' ),
+				),
+				403
+			);
 		}
 
 		wp_send_json_success( DPT_ONB_Installer::apply( $id ) );

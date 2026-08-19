@@ -599,5 +599,8 @@ return array (
     'The request did not complete. Check the site can reach WordPress.org and GitHub.' => 'הבקשה לא הושלמה. בדקו שהאתר יכול להגיע ל-WordPress.org ול-GitHub.',
     'Installs and activates the Digitizer baseline on this site. Anything already active is left exactly as it is - nothing here updates, downgrades or reconfigures a plugin you already have. Safe to run more than once.' => 'מתקין ומפעיל את רשימת הבסיס של Digitizer באתר הזה. כל מה שכבר פעיל נשאר בדיוק כפי שהוא - שום דבר כאן לא מעדכן, לא מוריד גרסה ולא משנה הגדרות של תוסף קיים. אפשר להריץ יותר מפעם אחת.',
     'Installs and activates the Digitizer baseline - Hello Elementor with the Digitizer child theme, and the standard plugin set - on a new site. Nothing already installed is updated or reconfigured, and the run can be repeated safely.' => 'מתקין ומפעיל את רשימת הבסיס של Digitizer - Hello Elementor עם תבנית הבת של Digitizer, ואת מערך התוספים הסטנדרטי - באתר חדש. שום דבר שכבר מותקן לא מעודכן ולא משתנה, ואפשר להריץ שוב בבטחה.',
+    'Installed.' => 'הותקן.',
+    'Already installed.' => 'כבר מותקן.',
+    'Installed, but not activated: its parent theme (%s) is missing, and switching to it would leave the site without a template.' => 'הותקן, אך לא הופעל: תבנית האב שלו (%s) חסרה, והפעלה שלו הייתה משאירה את האתר בלי תבנית.',
   ),
 );
