@@ -4,7 +4,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.19.0
+Stable tag: 1.20.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -14,7 +14,20 @@ One toolbox plugin by Digitizer. Modules: multilingual cookie-consent banner, on
 
 Digitizer Pro Tools is a modular plugin that consolidates the tools Digitizers deploys on client sites. Modules can be toggled on and off from the Modules dashboard.
 
-On activation only three modules are active - Cookie Banner, Duplicate Post and Update Emails - and each module below states whether it ships enabled or disabled. Everything else stays dormant until you switch it on.
+On activation only the Onboarding module is active. Every other module below ships disabled and stays dormant until you switch it on, so a new site starts with exactly what you chose for it.
+
+= Module: Onboarding =
+
+Brings a new site up to the Digitizer baseline in one pass (the only module that ships enabled):
+
+* Checklist of the baseline - Hello Elementor with the Hello Digitizer child theme, and twelve plugins - showing what this site already has
+* Untick anything a given client does not need, then install and activate the rest
+* Installs from WordPress.org, and from the public GitHub repositories for Hello Digitizer, Elementor MCP and MCP Adapter
+* Nothing already installed is updated, downgraded or reconfigured - an item that is already active is skipped
+* Safe to run again: the second pass finds everything in place and does nothing
+* One request per item, so a slow download cannot time out the whole run, and each row reports what happened
+* The theme is switched only while the site is still on a WordPress default - a site with a live custom theme keeps it, and the summary says so
+* The list is fixed in code. There is no field for pasting a plugin URL
 
 = Module: Cookie Banner =
 
@@ -258,6 +271,12 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 5. Save and check the site
 
 == Changelog ==
+
+= 1.20.0 =
+* New module: Onboarding - a wizard that installs and activates the Digitizer baseline (Hello Elementor plus the Digitizer child theme, and twelve plugins) on a new site. Anything already active is left alone, the run is repeatable, and each item reports what happened
+* Every other module now ships disabled. A new site starts empty and you turn on what that client needs. Existing sites are unaffected - a module you already switched on stays on
+* Onboarding is the one module that ships enabled, so a fresh site has a reachable wizard
+* The test suite moved into the repository, and neither it nor the design documents are included in the built ZIP
 
 = 1.19.0 =
 * The code-highlighting module is now called Code Highlighter, in the modules list, its settings page, the block inserter and the Elementor widget. Nothing about it changes otherwise - saved settings, existing blocks and existing shortcodes are untouched

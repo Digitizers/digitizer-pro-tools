@@ -1697,3 +1697,96 @@ msgstr "הדגשת תחביר של קוד באמצעות בלוק, השורטק�
 
 msgid "Syntax-highlight code on the front end. Insert code with the \"Code Highlighter\" block, the [dpt_code lang=\"php\"]…[/dpt_code] shortcode, or the Elementor widget. Optionally highlight every existing pre/code block automatically."
 msgstr "הדגשת תחביר של קוד בצד הלקוח. הכניסו קוד באמצעות הבלוק \"הדגשת קוד\", השורטקוד [dpt_code lang=\"php\"]…[/dpt_code], או הווידג'ט של אלמנטור. אפשר גם להדגיש אוטומטית כל בלוק pre/code קיים."
+
+msgid "Onboarding"
+msgstr "הקמת אתר"
+
+msgid "Item"
+msgstr "פריט"
+
+msgid "Source"
+msgstr "מקור"
+
+msgid "theme"
+msgstr "תבנית"
+
+msgid "Active"
+msgstr "פעיל"
+
+msgid "Installed, not active"
+msgstr "מותקן, לא פעיל"
+
+msgid "Not installed"
+msgstr "לא מותקן"
+
+msgid "Set up this site"
+msgstr "הקם את האתר"
+
+msgid "Working..."
+msgstr "עובד..."
+
+msgid "Done"
+msgstr "הושלם"
+
+msgid "Skipped"
+msgstr "דולג"
+
+msgid "WordPress.org"
+msgstr "WordPress.org"
+
+msgid "Already active."
+msgstr "כבר פעיל."
+
+msgid "Installed and activated."
+msgstr "הותקן והופעל."
+
+msgid "Activated."
+msgstr "הופעל."
+
+msgid "That item is not part of the baseline."
+msgstr "הפריט הזה אינו חלק מרשימת הבסיס."
+
+msgid "This site does not allow installing from the dashboard."
+msgstr "האתר הזה לא מאפשר התקנה מלוח הבקרה."
+
+msgid "You are not allowed to switch themes on this site."
+msgstr "אין לך הרשאה להחליף תבנית באתר הזה."
+
+msgid "The plugin is not where it was expected after installation."
+msgstr "התוסף לא נמצא במקום הצפוי אחרי ההתקנה."
+
+msgid "Could not normalise the downloaded folder name."
+msgstr "לא ניתן היה לתקן את שם התיקייה שהורדה."
+
+msgid "GitHub returned a response that could not be read."
+msgstr "GitHub החזיר תשובה שלא ניתן לקרוא."
+
+msgid "That release has no downloadable archive."
+msgstr "לגרסה הזו אין קובץ להורדה."
+
+msgid "GitHub answered %2$d for %1$s."
+msgstr "GitHub החזיר %2$d עבור %1$s."
+
+msgid "WordPress.org returned no download for %s."
+msgstr "WordPress.org לא החזיר קובץ להורדה עבור %s."
+
+msgid "%1$d installed, %2$d skipped, %3$d failed."
+msgstr "%1$d הותקנו, %2$d דולגו, %3$d נכשלו."
+
+msgid "The installation did not complete. The site may not be able to write to its own files - see FS_METHOD."
+msgstr "ההתקנה לא הושלמה. ייתכן שהאתר לא יכול לכתוב לקבצים של עצמו - ראו FS_METHOD."
+
+msgid "Installed. Not activated, because this site already uses a custom theme - switch it under Appearance > Themes when you are ready."
+msgstr "הותקן. לא הופעל, כי האתר כבר משתמש בתבנית משלו - החליפו תחת עיצוב > תבניות כשתהיו מוכנים."
+
+msgid "Installed, but could not be activated: %s"
+msgstr "הותקן, אך לא ניתן היה להפעיל: %s"
+
+msgid "The request did not complete. Check the site can reach WordPress.org and GitHub."
+msgstr "הבקשה לא הושלמה. בדקו שהאתר יכול להגיע ל-WordPress.org ול-GitHub."
+
+msgid "Installs and activates the Digitizer baseline on this site. Anything already active is left exactly as it is - nothing here updates, downgrades or reconfigures a plugin you already have. Safe to run more than once."
+msgstr "מתקין ומפעיל את רשימת הבסיס של Digitizer באתר הזה. כל מה שכבר פעיל נשאר בדיוק כפי שהוא - שום דבר כאן לא מעדכן, לא מוריד גרסה ולא משנה הגדרות של תוסף קיים. אפשר להריץ יותר מפעם אחת."
+
+msgid "Installs and activates the Digitizer baseline - Hello Elementor with the Digitizer child theme, and the standard plugin set - on a new site. Nothing already installed is updated or reconfigured, and the run can be repeated safely."
+msgstr "מתקין ומפעיל את רשימת הבסיס של Digitizer - Hello Elementor עם תבנית הבת של Digitizer, ואת מערך התוספים הסטנדרטי - באתר חדש. שום דבר שכבר מותקן לא מעודכן ולא משתנה, ואפשר להריץ שוב בבטחה."
