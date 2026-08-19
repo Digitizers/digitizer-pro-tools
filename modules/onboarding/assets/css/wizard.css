@@ -1,0 +1,17 @@
+.dpt-onb-table { margin-top: 16px; }
+.dpt-onb-table code { font-size: 11px; opacity: .7; margin-inline-start: 6px; }
+.dpt-onb-tag {
+	display: inline-block;
+	margin-inline-start: 6px;
+	padding: 1px 6px;
+	border-radius: 3px;
+	background: #f0f0f1;
+	font-size: 11px;
+	text-transform: uppercase;
+}
+.dpt-onb-status[data-state="active"]    { color: #007017; font-weight: 600; }
+.dpt-onb-status[data-state="installed"],
+.dpt-onb-status[data-state="activated"] { color: #007017; }
+.dpt-onb-status[data-state="failed"]    { color: #b32d2e; }
+.dpt-onb-status[data-state="working"]   { color: #646970; font-style: italic; }
+.dpt-onb-summary { margin-top: 12px; font-weight: 600; }

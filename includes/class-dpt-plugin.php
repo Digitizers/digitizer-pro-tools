@@ -28,6 +28,11 @@ class DPT_Plugin {
 	 */
 	public function registry() {
 		$modules = array(
+			'onboarding' => array(
+				'file'    => DPT_PATH . 'modules/onboarding/class-dpt-onb-module.php',
+				'class'   => 'DPT_Onboarding_Module',
+				'default' => '1',
+			),
 			'cookie_banner' => array(
 				'file'    => DPT_PATH . 'modules/cookie-banner/class-dpt-cb-module.php',
 				'class'   => 'DPT_Cookie_Banner_Module',
