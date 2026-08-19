@@ -264,16 +264,16 @@ Updating an existing site does not change what it already has: a module you swit
 
 = Does the plugin send any data anywhere? =
 
-Not on its own. There is no telemetry, no analytics and no "phone home", and nothing about your site or its visitors is ever sent anywhere.
+There is no telemetry, no analytics and no "phone home": the plugin never collects information about your site or its visitors and sends it anywhere on its own initiative.
 
-Your server makes outbound requests in four situations, all described in full under "External services" above:
+Data does leave, but only where a module's job is to send it, and only for the modules you switch on. Everything below is described in full under "External services" above:
 
-* The update check, on WordPress's normal schedule.
-* Running the Onboarding wizard, which asks WordPress.org and GitHub for the packages it installs. Only while a run is in progress.
-* Sending email, if you enable and configure the Resend Mail module.
-* Nothing else.
+* **Resend Mail**, if you enable it and enter an API key, sends your site's email through the Resend API - the complete message, including recipients, subject, body and attachments. That is what the module is for.
+* **Embed** makes the *visitor's browser* load the document you embedded straight from its host, so that host sees the visitor. The request comes from the visitor, not from your server.
+* **Onboarding**, while an administrator is running it, asks WordPress.org and GitHub for the packages it installs. Nothing about the site is sent.
+* **The update check** asks GitHub for the latest release, on WordPress's normal schedule. Nothing about the site is sent.
 
-Separately, a document you embed with the Embed module is loaded by the visitor's browser straight from its host - that request comes from the visitor, not from your server.
+Nothing else in the plugin makes an outbound request.
 
 = Does the cookie banner work with page caching? =
 
