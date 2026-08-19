@@ -111,7 +111,16 @@ function get_stylesheet() { return $GLOBALS['dpt_stub_stylesheet']; }
 $GLOBALS['dpt_stub_denied_caps'] = array();
 function current_user_can( $cap ) { return ! in_array( $cap, $GLOBALS['dpt_stub_denied_caps'], true ); }
 function switch_theme( $slug ) { $GLOBALS['dpt_stub_stylesheet'] = $slug; }
-function activate_plugin( $file ) { $GLOBALS['dpt_stub_active_plugins'][] = $file; return null; }
+$GLOBALS['dpt_stub_self_deactivating'] = array();
+function activate_plugin( $file ) {
+	// A plugin whose activation hook finds an unmet prerequisite deactivates
+	// itself from inside that hook; activate_plugin() still returns success.
+	if ( in_array( $file, $GLOBALS['dpt_stub_self_deactivating'], true ) ) {
+		return null;
+	}
+	$GLOBALS['dpt_stub_active_plugins'][] = $file;
+	return null;
+}
 
 $GLOBALS['dpt_stub_theme_authors'] = array();
 $GLOBALS['dpt_stub_broken_themes'] = array();

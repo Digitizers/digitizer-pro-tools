@@ -607,5 +607,6 @@ return array (
     'Installed, but not activated: its parent theme (%s) is missing or unusable, and switching to it would leave the site without a template.' => 'הותקן, אך לא הופעל: תבנית האב שלו (%s) חסרה או שבורה, והפעלה שלו הייתה משאירה את האתר בלי תבנית.',
     'Installed, but not activated: WordPress reports the theme as broken, and activating it would take the site down.' => 'הותקן, אך לא הופעל: וורדפרס מדווחת שהתבנית שבורה, והפעלה שלה הייתה מפילה את האתר.',
     'The theme switch did not take effect.' => 'החלפת התבנית לא נכנסה לתוקף.',
+    'It was activated but switched itself off again, which usually means it needs something this site does not have yet.' => 'הוא הופעל אך כיבה את עצמו מיד, מה שבדרך כלל אומר שהוא זקוק למשהו שעדיין אין באתר.',
   ),
 );

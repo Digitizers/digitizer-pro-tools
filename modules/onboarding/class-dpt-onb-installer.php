@@ -470,6 +470,19 @@ class DPT_ONB_Installer {
 		if ( is_wp_error( $activated ) ) {
 			return $activated;
 		}
+		// Confirm it stayed active, the same way the theme switch is confirmed
+		// above. A plugin that finds an unmet prerequisite in its activation
+		// hook deactivates itself from inside that hook, and activate_plugin()
+		// still reports success - so the row would claim an activation the
+		// next run contradicts. Directly relevant to this baseline: several of
+		// its items depend on another item in the same list, which the operator
+		// is free to untick.
+		if ( ! is_plugin_active( $file ) ) {
+			return new WP_Error(
+				'dpt_onb_did_not_stay_active',
+				__( 'It was activated but switched itself off again, which usually means it needs something this site does not have yet.', 'digitizer-pro-tools' )
+			);
+		}
 		return true;
 	}
 

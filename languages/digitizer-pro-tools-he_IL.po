@@ -1817,3 +1817,6 @@ msgstr "הותקן, אך לא הופעל: וורדפרס מדווחת שהתבנ
 
 msgid "The theme switch did not take effect."
 msgstr "החלפת התבנית לא נכנסה לתוקף."
+
+msgid "It was activated but switched itself off again, which usually means it needs something this site does not have yet."
+msgstr "הוא הופעל אך כיבה את עצמו מיד, מה שבדרך כלל אומר שהוא זקוק למשהו שעדיין אין באתר."

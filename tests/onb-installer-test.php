@@ -230,4 +230,21 @@ dpt_test_eq( $GLOBALS['dpt_stub_stylesheet'], 'hello-digitizer', 'and the switch
 
 dpt_test_ok( ! DPT_ONB_Installer::theme_is_usable( 'not-installed-at-all' ), 'an absent theme is not usable' );
 
+/* ---- regression: a plugin that switches itself off is not a success ---- */
+
+// activate_plugin() reports success even when the plugin deactivated itself
+// from its own activation hook - which is what a plugin does when it finds an
+// unmet prerequisite. Reporting that as activated puts a claim on screen the
+// next run contradicts.
+$GLOBALS['dpt_stub_plugins']            = array( 'elementor-mcp/elementor-mcp.php' => array( 'Name' => 'Elementor MCP' ) );
+$GLOBALS['dpt_stub_active_plugins']     = array();
+$GLOBALS['dpt_stub_self_deactivating']  = array( 'elementor-mcp/elementor-mcp.php' );
+$res = DPT_ONB_Installer::apply( 'elementor_mcp' );
+dpt_test_eq( $res['outcome'], 'failed', 'a plugin that switches itself off is reported as failed' );
+dpt_test_ok( false !== strpos( $res['message'], 'switched itself off' ), 'and the message says what happened' );
+
+$GLOBALS['dpt_stub_self_deactivating'] = array();
+$res = DPT_ONB_Installer::apply( 'elementor_mcp' );
+dpt_test_eq( $res['outcome'], 'activated', 'and one that stays on is reported as activated' );
+
 exit( dpt_test_summary() > 0 ? 1 : 0 );

@@ -1817,3 +1817,6 @@ msgstr ""
 
 msgid "The theme switch did not take effect."
 msgstr ""
+
+msgid "It was activated but switched itself off again, which usually means it needs something this site does not have yet."
+msgstr ""
