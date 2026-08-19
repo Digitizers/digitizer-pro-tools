@@ -1799,3 +1799,6 @@ msgstr "כבר מותקן."
 
 msgid "Installed, but not activated: its parent theme (%s) is missing, and switching to it would leave the site without a template."
 msgstr "הותקן, אך לא הופעל: תבנית האב שלו (%s) חסרה, והפעלה שלו הייתה משאירה את האתר בלי תבנית."
+
+msgid "You are not allowed to activate plugins on this site."
+msgstr "אין לך הרשאה להפעיל תוספים באתר הזה."

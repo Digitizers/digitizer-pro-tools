@@ -32,6 +32,7 @@ class DPT_ONB_Installer {
 		'twentytwentythree',
 		'twentytwentyfour',
 		'twentytwentyfive',
+		'twentytwentysix',
 	);
 
 	/**
@@ -61,11 +62,31 @@ class DPT_ONB_Installer {
 	 * operator ran to install plugins, so this is true only while the site is
 	 * still on a WordPress default.
 	 *
+	 * A hardcoded list of default themes always lags the next WordPress
+	 * release, and lagging fails in the direction that breaks the main flow:
+	 * a genuinely fresh site would be mistaken for one with a chosen design,
+	 * and the wizard would refuse to activate the child theme. So the caller
+	 * also passes WP_DEFAULT_THEME, which core defines as the theme that
+	 * version bundles - whatever it is named.
+	 *
 	 * @param string $current_stylesheet Active theme slug.
+	 * @param string $bundled_default    WP_DEFAULT_THEME, or '' when undefined.
 	 * @return bool
 	 */
-	public static function may_activate_theme( $current_stylesheet ) {
+	public static function may_activate_theme( $current_stylesheet, $bundled_default = '' ) {
+		if ( '' !== $bundled_default && $current_stylesheet === $bundled_default ) {
+			return true;
+		}
 		return in_array( $current_stylesheet, self::DEFAULT_THEMES, true );
+	}
+
+	/**
+	 * The theme slug this WordPress ships as its own default.
+	 *
+	 * @return string
+	 */
+	public static function bundled_default_theme() {
+		return defined( 'WP_DEFAULT_THEME' ) ? (string) WP_DEFAULT_THEME : '';
 	}
 
 	/**
@@ -265,7 +286,7 @@ class DPT_ONB_Installer {
 		}
 
 		if ( 'theme' === $item['type'] ) {
-			if ( ! self::may_activate_theme( get_stylesheet() ) ) {
+			if ( ! self::may_activate_theme( get_stylesheet(), self::bundled_default_theme() ) ) {
 				return 'deferred';
 			}
 			// Switching to a child theme whose parent is absent leaves the
@@ -289,6 +310,16 @@ class DPT_ONB_Installer {
 			}
 			switch_theme( $item['slug'] );
 			return true;
+		}
+
+		// Checked here rather than only at the endpoint, because installing and
+		// activating are two permissions and a missing plugin needs both:
+		// activate_plugin() performs no capability check of its own, so a role
+		// granted install_plugins but deliberately not activate_plugins would
+		// otherwise end up activating everything it installed. The theme branch
+		// above checks switch_themes for the same reason.
+		if ( ! current_user_can( 'activate_plugins' ) ) {
+			return new WP_Error( 'dpt_onb_cannot_activate', __( 'You are not allowed to activate plugins on this site.', 'digitizer-pro-tools' ) );
 		}
 
 		$file = DPT_ONB_State::plugin_file( $item['slug'] );

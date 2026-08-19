@@ -108,7 +108,8 @@ function set_transient( $key, $value, $ttl = 0 ) {
 function get_plugins() { return $GLOBALS['dpt_stub_plugins']; }
 function is_plugin_active( $file ) { return in_array( $file, $GLOBALS['dpt_stub_active_plugins'], true ); }
 function get_stylesheet() { return $GLOBALS['dpt_stub_stylesheet']; }
-function current_user_can( $cap ) { return true; }
+$GLOBALS['dpt_stub_denied_caps'] = array();
+function current_user_can( $cap ) { return ! in_array( $cap, $GLOBALS['dpt_stub_denied_caps'], true ); }
 function switch_theme( $slug ) { $GLOBALS['dpt_stub_stylesheet'] = $slug; }
 function activate_plugin( $file ) { $GLOBALS['dpt_stub_active_plugins'][] = $file; return null; }
 

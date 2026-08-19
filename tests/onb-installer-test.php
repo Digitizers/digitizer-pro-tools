@@ -15,6 +15,13 @@ dpt_test_eq( DPT_ONB_Installer::action_for( 'nonsense' ), 'skip', 'an unknown st
 /* ---- theme activation gate ---- */
 
 dpt_test_ok( DPT_ONB_Installer::may_activate_theme( 'twentytwentyfour' ), 'a default theme may be replaced' );
+dpt_test_ok( DPT_ONB_Installer::may_activate_theme( 'twentytwentysix' ), 'the theme WordPress 7.0 bundles may be replaced' );
+// The hardcoded list always lags the next release, and lagging breaks the main
+// flow: a fresh site would be read as one with a chosen design. Core's own
+// WP_DEFAULT_THEME closes that gap for whatever comes next.
+dpt_test_ok( DPT_ONB_Installer::may_activate_theme( 'twentythirty', 'twentythirty' ), 'a future bundled default is recognised through WP_DEFAULT_THEME' );
+dpt_test_ok( ! DPT_ONB_Installer::may_activate_theme( 'astra', 'twentythirty' ), 'a custom theme is still refused when a bundled default is known' );
+dpt_test_eq( DPT_ONB_Installer::bundled_default_theme(), '', 'the bundled default is empty when WP_DEFAULT_THEME is undefined' );
 dpt_test_ok( DPT_ONB_Installer::may_activate_theme( 'twentyten' ), 'an old default theme may be replaced' );
 dpt_test_ok( ! DPT_ONB_Installer::may_activate_theme( 'astra' ), 'a live custom theme is never replaced' );
 dpt_test_ok( ! DPT_ONB_Installer::may_activate_theme( 'hello-digitizer' ), 'an already-correct theme is not re-activated here' );
@@ -108,5 +115,31 @@ dpt_test_eq( DPT_ONB_Installer::capability_for( $plugin_item, 'inactive' ), 'act
 dpt_test_eq( DPT_ONB_Installer::capability_for( $plugin_item, 'active' ), '', 'skipping needs no extra capability' );
 dpt_test_eq( DPT_ONB_Installer::capability_for( $theme_item, 'missing' ), 'install_themes', 'installing a theme needs install_themes' );
 dpt_test_eq( DPT_ONB_Installer::capability_for( $theme_item, 'inactive' ), 'switch_themes', 'activating an installed theme needs only switch_themes' );
+
+/* ---- regression: installing and activating are two permissions ---- */
+
+// activate_plugin() performs no capability check of its own, so a role granted
+// install_plugins but deliberately not activate_plugins must not end up
+// activating everything it installed.
+$GLOBALS['dpt_stub_plugins']        = array( 'elementor/elementor.php' => array( 'Name' => 'Elementor' ) );
+$GLOBALS['dpt_stub_active_plugins'] = array();
+$GLOBALS['dpt_stub_denied_caps']    = array( 'activate_plugins' );
+$res = DPT_ONB_Installer::apply( 'elementor' );
+dpt_test_eq( $res['outcome'], 'failed', 'a user who cannot activate plugins does not activate one' );
+dpt_test_eq( $GLOBALS['dpt_stub_active_plugins'], array(), 'and nothing was activated' );
+
+$GLOBALS['dpt_stub_denied_caps'] = array();
+$res = DPT_ONB_Installer::apply( 'elementor' );
+dpt_test_eq( $res['outcome'], 'activated', 'with the capability it activates normally' );
+dpt_test_eq( $GLOBALS['dpt_stub_active_plugins'], array( 'elementor/elementor.php' ), 'and the plugin is active' );
+
+// Same rule on the theme side.
+$GLOBALS['dpt_stub_themes']      = array( 'hello-elementor', 'hello-digitizer' );
+$GLOBALS['dpt_stub_stylesheet']  = 'twentytwentyfour';
+$GLOBALS['dpt_stub_denied_caps'] = array( 'switch_themes' );
+$res = DPT_ONB_Installer::apply( 'hello_digitizer' );
+dpt_test_eq( $res['outcome'], 'failed', 'a user who cannot switch themes does not switch one' );
+dpt_test_eq( $GLOBALS['dpt_stub_stylesheet'], 'twentytwentyfour', 'and the live theme is unchanged' );
+$GLOBALS['dpt_stub_denied_caps'] = array();
 
 exit( dpt_test_summary() > 0 ? 1 : 0 );

@@ -1799,3 +1799,6 @@ msgstr ""
 
 msgid "Installed, but not activated: its parent theme (%s) is missing, and switching to it would leave the site without a template."
 msgstr ""
+
+msgid "You are not allowed to activate plugins on this site."
+msgstr ""

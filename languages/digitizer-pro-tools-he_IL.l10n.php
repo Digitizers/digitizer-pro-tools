@@ -602,5 +602,6 @@ return array (
     'Installed.' => 'הותקן.',
     'Already installed.' => 'כבר מותקן.',
     'Installed, but not activated: its parent theme (%s) is missing, and switching to it would leave the site without a template.' => 'הותקן, אך לא הופעל: תבנית האב שלו (%s) חסרה, והפעלה שלו הייתה משאירה את האתר בלי תבנית.',
+    'You are not allowed to activate plugins on this site.' => 'אין לך הרשאה להפעיל תוספים באתר הזה.',
   ),
 );
