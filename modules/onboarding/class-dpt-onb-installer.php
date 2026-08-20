@@ -278,6 +278,15 @@ class DPT_ONB_Installer {
 	 * without this an administrator who is not allowed to update code could
 	 * still enrol it in unattended updates.
 	 *
+	 * With an item, this answers for that item's own list. Without one it is
+	 * the question the screen asks before offering the checkbox, and the
+	 * honest answer covers every kind of thing on the list: the baseline holds
+	 * themes as well as plugins, and a role that may update only one of them
+	 * would be shown a box that quietly left the other kind out. Refusing the
+	 * whole control is visible and the operator can still turn updates on from
+	 * WordPress's own screens; a promise kept for twelve items out of fourteen
+	 * is not visible at all.
+	 *
 	 * On multisite the lists are network-wide: core reads them with
 	 * get_site_option(), and one blog's administrator writing them would
 	 * decide what updates itself on every other blog. So that case asks for
@@ -287,14 +296,35 @@ class DPT_ONB_Installer {
 	 * @return bool
 	 */
 	public static function may_auto_update( $item = null ) {
-		$is_theme = is_array( $item ) && isset( $item['type'] ) && 'theme' === $item['type'];
-		if ( ! current_user_can( $is_theme ? 'update_themes' : 'update_plugins' ) ) {
-			return false;
-		}
 		if ( is_multisite() && ! current_user_can( 'manage_network_options' ) ) {
 			return false;
 		}
+		$types = ( is_array( $item ) && isset( $item['type'] ) )
+			? array( $item['type'] )
+			: self::auto_update_types();
+		foreach ( $types as $type ) {
+			if ( ! current_user_can( 'theme' === $type ? 'update_themes' : 'update_plugins' ) ) {
+				return false;
+			}
+		}
 		return true;
+	}
+
+	/**
+	 * The kinds of thing the baseline holds, read from the manifest rather
+	 * than assumed, so adding an item of a new type cannot leave the
+	 * permission check behind.
+	 *
+	 * @return array
+	 */
+	public static function auto_update_types() {
+		$types = array();
+		foreach ( DPT_ONB_Manifest::items() as $item ) {
+			if ( isset( $item['type'] ) && ! in_array( $item['type'], $types, true ) ) {
+				$types[] = $item['type'];
+			}
+		}
+		return $types;
 	}
 
 	/**

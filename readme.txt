@@ -298,7 +298,7 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 
 = 1.21.0 =
 * Onboarding now installs the baseline without switching it on. Only the Hello Digitizer child theme and Elementor are activated; the other eleven plugins are installed and left inactive, so each client site runs what you choose for it
-* Onboarding can turn on WordPress's automatic updates for the items it installed - a checkbox on its screen, on by default, and it never touches a plugin that is not on the list. Re-running applies it to items that were already in place, so an older site catches up. Offered only to a user who may update code - and on a multisite network, only to a network administrator, since the lists are network-wide
+* Onboarding can turn on WordPress's automatic updates for the items it installed - a checkbox on its screen, on by default, and it never touches a plugin that is not on the list. Re-running applies it to items that were already in place, so an older site catches up. Offered only to a user who may update both plugins and themes - and on a multisite network, only to a network administrator, since the lists are network-wide
 * Onboarding can remove the default themes a finished site no longer needs. It keeps the newest one and the theme WordPress is configured to fall back to if the active theme ever breaks, and it never removes the active theme, a theme another theme depends on, or a theme that only carries a core directory name without being one of WordPress's own
 * Every module now ships disabled, Onboarding included. Activating the plugin changes nothing at all until you switch something on from the Modules screen
 

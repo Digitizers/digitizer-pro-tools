@@ -295,6 +295,22 @@ dpt_test_eq( get_option( 'auto_update_plugins', array() ), array(), 'but it is n
 dpt_test_ok( ! DPT_ONB_Installer::may_auto_update(), 'and the screen is told not to offer the box' );
 $GLOBALS['dpt_stub_denied_caps'] = array();
 
+// The baseline holds themes as well as plugins, so the box is offered only to
+// someone who may enrol both. Offering it to a role that may update plugins
+// alone would promise updates for fourteen items and quietly deliver twelve.
+dpt_test_eq( DPT_ONB_Installer::auto_update_types(), array( 'theme', 'plugin' ), 'the manifest holds both kinds' );
+$GLOBALS['dpt_stub_denied_caps'] = array( 'update_themes' );
+dpt_test_ok( ! DPT_ONB_Installer::may_auto_update(), 'a role that may not update themes is not offered the box' );
+dpt_test_ok(
+	DPT_ONB_Installer::may_auto_update( DPT_ONB_Manifest::get( 'wordfence' ) ),
+	'though a plugin it may update is still enrolled when asked for by id'
+);
+dpt_test_ok(
+	! DPT_ONB_Installer::may_auto_update( DPT_ONB_Manifest::get( 'hello_digitizer' ) ),
+	'and a theme it may not update is not'
+);
+$GLOBALS['dpt_stub_denied_caps'] = array();
+
 // On multisite the lists are network-wide: one blog's administrator must not
 // decide what updates itself on every other blog.
 $GLOBALS['dpt_stub_multisite']   = true;
