@@ -25,7 +25,7 @@ Brings a new site up to the Digitizer baseline in one pass:
 * **Only the child theme and Elementor are switched on.** Everything else is installed and left inactive, so you decide per client what actually runs
 * Installs from WordPress.org, and from the public GitHub repositories for Hello Digitizer, Elementor MCP and MCP Adapter
 * Optionally turns on WordPress's automatic updates for the items it installed, and for Digitizer Pro Tools itself
-* Reports updates for the baseline's GitHub items - Hello Digitizer, Elementor MCP and MCP Adapter - which are not in the WordPress.org directory and are installed inactive, so nothing else on the site would ever check them
+* Reports updates for the baseline's GitHub items - Hello Digitizer, Elementor MCP and MCP Adapter - which are not in the WordPress.org directory and are installed inactive, so nothing else on the site would ever check them. Switch the module off and those offers stop with it
 * Optionally removes the unused default themes, always keeping the newest one and the theme this WordPress is configured to fall back to if the active theme ever breaks. The active theme, any theme another theme depends on, and anything that is not actually one of WordPress's own themes are never removed. Not offered on a multisite network, where one directory of themes is shared by every site
 * Nothing already installed is updated, downgraded or reconfigured
 * Safe to run again: the second pass finds everything in place and does nothing
@@ -304,6 +304,7 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 * Because of that, those items can now be put on automatic updates as well - previously the wizard excluded them, since an entry on WordPress's list was a promise nothing would act on
 * Update information for them is never fetched from a visitor's page load, only from the admin or from cron, and a failed lookup is remembered for fifteen minutes so an unreachable GitHub cannot slow the dashboard down
 * An update answer that another source already provided - a plugin's own checker, or the WordPress.org directory - is never overwritten
+* What this reports is added as WordPress reads its update lists, not written into them, so disabling the Onboarding module removes the offers in the same request rather than leaving one behind that nothing is left to install safely
 
 = 1.22.0 =
 * The Onboarding wizard's automatic-updates checkbox now covers Digitizer Pro Tools itself. The plugin brings its own update check, so WordPress installs its releases unattended exactly as it would a plugin from the directory - which is why it is included while the baseline's other GitHub items are not

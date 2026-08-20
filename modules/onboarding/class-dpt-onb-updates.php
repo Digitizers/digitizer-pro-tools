@@ -66,19 +66,21 @@ class DPT_ONB_Updates {
 	}
 
 	/**
-	 * Refresh the plugin lookups while WordPress runs an update check, and add
-	 * what we know to the value it is about to store.
+	 * Refresh the plugin lookups while WordPress runs an update check.
+	 *
+	 * Deliberately returns the value untouched. What this module knows is
+	 * added when the transient is read, not written into what WordPress
+	 * stores, so nothing it reported outlives it: disable the module and the
+	 * offers disappear with the same request. An entry persisted into the
+	 * stored transient would still be installable after the module - and with
+	 * it the archive-renaming and user-agent hooks - had gone.
 	 *
 	 * @param mixed $value The transient value being stored.
 	 * @return mixed
 	 */
 	public static function refresh_plugins( $value ) {
-		self::$fetching = true;
-		try {
-			return self::plugins( $value );
-		} finally {
-			self::$fetching = false;
-		}
+		self::warm( 'plugin' );
+		return $value;
 	}
 
 	/**
@@ -88,9 +90,23 @@ class DPT_ONB_Updates {
 	 * @return mixed
 	 */
 	public static function refresh_themes( $value ) {
+		self::warm( 'theme' );
+		return $value;
+	}
+
+	/**
+	 * Put every item of one type into the release cache, so the reads that
+	 * follow have something to answer with.
+	 *
+	 * @param string $type 'plugin' or 'theme'.
+	 * @return void
+	 */
+	private static function warm( $type ) {
 		self::$fetching = true;
 		try {
-			return self::themes( $value );
+			foreach ( self::items_of_type( $type ) as $item ) {
+				self::release( $item );
+			}
 		} finally {
 			self::$fetching = false;
 		}

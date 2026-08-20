@@ -189,23 +189,31 @@ $GLOBALS['dpt_stub_http']       = array(
 			)
 		),
 	),
+	'https://api.github.com/repos/Digitizers/elementor-mcp/releases/latest' => array( 'code' => 404, 'body' => '' ),
 );
-$t = DPT_ONB_Updates::refresh_plugins( (object) array( 'response' => array(), 'no_update' => array() ) );
-dpt_test_eq( $t->response['mcp-adapter/mcp-adapter.php']->new_version, '0.6.1', 'an update check does look the release up' );
+$stored = (object) array( 'response' => array(), 'no_update' => array() );
+$out    = DPT_ONB_Updates::refresh_plugins( $stored );
+
+// What WordPress stores stays WordPress's. Writing an offer into the stored
+// transient would leave it installable after the module - and the hooks that
+// rename the archive and strip the site address - had been switched off.
+dpt_test_eq( $out->response, array(), 'the update check stores nothing of ours' );
+dpt_test_eq( $out->no_update, array(), 'not even a no_update record' );
+dpt_test_ok(
+	isset( $GLOBALS['dpt_stub_transients'][ DPT_ONB_Source::RELEASE_PREFIX . md5( 'WordPress/mcp-adapter' ) ]['version'] ),
+	'but the release cache is filled, which is what it is for'
+);
 dpt_test_ok( ! DPT_ONB_Updates::may_fetch(), 'and the permission is put back down afterwards' );
+
+// The read that follows is what offers the update, from that cache.
+$t = DPT_ONB_Updates::plugins( (object) array( 'response' => array(), 'no_update' => array() ) );
+dpt_test_eq( $t->response['mcp-adapter/mcp-adapter.php']->new_version, '0.6.1', 'the following read offers it' );
 
 // A failed lookup is remembered, so an unreachable GitHub is asked once per
 // check rather than on every page that follows.
-$GLOBALS['dpt_stub_transients'] = array();
-$GLOBALS['dpt_stub_http']       = array();
-$GLOBALS['dpt_stub_plugins']    = array(
-	'elementor-mcp/plugin.php' => array( 'Name' => 'Elementor MCP', 'Version' => '1.0.0' ),
-);
-$t = DPT_ONB_Updates::refresh_plugins( (object) array( 'response' => array(), 'no_update' => array() ) );
-dpt_test_ok( ! isset( $t->response['elementor-mcp/plugin.php'] ), 'a failed lookup offers no update' );
 dpt_test_ok(
 	isset( $GLOBALS['dpt_stub_transients'][ DPT_ONB_Source::RELEASE_PREFIX . md5( 'Digitizers/elementor-mcp' ) ]['error'] ),
-	'and the failure itself is cached'
+	'a failed lookup caches the failure'
 );
 
 /* ---- an update is installed over the item, not beside it ---- */
