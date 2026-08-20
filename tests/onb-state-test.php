@@ -2,6 +2,8 @@
 require_once __DIR__ . '/bootstrap.php';
 require_once dirname( __DIR__ ) . '/modules/onboarding/class-dpt-onb-manifest.php';
 require_once dirname( __DIR__ ) . '/modules/onboarding/class-dpt-onb-state.php';
+require_once dirname( __DIR__ ) . '/modules/onboarding/class-dpt-onb-source.php';
+require_once dirname( __DIR__ ) . '/modules/onboarding/class-dpt-onb-installer.php';
 
 $plugin = array( 'id' => 'elementor', 'type' => 'plugin', 'slug' => 'elementor' );
 $theme  = array( 'id' => 'hello_elementor', 'type' => 'theme', 'slug' => 'hello-elementor' );
@@ -57,5 +59,32 @@ $all = DPT_ONB_State::all();
 dpt_test_eq( count( $all ), count( DPT_ONB_Manifest::items() ), 'all() covers every manifest item' );
 dpt_test_eq( $all['elementor'], 'missing', 'all() reports a missing item' );
 dpt_test_ok( array_keys( $all ) === array_column( DPT_ONB_Manifest::items(), 'id' ), 'all() preserves manifest order' );
+
+/* ---- install-only plugins ---- */
+
+// Most of the baseline is installed and left switched off. Reporting such an
+// item as inactive would make the wizard try to activate it on every run.
+$wordfence = DPT_ONB_Manifest::get( 'wordfence' );
+dpt_test_eq( $wordfence['activate'], false, 'Wordfence is install-only' );
+
+$GLOBALS['dpt_stub_plugins']        = array();
+$GLOBALS['dpt_stub_active_plugins'] = array();
+dpt_test_eq( DPT_ONB_State::of( $wordfence ), DPT_ONB_State::MISSING, 'an absent install-only plugin is missing' );
+
+$GLOBALS['dpt_stub_plugins'] = array( 'wordfence/wordfence.php' => array( 'Name' => 'Wordfence' ) );
+dpt_test_eq( DPT_ONB_State::of( $wordfence ), DPT_ONB_State::PRESENT, 'installed and off is its goal state' );
+dpt_test_eq( DPT_ONB_Installer::action_for( DPT_ONB_State::of( $wordfence ) ), 'skip', 'so the wizard leaves it alone' );
+
+// An item the operator switched on by hand still reports as active, because
+// it is - the status column should not deny what the plugins screen shows.
+$GLOBALS['dpt_stub_active_plugins'] = array( 'wordfence/wordfence.php' );
+dpt_test_eq( DPT_ONB_State::of( $wordfence ), DPT_ONB_State::ACTIVE, 'one switched on by hand reports as active' );
+
+// Elementor is the exception: it is meant to end up running.
+$elementor = DPT_ONB_Manifest::get( 'elementor' );
+dpt_test_ok( ! isset( $elementor['activate'] ), 'Elementor is not install-only' );
+$GLOBALS['dpt_stub_plugins']        = array( 'elementor/elementor.php' => array( 'Name' => 'Elementor' ) );
+$GLOBALS['dpt_stub_active_plugins'] = array();
+dpt_test_eq( DPT_ONB_State::of( $elementor ), DPT_ONB_State::INACTIVE, 'so an inactive Elementor still needs activating' );
 
 exit( dpt_test_summary() > 0 ? 1 : 0 );

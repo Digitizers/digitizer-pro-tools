@@ -67,4 +67,22 @@ dpt_test_ok( null !== DPT_ONB_Manifest::get( 'elementor' ), 'get() finds a known
 dpt_test_eq( DPT_ONB_Manifest::get( 'no-such-item' ), null, 'get() returns null for an unknown id' );
 dpt_test_eq( DPT_ONB_Manifest::get( '../../evil' ), null, 'get() returns null for a traversal attempt' );
 
+/* ---- the activation policy ---- */
+
+// Only these two are switched on. Everything else is installed and left for
+// the operator to enable per client - an agency baseline is a set of tools
+// available on the site, not a set running on it.
+$activated = array();
+foreach ( $items as $item ) {
+	if ( ! isset( $item['activate'] ) || false !== $item['activate'] ) {
+		$activated[] = $item['id'];
+	}
+}
+dpt_test_eq( $activated, array( 'hello_digitizer', 'elementor' ), 'only the child theme and Elementor are activated' );
+
+// The parent theme in particular must stay install-only: activating it would
+// undo the child.
+$parent = DPT_ONB_Manifest::get( 'hello_elementor' );
+dpt_test_eq( $parent['activate'], false, 'the parent theme is install-only' );
+
 exit( dpt_test_summary() > 0 ? 1 : 0 );

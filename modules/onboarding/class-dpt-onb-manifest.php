@@ -65,83 +65,116 @@ class DPT_ONB_Manifest {
 				'slug'   => 'elementor',
 			),
 			array(
-				'id'     => 'angie',
-				'label'  => 'Angie - Agentic AI',
-				'type'   => 'plugin',
-				'source' => 'wporg',
-				'slug'   => 'angie',
+				'id'       => 'angie',
+				'label'    => 'Angie - Agentic AI',
+				'type'     => 'plugin',
+				'source'   => 'wporg',
+				'slug'     => 'angie',
+				// Installed, not switched on: the operator decides what a
+				// given client actually runs.
+				'activate' => false,
 			),
 			array(
-				'id'     => 'cloudflare',
-				'label'  => 'Cloudflare',
-				'type'   => 'plugin',
-				'source' => 'wporg',
-				'slug'   => 'cloudflare',
+				'id'       => 'cloudflare',
+				'label'    => 'Cloudflare',
+				'type'     => 'plugin',
+				'source'   => 'wporg',
+				'slug'     => 'cloudflare',
+				// Installed, not switched on: the operator decides what a
+				// given client actually runs.
+				'activate' => false,
 			),
 			array(
-				'id'     => 'fluent_smtp',
-				'label'  => 'FluentSMTP',
-				'type'   => 'plugin',
-				'source' => 'wporg',
-				'slug'   => 'fluent-smtp',
+				'id'       => 'fluent_smtp',
+				'label'    => 'FluentSMTP',
+				'type'     => 'plugin',
+				'source'   => 'wporg',
+				'slug'     => 'fluent-smtp',
+				// Installed, not switched on: the operator decides what a
+				// given client actually runs.
+				'activate' => false,
 			),
 			array(
-				'id'     => 'imagify',
-				'label'  => 'Imagify',
-				'type'   => 'plugin',
-				'source' => 'wporg',
-				'slug'   => 'imagify',
+				'id'       => 'imagify',
+				'label'    => 'Imagify',
+				'type'     => 'plugin',
+				'source'   => 'wporg',
+				'slug'     => 'imagify',
+				// Installed, not switched on: the operator decides what a
+				// given client actually runs.
+				'activate' => false,
 			),
 			array(
-				'id'     => 'maspik',
-				'label'  => 'Maspik',
-				'type'   => 'plugin',
-				'source' => 'wporg',
-				'slug'   => 'contact-forms-anti-spam',
+				'id'       => 'maspik',
+				'label'    => 'Maspik',
+				'type'     => 'plugin',
+				'source'   => 'wporg',
+				'slug'     => 'contact-forms-anti-spam',
+				// Installed, not switched on: the operator decides what a
+				// given client actually runs.
+				'activate' => false,
 			),
 			array(
-				'id'     => 'rank_math',
-				'label'  => 'Rank Math SEO',
-				'type'   => 'plugin',
-				'source' => 'wporg',
-				'slug'   => 'seo-by-rank-math',
+				'id'       => 'rank_math',
+				'label'    => 'Rank Math SEO',
+				'type'     => 'plugin',
+				'source'   => 'wporg',
+				'slug'     => 'seo-by-rank-math',
+				// Installed, not switched on: the operator decides what a
+				// given client actually runs.
+				'activate' => false,
 			),
 			array(
-				'id'     => 'wordfence',
-				'label'  => 'Wordfence Security',
-				'type'   => 'plugin',
-				'source' => 'wporg',
-				'slug'   => 'wordfence',
+				'id'       => 'wordfence',
+				'label'    => 'Wordfence Security',
+				'type'     => 'plugin',
+				'source'   => 'wporg',
+				'slug'     => 'wordfence',
+				// Installed, not switched on: the operator decides what a
+				// given client actually runs.
+				'activate' => false,
 			),
 			array(
-				'id'     => 'wpcode',
-				'label'  => 'WPCode',
-				'type'   => 'plugin',
-				'source' => 'wporg',
-				'slug'   => 'insert-headers-and-footers',
+				'id'       => 'wpcode',
+				'label'    => 'WPCode',
+				'type'     => 'plugin',
+				'source'   => 'wporg',
+				'slug'     => 'insert-headers-and-footers',
+				// Installed, not switched on: the operator decides what a
+				// given client actually runs.
+				'activate' => false,
 			),
 			array(
-				'id'     => 'siteagent',
-				'label'  => 'SiteAgent for Aura',
-				'type'   => 'plugin',
-				'source' => 'wporg',
-				'slug'   => 'digitizer-site-worker',
+				'id'       => 'siteagent',
+				'label'    => 'SiteAgent for Aura',
+				'type'     => 'plugin',
+				'source'   => 'wporg',
+				'slug'     => 'digitizer-site-worker',
+				// Installed, not switched on: the operator decides what a
+				// given client actually runs.
+				'activate' => false,
 			),
 			array(
-				'id'     => 'elementor_mcp',
-				'label'  => 'Elementor MCP',
-				'type'   => 'plugin',
-				'source' => 'github',
-				'repo'   => 'Digitizers/elementor-mcp',
-				'slug'   => 'elementor-mcp',
+				'id'       => 'elementor_mcp',
+				'label'    => 'Elementor MCP',
+				'type'     => 'plugin',
+				'source'   => 'github',
+				'repo'     => 'Digitizers/elementor-mcp',
+				'slug'     => 'elementor-mcp',
+				// Installed, not switched on: the operator decides what a
+				// given client actually runs.
+				'activate' => false,
 			),
 			array(
-				'id'     => 'mcp_adapter',
-				'label'  => 'MCP Adapter',
-				'type'   => 'plugin',
-				'source' => 'github',
-				'repo'   => 'WordPress/mcp-adapter',
-				'slug'   => 'mcp-adapter',
+				'id'       => 'mcp_adapter',
+				'label'    => 'MCP Adapter',
+				'type'     => 'plugin',
+				'source'   => 'github',
+				'repo'     => 'WordPress/mcp-adapter',
+				'slug'     => 'mcp-adapter',
+				// Installed, not switched on: the operator decides what a
+				// given client actually runs.
+				'activate' => false,
 			),
 		);
 	}

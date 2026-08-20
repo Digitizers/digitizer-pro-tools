@@ -13,9 +13,10 @@ $registry = $plugin->registry();
 // Onboarding is the single module that ships on. If everything were off a
 // fresh site would have no wizard, and the operator would have to find and
 // enable a module before using the thing whose job is setting up a fresh site.
+// Nothing ships enabled at all, Onboarding included. A new site starts empty
+// and the operator switches on what that client needs.
 foreach ( $registry as $id => $spec ) {
-	$expected = ( 'onboarding' === $id ) ? '1' : '0';
-	dpt_test_eq( $spec['default'], $expected, "$id ships " . ( '1' === $expected ? 'enabled' : 'disabled' ) );
+	dpt_test_eq( $spec['default'], '0', "$id ships disabled" );
 }
 dpt_test_ok( isset( $registry['onboarding'] ), 'the onboarding module is registered' );
 
@@ -36,31 +37,31 @@ $map = $plugin->enabled_map();
 dpt_test_eq( $map['cookie_banner'], '1', 'a saved enabled module stays enabled' );
 dpt_test_eq( $map['hide_login'], '1', 'a second saved enabled module stays enabled' );
 dpt_test_eq( $map['duplicate_post'], '0', 'an unsaved module takes the new default' );
-dpt_test_eq( $map['onboarding'], '1', 'an unsaved onboarding takes its enabled default' );
+dpt_test_eq( $map['onboarding'], '0', 'an unsaved onboarding takes the disabled default' );
 
 // A site that deliberately turned something off keeps it off.
 $GLOBALS['dpt_stub_options'] = array(
 	'dpt_settings' => array( 'modules' => array( 'onboarding' => '0' ) ),
 );
-$off = $plugin->enabled_map();
-dpt_test_eq( $off['onboarding'], '0', 'a module switched off stays off' );
+$GLOBALS['dpt_stub_options'] = array(
+	'dpt_settings' => array( 'modules' => array( 'onboarding' => '1' ) ),
+);
+dpt_test_eq( $plugin->enabled_map()['onboarding'], '1', 'a module switched on stays on' );
 
 // No saved option at all - a genuinely fresh install.
 $GLOBALS['dpt_stub_options'] = array();
 $fresh = $plugin->enabled_map();
-dpt_test_eq( $fresh['onboarding'], '1', 'a fresh install gets the wizard' );
-dpt_test_eq( $fresh['cookie_banner'], '0', 'a fresh install gets nothing else' );
+dpt_test_eq( $fresh['onboarding'], '0', 'a fresh install does not even enable the wizard' );
+dpt_test_eq( $fresh['cookie_banner'], '0', 'nor anything else' );
 dpt_test_eq(
-	count(
-		array_filter(
-			$fresh,
-			function ( $v ) {
-				return '1' === $v;
-			}
-		)
+	array_filter(
+		$fresh,
+		function ( $v ) {
+			return '1' === $v;
+		}
 	),
-	1,
-	'exactly one module is on for a fresh install'
+	array(),
+	'a fresh install activates no module at all'
 );
 
 /* ---- the dead method is gone ---- */

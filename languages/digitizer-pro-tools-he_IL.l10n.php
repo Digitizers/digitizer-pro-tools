@@ -608,5 +608,13 @@ return array (
     'Installed, but not activated: WordPress reports the theme as broken, and activating it would take the site down.' => 'הותקן, אך לא הופעל: וורדפרס מדווחת שהתבנית שבורה, והפעלה שלה הייתה מפילה את האתר.',
     'The theme switch did not take effect.' => 'החלפת התבנית לא נכנסה לתוקף.',
     'It was activated but switched itself off again, which usually means it needs something this site does not have yet.' => 'הוא הופעל אך כיבה את עצמו מיד, מה שבדרך כלל אומר שהוא זקוק למשהו שעדיין אין באתר.',
+    'Turn on automatic updates for these items' => 'הפעל עדכונים אוטומטיים לפריטים האלה',
+    'Remove unused default themes afterwards' => 'הסר בסוף תבניות ברירת מחדל שאינן בשימוש',
+    'The newest one is always kept, as the fallback WordPress needs if the active theme ever breaks. The active theme and any theme another theme depends on are never removed.' => 'החדשה ביותר תמיד נשמרת, כרשת הביטחון שוורדפרס צריכה אם התבנית הפעילה תישבר. התבנית הפעילה, וכל תבנית שתבנית אחרת תלויה בה, לעולם לא מוסרות.',
+    'Removing unused default themes...' => 'מסיר תבניות ברירת מחדל שאינן בשימוש...',
+    'No default themes to remove.' => 'אין תבניות ברירת מחדל להסרה.',
+    'Removed.' => 'הוסרה.',
+    'The theme could not be removed.' => 'לא ניתן היה להסיר את התבנית.',
+    'This site does not allow deleting themes from the dashboard.' => 'האתר הזה לא מאפשר מחיקת תבניות מלוח הבקרה.',
   ),
 );

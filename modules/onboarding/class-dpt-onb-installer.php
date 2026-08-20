@@ -225,12 +225,80 @@ class DPT_ONB_Installer {
 	}
 
 	/**
+	 * The list a theme or plugin belongs in for WordPress's automatic updates.
+	 *
+	 * @param array $item Manifest item.
+	 * @return string Option name.
+	 */
+	public static function auto_update_option( $item ) {
+		return ( 'theme' === $item['type'] ) ? 'auto_update_themes' : 'auto_update_plugins';
+	}
+
+	/**
+	 * What WordPress stores in that list for this item: a theme's slug, or a
+	 * plugin's dir/file.php.
+	 *
+	 * @param array $item Manifest item.
+	 * @return string '' when the item is not installed.
+	 */
+	public static function auto_update_key( $item ) {
+		if ( 'theme' === $item['type'] ) {
+			return wp_get_theme( $item['slug'] )->exists() ? $item['slug'] : '';
+		}
+		$file = DPT_ONB_State::plugin_file( $item['slug'] );
+		return ( null === $file ) ? '' : $file;
+	}
+
+	/**
+	 * The stored list with one entry added, without duplicating it.
+	 *
+	 * Pure, so the list handling is testable: the option is shared with every
+	 * other plugin on the site and with WordPress's own screens, and dropping
+	 * or duplicating someone else's entry would be invisible until an update
+	 * did or did not happen.
+	 *
+	 * @param mixed  $list Stored option value, which may be anything.
+	 * @param string $key  Entry to add.
+	 * @return array
+	 */
+	public static function merge_auto_update( $list, $key ) {
+		$list = is_array( $list ) ? array_values( array_filter( $list, 'is_string' ) ) : array();
+		if ( '' === $key || in_array( $key, $list, true ) ) {
+			return $list;
+		}
+		$list[] = $key;
+		return $list;
+	}
+
+	/**
+	 * Enrol an installed item in WordPress's automatic updates.
+	 *
+	 * Applied to items the wizard skipped as well as ones it installed: a site
+	 * set up before this existed should be brought up to date by re-running,
+	 * not left behind because everything was already in place.
+	 *
+	 * @param array $item Manifest item.
+	 * @return bool Whether the item is now enrolled.
+	 */
+	public static function enable_auto_update( $item ) {
+		$key = self::auto_update_key( $item );
+		if ( '' === $key ) {
+			return false;
+		}
+		$option = self::auto_update_option( $item );
+		$merged = self::merge_auto_update( get_option( $option, array() ), $key );
+		update_option( $option, $merged );
+		return true;
+	}
+
+	/**
 	 * Apply one item by id.
 	 *
-	 * @param string $item_id Manifest item id.
+	 * @param string $item_id     Manifest item id.
+	 * @param bool   $auto_update Enrol the item in automatic updates afterwards.
 	 * @return array id, outcome ('installed'|'activated'|'skipped'|'failed'), message.
 	 */
-	public static function apply( $item_id ) {
+	public static function apply( $item_id, $auto_update = false ) {
 		$item = DPT_ONB_Manifest::get( $item_id );
 		if ( null === $item ) {
 			return self::result( $item_id, 'failed', __( 'That item is not part of the baseline.', 'digitizer-pro-tools' ) );
@@ -240,6 +308,9 @@ class DPT_ONB_Installer {
 		$action = self::action_for( $state );
 
 		if ( 'skip' === $action ) {
+			if ( $auto_update ) {
+				self::enable_auto_update( $item );
+			}
 			// The message replaces the row's status text, so it has to be as
 			// true as the status it overwrites. An install-only item that is
 			// already present was never activated, and saying "already active"
@@ -259,6 +330,12 @@ class DPT_ONB_Installer {
 			if ( is_wp_error( $installed ) ) {
 				return self::result( $item_id, 'failed', $installed->get_error_message() );
 			}
+		}
+
+		// Enrolled before activation is attempted: an item that installs but
+		// declines to activate is still installed, and still wants updating.
+		if ( $auto_update ) {
+			self::enable_auto_update( $item );
 		}
 
 		$activated = self::activate( $item );

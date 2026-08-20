@@ -9,6 +9,7 @@ require_once __DIR__ . '/class-dpt-onb-manifest.php';
 require_once __DIR__ . '/class-dpt-onb-state.php';
 require_once __DIR__ . '/class-dpt-onb-source.php';
 require_once __DIR__ . '/class-dpt-onb-installer.php';
+require_once __DIR__ . '/class-dpt-onb-cleanup.php';
 require_once __DIR__ . '/class-dpt-onb-admin.php';
 
 class DPT_Onboarding_Module extends DPT_Module {

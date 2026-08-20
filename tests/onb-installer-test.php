@@ -236,15 +236,52 @@ dpt_test_ok( ! DPT_ONB_Installer::theme_is_usable( 'not-installed-at-all' ), 'an
 // from its own activation hook - which is what a plugin does when it finds an
 // unmet prerequisite. Reporting that as activated puts a claim on screen the
 // next run contradicts.
-$GLOBALS['dpt_stub_plugins']            = array( 'elementor-mcp/elementor-mcp.php' => array( 'Name' => 'Elementor MCP' ) );
+// Elementor, because it is one of the two items the wizard actually activates.
+$GLOBALS['dpt_stub_plugins']            = array( 'elementor/elementor.php' => array( 'Name' => 'Elementor' ) );
 $GLOBALS['dpt_stub_active_plugins']     = array();
-$GLOBALS['dpt_stub_self_deactivating']  = array( 'elementor-mcp/elementor-mcp.php' );
-$res = DPT_ONB_Installer::apply( 'elementor_mcp' );
+$GLOBALS['dpt_stub_self_deactivating']  = array( 'elementor/elementor.php' );
+$res = DPT_ONB_Installer::apply( 'elementor' );
 dpt_test_eq( $res['outcome'], 'failed', 'a plugin that switches itself off is reported as failed' );
 dpt_test_ok( false !== strpos( $res['message'], 'switched itself off' ), 'and the message says what happened' );
 
 $GLOBALS['dpt_stub_self_deactivating'] = array();
-$res = DPT_ONB_Installer::apply( 'elementor_mcp' );
+$res = DPT_ONB_Installer::apply( 'elementor' );
 dpt_test_eq( $res['outcome'], 'activated', 'and one that stays on is reported as activated' );
+
+/* ---- regression: automatic updates ---- */
+
+// The option is shared with every other plugin on the site and with core's own
+// screens, so the merge must not drop or duplicate anyone else's entry.
+dpt_test_eq( DPT_ONB_Installer::merge_auto_update( array( 'other/other.php' ), 'elementor/elementor.php' ), array( 'other/other.php', 'elementor/elementor.php' ), 'an entry is appended, leaving the rest alone' );
+dpt_test_eq( DPT_ONB_Installer::merge_auto_update( array( 'elementor/elementor.php' ), 'elementor/elementor.php' ), array( 'elementor/elementor.php' ), 'an entry already there is not duplicated' );
+dpt_test_eq( DPT_ONB_Installer::merge_auto_update( array(), 'elementor/elementor.php' ), array( 'elementor/elementor.php' ), 'an empty list works' );
+dpt_test_eq( DPT_ONB_Installer::merge_auto_update( 'not-an-array', 'elementor/elementor.php' ), array( 'elementor/elementor.php' ), 'a corrupt option is replaced rather than trusted' );
+dpt_test_eq( DPT_ONB_Installer::merge_auto_update( array( 'a/a.php', 5, null ), 'b/b.php' ), array( 'a/a.php', 'b/b.php' ), 'non-string members are dropped' );
+dpt_test_eq( DPT_ONB_Installer::merge_auto_update( array( 'a/a.php' ), '' ), array( 'a/a.php' ), 'an item that is not installed adds nothing' );
+
+dpt_test_eq( DPT_ONB_Installer::auto_update_option( DPT_ONB_Manifest::get( 'elementor' ) ), 'auto_update_plugins', 'plugins go in the plugin list' );
+dpt_test_eq( DPT_ONB_Installer::auto_update_option( DPT_ONB_Manifest::get( 'hello_digitizer' ) ), 'auto_update_themes', 'themes go in the theme list' );
+
+// WordPress stores a plugin by its file and a theme by its slug.
+$GLOBALS['dpt_stub_plugins'] = array( 'seo-by-rank-math/rank-math.php' => array( 'Name' => 'Rank Math' ) );
+dpt_test_eq( DPT_ONB_Installer::auto_update_key( DPT_ONB_Manifest::get( 'rank_math' ) ), 'seo-by-rank-math/rank-math.php', 'a plugin is keyed by its file' );
+$GLOBALS['dpt_stub_themes'] = array( 'hello-digitizer' );
+dpt_test_eq( DPT_ONB_Installer::auto_update_key( DPT_ONB_Manifest::get( 'hello_digitizer' ) ), 'hello-digitizer', 'a theme is keyed by its slug' );
+$GLOBALS['dpt_stub_themes'] = array();
+dpt_test_eq( DPT_ONB_Installer::auto_update_key( DPT_ONB_Manifest::get( 'hello_digitizer' ) ), '', 'an uninstalled item has no key' );
+
+// Enrolment reaches items the wizard skipped, so re-running brings a site set
+// up before this existed up to date instead of leaving it behind.
+$GLOBALS['dpt_stub_options']        = array();
+$GLOBALS['dpt_stub_plugins']        = array( 'wordfence/wordfence.php' => array( 'Name' => 'Wordfence' ) );
+$GLOBALS['dpt_stub_active_plugins'] = array();
+$res = DPT_ONB_Installer::apply( 'wordfence', true );
+dpt_test_eq( $res['outcome'], 'skipped', 'an install-only item already present is skipped' );
+dpt_test_eq( get_option( 'auto_update_plugins' ), array( 'wordfence/wordfence.php' ), 'and is still enrolled in automatic updates' );
+
+// Without the flag nothing is touched.
+$GLOBALS['dpt_stub_options'] = array();
+DPT_ONB_Installer::apply( 'wordfence' );
+dpt_test_eq( get_option( 'auto_update_plugins', array() ), array(), 'the option is left alone when the box is unticked' );
 
 exit( dpt_test_summary() > 0 ? 1 : 0 );

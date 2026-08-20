@@ -124,6 +124,7 @@ function activate_plugin( $file ) {
 
 $GLOBALS['dpt_stub_theme_authors'] = array();
 $GLOBALS['dpt_stub_broken_themes'] = array();
+$GLOBALS['dpt_stub_theme_parents'] = array();
 
 class DPT_Stub_Theme {
 	private $exists;
@@ -138,6 +139,11 @@ class DPT_Stub_Theme {
 			? new WP_Error( 'theme_no_index', 'Template is missing.' )
 			: false;
 	}
+	public function get_template() {
+		return isset( $GLOBALS['dpt_stub_theme_parents'][ $this->slug ] )
+			? $GLOBALS['dpt_stub_theme_parents'][ $this->slug ]
+			: $this->slug;
+	}
 	public function get( $header ) {
 		if ( 'Author' !== $header ) { return ''; }
 		return isset( $GLOBALS['dpt_stub_theme_authors'][ $this->slug ] )
@@ -147,6 +153,19 @@ class DPT_Stub_Theme {
 }
 function wp_get_theme( $slug = '' ) {
 	return new DPT_Stub_Theme( in_array( $slug, $GLOBALS['dpt_stub_themes'], true ), $slug );
+}
+function wp_get_themes() {
+	$out = array();
+	foreach ( $GLOBALS['dpt_stub_themes'] as $slug ) {
+		$out[ $slug ] = new DPT_Stub_Theme( true, $slug );
+	}
+	return $out;
+}
+$GLOBALS['dpt_stub_deleted_themes'] = array();
+function delete_theme( $slug ) {
+	$GLOBALS['dpt_stub_deleted_themes'][] = $slug;
+	$GLOBALS['dpt_stub_themes'] = array_values( array_diff( $GLOBALS['dpt_stub_themes'], array( $slug ) ) );
+	return true;
 }
 
 /**
