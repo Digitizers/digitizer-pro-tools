@@ -616,5 +616,6 @@ return array (
     'Removed.' => 'הוסרה.',
     'The theme could not be removed.' => 'לא ניתן היה להסיר את התבנית.',
     'This site does not allow deleting themes from the dashboard.' => 'האתר הזה לא מאפשר מחיקת תבניות מלוח הבקרה.',
+    'Themes are shared across a multisite network, so they are not removed from here.' => 'תבניות משותפות לכל אתרי הרשת, ולכן הן לא מוסרות מכאן.',
   ),
 );

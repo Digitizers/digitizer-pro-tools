@@ -115,6 +115,8 @@ function is_plugin_active( $file ) { return in_array( $file, $GLOBALS['dpt_stub_
 function get_stylesheet() { return $GLOBALS['dpt_stub_stylesheet']; }
 $GLOBALS['dpt_stub_denied_caps'] = array();
 function current_user_can( $cap ) { return ! in_array( $cap, $GLOBALS['dpt_stub_denied_caps'], true ); }
+$GLOBALS['dpt_stub_multisite'] = false;
+function is_multisite() { return (bool) $GLOBALS['dpt_stub_multisite']; }
 function switch_theme( $slug ) { $GLOBALS['dpt_stub_stylesheet'] = $slug; }
 $GLOBALS['dpt_stub_self_deactivating'] = array();
 function activate_plugin( $file ) {

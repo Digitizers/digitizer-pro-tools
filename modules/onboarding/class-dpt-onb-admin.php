@@ -177,15 +177,24 @@ class DPT_ONB_Admin {
 			</table>
 
 			<p class="dpt-onb-options">
+				<?php
+				// Each box is offered only to someone who could carry it out.
+				// A ticked box that the request would refuse is a promise the
+				// screen cannot keep.
+				if ( DPT_ONB_Installer::may_auto_update() ) :
+					?>
 				<label>
 					<input type="checkbox" id="dpt-onb-auto-update" checked />
 					<?php esc_html_e( 'Turn on automatic updates for these items', 'digitizer-pro-tools' ); ?>
 				</label>
+				<?php endif; ?>
+				<?php if ( ! is_multisite() && current_user_can( 'delete_themes' ) ) : ?>
 				<label>
 					<input type="checkbox" id="dpt-onb-cleanup" checked />
 					<?php esc_html_e( 'Remove unused default themes afterwards', 'digitizer-pro-tools' ); ?>
 					<span class="description"><?php esc_html_e( 'The newest one is always kept, as the fallback WordPress needs if the active theme ever breaks. The active theme and any theme another theme depends on are never removed.', 'digitizer-pro-tools' ); ?></span>
 				</label>
+				<?php endif; ?>
 			</p>
 
 			<p class="dpt-actions">

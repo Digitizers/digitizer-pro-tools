@@ -1844,3 +1844,6 @@ msgstr ""
 
 msgid "This site does not allow deleting themes from the dashboard."
 msgstr ""
+
+msgid "Themes are shared across a multisite network, so they are not removed from here."
+msgstr ""

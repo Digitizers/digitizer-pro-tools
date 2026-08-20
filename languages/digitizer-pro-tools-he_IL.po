@@ -1844,3 +1844,6 @@ msgstr "לא ניתן היה להסיר את התבנית."
 
 msgid "This site does not allow deleting themes from the dashboard."
 msgstr "האתר הזה לא מאפשר מחיקת תבניות מלוח הבקרה."
+
+msgid "Themes are shared across a multisite network, so they are not removed from here."
+msgstr "תבניות משותפות לכל אתרי הרשת, ולכן הן לא מוסרות מכאן."

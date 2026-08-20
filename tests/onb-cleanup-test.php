@@ -214,4 +214,16 @@ dpt_test_eq( $results[0]['outcome'], 'failed', 'deletion is refused without the 
 dpt_test_eq( $GLOBALS['dpt_stub_deleted_themes'], array(), 'and nothing was deleted' );
 $GLOBALS['dpt_stub_denied_caps'] = array();
 
+// A network shares one directory of themes, so what looks unused from this
+// blog can be another blog's active theme. Cleanup declines rather than
+// deleting on a partial view.
+$GLOBALS['dpt_stub_multisite']      = true;
+$GLOBALS['dpt_stub_themes']         = array( 'twentytwentythree', 'twentytwentyfour', 'hello-digitizer' );
+$GLOBALS['dpt_stub_stylesheet']     = 'hello-digitizer';
+$GLOBALS['dpt_stub_deleted_themes'] = array();
+$results = DPT_ONB_Cleanup::run();
+dpt_test_eq( $results[0]['outcome'], 'skipped', 'cleanup declines on multisite' );
+dpt_test_eq( $GLOBALS['dpt_stub_deleted_themes'], array(), 'and deletes nothing there' );
+$GLOBALS['dpt_stub_multisite'] = false;
+
 exit( dpt_test_summary() > 0 ? 1 : 0 );

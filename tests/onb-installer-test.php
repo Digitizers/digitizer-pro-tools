@@ -284,4 +284,27 @@ $GLOBALS['dpt_stub_options'] = array();
 DPT_ONB_Installer::apply( 'wordfence' );
 dpt_test_eq( get_option( 'auto_update_plugins', array() ), array(), 'the option is left alone when the box is unticked' );
 
+// Changing the auto-update lists is its own permission. An item that is
+// already installed needs no capability to be reported on, so without this an
+// administrator who may not update code could still enrol it.
+$GLOBALS['dpt_stub_options']     = array();
+$GLOBALS['dpt_stub_denied_caps'] = array( 'update_plugins' );
+$res = DPT_ONB_Installer::apply( 'wordfence', true );
+dpt_test_eq( $res['outcome'], 'skipped', 'the item is still reported on without the update capability' );
+dpt_test_eq( get_option( 'auto_update_plugins', array() ), array(), 'but it is not enrolled' );
+dpt_test_ok( ! DPT_ONB_Installer::may_auto_update(), 'and the screen is told not to offer the box' );
+$GLOBALS['dpt_stub_denied_caps'] = array();
+
+// On multisite the lists are network-wide: one blog's administrator must not
+// decide what updates itself on every other blog.
+$GLOBALS['dpt_stub_multisite']   = true;
+$GLOBALS['dpt_stub_denied_caps'] = array( 'manage_network_options' );
+$GLOBALS['dpt_stub_options']     = array();
+DPT_ONB_Installer::apply( 'wordfence', true );
+dpt_test_eq( get_option( 'auto_update_plugins', array() ), array(), 'a site administrator cannot enrol network-wide' );
+$GLOBALS['dpt_stub_denied_caps'] = array();
+DPT_ONB_Installer::apply( 'wordfence', true );
+dpt_test_eq( get_option( 'auto_update_plugins' ), array( 'wordfence/wordfence.php' ), 'while a network administrator can' );
+$GLOBALS['dpt_stub_multisite'] = false;
+
 exit( dpt_test_summary() > 0 ? 1 : 0 );

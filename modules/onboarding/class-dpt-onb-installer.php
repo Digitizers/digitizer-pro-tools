@@ -271,6 +271,33 @@ class DPT_ONB_Installer {
 	}
 
 	/**
+	 * Whether this user may change WordPress's automatic-update lists.
+	 *
+	 * Separate from the capability the item's own action needs. An item that
+	 * is already installed needs no capability at all to be reported on, so
+	 * without this an administrator who is not allowed to update code could
+	 * still enrol it in unattended updates.
+	 *
+	 * On multisite the lists are network-wide: core reads them with
+	 * get_site_option(), and one blog's administrator writing them would
+	 * decide what updates itself on every other blog. So that case asks for
+	 * network authority rather than the blog's own.
+	 *
+	 * @param array|null $item Manifest item, or null for the general question.
+	 * @return bool
+	 */
+	public static function may_auto_update( $item = null ) {
+		$is_theme = is_array( $item ) && isset( $item['type'] ) && 'theme' === $item['type'];
+		if ( ! current_user_can( $is_theme ? 'update_themes' : 'update_plugins' ) ) {
+			return false;
+		}
+		if ( is_multisite() && ! current_user_can( 'manage_network_options' ) ) {
+			return false;
+		}
+		return true;
+	}
+
+	/**
 	 * Enrol an installed item in WordPress's automatic updates.
 	 *
 	 * Applied to items the wizard skipped as well as ones it installed: a site
@@ -282,7 +309,7 @@ class DPT_ONB_Installer {
 	 */
 	public static function enable_auto_update( $item ) {
 		$key = self::auto_update_key( $item );
-		if ( '' === $key ) {
+		if ( '' === $key || ! self::may_auto_update( $item ) ) {
 			return false;
 		}
 		// Core keeps both lists as network-wide site options and reads them

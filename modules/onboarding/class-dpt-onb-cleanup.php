@@ -98,6 +98,21 @@ class DPT_ONB_Cleanup {
 	 * @return array List of array( slug, outcome, message ).
 	 */
 	public static function run() {
+		if ( is_multisite() ) {
+			// One directory of themes is shared by every site on a network, so
+			// what is unused here can be the active theme, or the parent of the
+			// active theme, somewhere else. Answering that means walking every
+			// blog, and this module exists for single client sites - so it
+			// declines rather than deleting on a partial view.
+			return array(
+				array(
+					'slug'    => '',
+					'outcome' => 'skipped',
+					'message' => __( 'Themes are shared across a multisite network, so they are not removed from here.', 'digitizer-pro-tools' ),
+				),
+			);
+		}
+
 		if ( ! current_user_can( 'delete_themes' ) ) {
 			return array(
 				array(

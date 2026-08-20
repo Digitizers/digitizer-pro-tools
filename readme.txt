@@ -25,7 +25,7 @@ Brings a new site up to the Digitizer baseline in one pass:
 * **Only the child theme and Elementor are switched on.** Everything else is installed and left inactive, so you decide per client what actually runs
 * Installs from WordPress.org, and from the public GitHub repositories for Hello Digitizer, Elementor MCP and MCP Adapter
 * Optionally turns on WordPress's automatic updates for the items it installed - and only for those
-* Optionally removes the unused default themes, always keeping the newest one and the theme this WordPress is configured to fall back to if the active theme ever breaks. The active theme, any theme another theme depends on, and anything that is not actually one of WordPress's own themes are never removed
+* Optionally removes the unused default themes, always keeping the newest one and the theme this WordPress is configured to fall back to if the active theme ever breaks. The active theme, any theme another theme depends on, and anything that is not actually one of WordPress's own themes are never removed. Not offered on a multisite network, where one directory of themes is shared by every site
 * Nothing already installed is updated, downgraded or reconfigured
 * Safe to run again: the second pass finds everything in place and does nothing
 * One request per item, so a slow download cannot time out the whole run, and each row reports what happened
@@ -298,7 +298,7 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 
 = 1.21.0 =
 * Onboarding now installs the baseline without switching it on. Only the Hello Digitizer child theme and Elementor are activated; the other eleven plugins are installed and left inactive, so each client site runs what you choose for it
-* Onboarding can turn on WordPress's automatic updates for the items it installed - a checkbox on its screen, on by default, and it never touches a plugin that is not on the list. Re-running applies it to items that were already in place, so an older site catches up
+* Onboarding can turn on WordPress's automatic updates for the items it installed - a checkbox on its screen, on by default, and it never touches a plugin that is not on the list. Re-running applies it to items that were already in place, so an older site catches up. Offered only to a user who may update code - and on a multisite network, only to a network administrator, since the lists are network-wide
 * Onboarding can remove the default themes a finished site no longer needs. It keeps the newest one and the theme WordPress is configured to fall back to if the active theme ever breaks, and it never removes the active theme, a theme another theme depends on, or a theme that only carries a core directory name without being one of WordPress's own
 * Every module now ships disabled, Onboarding included. Activating the plugin changes nothing at all until you switch something on from the Modules screen
 
