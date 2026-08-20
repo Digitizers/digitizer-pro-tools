@@ -396,9 +396,11 @@ class DPT_ONB_Installer {
 	 * core reads, so core's unattended updater installs them exactly as it
 	 * would a WordPress.org plugin. The list entry is therefore acted on.
 	 *
-	 * Called once per applied item rather than from a moment of its own: the
-	 * merge is idempotent and update_option() does not write when the value
-	 * is unchanged, so the repetition costs a comparison.
+	 * Deliberately not called from apply(). Enrolling the plugin has nothing
+	 * to do with any particular item succeeding, and hanging it off one meant
+	 * the checkbox promised something that never happened when every row was
+	 * unticked, or when every selected install failed. The wizard calls it
+	 * once, on its own, before the items.
 	 *
 	 * @return bool Whether the plugin is now enrolled.
 	 */
@@ -430,7 +432,6 @@ class DPT_ONB_Installer {
 		if ( 'skip' === $action ) {
 			if ( $auto_update ) {
 				self::enable_auto_update( $item );
-				self::enable_self_auto_update();
 			}
 			// The message replaces the row's status text, so it has to be as
 			// true as the status it overwrites. An install-only item that is
@@ -457,7 +458,6 @@ class DPT_ONB_Installer {
 		// declines to activate is still installed, and still wants updating.
 		if ( $auto_update ) {
 			self::enable_auto_update( $item );
-			self::enable_self_auto_update();
 		}
 
 		$activated = self::activate( $item );

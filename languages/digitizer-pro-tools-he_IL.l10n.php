@@ -613,5 +613,6 @@ return array (
     'This site does not allow deleting themes from the dashboard.' => 'האתר הזה לא מאפשר מחיקת תבניות מלוח הבקרה.',
     'Themes are shared across a multisite network, so they are not removed from here.' => 'תבניות משותפות לכל אתרי הרשת, ולכן הן לא מוסרות מכאן.',
     'Digitizer Pro Tools brings its own update check, so it is included here. The baseline items installed from GitHub are not: WordPress has no way to check them for updates.' => 'ל-Digitizer Pro Tools יש בדיקת עדכונים משלו, ולכן הוא נכלל כאן. פריטי הבייסליין שהותקנו מ-GitHub לא נכללים: לוורדפרס אין דרך לבדוק עבורם עדכונים.',
+    'Automatic updates could not be turned on for Digitizer Pro Tools.' => 'לא ניתן היה להפעיל עדכונים אוטומטיים ל-Digitizer Pro Tools.',
   ),
 );

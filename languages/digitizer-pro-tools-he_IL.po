@@ -1835,3 +1835,6 @@ msgstr "תבניות משותפות לכל אתרי הרשת, ולכן הן לא
 
 msgid "Digitizer Pro Tools brings its own update check, so it is included here. The baseline items installed from GitHub are not: WordPress has no way to check them for updates."
 msgstr "ל-Digitizer Pro Tools יש בדיקת עדכונים משלו, ולכן הוא נכלל כאן. פריטי הבייסליין שהותקנו מ-GitHub לא נכללים: לוורדפרס אין דרך לבדוק עבורם עדכונים."
+
+msgid "Automatic updates could not be turned on for Digitizer Pro Tools."
+msgstr "לא ניתן היה להפעיל עדכונים אוטומטיים ל-Digitizer Pro Tools."

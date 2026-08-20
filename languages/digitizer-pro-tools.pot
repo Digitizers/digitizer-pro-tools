@@ -1835,3 +1835,6 @@ msgstr ""
 
 msgid "Digitizer Pro Tools brings its own update check, so it is included here. The baseline items installed from GitHub are not: WordPress has no way to check them for updates."
 msgstr ""
+
+msgid "Automatic updates could not be turned on for Digitizer Pro Tools."
+msgstr ""
