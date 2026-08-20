@@ -198,14 +198,22 @@ class DPT_ONB_Source {
 	 * WordPress's own update check, where three repositories are asked in
 	 * sequence and the whole check is something the operator is waiting on.
 	 *
+	 * $force is what makes RELEASE_TTL a safety margin rather than the
+	 * freshness interval: the update check asks again even when an answer is
+	 * cached, so a release published an hour after the last check is offered
+	 * at the next one rather than whenever the cache happened to expire.
+	 *
 	 * @param string $repo    Owner/name pair.
 	 * @param int    $timeout Seconds to wait.
+	 * @param bool   $force   Ask GitHub even when an answer is cached.
 	 * @return array|WP_Error array( version, package ), version without the tag's leading v.
 	 */
-	public static function github_release( $repo, $timeout = 8 ) {
+	public static function github_release( $repo, $timeout = 8, $force = false ) {
 		$key    = self::RELEASE_PREFIX . md5( (string) $repo );
 		$cached = get_transient( $key );
-		if ( is_array( $cached ) ) {
+		$good   = ( is_array( $cached ) && ! isset( $cached['error'] ) ) ? $cached : null;
+
+		if ( is_array( $cached ) && ! $force ) {
 			return isset( $cached['error'] )
 				? new WP_Error( 'dpt_onb_github_cached_error', (string) $cached['error'] )
 				: $cached;
@@ -222,7 +230,14 @@ class DPT_ONB_Source {
 			)
 		);
 
-		$fail = function ( $message ) use ( $key ) {
+		// A refresh that fails keeps the answer it was refreshing. Replacing a
+		// known release with an error would turn one unreachable moment into
+		// an item reported as up to date, which is how an enrolled item stops
+		// being updated without anything saying so.
+		$fail = function ( $message ) use ( $key, $good ) {
+			if ( null !== $good ) {
+				return $good;
+			}
 			set_transient( $key, array( 'error' => $message ), self::FAILURE_TTL );
 			return new WP_Error( 'dpt_onb_github_release', $message );
 		};

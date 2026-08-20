@@ -298,7 +298,9 @@ class DPT_ONB_Updates {
 			}
 			return new WP_Error( 'dpt_onb_no_fetch', 'Not fetching outside the admin.' );
 		}
-		return DPT_ONB_Source::github_release( $item['repo'] );
+		// Forced: this is the update check, and the point of it is to find out
+		// what is published now, not to confirm what was published last time.
+		return DPT_ONB_Source::github_release( $item['repo'], 8, true );
 	}
 
 	/**

@@ -216,6 +216,52 @@ dpt_test_ok(
 	'a failed lookup caches the failure'
 );
 
+// A check asks again even when an answer is cached: the point of a check is
+// what is published now, not what was published last time. Without this the
+// cache lifetime would be the freshness interval, and a release published just
+// after a check would wait days rather than hours.
+$GLOBALS['dpt_stub_transients'] = array(
+	DPT_ONB_Source::RELEASE_PREFIX . md5( 'WordPress/mcp-adapter' ) => array(
+		'version' => '0.6.1',
+		'package' => 'https://example.org/old.zip',
+	),
+);
+$GLOBALS['dpt_stub_http'] = array(
+	'https://api.github.com/repos/WordPress/mcp-adapter/releases/latest' => array(
+		'code' => 200,
+		'body' => wp_json_encode(
+			array(
+				'tag_name' => 'v0.7.0',
+				'assets'   => array( array( 'browser_download_url' => 'https://example.org/new.zip' ) ),
+			)
+		),
+	),
+);
+dpt_test_eq(
+	DPT_ONB_Source::github_release( 'WordPress/mcp-adapter', 8, true ),
+	array( 'version' => '0.7.0', 'package' => 'https://example.org/new.zip' ),
+	'a forced lookup goes past a cached answer'
+);
+dpt_test_eq(
+	DPT_ONB_Source::github_release( 'WordPress/mcp-adapter' ),
+	array( 'version' => '0.7.0', 'package' => 'https://example.org/new.zip' ),
+	'and the reads that follow get the newer one'
+);
+
+// A refresh that fails keeps what it was refreshing. Replacing a known release
+// with an error would report the item as up to date, which is how an enrolled
+// item quietly stops being updated.
+$GLOBALS['dpt_stub_http'] = array();
+dpt_test_eq(
+	DPT_ONB_Source::github_release( 'WordPress/mcp-adapter', 8, true ),
+	array( 'version' => '0.7.0', 'package' => 'https://example.org/new.zip' ),
+	'a failed refresh keeps the answer it was refreshing'
+);
+dpt_test_ok(
+	! isset( $GLOBALS['dpt_stub_transients'][ DPT_ONB_Source::RELEASE_PREFIX . md5( 'WordPress/mcp-adapter' ) ]['error'] ),
+	'and does not write a failure over it'
+);
+
 // The cache has to outlive the gap between two of WordPress's update checks.
 // Core's plugin and theme checks are twice daily; a cache shorter than that
 // leaves a window where a read finds nothing, reports "up to date", and an
