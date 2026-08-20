@@ -212,7 +212,7 @@ class DPT_ONB_Admin {
 				<label>
 					<input type="checkbox" id="dpt-onb-auto-update" checked />
 					<?php esc_html_e( 'Turn on automatic updates for these items and for Digitizer Pro Tools itself', 'digitizer-pro-tools' ); ?>
-					<span class="description"><?php esc_html_e( 'Digitizer Pro Tools brings its own update check, so it is included here. The baseline items installed from GitHub are not: WordPress has no way to check them for updates.', 'digitizer-pro-tools' ); ?></span>
+					<span class="description"><?php esc_html_e( 'Covers Digitizer Pro Tools too, and the items installed from GitHub - while this module is on, it reports their releases to WordPress for them.', 'digitizer-pro-tools' ); ?></span>
 				</label>
 				<?php endif; ?>
 				<?php if ( ! is_multisite() && current_user_can( 'delete_themes' ) ) : ?>

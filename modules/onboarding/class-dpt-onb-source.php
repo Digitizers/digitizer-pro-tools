@@ -8,7 +8,22 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 class DPT_ONB_Source {
 
 	const TRANSIENT_PREFIX = 'dpt_onb_gh_';
+	const RELEASE_PREFIX   = 'dpt_onb_rel_';
 	const CACHE_TTL        = 6 * HOUR_IN_SECONDS;
+
+	/**
+	 * How long a release lookup is kept.
+	 *
+	 * Deliberately far longer than the install path's six hours, and longer
+	 * than any interval WordPress checks for updates on. The cache is rewritten
+	 * at every one of those checks, so its age is a check cycle in practice;
+	 * the length is there so the gap between two checks can never leave the
+	 * cache empty. It did at six hours against a twice-daily schedule, and an
+	 * empty cache reports "up to date" - which would silently skip an enrolled
+	 * item on every automatic-update run that landed in the gap.
+	 */
+	const RELEASE_TTL      = 3 * DAY_IN_SECONDS;
+	const FAILURE_TTL      = 15 * MINUTE_IN_SECONDS;
 
 	/**
 	 * Hosts a GitHub download can legitimately touch, including the redirect
@@ -161,6 +176,131 @@ class DPT_ONB_Source {
 
 		set_transient( $key, $url, self::CACHE_TTL );
 		return $url;
+	}
+
+	/**
+	 * The latest published release of a GitHub repository: its version and the
+	 * archive to install.
+	 *
+	 * Separate from github_zip_url(), which answers the install path and can
+	 * fall back to a branch zipball. A zipball has no version, and offering an
+	 * update needs one, so a repository without releases simply has no update
+	 * information here.
+	 *
+	 * Failures are cached, unlike the install path's. This runs behind
+	 * WordPress's update transient rather than behind a button, so an
+	 * unreachable GitHub or a spent rate limit would otherwise mean a request
+	 * on every admin page load. Fifteen minutes is short enough that a rate
+	 * limit clearing is noticed within the hour, and short against RELEASE_TTL
+	 * so a failure never displaces a good answer for long.
+	 *
+	 * The timeout is shorter than the install path's. This runs inside
+	 * WordPress's own update check, where three repositories are asked in
+	 * sequence and the whole check is something the operator is waiting on.
+	 *
+	 * $force is what makes RELEASE_TTL a safety margin rather than the
+	 * freshness interval: the update check asks again even when an answer is
+	 * cached, so a release published an hour after the last check is offered
+	 * at the next one rather than whenever the cache happened to expire.
+	 *
+	 * @param string $repo    Owner/name pair.
+	 * @param int    $timeout Seconds to wait.
+	 * @param bool   $force   Ask GitHub even when an answer is cached.
+	 * @return array|WP_Error array( version, package ), version without the tag's leading v.
+	 */
+	public static function github_release( $repo, $timeout = 8, $force = false ) {
+		$key    = self::RELEASE_PREFIX . md5( (string) $repo );
+		$cached = get_transient( $key );
+		$good   = ( is_array( $cached ) && ! isset( $cached['error'] ) ) ? $cached : null;
+
+		if ( is_array( $cached ) && ! $force ) {
+			return isset( $cached['error'] )
+				? new WP_Error( 'dpt_onb_github_cached_error', (string) $cached['error'] )
+				: $cached;
+		}
+
+		$res = wp_remote_get(
+			'https://api.github.com/repos/' . $repo . '/releases/latest',
+			array(
+				'timeout' => (int) $timeout,
+				'headers' => array(
+					'Accept'     => 'application/vnd.github+json',
+					'User-Agent' => self::user_agent(),
+				),
+			)
+		);
+
+		// A refresh that fails keeps the answer it was refreshing. Replacing a
+		// known release with an error would turn one unreachable moment into
+		// an item reported as up to date, which is how an enrolled item stops
+		// being updated without anything saying so.
+		$fail = function ( $message ) use ( $key, $good ) {
+			if ( null !== $good ) {
+				return $good;
+			}
+			set_transient( $key, array( 'error' => $message ), self::FAILURE_TTL );
+			return new WP_Error( 'dpt_onb_github_release', $message );
+		};
+
+		if ( is_wp_error( $res ) ) {
+			return $fail( $res->get_error_message() );
+		}
+		if ( 200 !== wp_remote_retrieve_response_code( $res ) ) {
+			return $fail(
+				sprintf(
+					/* translators: 1: repository, 2: HTTP status code */
+					__( 'GitHub answered %2$d for %1$s.', 'digitizer-pro-tools' ),
+					$repo,
+					wp_remote_retrieve_response_code( $res )
+				)
+			);
+		}
+
+		$body = json_decode( wp_remote_retrieve_body( $res ), true );
+		if ( ! is_array( $body ) ) {
+			return $fail( __( 'GitHub returned a response that could not be read.', 'digitizer-pro-tools' ) );
+		}
+
+		$release = self::release_from( $body );
+		if ( null === $release ) {
+			return $fail( __( 'That release has no downloadable archive.', 'digitizer-pro-tools' ) );
+		}
+
+		set_transient( $key, $release, self::RELEASE_TTL );
+		return $release;
+	}
+
+	/**
+	 * Version and package from a decoded release payload.
+	 *
+	 * Pure, so the shapes GitHub answers with are testable. A release with no
+	 * usable archive, or none this can name a version for, is not an update.
+	 * The zipball is deliberately not used as a fallback here: it exists at
+	 * every commit, and installing one over a tagged release would replace a
+	 * known version with an unknown one.
+	 *
+	 * @param array $release Decoded release payload.
+	 * @return array|null
+	 */
+	public static function release_from( $release ) {
+		if ( ! is_array( $release ) || empty( $release['tag_name'] ) ) {
+			return null;
+		}
+		if ( ! empty( $release['draft'] ) || ! empty( $release['prerelease'] ) ) {
+			return null;
+		}
+		$version = ltrim( (string) $release['tag_name'], 'vV' );
+		if ( '' === $version ) {
+			return null;
+		}
+		$package = self::pick_asset( array( 'assets' => isset( $release['assets'] ) ? $release['assets'] : array() ) );
+		if ( null === $package ) {
+			return null;
+		}
+		return array(
+			'version' => $version,
+			'package' => $package,
+		);
 	}
 
 	/**

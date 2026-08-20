@@ -327,8 +327,12 @@ $GLOBALS['dpt_stub_multisite'] = false;
 // Nothing would ever look at the entry, so writing it is a claim no code acts
 // on rather than an update that fails.
 dpt_test_ok( DPT_ONB_Installer::auto_updatable( DPT_ONB_Manifest::get( 'wordfence' ) ), 'a WordPress.org plugin is updatable by core' );
-dpt_test_ok( ! DPT_ONB_Installer::auto_updatable( DPT_ONB_Manifest::get( 'elementor_mcp' ) ), 'a GitHub plugin is not' );
-dpt_test_ok( ! DPT_ONB_Installer::auto_updatable( DPT_ONB_Manifest::get( 'hello_digitizer' ) ), 'nor is the GitHub child theme' );
+
+// GitHub items are enrollable now that DPT_ONB_Updates reports their releases
+// into the transient core reads. Before that they were refused, because an
+// entry on the list was a claim nothing would ever act on.
+dpt_test_ok( DPT_ONB_Installer::auto_updatable( DPT_ONB_Manifest::get( 'elementor_mcp' ) ), 'and so is a GitHub plugin the module reports on' );
+dpt_test_ok( DPT_ONB_Installer::auto_updatable( DPT_ONB_Manifest::get( 'hello_digitizer' ) ), 'including the GitHub child theme' );
 
 $GLOBALS['dpt_stub_options']        = array();
 $GLOBALS['dpt_stub_plugins']        = array(
@@ -337,9 +341,13 @@ $GLOBALS['dpt_stub_plugins']        = array(
 );
 $GLOBALS['dpt_stub_active_plugins'] = array();
 DPT_ONB_Installer::apply( 'elementor_mcp', true );
-dpt_test_eq( get_option( 'auto_update_plugins', array() ), array(), 'so it is left out of the list entirely' );
+dpt_test_eq( get_option( 'auto_update_plugins' ), array( 'elementor-mcp/plugin.php' ), 'so it goes onto the list' );
 DPT_ONB_Installer::apply( 'wordfence', true );
-dpt_test_eq( get_option( 'auto_update_plugins' ), array( 'wordfence/wordfence.php' ), 'while its WordPress.org neighbour goes in' );
+dpt_test_eq(
+	get_option( 'auto_update_plugins' ),
+	array( 'elementor-mcp/plugin.php', 'wordfence/wordfence.php' ),
+	'alongside its WordPress.org neighbour'
+);
 
 // A site that has turned background updates off keeps the capability but never
 // processes the list, so the box is not offered and nothing is written.

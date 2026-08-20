@@ -17,6 +17,7 @@ define( 'DPT_PATH', dirname( __DIR__ ) . '/' );
 define( 'DPT_URL', 'https://example.test/wp-content/plugins/digitizer-pro-tools/' );
 define( 'DPT_BASENAME', 'digitizer-pro-tools/digitizer-pro-tools.php' );
 define( 'DPT_OPTION', 'dpt_settings' );
+define( 'MINUTE_IN_SECONDS', 60 );
 define( 'HOUR_IN_SECONDS', 3600 );
 define( 'DAY_IN_SECONDS', 86400 );
 
@@ -83,8 +84,18 @@ function trailingslashit( $s ) { return rtrim( (string) $s, '/\\' ) . '/'; }
 function untrailingslashit( $s ) { return rtrim( (string) $s, '/\\' ); }
 function apply_filters( $tag, $value ) { return $value; }
 function add_action() {}
-function add_filter() {}
-function remove_filter() {}
+// Filters are recorded, not run: a test can ask whether something was hooked
+// without the harness pretending to be WordPress's hook system.
+$GLOBALS['dpt_stub_filters'] = array();
+function add_filter( $tag = '', $callback = null ) {
+	$GLOBALS['dpt_stub_filters'][ $tag ] = true;
+}
+function remove_filter( $tag = '', $callback = null ) {
+	unset( $GLOBALS['dpt_stub_filters'][ $tag ] );
+}
+function dpt_stub_has_filter( $tag ) {
+	return isset( $GLOBALS['dpt_stub_filters'][ $tag ] );
+}
 function did_action() { return 0; }
 function wp_json_encode( $d ) { return json_encode( $d, JSON_UNESCAPED_UNICODE ); }
 function wp_parse_url( $url, $component = -1 ) { return parse_url( $url, $component ); }
@@ -122,6 +133,9 @@ $GLOBALS['dpt_stub_denied_caps'] = array();
 function current_user_can( $cap ) { return ! in_array( $cap, $GLOBALS['dpt_stub_denied_caps'], true ); }
 $GLOBALS['dpt_stub_multisite'] = false;
 function is_multisite() { return (bool) $GLOBALS['dpt_stub_multisite']; }
+$GLOBALS['dpt_stub_is_admin'] = true;
+function is_admin() { return (bool) $GLOBALS['dpt_stub_is_admin']; }
+function wp_doing_cron() { return false; }
 // Core's answer to "does this site run background updates for this kind of
 // thing at all", which AUTOMATIC_UPDATER_DISABLED and several filters turn off
 // without touching anybody's capabilities.
@@ -141,7 +155,8 @@ function activate_plugin( $file ) {
 	return null;
 }
 
-$GLOBALS['dpt_stub_theme_authors'] = array();
+$GLOBALS['dpt_stub_theme_authors']  = array();
+$GLOBALS['dpt_stub_theme_versions'] = array();
 $GLOBALS['dpt_stub_broken_themes'] = array();
 $GLOBALS['dpt_stub_theme_parents'] = array();
 
@@ -164,6 +179,11 @@ class DPT_Stub_Theme {
 			: $this->slug;
 	}
 	public function get( $header ) {
+		if ( 'Version' === $header ) {
+			return isset( $GLOBALS['dpt_stub_theme_versions'][ $this->slug ] )
+				? $GLOBALS['dpt_stub_theme_versions'][ $this->slug ]
+				: '1.0.0';
+		}
 		if ( 'Author' !== $header ) { return ''; }
 		return isset( $GLOBALS['dpt_stub_theme_authors'][ $this->slug ] )
 			? $GLOBALS['dpt_stub_theme_authors'][ $this->slug ]
@@ -192,7 +212,11 @@ function delete_theme( $slug ) {
  * An unknown URL is a hard failure, so a test can never accidentally depend on
  * a real network call.
  */
+$GLOBALS['dpt_stub_http_calls'] = array();
 function wp_remote_get( $url, $args = array() ) {
+	$GLOBALS['dpt_stub_http_calls'][ $url ] = isset( $GLOBALS['dpt_stub_http_calls'][ $url ] )
+		? $GLOBALS['dpt_stub_http_calls'][ $url ] + 1
+		: 1;
 	if ( ! isset( $GLOBALS['dpt_stub_http'][ $url ] ) ) {
 		return new WP_Error( 'stub_miss', 'No canned response for ' . $url );
 	}
