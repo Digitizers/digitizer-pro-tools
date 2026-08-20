@@ -356,4 +356,69 @@ dpt_test_ok(
 );
 $GLOBALS['dpt_stub_auto_update_types_off'] = array();
 
+// The plugin enrols itself, and does it independently of any item: the
+// wizard calls this on its own, so a run with nothing ticked still keeps the
+// promise the checkbox made. It is not a manifest item and the GitHub rule
+// does not reach it - it carries its own update checker, so core's unattended
+// updater has a package to install.
+$GLOBALS['dpt_stub_options']        = array();
+$GLOBALS['dpt_stub_plugins']        = array( 'wordfence/wordfence.php' => array( 'Name' => 'Wordfence' ) );
+$GLOBALS['dpt_stub_active_plugins'] = array();
+DPT_ONB_Installer::apply( 'wordfence', true );
+dpt_test_eq(
+	get_option( 'auto_update_plugins' ),
+	array( 'wordfence/wordfence.php' ),
+	'applying an item does not quietly enrol the plugin as a side effect'
+);
+
+dpt_test_ok( DPT_ONB_Installer::enable_self_auto_update(), 'the wizard enrols it in a step of its own' );
+dpt_test_eq(
+	get_option( 'auto_update_plugins' ),
+	array( 'wordfence/wordfence.php', DPT_BASENAME ),
+	'under its own plugin file, alongside whatever else is on the list'
+);
+dpt_test_ok( DPT_ONB_Installer::enable_self_auto_update(), 'calling it again succeeds' );
+dpt_test_eq(
+	get_option( 'auto_update_plugins' ),
+	array( 'wordfence/wordfence.php', DPT_BASENAME ),
+	'and does not duplicate the entry'
+);
+
+// It works with no items at all, which is the case that made hanging it off
+// apply() wrong: every row unticked, the box still ticked.
+$GLOBALS['dpt_stub_options'] = array();
+dpt_test_ok( DPT_ONB_Installer::enable_self_auto_update(), 'it needs no item to have been applied' );
+dpt_test_eq( get_option( 'auto_update_plugins' ), array( DPT_BASENAME ), 'and the list holds just the plugin' );
+
+// A write that does not happen is not an enrolment. update_site_option()
+// answers false both for a failed write and for a value that was already
+// there, so the two are told apart rather than both reported as success.
+$GLOBALS['dpt_stub_options']            = array();
+$GLOBALS['dpt_stub_unwritable_options'] = array( 'auto_update_plugins' );
+dpt_test_ok( ! DPT_ONB_Installer::enable_self_auto_update(), 'a refused write is reported as a failure' );
+dpt_test_eq( get_option( 'auto_update_plugins', array() ), array(), 'and nothing landed on the list' );
+$GLOBALS['dpt_stub_options']            = array( 'auto_update_plugins' => array( DPT_BASENAME ) );
+dpt_test_ok( DPT_ONB_Installer::enable_self_auto_update(), 'while an entry already on the list needs no write' );
+$GLOBALS['dpt_stub_unwritable_options'] = array();
+
+// The same gates apply to it as to everything else.
+$GLOBALS['dpt_stub_options']     = array();
+$GLOBALS['dpt_stub_denied_caps'] = array( 'update_plugins' );
+dpt_test_ok( ! DPT_ONB_Installer::enable_self_auto_update(), 'no self-enrolment without the update capability' );
+dpt_test_eq( get_option( 'auto_update_plugins', array() ), array(), 'and nothing is written' );
+$GLOBALS['dpt_stub_denied_caps'] = array();
+
+$GLOBALS['dpt_stub_auto_update_types_off'] = array( 'plugin' );
+dpt_test_ok( ! DPT_ONB_Installer::enable_self_auto_update(), 'nor on a site that runs no plugin auto-updates' );
+$GLOBALS['dpt_stub_auto_update_types_off'] = array();
+
+$GLOBALS['dpt_stub_multisite']   = true;
+$GLOBALS['dpt_stub_denied_caps'] = array( 'manage_network_options' );
+dpt_test_ok( ! DPT_ONB_Installer::enable_self_auto_update(), 'nor from one blog of a network' );
+$GLOBALS['dpt_stub_denied_caps'] = array();
+$GLOBALS['dpt_stub_multisite']   = false;
+
+$GLOBALS['dpt_stub_options'] = array();
+dpt_test_ok( DPT_ONB_Installer::enable_self_auto_update(), 'and it enrols again once everything allows it' );
+
 exit( dpt_test_summary() > 0 ? 1 : 0 );

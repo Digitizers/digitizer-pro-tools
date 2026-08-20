@@ -66,6 +66,32 @@
 		} );
 	}
 
+	function selfUpdate() {
+		var body = new FormData();
+		body.append( 'action', 'dpt_onb_self_update' );
+		body.append( 'nonce', cfg.nonce );
+
+		return fetch( cfg.ajaxUrl, {
+			method: 'POST',
+			credentials: 'same-origin',
+			body: body
+		} ).then( function ( r ) {
+			return r.json();
+		} ).then( function ( json ) {
+			if ( ! json || ! json.success ) {
+				return json && json.data && json.data.message ? json.data.message : cfg.strings.failed;
+			}
+			return '';
+		} ).catch( function () {
+			return cfg.strings.network;
+		} );
+	}
+
+	function cleanupWanted() {
+		var box = document.getElementById( 'dpt-onb-cleanup' );
+		return !! ( box && box.checked );
+	}
+
 	function cleanup() {
 		var body = new FormData();
 		body.append( 'action', 'dpt_onb_cleanup' );
@@ -94,7 +120,10 @@
 			document.querySelectorAll( '.dpt-onb-pick:checked' ),
 			function ( b ) { return b.value; }
 		);
-		if ( ! picked.length ) {
+		// A run with no items is still a run: the two options below are
+		// independent of the list, and refusing to start would leave a ticked
+		// box promising something the button never did.
+		if ( ! picked.length && ! autoUpdateWanted() && ! cleanupWanted() ) {
 			return;
 		}
 
@@ -109,32 +138,46 @@
 		var skipped = 0;
 		var failed = 0;
 
+		// The plugin enrols itself first, before any item and whatever the
+		// list holds, because that is what the checkbox says it does.
+		var selfNote = '';
+		var started = autoUpdateWanted()
+			? selfUpdate().then( function ( note ) { selfNote = note; } )
+			: Promise.resolve();
+
 		// Reduce over a promise chain so items run strictly one after another.
-		picked.reduce( function ( chain, id ) {
-			return chain.then( function () {
-				setStatus( id, cfg.strings.working, 'working' );
-				return apply( id ).then( function ( res ) {
-					if ( 'failed' === res.outcome ) {
-						failed++;
-					} else if ( 'skipped' === res.outcome ) {
-						skipped++;
-					} else if ( 'activated' === res.outcome ) {
-						activated++;
-					} else {
-						installed++;
-					}
-					setStatus( id, res.message, res.outcome );
+		function applyAll() {
+			return picked.reduce( function ( chain, id ) {
+				return chain.then( function () {
+					setStatus( id, cfg.strings.working, 'working' );
+					return apply( id ).then( function ( res ) {
+						if ( 'failed' === res.outcome ) {
+							failed++;
+						} else if ( 'skipped' === res.outcome ) {
+							skipped++;
+						} else if ( 'activated' === res.outcome ) {
+							activated++;
+						} else {
+							installed++;
+						}
+						setStatus( id, res.message, res.outcome );
+					} );
 				} );
-			} );
-		}, Promise.resolve() ).then( function () {
+			}, Promise.resolve() );
+		}
+
+		started.then( applyAll ).then( function () {
 			var summary = cfg.strings.summary
 				.replace( '%1$d', installed )
 				.replace( '%2$d', activated )
 				.replace( '%3$d', skipped )
 				.replace( '%4$d', failed );
 
-			var cleanupBox = document.getElementById( 'dpt-onb-cleanup' );
-			if ( ! cleanupBox || ! cleanupBox.checked ) {
+			if ( selfNote ) {
+				summary += ' ' + selfNote;
+			}
+
+			if ( ! cleanupWanted() ) {
 				out.textContent = summary;
 				run.disabled = false;
 				return;

@@ -92,7 +92,12 @@ function wp_parse_url( $url, $component = -1 ) { return parse_url( $url, $compon
 function get_option( $key, $default = false ) {
 	return array_key_exists( $key, $GLOBALS['dpt_stub_options'] ) ? $GLOBALS['dpt_stub_options'][ $key ] : $default;
 }
+// Options whose writes fail, as a filter or a database error would make them.
+$GLOBALS['dpt_stub_unwritable_options'] = array();
 function update_option( $key, $value ) {
+	if ( in_array( $key, $GLOBALS['dpt_stub_unwritable_options'], true ) ) {
+		return false;
+	}
 	$GLOBALS['dpt_stub_options'][ $key ] = $value;
 	return true;
 }

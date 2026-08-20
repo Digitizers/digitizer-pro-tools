@@ -1806,7 +1806,7 @@ msgstr ""
 msgid "It was activated but switched itself off again, which usually means it needs something this site does not have yet."
 msgstr ""
 
-msgid "Turn on automatic updates for these items"
+msgid "Turn on automatic updates for these items and for Digitizer Pro Tools itself"
 msgstr ""
 
 msgid "Remove unused default themes afterwards"
@@ -1833,5 +1833,8 @@ msgstr ""
 msgid "Themes are shared across a multisite network, so they are not removed from here."
 msgstr ""
 
-msgid "Applies to the items WordPress updates itself. The ones installed from GitHub are not included: WordPress has no way to check them for updates."
+msgid "Digitizer Pro Tools brings its own update check, so it is included here. The baseline items installed from GitHub are not: WordPress has no way to check them for updates."
+msgstr ""
+
+msgid "Automatic updates could not be turned on for Digitizer Pro Tools."
 msgstr ""

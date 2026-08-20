@@ -1806,8 +1806,8 @@ msgstr "החלפת התבנית לא נכנסה לתוקף."
 msgid "It was activated but switched itself off again, which usually means it needs something this site does not have yet."
 msgstr "הוא הופעל אך כיבה את עצמו מיד, מה שבדרך כלל אומר שהוא זקוק למשהו שעדיין אין באתר."
 
-msgid "Turn on automatic updates for these items"
-msgstr "הפעל עדכונים אוטומטיים לפריטים האלה"
+msgid "Turn on automatic updates for these items and for Digitizer Pro Tools itself"
+msgstr "הפעל עדכונים אוטומטיים לפריטים האלה ולתוסף Digitizer Pro Tools עצמו"
 
 msgid "Remove unused default themes afterwards"
 msgstr "הסר בסוף תבניות ברירת מחדל שאינן בשימוש"
@@ -1833,5 +1833,8 @@ msgstr "האתר הזה לא מאפשר מחיקת תבניות מלוח הבק�
 msgid "Themes are shared across a multisite network, so they are not removed from here."
 msgstr "תבניות משותפות לכל אתרי הרשת, ולכן הן לא מוסרות מכאן."
 
-msgid "Applies to the items WordPress updates itself. The ones installed from GitHub are not included: WordPress has no way to check them for updates."
-msgstr "חל על הפריטים שוורדפרס מעדכנת בעצמה. אלה שהותקנו מ-GitHub לא נכללים: לוורדפרס אין דרך לבדוק עבורם עדכונים."
+msgid "Digitizer Pro Tools brings its own update check, so it is included here. The baseline items installed from GitHub are not: WordPress has no way to check them for updates."
+msgstr "ל-Digitizer Pro Tools יש בדיקת עדכונים משלו, ולכן הוא נכלל כאן. פריטי הבייסליין שהותקנו מ-GitHub לא נכללים: לוורדפרס אין דרך לבדוק עבורם עדכונים."
+
+msgid "Automatic updates could not be turned on for Digitizer Pro Tools."
+msgstr "לא ניתן היה להפעיל עדכונים אוטומטיים ל-Digitizer Pro Tools."
