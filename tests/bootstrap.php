@@ -117,6 +117,13 @@ $GLOBALS['dpt_stub_denied_caps'] = array();
 function current_user_can( $cap ) { return ! in_array( $cap, $GLOBALS['dpt_stub_denied_caps'], true ); }
 $GLOBALS['dpt_stub_multisite'] = false;
 function is_multisite() { return (bool) $GLOBALS['dpt_stub_multisite']; }
+// Core's answer to "does this site run background updates for this kind of
+// thing at all", which AUTOMATIC_UPDATER_DISABLED and several filters turn off
+// without touching anybody's capabilities.
+$GLOBALS['dpt_stub_auto_update_types_off'] = array();
+function wp_is_auto_update_enabled_for_type( $type ) {
+	return ! in_array( $type, $GLOBALS['dpt_stub_auto_update_types_off'], true );
+}
 function switch_theme( $slug ) { $GLOBALS['dpt_stub_stylesheet'] = $slug; }
 $GLOBALS['dpt_stub_self_deactivating'] = array();
 function activate_plugin( $file ) {

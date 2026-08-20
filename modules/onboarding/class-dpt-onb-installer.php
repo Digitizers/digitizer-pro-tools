@@ -302,8 +302,20 @@ class DPT_ONB_Installer {
 		$types = ( is_array( $item ) && isset( $item['type'] ) )
 			? array( $item['type'] )
 			: self::auto_update_types();
+		if ( ! $types ) {
+			return false;
+		}
 		foreach ( $types as $type ) {
+			$core_type = ( 'theme' === $type ) ? 'theme' : 'plugin';
 			if ( ! current_user_can( 'theme' === $type ? 'update_themes' : 'update_plugins' ) ) {
+				return false;
+			}
+			// A site with AUTOMATIC_UPDATER_DISABLED set, or a filter turning
+			// the feature off, keeps the capability but never processes the
+			// list. Writing it there would be a promise nothing acts on, so
+			// core's own answer is asked for, the same one its Plugins and
+			// Themes screens use before they offer the control.
+			if ( function_exists( 'wp_is_auto_update_enabled_for_type' ) && ! wp_is_auto_update_enabled_for_type( $core_type ) ) {
 				return false;
 			}
 		}
@@ -320,11 +332,32 @@ class DPT_ONB_Installer {
 	public static function auto_update_types() {
 		$types = array();
 		foreach ( DPT_ONB_Manifest::items() as $item ) {
+			if ( ! self::auto_updatable( $item ) ) {
+				continue;
+			}
 			if ( isset( $item['type'] ) && ! in_array( $item['type'], $types, true ) ) {
 				$types[] = $item['type'];
 			}
 		}
 		return $types;
+	}
+
+	/**
+	 * Whether WordPress's own automatic updates can carry this item at all.
+	 *
+	 * The lists core keeps are answered by the WordPress.org update API. An
+	 * item installed from a GitHub release is unknown to that API, so adding
+	 * it to the list changes nothing: it is not that the update fails, it is
+	 * that nothing ever looks. The two MCP plugins are also installed
+	 * inactive, so an updater bundled inside them could not run either.
+	 * Enrolling them would put a claim on the screen that no code anywhere
+	 * would act on.
+	 *
+	 * @param array $item Manifest item.
+	 * @return bool
+	 */
+	public static function auto_updatable( $item ) {
+		return is_array( $item ) && isset( $item['source'] ) && 'wporg' === $item['source'];
 	}
 
 	/**
@@ -339,7 +372,7 @@ class DPT_ONB_Installer {
 	 */
 	public static function enable_auto_update( $item ) {
 		$key = self::auto_update_key( $item );
-		if ( '' === $key || ! self::may_auto_update( $item ) ) {
+		if ( '' === $key || ! self::auto_updatable( $item ) || ! self::may_auto_update( $item ) ) {
 			return false;
 		}
 		// Core keeps both lists as network-wide site options and reads them

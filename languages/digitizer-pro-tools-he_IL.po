@@ -1847,3 +1847,6 @@ msgstr "האתר הזה לא מאפשר מחיקת תבניות מלוח הבק�
 
 msgid "Themes are shared across a multisite network, so they are not removed from here."
 msgstr "תבניות משותפות לכל אתרי הרשת, ולכן הן לא מוסרות מכאן."
+
+msgid "Applies to the items WordPress updates itself. The ones installed from GitHub are not included: WordPress has no way to check them for updates."
+msgstr "חל על הפריטים שוורדפרס מעדכנת בעצמה. אלה שהותקנו מ-GitHub לא נכללים: לוורדפרס אין דרך לבדוק עבורם עדכונים."

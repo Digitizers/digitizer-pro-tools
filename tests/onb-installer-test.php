@@ -323,4 +323,37 @@ DPT_ONB_Installer::apply( 'wordfence', true );
 dpt_test_eq( get_option( 'auto_update_plugins' ), array( 'wordfence/wordfence.php' ), 'while a network administrator can' );
 $GLOBALS['dpt_stub_multisite'] = false;
 
+// An item WordPress cannot check for updates is never added to the list.
+// Nothing would ever look at the entry, so writing it is a claim no code acts
+// on rather than an update that fails.
+dpt_test_ok( DPT_ONB_Installer::auto_updatable( DPT_ONB_Manifest::get( 'wordfence' ) ), 'a WordPress.org plugin is updatable by core' );
+dpt_test_ok( ! DPT_ONB_Installer::auto_updatable( DPT_ONB_Manifest::get( 'elementor_mcp' ) ), 'a GitHub plugin is not' );
+dpt_test_ok( ! DPT_ONB_Installer::auto_updatable( DPT_ONB_Manifest::get( 'hello_digitizer' ) ), 'nor is the GitHub child theme' );
+
+$GLOBALS['dpt_stub_options']        = array();
+$GLOBALS['dpt_stub_plugins']        = array(
+	'wordfence/wordfence.php'   => array( 'Name' => 'Wordfence' ),
+	'elementor-mcp/plugin.php'  => array( 'Name' => 'Elementor MCP' ),
+);
+$GLOBALS['dpt_stub_active_plugins'] = array();
+DPT_ONB_Installer::apply( 'elementor_mcp', true );
+dpt_test_eq( get_option( 'auto_update_plugins', array() ), array(), 'so it is left out of the list entirely' );
+DPT_ONB_Installer::apply( 'wordfence', true );
+dpt_test_eq( get_option( 'auto_update_plugins' ), array( 'wordfence/wordfence.php' ), 'while its WordPress.org neighbour goes in' );
+
+// A site that has turned background updates off keeps the capability but never
+// processes the list, so the box is not offered and nothing is written.
+$GLOBALS['dpt_stub_options']               = array();
+$GLOBALS['dpt_stub_auto_update_types_off'] = array( 'plugin' );
+dpt_test_ok( ! DPT_ONB_Installer::may_auto_update(), 'the box is withheld when the site runs no plugin auto-updates' );
+DPT_ONB_Installer::apply( 'wordfence', true );
+dpt_test_eq( get_option( 'auto_update_plugins', array() ), array(), 'and enrolment writes nothing there' );
+$GLOBALS['dpt_stub_auto_update_types_off'] = array( 'theme' );
+dpt_test_ok( ! DPT_ONB_Installer::may_auto_update(), 'the same when it is themes that are off' );
+dpt_test_ok(
+	DPT_ONB_Installer::may_auto_update( DPT_ONB_Manifest::get( 'wordfence' ) ),
+	'though a plugin is still enrollable on its own'
+);
+$GLOBALS['dpt_stub_auto_update_types_off'] = array();
+
 exit( dpt_test_summary() > 0 ? 1 : 0 );

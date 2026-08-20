@@ -1847,3 +1847,6 @@ msgstr ""
 
 msgid "Themes are shared across a multisite network, so they are not removed from here."
 msgstr ""
+
+msgid "Applies to the items WordPress updates itself. The ones installed from GitHub are not included: WordPress has no way to check them for updates."
+msgstr ""
