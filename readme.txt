@@ -4,7 +4,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.22.0
+Stable tag: 1.23.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -24,7 +24,8 @@ Brings a new site up to the Digitizer baseline in one pass:
 * Untick anything a given client does not need, then install the rest
 * **Only the child theme and Elementor are switched on.** Everything else is installed and left inactive, so you decide per client what actually runs
 * Installs from WordPress.org, and from the public GitHub repositories for Hello Digitizer, Elementor MCP and MCP Adapter
-* Optionally turns on WordPress's automatic updates for the items it installed, and for Digitizer Pro Tools itself - the baseline's GitHub items are excluded, because nothing on the site could check them for a new version
+* Optionally turns on WordPress's automatic updates for the items it installed, and for Digitizer Pro Tools itself
+* Reports updates for the baseline's GitHub items - Hello Digitizer, Elementor MCP and MCP Adapter - which are not in the WordPress.org directory and are installed inactive, so nothing else on the site would ever check them
 * Optionally removes the unused default themes, always keeping the newest one and the theme this WordPress is configured to fall back to if the active theme ever breaks. The active theme, any theme another theme depends on, and anything that is not actually one of WordPress's own themes are never removed. Not offered on a multisite network, where one directory of themes is shared by every site
 * Nothing already installed is updated, downgraded or reconfigured
 * Safe to run again: the second pass finds everything in place and does nothing
@@ -221,11 +222,13 @@ Two things reach GitHub, both only from your server and never from a visitor's b
 
 This plugin can update itself from its public GitHub repository, periodically asking for the latest published release.
 
-The Onboarding module additionally installs three items from public GitHub repositories - the Hello Digitizer child theme, Elementor MCP and MCP Adapter. It asks for each repository's latest release and then downloads the archive. This happens only when an administrator opens the Onboarding screen and presses its button, never on a schedule and never on the front end.
+The Onboarding module additionally installs three items from public GitHub repositories - the Hello Digitizer child theme, Elementor MCP and MCP Adapter. It asks for each repository's latest release and then downloads the archive. Installing happens only when an administrator opens the Onboarding screen and presses its button.
+
+While that module is enabled it also keeps those three items' update information current, asking each repository for its latest release on WordPress's normal update schedule - the same lookup, answered from a six-hour cache. This is what lets WordPress offer them updates at all: they are not in the WordPress.org directory, and the wizard leaves most of them inactive, so their own code cannot check for them. These lookups are never made from a visitor's page load.
 
 * Service: GitHub, https://github.com
 * Endpoints: https://api.github.com/repos/Digitizers/digitizer-pro-tools/releases for updates; https://api.github.com/repos/{owner}/{repo}/releases/latest for each onboarding item, followed by the archive download it points to (codeload.github.com, objects.githubusercontent.com or release-assets.githubusercontent.com)
-* When: updates during WordPress's normal update checks and when an administrator installs an offered update; onboarding only while a run is in progress. Release lookups are cached for six hours
+* When: updates during WordPress's normal update checks and when an administrator installs an offered update; onboarding installs only while a run is in progress; the baseline's update lookups during WordPress's update checks, from the admin or from cron. Release lookups are cached for six hours, and a failed lookup for fifteen minutes
 * Data sent: nothing about the site, on any of these requests. No site URL, admin details or usage data - the plugin replaces WordPress's default user agent (which would otherwise include the site address) with just its own name and version, on the lookups and on the downloads alike. As with any HTTP request, GitHub sees the originating IP address.
 * Terms of Service: https://docs.github.com/site-policy/github-terms/github-terms-of-service
 * Privacy Policy: https://docs.github.com/site-policy/privacy-policies/github-privacy-statement
@@ -273,7 +276,7 @@ Data does leave, but only where a module's job is to send it, and only for the m
 
 * **Resend Mail**, if you enable it and enter an API key, sends your site's email through the Resend API - the complete message, including recipients, subject, body and attachments. That is what the module is for.
 * **Embed** makes the *visitor's browser* load the document you embedded straight from its host, so that host sees the visitor. The request comes from the visitor, not from your server.
-* **Onboarding**, while an administrator is running it, asks WordPress.org and GitHub for the packages it installs. Nothing about the site is sent.
+* **Onboarding**, while an administrator is running it, asks WordPress.org and GitHub for the packages it installs. While enabled, it also asks GitHub for the latest release of the three items it installs from there, so WordPress can offer them updates. Nothing about the site is sent.
 * **The update check** asks GitHub for the latest release, on WordPress's normal schedule. Nothing about the site is sent.
 
 Nothing else in the plugin makes an outbound request.
@@ -295,6 +298,12 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 5. Configure each module you enabled from its own screen. For the Cookie Banner that means reviewing the texts per language and pasting your analytics/marketing snippets in the Scripts tab, then checking the site
 
 == Changelog ==
+
+= 1.23.0 =
+* Onboarding now reports updates for the three items it installs from GitHub - the Hello Digitizer child theme, Elementor MCP and MCP Adapter. They are not in the WordPress.org directory and the wizard leaves most of them inactive, so their own code never runs and nothing on the site would otherwise look for a new version. They now appear on the Plugins and Themes screens like anything else, and can be updated with the usual button
+* Because of that, those items can now be put on automatic updates as well - previously the wizard excluded them, since an entry on WordPress's list was a promise nothing would act on
+* Update information for them is never fetched from a visitor's page load, only from the admin or from cron, and a failed lookup is remembered for fifteen minutes so an unreachable GitHub cannot slow the dashboard down
+* An update answer that another source already provided - a plugin's own checker, or the WordPress.org directory - is never overwritten
 
 = 1.22.0 =
 * The Onboarding wizard's automatic-updates checkbox now covers Digitizer Pro Tools itself. The plugin brings its own update check, so WordPress installs its releases unattended exactly as it would a plugin from the directory - which is why it is included while the baseline's other GitHub items are not

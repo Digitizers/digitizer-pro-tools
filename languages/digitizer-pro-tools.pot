@@ -1771,7 +1771,7 @@ msgstr ""
 msgid "Installs and activates the Digitizer baseline on this site. Anything already active is left exactly as it is - nothing here updates, downgrades or reconfigures a plugin you already have. Safe to run more than once."
 msgstr ""
 
-msgid "Installs and activates the Digitizer baseline - Hello Elementor with the Digitizer child theme, and the standard plugin set - on a new site. Nothing already installed is updated or reconfigured, and the run can be repeated safely."
+msgid "Installs the Digitizer baseline - Hello Elementor with the Digitizer child theme, and the standard plugin set - on a new site. The wizard never reconfigures or overwrites anything already installed, and a run can be repeated safely. While this module is on, the baseline items that come from GitHub also report their updates to WordPress, which they cannot do for themselves."
 msgstr ""
 
 msgid "Installed."
@@ -1833,7 +1833,7 @@ msgstr ""
 msgid "Themes are shared across a multisite network, so they are not removed from here."
 msgstr ""
 
-msgid "Digitizer Pro Tools brings its own update check, so it is included here. The baseline items installed from GitHub are not: WordPress has no way to check them for updates."
+msgid "Covers Digitizer Pro Tools too, and the items installed from GitHub - while this module is on, it reports their releases to WordPress for them."
 msgstr ""
 
 msgid "Automatic updates could not be turned on for Digitizer Pro Tools."

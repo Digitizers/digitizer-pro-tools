@@ -592,7 +592,7 @@ return array (
     'Installed, but could not be activated: %s' => 'הותקן, אך לא ניתן היה להפעיל: %s',
     'The request did not complete. Check the site can reach WordPress.org and GitHub.' => 'הבקשה לא הושלמה. בדקו שהאתר יכול להגיע ל-WordPress.org ול-GitHub.',
     'Installs and activates the Digitizer baseline on this site. Anything already active is left exactly as it is - nothing here updates, downgrades or reconfigures a plugin you already have. Safe to run more than once.' => 'מתקין ומפעיל את רשימת הבסיס של Digitizer באתר הזה. כל מה שכבר פעיל נשאר בדיוק כפי שהוא - שום דבר כאן לא מעדכן, לא מוריד גרסה ולא משנה הגדרות של תוסף קיים. אפשר להריץ יותר מפעם אחת.',
-    'Installs and activates the Digitizer baseline - Hello Elementor with the Digitizer child theme, and the standard plugin set - on a new site. Nothing already installed is updated or reconfigured, and the run can be repeated safely.' => 'מתקין ומפעיל את רשימת הבסיס של Digitizer - Hello Elementor עם תבנית הבת של Digitizer, ואת מערך התוספים הסטנדרטי - באתר חדש. שום דבר שכבר מותקן לא מעודכן ולא משתנה, ואפשר להריץ שוב בבטחה.',
+    'Installs the Digitizer baseline - Hello Elementor with the Digitizer child theme, and the standard plugin set - on a new site. The wizard never reconfigures or overwrites anything already installed, and a run can be repeated safely. While this module is on, the baseline items that come from GitHub also report their updates to WordPress, which they cannot do for themselves.' => 'מתקין את הבייסליין של Digitizer - Hello Elementor עם תבנית הבת של Digitizer, וסט התוספים הסטנדרטי - באתר חדש. האשף לעולם לא מגדיר מחדש ולא דורס דבר שכבר מותקן, וניתן להריץ אותו שוב בבטחה. כל עוד המודול הזה דלוק, גם הפריטים שמגיעים מ-GitHub מדווחים על עדכונים שלהם לוורדפרס, מה שהם לא יכולים לעשות בעצמם.',
     'Installed.' => 'הותקן.',
     'Already installed.' => 'כבר מותקן.',
     'You are not allowed to activate plugins on this site.' => 'אין לך הרשאה להפעיל תוספים באתר הזה.',
@@ -612,7 +612,7 @@ return array (
     'The theme could not be removed.' => 'לא ניתן היה להסיר את התבנית.',
     'This site does not allow deleting themes from the dashboard.' => 'האתר הזה לא מאפשר מחיקת תבניות מלוח הבקרה.',
     'Themes are shared across a multisite network, so they are not removed from here.' => 'תבניות משותפות לכל אתרי הרשת, ולכן הן לא מוסרות מכאן.',
-    'Digitizer Pro Tools brings its own update check, so it is included here. The baseline items installed from GitHub are not: WordPress has no way to check them for updates.' => 'ל-Digitizer Pro Tools יש בדיקת עדכונים משלו, ולכן הוא נכלל כאן. פריטי הבייסליין שהותקנו מ-GitHub לא נכללים: לוורדפרס אין דרך לבדוק עבורם עדכונים.',
+    'Covers Digitizer Pro Tools too, and the items installed from GitHub - while this module is on, it reports their releases to WordPress for them.' => 'חל גם על Digitizer Pro Tools עצמו, וגם על הפריטים שהותקנו מ-GitHub - כל עוד המודול הזה דלוק, הוא מדווח לוורדפרס על הגרסאות שלהם במקומם.',
     'Automatic updates could not be turned on for Digitizer Pro Tools.' => 'לא ניתן היה להפעיל עדכונים אוטומטיים ל-Digitizer Pro Tools.',
   ),
 );

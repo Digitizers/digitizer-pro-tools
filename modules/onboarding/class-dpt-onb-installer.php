@@ -343,21 +343,23 @@ class DPT_ONB_Installer {
 	}
 
 	/**
-	 * Whether WordPress's own automatic updates can carry this item at all.
+	 * Whether WordPress's automatic updates can carry this item at all.
 	 *
-	 * The lists core keeps are answered by the WordPress.org update API. An
-	 * item installed from a GitHub release is unknown to that API, so adding
-	 * it to the list changes nothing: it is not that the update fails, it is
-	 * that nothing ever looks. The two MCP plugins are also installed
-	 * inactive, so an updater bundled inside them could not run either.
-	 * Enrolling them would put a claim on the screen that no code anywhere
-	 * would act on.
+	 * Core's lists are acted on for anything the site has update information
+	 * about. For a WordPress.org item that comes from the directory; for the
+	 * baseline's GitHub items it comes from DPT_ONB_Updates, which reports
+	 * their releases into the same transient core reads - so both kinds can be
+	 * enrolled, and both are installed unattended the same way.
+	 *
+	 * The GitHub half depends on this module staying enabled. Turn Onboarding
+	 * off and those items simply stop being offered updates; nothing breaks,
+	 * and re-enabling it resumes them.
 	 *
 	 * @param array $item Manifest item.
 	 * @return bool
 	 */
 	public static function auto_updatable( $item ) {
-		return is_array( $item ) && isset( $item['source'] ) && 'wporg' === $item['source'];
+		return is_array( $item ) && isset( $item['source'] ) && in_array( $item['source'], array( 'wporg', 'github' ), true );
 	}
 
 	/**

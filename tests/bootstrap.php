@@ -122,6 +122,9 @@ $GLOBALS['dpt_stub_denied_caps'] = array();
 function current_user_can( $cap ) { return ! in_array( $cap, $GLOBALS['dpt_stub_denied_caps'], true ); }
 $GLOBALS['dpt_stub_multisite'] = false;
 function is_multisite() { return (bool) $GLOBALS['dpt_stub_multisite']; }
+$GLOBALS['dpt_stub_is_admin'] = true;
+function is_admin() { return (bool) $GLOBALS['dpt_stub_is_admin']; }
+function wp_doing_cron() { return false; }
 // Core's answer to "does this site run background updates for this kind of
 // thing at all", which AUTOMATIC_UPDATER_DISABLED and several filters turn off
 // without touching anybody's capabilities.
@@ -141,7 +144,8 @@ function activate_plugin( $file ) {
 	return null;
 }
 
-$GLOBALS['dpt_stub_theme_authors'] = array();
+$GLOBALS['dpt_stub_theme_authors']  = array();
+$GLOBALS['dpt_stub_theme_versions'] = array();
 $GLOBALS['dpt_stub_broken_themes'] = array();
 $GLOBALS['dpt_stub_theme_parents'] = array();
 
@@ -164,6 +168,11 @@ class DPT_Stub_Theme {
 			: $this->slug;
 	}
 	public function get( $header ) {
+		if ( 'Version' === $header ) {
+			return isset( $GLOBALS['dpt_stub_theme_versions'][ $this->slug ] )
+				? $GLOBALS['dpt_stub_theme_versions'][ $this->slug ]
+				: '1.0.0';
+		}
 		if ( 'Author' !== $header ) { return ''; }
 		return isset( $GLOBALS['dpt_stub_theme_authors'][ $this->slug ] )
 			? $GLOBALS['dpt_stub_theme_authors'][ $this->slug ]
