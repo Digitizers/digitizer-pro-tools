@@ -1820,3 +1820,33 @@ msgstr "החלפת התבנית לא נכנסה לתוקף."
 
 msgid "It was activated but switched itself off again, which usually means it needs something this site does not have yet."
 msgstr "הוא הופעל אך כיבה את עצמו מיד, מה שבדרך כלל אומר שהוא זקוק למשהו שעדיין אין באתר."
+
+msgid "Turn on automatic updates for these items"
+msgstr "הפעל עדכונים אוטומטיים לפריטים האלה"
+
+msgid "Remove unused default themes afterwards"
+msgstr "הסר בסוף תבניות ברירת מחדל שאינן בשימוש"
+
+msgid "The newest one is always kept, as the fallback WordPress needs if the active theme ever breaks. The active theme and any theme another theme depends on are never removed."
+msgstr "החדשה ביותר תמיד נשמרת, כרשת הביטחון שוורדפרס צריכה אם התבנית הפעילה תישבר. התבנית הפעילה, וכל תבנית שתבנית אחרת תלויה בה, לעולם לא מוסרות."
+
+msgid "Removing unused default themes..."
+msgstr "מסיר תבניות ברירת מחדל שאינן בשימוש..."
+
+msgid "No default themes to remove."
+msgstr "אין תבניות ברירת מחדל להסרה."
+
+msgid "Removed."
+msgstr "הוסרה."
+
+msgid "The theme could not be removed."
+msgstr "לא ניתן היה להסיר את התבנית."
+
+msgid "This site does not allow deleting themes from the dashboard."
+msgstr "האתר הזה לא מאפשר מחיקת תבניות מלוח הבקרה."
+
+msgid "Themes are shared across a multisite network, so they are not removed from here."
+msgstr "תבניות משותפות לכל אתרי הרשת, ולכן הן לא מוסרות מכאן."
+
+msgid "Applies to the items WordPress updates itself. The ones installed from GitHub are not included: WordPress has no way to check them for updates."
+msgstr "חל על הפריטים שוורדפרס מעדכנת בעצמה. אלה שהותקנו מ-GitHub לא נכללים: לוורדפרס אין דרך לבדוק עבורם עדכונים."

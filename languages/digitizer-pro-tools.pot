@@ -1820,3 +1820,33 @@ msgstr ""
 
 msgid "It was activated but switched itself off again, which usually means it needs something this site does not have yet."
 msgstr ""
+
+msgid "Turn on automatic updates for these items"
+msgstr ""
+
+msgid "Remove unused default themes afterwards"
+msgstr ""
+
+msgid "The newest one is always kept, as the fallback WordPress needs if the active theme ever breaks. The active theme and any theme another theme depends on are never removed."
+msgstr ""
+
+msgid "Removing unused default themes..."
+msgstr ""
+
+msgid "No default themes to remove."
+msgstr ""
+
+msgid "Removed."
+msgstr ""
+
+msgid "The theme could not be removed."
+msgstr ""
+
+msgid "This site does not allow deleting themes from the dashboard."
+msgstr ""
+
+msgid "Themes are shared across a multisite network, so they are not removed from here."
+msgstr ""
+
+msgid "Applies to the items WordPress updates itself. The ones installed from GitHub are not included: WordPress has no way to check them for updates."
+msgstr ""

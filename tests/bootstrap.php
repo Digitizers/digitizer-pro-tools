@@ -97,6 +97,11 @@ function update_option( $key, $value ) {
 	return true;
 }
 
+// On a single site core's site-option functions are the option functions, and
+// the stub store is shared for the same reason.
+function get_site_option( $key, $default = false ) { return get_option( $key, $default ); }
+function update_site_option( $key, $value ) { return update_option( $key, $value ); }
+
 function get_transient( $key ) {
 	return array_key_exists( $key, $GLOBALS['dpt_stub_transients'] ) ? $GLOBALS['dpt_stub_transients'][ $key ] : false;
 }
@@ -110,6 +115,15 @@ function is_plugin_active( $file ) { return in_array( $file, $GLOBALS['dpt_stub_
 function get_stylesheet() { return $GLOBALS['dpt_stub_stylesheet']; }
 $GLOBALS['dpt_stub_denied_caps'] = array();
 function current_user_can( $cap ) { return ! in_array( $cap, $GLOBALS['dpt_stub_denied_caps'], true ); }
+$GLOBALS['dpt_stub_multisite'] = false;
+function is_multisite() { return (bool) $GLOBALS['dpt_stub_multisite']; }
+// Core's answer to "does this site run background updates for this kind of
+// thing at all", which AUTOMATIC_UPDATER_DISABLED and several filters turn off
+// without touching anybody's capabilities.
+$GLOBALS['dpt_stub_auto_update_types_off'] = array();
+function wp_is_auto_update_enabled_for_type( $type ) {
+	return ! in_array( $type, $GLOBALS['dpt_stub_auto_update_types_off'], true );
+}
 function switch_theme( $slug ) { $GLOBALS['dpt_stub_stylesheet'] = $slug; }
 $GLOBALS['dpt_stub_self_deactivating'] = array();
 function activate_plugin( $file ) {
@@ -124,6 +138,7 @@ function activate_plugin( $file ) {
 
 $GLOBALS['dpt_stub_theme_authors'] = array();
 $GLOBALS['dpt_stub_broken_themes'] = array();
+$GLOBALS['dpt_stub_theme_parents'] = array();
 
 class DPT_Stub_Theme {
 	private $exists;
@@ -138,6 +153,11 @@ class DPT_Stub_Theme {
 			? new WP_Error( 'theme_no_index', 'Template is missing.' )
 			: false;
 	}
+	public function get_template() {
+		return isset( $GLOBALS['dpt_stub_theme_parents'][ $this->slug ] )
+			? $GLOBALS['dpt_stub_theme_parents'][ $this->slug ]
+			: $this->slug;
+	}
 	public function get( $header ) {
 		if ( 'Author' !== $header ) { return ''; }
 		return isset( $GLOBALS['dpt_stub_theme_authors'][ $this->slug ] )
@@ -147,6 +167,19 @@ class DPT_Stub_Theme {
 }
 function wp_get_theme( $slug = '' ) {
 	return new DPT_Stub_Theme( in_array( $slug, $GLOBALS['dpt_stub_themes'], true ), $slug );
+}
+function wp_get_themes() {
+	$out = array();
+	foreach ( $GLOBALS['dpt_stub_themes'] as $slug ) {
+		$out[ $slug ] = new DPT_Stub_Theme( true, $slug );
+	}
+	return $out;
+}
+$GLOBALS['dpt_stub_deleted_themes'] = array();
+function delete_theme( $slug ) {
+	$GLOBALS['dpt_stub_deleted_themes'][] = $slug;
+	$GLOBALS['dpt_stub_themes'] = array_values( array_diff( $GLOBALS['dpt_stub_themes'], array( $slug ) ) );
+	return true;
 }
 
 /**

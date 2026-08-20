@@ -4,7 +4,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.20.0
+Stable tag: 1.21.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -14,16 +14,19 @@ One toolbox plugin by Digitizer. Modules: multilingual cookie-consent banner, on
 
 Digitizer Pro Tools is a modular plugin that consolidates the tools Digitizers deploys on client sites. Modules can be toggled on and off from the Modules dashboard.
 
-On activation only the Onboarding module is active. Every other module below ships disabled and stays dormant until you switch it on, so a new site starts with exactly what you chose for it.
+Every module ships disabled. Activating the plugin adds its Modules screen and does nothing else - each module below stays dormant until you switch it on, so a site runs exactly what you chose for it. On a new site, Onboarding is usually the first one you turn on.
 
 = Module: Onboarding =
 
-Brings a new site up to the Digitizer baseline in one pass (the only module that ships enabled):
+Brings a new site up to the Digitizer baseline in one pass:
 
 * Checklist of the baseline - Hello Elementor with the Hello Digitizer child theme, and twelve plugins - showing what this site already has
-* Untick anything a given client does not need, then install and activate the rest
+* Untick anything a given client does not need, then install the rest
+* **Only the child theme and Elementor are switched on.** Everything else is installed and left inactive, so you decide per client what actually runs
 * Installs from WordPress.org, and from the public GitHub repositories for Hello Digitizer, Elementor MCP and MCP Adapter
-* Nothing already installed is updated, downgraded or reconfigured - an item that is already active is skipped
+* Optionally turns on WordPress's automatic updates for the items it installed - and only for the ones WordPress can actually update, which excludes anything installed from GitHub
+* Optionally removes the unused default themes, always keeping the newest one and the theme this WordPress is configured to fall back to if the active theme ever breaks. The active theme, any theme another theme depends on, and anything that is not actually one of WordPress's own themes are never removed. Not offered on a multisite network, where one directory of themes is shared by every site
+* Nothing already installed is updated, downgraded or reconfigured
 * Safe to run again: the second pass finds everything in place and does nothing
 * One request per item, so a slow download cannot time out the whole run, and each row reports what happened
 * The theme is switched only while the site is still on a WordPress default - a site with a live custom theme keeps it, and the summary says so
@@ -256,9 +259,9 @@ No. Modules are toggled independently from the Modules screen, so you can enable
 
 = Which modules are active right after activation? =
 
-One: **Onboarding**. It adds a screen to the admin menu and does nothing at all until you press its button, so activating the plugin changes nothing on the front end and nothing for visitors.
+None. Every module ships disabled, so activating the plugin changes nothing on the front end, nothing in the admin beyond its own Modules screen, and nothing for visitors.
 
-Every other module - the cookie banner, post duplication, update emails, and everything that touches WooCommerce, login URLs, roles, comments and content restrictions - ships **disabled**. Turn on the ones a given site needs from the Modules screen.
+Open **Digitizer Pro Tools** in the admin menu and switch on what this site needs. On a new site that usually means starting with **Onboarding**, which installs the standard theme and plugin set for you.
 
 Updating an existing site does not change what it already has: a module you switched on stays on, and one you switched off stays off. The new default applies only to modules that site has never saved a choice for.
 
@@ -287,11 +290,17 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 
 1. Upload the plugin folder to /wp-content/plugins/
 2. Activate the plugin through the Plugins menu
-3. On a new site, open "Onboarding" and run it to install and activate the standard theme and plugin set
-4. Open "Digitizer Pro Tools" in the admin menu and switch on the modules this site needs - everything except Onboarding ships disabled
+3. Open "Digitizer Pro Tools" in the admin menu. Every module ships disabled; switch on the ones this site needs
+4. On a new site, switch on "Onboarding" first and run it to install the standard theme and plugin set. It activates the child theme and Elementor, and leaves the rest installed for you to enable per client
 5. Configure each module you enabled from its own screen. For the Cookie Banner that means reviewing the texts per language and pasting your analytics/marketing snippets in the Scripts tab, then checking the site
 
 == Changelog ==
+
+= 1.21.0 =
+* Onboarding now installs the baseline without switching it on. Only the Hello Digitizer child theme and Elementor are activated; the other eleven plugins are installed and left inactive, so each client site runs what you choose for it
+* Onboarding can turn on WordPress's automatic updates for the items it installed - a checkbox on its screen, on by default, and it never touches a plugin that is not on the list. Items installed from GitHub are left out, because WordPress has no way to check them, and the checkbox is not offered at all on a site that has background updates turned off. Re-running applies it to items that were already in place, so an older site catches up. Offered only to a user who may update both plugins and themes - and on a multisite network, only to a network administrator, since the lists are network-wide
+* Onboarding can remove the default themes a finished site no longer needs. It keeps the newest one and the theme WordPress is configured to fall back to if the active theme ever breaks, and it never removes the active theme, a theme another theme depends on, or a theme that only carries a core directory name without being one of WordPress's own
+* Every module now ships disabled, Onboarding included. Activating the plugin changes nothing at all until you switch something on from the Modules screen
 
 = 1.20.0 =
 * New module: Onboarding - a wizard that installs and activates the Digitizer baseline (Hello Elementor plus the Digitizer child theme, and twelve plugins) on a new site. Anything already active is left alone, the run is repeatable, and each item reports what happened

@@ -55,20 +55,22 @@ class DPT_ONB_State {
 	 * @return string One of the class constants.
 	 */
 	public static function of( $item ) {
+		// For an install-only item, being present IS the goal state. Reporting
+		// it as inactive would make the wizard "activate" it on every run - it
+		// would never converge, and the row would claim an activation that
+		// never happened. An item the operator has since switched on by hand
+		// still reports as active, because it is.
+		$install_only = ( isset( $item['activate'] ) && false === $item['activate'] );
+
 		if ( 'theme' === $item['type'] ) {
 			$theme = wp_get_theme( $item['slug'] );
 			if ( ! $theme->exists() ) {
 				return self::MISSING;
 			}
-			// For an install-only item, being present IS the goal state.
-			// Reporting it as inactive would make the wizard "activate" it on
-			// every run - it would never converge, and the row would claim an
-			// activation that never happened. Reporting it as active would be
-			// a different lie, printed in the status column.
-			if ( isset( $item['activate'] ) && false === $item['activate'] ) {
-				return self::PRESENT;
+			if ( get_stylesheet() === $item['slug'] ) {
+				return self::ACTIVE;
 			}
-			return ( get_stylesheet() === $item['slug'] ) ? self::ACTIVE : self::INACTIVE;
+			return $install_only ? self::PRESENT : self::INACTIVE;
 		}
 
 		$file = self::plugin_file( $item['slug'] );
@@ -78,7 +80,10 @@ class DPT_ONB_State {
 		if ( ! function_exists( 'is_plugin_active' ) ) {
 			require_once ABSPATH . 'wp-admin/includes/plugin.php';
 		}
-		return is_plugin_active( $file ) ? self::ACTIVE : self::INACTIVE;
+		if ( is_plugin_active( $file ) ) {
+			return self::ACTIVE;
+		}
+		return $install_only ? self::PRESENT : self::INACTIVE;
 	}
 
 	/**

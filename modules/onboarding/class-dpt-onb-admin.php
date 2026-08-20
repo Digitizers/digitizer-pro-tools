@@ -12,6 +12,7 @@ class DPT_ONB_Admin {
 
 	public function __construct() {
 		add_action( 'wp_ajax_dpt_onb_apply', array( $this, 'handle_apply' ) );
+		add_action( 'wp_ajax_dpt_onb_cleanup', array( $this, 'handle_cleanup' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue' ) );
 	}
 
@@ -47,6 +48,7 @@ class DPT_ONB_Admin {
 					'network' => __( 'The request did not complete. Check the site can reach WordPress.org and GitHub.', 'digitizer-pro-tools' ),
 					/* translators: 1: number installed, 2: number activated, 3: number skipped, 4: number failed */
 					'summary' => __( '%1$d installed, %2$d activated, %3$d skipped, %4$d failed.', 'digitizer-pro-tools' ),
+					'cleanup' => __( 'Removing unused default themes...', 'digitizer-pro-tools' ),
 				),
 			)
 		);
@@ -66,7 +68,8 @@ class DPT_ONB_Admin {
 			wp_send_json_error( array( 'message' => __( 'You are not allowed to do that.', 'digitizer-pro-tools' ) ), 403 );
 		}
 
-		$id   = isset( $_POST['item'] ) ? sanitize_key( wp_unslash( $_POST['item'] ) ) : '';
+		$auto_update = ! empty( $_POST['auto_update'] );
+		$id          = isset( $_POST['item'] ) ? sanitize_key( wp_unslash( $_POST['item'] ) ) : '';
 		$item = DPT_ONB_Manifest::get( $id );
 		if ( null === $item ) {
 			wp_send_json_error( array( 'message' => __( 'That item is not part of the baseline.', 'digitizer-pro-tools' ) ), 400 );
@@ -90,7 +93,23 @@ class DPT_ONB_Admin {
 			);
 		}
 
-		wp_send_json_success( DPT_ONB_Installer::apply( $id ) );
+		wp_send_json_success( DPT_ONB_Installer::apply( $id, $auto_update ) );
+	}
+
+	/**
+	 * Remove the default themes a finished site no longer needs.
+	 *
+	 * Its own request, run after the items: the manifest is an install list,
+	 * and a deletion has no place in it.
+	 */
+	public function handle_cleanup() {
+		check_ajax_referer( self::NONCE, 'nonce' );
+
+		if ( ! current_user_can( 'manage_options' ) || ! current_user_can( 'delete_themes' ) ) {
+			wp_send_json_error( array( 'message' => __( 'You are not allowed to do that.', 'digitizer-pro-tools' ) ), 403 );
+		}
+
+		wp_send_json_success( array( 'results' => DPT_ONB_Cleanup::run() ) );
 	}
 
 	public function render_page() {
@@ -156,6 +175,28 @@ class DPT_ONB_Admin {
 				<?php endforeach; ?>
 				</tbody>
 			</table>
+
+			<p class="dpt-onb-options">
+				<?php
+				// Each box is offered only to someone who could carry it out.
+				// A ticked box that the request would refuse is a promise the
+				// screen cannot keep.
+				if ( DPT_ONB_Installer::may_auto_update() ) :
+					?>
+				<label>
+					<input type="checkbox" id="dpt-onb-auto-update" checked />
+					<?php esc_html_e( 'Turn on automatic updates for these items', 'digitizer-pro-tools' ); ?>
+					<span class="description"><?php esc_html_e( 'Applies to the items WordPress updates itself. The ones installed from GitHub are not included: WordPress has no way to check them for updates.', 'digitizer-pro-tools' ); ?></span>
+				</label>
+				<?php endif; ?>
+				<?php if ( ! is_multisite() && current_user_can( 'delete_themes' ) ) : ?>
+				<label>
+					<input type="checkbox" id="dpt-onb-cleanup" checked />
+					<?php esc_html_e( 'Remove unused default themes afterwards', 'digitizer-pro-tools' ); ?>
+					<span class="description"><?php esc_html_e( 'The newest one is always kept, as the fallback WordPress needs if the active theme ever breaks. The active theme and any theme another theme depends on are never removed.', 'digitizer-pro-tools' ); ?></span>
+				</label>
+				<?php endif; ?>
+			</p>
 
 			<p class="dpt-actions">
 				<button type="button" class="button button-primary button-hero" id="dpt-onb-run"><?php esc_html_e( 'Set up this site', 'digitizer-pro-tools' ); ?></button>

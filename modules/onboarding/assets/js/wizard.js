@@ -35,11 +35,19 @@
 		}
 	}
 
+	function autoUpdateWanted() {
+		var box = document.getElementById( 'dpt-onb-auto-update' );
+		return box ? box.checked : false;
+	}
+
 	function apply( id ) {
 		var body = new FormData();
 		body.append( 'action', 'dpt_onb_apply' );
 		body.append( 'nonce', cfg.nonce );
 		body.append( 'item', id );
+		if ( autoUpdateWanted() ) {
+			body.append( 'auto_update', '1' );
+		}
 
 		return fetch( cfg.ajaxUrl, {
 			method: 'POST',
@@ -55,6 +63,29 @@
 			return json.data;
 		} ).catch( function () {
 			return { id: id, outcome: 'failed', message: cfg.strings.network };
+		} );
+	}
+
+	function cleanup() {
+		var body = new FormData();
+		body.append( 'action', 'dpt_onb_cleanup' );
+		body.append( 'nonce', cfg.nonce );
+
+		return fetch( cfg.ajaxUrl, {
+			method: 'POST',
+			credentials: 'same-origin',
+			body: body
+		} ).then( function ( r ) {
+			return r.json();
+		} ).then( function ( json ) {
+			if ( ! json || ! json.success || ! json.data || ! json.data.results ) {
+				return json && json.data && json.data.message ? json.data.message : cfg.strings.failed;
+			}
+			return json.data.results.map( function ( r ) {
+				return r.slug ? r.slug + ': ' + r.message : r.message;
+			} ).join( ' ' );
+		} ).catch( function () {
+			return cfg.strings.network;
 		} );
 	}
 
@@ -96,12 +127,27 @@
 				} );
 			} );
 		}, Promise.resolve() ).then( function () {
-			out.textContent = cfg.strings.summary
+			var summary = cfg.strings.summary
 				.replace( '%1$d', installed )
 				.replace( '%2$d', activated )
 				.replace( '%3$d', skipped )
 				.replace( '%4$d', failed );
-			run.disabled = false;
+
+			var cleanupBox = document.getElementById( 'dpt-onb-cleanup' );
+			if ( ! cleanupBox || ! cleanupBox.checked ) {
+				out.textContent = summary;
+				run.disabled = false;
+				return;
+			}
+
+			// Deletion runs last, once, and only after the installs have
+			// finished - the fallback it preserves depends on what is on disk
+			// at that point.
+			out.textContent = summary + ' ' + cfg.strings.cleanup;
+			return cleanup().then( function ( lines ) {
+				out.textContent = summary + ( lines ? ' ' + lines : '' );
+				run.disabled = false;
+			} );
 		} );
 	} );
 }() );

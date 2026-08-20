@@ -225,12 +225,175 @@ class DPT_ONB_Installer {
 	}
 
 	/**
+	 * The list a theme or plugin belongs in for WordPress's automatic updates.
+	 *
+	 * @param array $item Manifest item.
+	 * @return string Option name.
+	 */
+	public static function auto_update_option( $item ) {
+		return ( 'theme' === $item['type'] ) ? 'auto_update_themes' : 'auto_update_plugins';
+	}
+
+	/**
+	 * What WordPress stores in that list for this item: a theme's slug, or a
+	 * plugin's dir/file.php.
+	 *
+	 * @param array $item Manifest item.
+	 * @return string '' when the item is not installed.
+	 */
+	public static function auto_update_key( $item ) {
+		if ( 'theme' === $item['type'] ) {
+			return wp_get_theme( $item['slug'] )->exists() ? $item['slug'] : '';
+		}
+		$file = DPT_ONB_State::plugin_file( $item['slug'] );
+		return ( null === $file ) ? '' : $file;
+	}
+
+	/**
+	 * The stored list with one entry added, without duplicating it.
+	 *
+	 * Pure, so the list handling is testable: the option is shared with every
+	 * other plugin on the site and with WordPress's own screens, and dropping
+	 * or duplicating someone else's entry would be invisible until an update
+	 * did or did not happen.
+	 *
+	 * @param mixed  $list Stored option value, which may be anything.
+	 * @param string $key  Entry to add.
+	 * @return array
+	 */
+	public static function merge_auto_update( $list, $key ) {
+		$list = is_array( $list ) ? array_values( array_filter( $list, 'is_string' ) ) : array();
+		if ( '' === $key || in_array( $key, $list, true ) ) {
+			return $list;
+		}
+		$list[] = $key;
+		return $list;
+	}
+
+	/**
+	 * Whether this user may change WordPress's automatic-update lists.
+	 *
+	 * Separate from the capability the item's own action needs. An item that
+	 * is already installed needs no capability at all to be reported on, so
+	 * without this an administrator who is not allowed to update code could
+	 * still enrol it in unattended updates.
+	 *
+	 * With an item, this answers for that item's own list. Without one it is
+	 * the question the screen asks before offering the checkbox, and the
+	 * honest answer covers every kind of thing on the list: the baseline holds
+	 * themes as well as plugins, and a role that may update only one of them
+	 * would be shown a box that quietly left the other kind out. Refusing the
+	 * whole control is visible and the operator can still turn updates on from
+	 * WordPress's own screens; a promise kept for twelve items out of fourteen
+	 * is not visible at all.
+	 *
+	 * On multisite the lists are network-wide: core reads them with
+	 * get_site_option(), and one blog's administrator writing them would
+	 * decide what updates itself on every other blog. So that case asks for
+	 * network authority rather than the blog's own.
+	 *
+	 * @param array|null $item Manifest item, or null for the general question.
+	 * @return bool
+	 */
+	public static function may_auto_update( $item = null ) {
+		if ( is_multisite() && ! current_user_can( 'manage_network_options' ) ) {
+			return false;
+		}
+		$types = ( is_array( $item ) && isset( $item['type'] ) )
+			? array( $item['type'] )
+			: self::auto_update_types();
+		if ( ! $types ) {
+			return false;
+		}
+		foreach ( $types as $type ) {
+			$core_type = ( 'theme' === $type ) ? 'theme' : 'plugin';
+			if ( ! current_user_can( 'theme' === $type ? 'update_themes' : 'update_plugins' ) ) {
+				return false;
+			}
+			// A site with AUTOMATIC_UPDATER_DISABLED set, or a filter turning
+			// the feature off, keeps the capability but never processes the
+			// list. Writing it there would be a promise nothing acts on, so
+			// core's own answer is asked for, the same one its Plugins and
+			// Themes screens use before they offer the control.
+			if ( function_exists( 'wp_is_auto_update_enabled_for_type' ) && ! wp_is_auto_update_enabled_for_type( $core_type ) ) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	/**
+	 * The kinds of thing the baseline holds, read from the manifest rather
+	 * than assumed, so adding an item of a new type cannot leave the
+	 * permission check behind.
+	 *
+	 * @return array
+	 */
+	public static function auto_update_types() {
+		$types = array();
+		foreach ( DPT_ONB_Manifest::items() as $item ) {
+			if ( ! self::auto_updatable( $item ) ) {
+				continue;
+			}
+			if ( isset( $item['type'] ) && ! in_array( $item['type'], $types, true ) ) {
+				$types[] = $item['type'];
+			}
+		}
+		return $types;
+	}
+
+	/**
+	 * Whether WordPress's own automatic updates can carry this item at all.
+	 *
+	 * The lists core keeps are answered by the WordPress.org update API. An
+	 * item installed from a GitHub release is unknown to that API, so adding
+	 * it to the list changes nothing: it is not that the update fails, it is
+	 * that nothing ever looks. The two MCP plugins are also installed
+	 * inactive, so an updater bundled inside them could not run either.
+	 * Enrolling them would put a claim on the screen that no code anywhere
+	 * would act on.
+	 *
+	 * @param array $item Manifest item.
+	 * @return bool
+	 */
+	public static function auto_updatable( $item ) {
+		return is_array( $item ) && isset( $item['source'] ) && 'wporg' === $item['source'];
+	}
+
+	/**
+	 * Enrol an installed item in WordPress's automatic updates.
+	 *
+	 * Applied to items the wizard skipped as well as ones it installed: a site
+	 * set up before this existed should be brought up to date by re-running,
+	 * not left behind because everything was already in place.
+	 *
+	 * @param array $item Manifest item.
+	 * @return bool Whether the item is now enrolled.
+	 */
+	public static function enable_auto_update( $item ) {
+		$key = self::auto_update_key( $item );
+		if ( '' === $key || ! self::auto_updatable( $item ) || ! self::may_auto_update( $item ) ) {
+			return false;
+		}
+		// Core keeps both lists as network-wide site options and reads them
+		// that way on every screen. On a single site get_site_option() is
+		// get_option(); on multisite the plain option would be written to one
+		// blog and never read, so the wizard would report an enrolment that
+		// does not exist.
+		$option = self::auto_update_option( $item );
+		$merged = self::merge_auto_update( get_site_option( $option, array() ), $key );
+		update_site_option( $option, $merged );
+		return true;
+	}
+
+	/**
 	 * Apply one item by id.
 	 *
-	 * @param string $item_id Manifest item id.
+	 * @param string $item_id     Manifest item id.
+	 * @param bool   $auto_update Enrol the item in automatic updates afterwards.
 	 * @return array id, outcome ('installed'|'activated'|'skipped'|'failed'), message.
 	 */
-	public static function apply( $item_id ) {
+	public static function apply( $item_id, $auto_update = false ) {
 		$item = DPT_ONB_Manifest::get( $item_id );
 		if ( null === $item ) {
 			return self::result( $item_id, 'failed', __( 'That item is not part of the baseline.', 'digitizer-pro-tools' ) );
@@ -240,6 +403,9 @@ class DPT_ONB_Installer {
 		$action = self::action_for( $state );
 
 		if ( 'skip' === $action ) {
+			if ( $auto_update ) {
+				self::enable_auto_update( $item );
+			}
 			// The message replaces the row's status text, so it has to be as
 			// true as the status it overwrites. An install-only item that is
 			// already present was never activated, and saying "already active"
@@ -259,6 +425,12 @@ class DPT_ONB_Installer {
 			if ( is_wp_error( $installed ) ) {
 				return self::result( $item_id, 'failed', $installed->get_error_message() );
 			}
+		}
+
+		// Enrolled before activation is attempted: an item that installs but
+		// declines to activate is still installed, and still wants updating.
+		if ( $auto_update ) {
+			self::enable_auto_update( $item );
 		}
 
 		$activated = self::activate( $item );
