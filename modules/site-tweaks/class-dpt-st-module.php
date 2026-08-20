@@ -25,7 +25,7 @@ class DPT_Site_Tweaks_Module extends DPT_Module {
 	}
 
 	public function description() {
-		return __( 'Small site-wide tweaks: HTTP security headers, sanitised SVG uploads, hiding the WordPress version, and Elementor helpers. Each tweak is an independent toggle.', 'digitizer-pro-tools' );
+		return __( 'Small site-wide tweaks: HTTP security headers, sanitised SVG uploads, hiding the WordPress version, Elementor helpers, and dropping front-end weight an Elementor site does not use. Each tweak is an independent toggle.', 'digitizer-pro-tools' );
 	}
 
 	public function install_defaults() {
@@ -67,10 +67,117 @@ class DPT_Site_Tweaks_Module extends DPT_Module {
 		if ( '1' === $o['elementor_tel_validate'] ) {
 			add_action( 'elementor_pro/forms/validation/tel', array( $this, 'validate_tel_field' ), 10, 3 );
 		}
+		if ( '1' === $o['elementor_icon_fonts'] ) {
+			add_action( 'elementor/frontend/after_register_styles', array( $this, 'drop_elementor_icon_fonts' ), 20 );
+		}
+
+		// --- Front-end weight ----------------------------------------------
+		if ( '1' === $o['block_library_css'] ) {
+			// Late, and on the front end only: the block editor and the widget
+			// screen load the same stylesheets and need them.
+			add_action( 'wp_enqueue_scripts', array( $this, 'drop_block_library_css' ), 100 );
+		}
+		if ( '1' === $o['disable_block_editor'] ) {
+			add_filter( 'use_block_editor_for_post', array( $this, 'classic_editor_for_post' ), 10, 2 );
+			add_filter( 'use_block_editor_for_post_type', array( $this, 'classic_editor_for_post_type' ), 10, 2 );
+		}
 
 		if ( is_admin() ) {
 			$this->admin = new DPT_ST_Admin();
 		}
+	}
+
+	/**
+	 * The post types the classic editor is forced for.
+	 *
+	 * Posts and pages, which is what the setting says and all it should mean.
+	 * Returning false for everything would also take the block editor from
+	 * post types that require it - reusable blocks and template parts are
+	 * edited with it and have no classic equivalent - and from any custom type
+	 * a plugin registered expecting it.
+	 *
+	 * @return array
+	 */
+	public function classic_editor_post_types() {
+		/**
+		 * Filter which post types are edited in the classic editor.
+		 *
+		 * @param array $types Post type names.
+		 */
+		return (array) apply_filters( 'dpt_st_classic_editor_post_types', array( 'post', 'page' ) );
+	}
+
+	/**
+	 * Force the classic editor for one post, leaving other types alone.
+	 *
+	 * @param bool  $use  Whether the block editor would be used.
+	 * @param mixed $post The post being edited.
+	 * @return bool
+	 */
+	public function classic_editor_for_post( $use, $post = null ) {
+		$type = ( is_object( $post ) && isset( $post->post_type ) ) ? (string) $post->post_type : '';
+		return in_array( $type, $this->classic_editor_post_types(), true ) ? false : $use;
+	}
+
+	/**
+	 * The same question asked about a post type rather than a post.
+	 *
+	 * @param bool   $use       Whether the block editor would be used.
+	 * @param string $post_type Post type name.
+	 * @return bool
+	 */
+	public function classic_editor_for_post_type( $use, $post_type = '' ) {
+		return in_array( (string) $post_type, $this->classic_editor_post_types(), true ) ? false : $use;
+	}
+
+	/**
+	 * Stop Elementor's icon fonts loading, without breaking what depends on
+	 * them.
+	 *
+	 * Deregistering the handles outright would be wrong. WordPress skips a
+	 * style whose dependency is missing, and Elementor registers
+	 * `elementor-common` with `elementor-icons` as a dependency - so removing
+	 * the icons would silently take the stylesheet above them as well. That is
+	 * a much larger hole than the one this setting is for, and it would look
+	 * like a broken page rather than a missing icon.
+	 *
+	 * So each handle is re-registered with no source: still there for anything
+	 * that depends on it, resolving exactly as before, and printing nothing.
+	 *
+	 * @return void
+	 */
+	public function drop_elementor_icon_fonts() {
+		$handles = array(
+			'elementor-icons-fa-solid',
+			'elementor-icons-fa-regular',
+			'elementor-icons-fa-brands',
+			'elementor-icons',
+		);
+		foreach ( $handles as $handle ) {
+			wp_deregister_style( $handle );
+			wp_register_style( $handle, false, array(), null );
+		}
+	}
+
+	/**
+	 * Dequeue the block library stylesheets on the front end.
+	 *
+	 * Dequeued rather than deregistered, so anything that asks for them later
+	 * in the same request can still get them - and only on the front end,
+	 * because the editor screens are built out of these styles.
+	 *
+	 * A page that does use a block will lose its styling. On a site built with
+	 * Elementor that is usually no page at all, which is the case this exists
+	 * for; it is off by default because "usually" is not "always".
+	 *
+	 * @return void
+	 */
+	public function drop_block_library_css() {
+		if ( is_admin() ) {
+			return;
+		}
+		wp_dequeue_style( 'wp-block-library' );
+		wp_dequeue_style( 'wp-block-library-theme' );
 	}
 
 	/**

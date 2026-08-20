@@ -4,7 +4,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.24.0
+Stable tag: 1.25.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -146,7 +146,8 @@ Small site-wide tweaks that replace assorted functions.php snippets - each an in
 * HTTP security headers on front-end responses: X-Frame-Options (SAMEORIGIN), X-Content-Type-Options (nosniff), an optional legacy X-XSS-Protection, and optional HSTS (Strict-Transport-Security) sent over HTTPS only, with an extra opt-in for includeSubDomains/preload
 * Sanitised SVG uploads: every SVG is cleaned on upload (scripts, event handlers, javascript: URLs, external references and entity/DOCTYPE payloads are stripped), and uploads are limited to users with a configurable capability (administrators by default)
 * Hide the WordPress version: removes the generator meta tag/RSS marker and the `?ver=` core version from asset URLs, while keeping plugin/theme asset versions so cache-busting still works
-* Elementor helpers (only when Elementor is active): disable Elementor's Google Fonts, and validate phone numbers in Elementor Pro `tel` form fields
+* Elementor helpers (only when Elementor is active): disable Elementor's Google Fonts, validate phone numbers in Elementor Pro `tel` form fields, and drop Elementor's icon fonts (Font Awesome and eicons) on a design that uses no icons - a page that does use one shows an empty square, so check first
+* Front-end weight: drop the block editor stylesheets from public pages on a site built entirely in Elementor (the editor itself is unaffected, and any page that does contain a block loses its styling), and switch the block editor off for posts and pages so there is one way to edit content rather than two
 
 = Module: WooCommerce Checkout =
 
@@ -311,6 +312,12 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 5. Configure each module you enabled from its own screen. For the Cookie Banner that means reviewing the texts per language and pasting your analytics/marketing snippets in the Scripts tab, then checking the site
 
 == Changelog ==
+
+= 1.25.0 =
+* Site Tweaks: three more toggles, all off by default, taken from the snippets the Hello Digitizer child theme used to carry
+* Do not load Elementor icon fonts - drops Font Awesome and eicons, four stylesheets a design without icons never needs. A design that does use one shows an empty square, so the switch says to check first
+* Do not load block styles on the front end - a site built entirely in Elementor never uses them, and the editor is unaffected
+* Edit in the classic editor - one way to edit content on a site built in Elementor rather than two
 
 = 1.24.0 =
 * New module: Update Policy - holds a major WordPress release back for a set number of days after this site is first offered it, so the plugins and themes running here have time to catch up with it. Disabled by default, like every module

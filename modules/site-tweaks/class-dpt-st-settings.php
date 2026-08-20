@@ -4,8 +4,9 @@
  *
  * Consolidates the loose functions.php hardening/utility snippets Digitizer
  * pastes on client sites: HTTP security headers, SVG uploads (sanitised),
- * removal of the WordPress generator version, and a couple of Elementor
- * conveniences. Each tweak is an independent toggle.
+ * removal of the WordPress generator version, a couple of Elementor
+ * conveniences, and the front-end weight an Elementor site does not use.
+ * Each tweak is an independent toggle.
  */
 
 if ( ! defined( 'ABSPATH' ) ) { exit; }
@@ -42,6 +43,15 @@ class DPT_ST_Settings {
 			// Elementor conveniences (only wired when Elementor is active).
 			'elementor_google_fonts' => '0', // '1' = stop Elementor loading Google Fonts
 			'elementor_tel_validate' => '0', // '1' = enforce a phone-number format on tel fields
+			// Drops Elementor's Font Awesome and eicons stylesheets. A real
+			// saving on a design that uses no icons, and empty squares on one
+			// that does - which looks like a broken design rather than like a
+			// setting, so it is off by default and says so on the screen.
+			'elementor_icon_fonts'   => '0', // '1' = do not load Elementor's icon fonts
+
+			// Front-end weight that a site built with Elementor rarely needs.
+			'block_library_css'      => '0', // '1' = dequeue the block library stylesheets
+			'disable_block_editor'   => '0', // '1' = edit posts and pages in the classic editor
 		);
 	}
 

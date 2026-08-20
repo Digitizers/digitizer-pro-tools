@@ -93,6 +93,17 @@ function add_filter( $tag = '', $callback = null ) {
 function remove_filter( $tag = '', $callback = null ) {
 	unset( $GLOBALS['dpt_stub_filters'][ $tag ] );
 }
+// Style registry, enough to see what a tweak removes.
+$GLOBALS['dpt_stub_deregistered_styles'] = array();
+$GLOBALS['dpt_stub_dequeued_styles']     = array();
+$GLOBALS['dpt_stub_registered_styles'] = array();
+function wp_deregister_style( $handle ) { $GLOBALS['dpt_stub_deregistered_styles'][] = $handle; }
+function wp_register_style( $handle, $src = '', $deps = array(), $ver = null ) {
+	$GLOBALS['dpt_stub_registered_styles'][ $handle ] = array( 'src' => $src, 'deps' => $deps );
+	return true;
+}
+function wp_dequeue_style( $handle ) { $GLOBALS['dpt_stub_dequeued_styles'][] = $handle; }
+
 function dpt_stub_has_filter( $tag ) {
 	return isset( $GLOBALS['dpt_stub_filters'][ $tag ] );
 }

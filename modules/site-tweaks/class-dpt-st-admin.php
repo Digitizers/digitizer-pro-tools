@@ -145,6 +145,17 @@ class DPT_ST_Admin {
 								<?php
 								$this->switch_row( 'elementor_google_fonts', __( 'Disable Elementor Google Fonts', 'digitizer-pro-tools' ), __( 'Stops Elementor loading fonts from Google (privacy/performance). Use only if your fonts are hosted locally.', 'digitizer-pro-tools' ), $o['elementor_google_fonts'] );
 								$this->switch_row( 'elementor_tel_validate', __( 'Validate phone fields (Elementor Pro)', 'digitizer-pro-tools' ), __( 'Rejects malformed numbers in Elementor Pro form <code>tel</code> fields (9-14 digits, optional leading +).', 'digitizer-pro-tools' ), $o['elementor_tel_validate'] );
+								$this->switch_row( 'elementor_icon_fonts', __( 'Do not load Elementor icon fonts', 'digitizer-pro-tools' ), __( 'Drops Font Awesome and eicons - four stylesheets a design that uses no icons never needs. <strong>Check the design first:</strong> a page that does use an icon will show an empty square, which looks like a broken design rather than a setting.', 'digitizer-pro-tools' ), $o['elementor_icon_fonts'] );
+								?>
+							</table>
+						</div>
+
+						<div class="dpt-panel">
+							<h2><span class="dashicons dashicons-performance"></span> <?php esc_html_e( 'Front-end weight', 'digitizer-pro-tools' ); ?></h2>
+							<table class="form-table dpt-form">
+								<?php
+								$this->switch_row( 'block_library_css', __( 'Do not load block styles on the front end', 'digitizer-pro-tools' ), __( 'Drops the block editor stylesheets from public pages. A site built entirely in Elementor never uses them. <strong>Any page that does contain a block loses its styling</strong>, so check before switching this on. The editor itself is unaffected.', 'digitizer-pro-tools' ), $o['block_library_css'] );
+								$this->switch_row( 'disable_block_editor', __( 'Edit in the classic editor', 'digitizer-pro-tools' ), __( 'Turns the block editor off for posts and pages, so a site built in Elementor has one way to edit content rather than two. Existing block content is kept and is shown as blocks in the classic editor.', 'digitizer-pro-tools' ), $o['disable_block_editor'] );
 								?>
 							</table>
 						</div>
