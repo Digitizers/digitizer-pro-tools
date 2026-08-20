@@ -179,6 +179,21 @@ dpt_test_ok(
 	'a major that is currently held is still recorded, so its window can end'
 );
 
+// A module switched on while a major is already offered has missed the check
+// that would have stamped it. The hold is right either way, but the notice
+// would have had no dates to show - the epoch, printed as 1970 - so the stamp
+// is taken on the first admin page load as well as on a check.
+$GLOBALS['dpt_stub_options'] = array(
+	'dpt_update_policy' => array( 'hold_days' => 30, 'seen' => array(), 'released' => array() ),
+);
+DPT_UP_Policy::record_sightings();
+$held_now = DPT_UP_Policy::held_majors();
+dpt_test_ok( $held_now['7.1']['seen'] > 0, 'a release already offered when the module is switched on gets a real first-seen date' );
+dpt_test_ok(
+	$held_now['7.1']['until'] > $held_now['7.1']['seen'],
+	'and a hold that ends after it began rather than in 1970'
+);
+
 /* ---- what the screen is told ---- */
 
 $now = time();

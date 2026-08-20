@@ -14,6 +14,10 @@ class DPT_UP_Admin {
 		add_action( 'admin_post_dpt_up_save', array( $this, 'handle_save' ) );
 		add_action( 'admin_post_dpt_up_release', array( $this, 'handle_release' ) );
 		add_action( 'admin_notices', array( $this, 'maybe_show_notices' ) );
+		// Core updates on a network are managed from the network Updates
+		// screen, which fires its own notices hook. Without this the network
+		// administrator sees a missing update and no explanation for it.
+		add_action( 'network_admin_notices', array( $this, 'maybe_show_notices' ) );
 	}
 
 	public function register_menu( $parent_slug ) {

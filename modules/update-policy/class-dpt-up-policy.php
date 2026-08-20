@@ -24,6 +24,13 @@ class DPT_UP_Policy {
 		add_filter( 'site_transient_update_core', array( __CLASS__, 'apply_hold' ) );
 		add_action( 'set_site_transient_update_core', array( __CLASS__, 'record_sightings' ) );
 
+		// Also once per admin page load. A module switched on while a major is
+		// already offered has missed the check that would have stamped it, and
+		// an unstamped hold has no dates to show - the notice would say the
+		// site first saw the release in 1970. Idempotent: it writes only when
+		// a branch has no stamp yet.
+		add_action( 'admin_init', array( __CLASS__, 'record_sightings' ) );
+
 		// The unattended path has to agree with the visible one. Major core
 		// auto-updates are off by default, so this is belt and braces - but a
 		// site that turned them on should not quietly bypass the hold.
