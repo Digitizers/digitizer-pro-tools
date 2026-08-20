@@ -257,4 +257,28 @@ DPT_UP_Policy::init();
 dpt_test_ok( dpt_stub_has_filter( 'site_transient_update_core' ), 'and a single site is never asked the question' );
 $GLOBALS['dpt_stub_main_site'] = true;
 
+/* ---- who may switch the module itself ---- */
+
+require_once dirname( __DIR__ ) . '/includes/class-dpt-module.php';
+require_once dirname( __DIR__ ) . '/modules/update-policy/class-dpt-up-module.php';
+
+$module = new DPT_Update_Policy_Module();
+
+$GLOBALS['dpt_stub_multisite'] = false;
+dpt_test_ok( $module->user_can_toggle(), 'on a single site the switch is the Modules screen\'s own business' );
+
+// On a network the switch decides for every site on it, so it asks for the
+// authority that decision needs - not the authority the Modules screen
+// happens to require. A main-site administrator can reach that screen with
+// manage_options alone and would otherwise be able to switch off a hold they
+// are not allowed to release.
+$GLOBALS['dpt_stub_multisite']   = true;
+$GLOBALS['dpt_stub_denied_caps'] = array( 'manage_network_options' );
+dpt_test_ok( ! $module->user_can_toggle(), 'on a network a site administrator may not switch it' );
+dpt_test_ok( '' !== $module->toggle_denied_reason(), 'and the screen is given a reason to show' );
+
+$GLOBALS['dpt_stub_denied_caps'] = array();
+dpt_test_ok( $module->user_can_toggle(), 'while a network administrator may' );
+$GLOBALS['dpt_stub_multisite'] = false;
+
 exit( dpt_test_summary() > 0 ? 1 : 0 );

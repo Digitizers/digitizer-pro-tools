@@ -62,6 +62,17 @@ class DPT_Admin {
 		// Keys are matched against the module registry in save_enabled_map(),
 		// so anything unknown is discarded rather than sanitized.
 		$raw = isset( $_POST['dpt_modules'] ) && is_array( $_POST['dpt_modules'] ) ? wp_unslash( $_POST['dpt_modules'] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Validated against the registry in save_enabled_map().
+
+		// A module whose switch this user may not touch keeps the value it
+		// already had, whatever the form said. The screen renders those as
+		// read-only, and a read-only control is a courtesy, not a check.
+		$current = $this->plugin->enabled_map();
+		foreach ( $this->plugin->modules() as $id => $module ) {
+			if ( ! $module->user_can_toggle() ) {
+				$raw[ $id ] = isset( $current[ $id ] ) ? $current[ $id ] : '0';
+			}
+		}
+
 		$this->plugin->save_enabled_map( $raw );
 
 		wp_safe_redirect( add_query_arg( array( 'page' => self::MENU_SLUG, 'updated' => '1' ), admin_url( 'admin.php' ) ) );
@@ -91,13 +102,17 @@ class DPT_Admin {
 						<div class="dpt-module-card">
 							<div class="dpt-module-card-head">
 								<h2><?php echo esc_html( $module->title() ); ?></h2>
+								<?php $dpt_can_toggle = $module->user_can_toggle(); ?>
 								<label class="dpt-switch">
 									<input type="hidden" name="dpt_modules[<?php echo esc_attr( $id ); ?>]" value="0" />
-									<input type="checkbox" name="dpt_modules[<?php echo esc_attr( $id ); ?>]" value="1" <?php checked( '1', isset( $enabled[ $id ] ) ? $enabled[ $id ] : '0' ); ?> />
+									<input type="checkbox" name="dpt_modules[<?php echo esc_attr( $id ); ?>]" value="1" <?php checked( '1', isset( $enabled[ $id ] ) ? $enabled[ $id ] : '0' ); ?> <?php disabled( false, $dpt_can_toggle ); ?> />
 									<span class="dpt-switch-slider"></span>
 								</label>
 							</div>
 							<p><?php echo esc_html( $module->description() ); ?></p>
+							<?php if ( ! $dpt_can_toggle && $module->toggle_denied_reason() ) : ?>
+								<p class="description"><?php echo esc_html( $module->toggle_denied_reason() ); ?></p>
+							<?php endif; ?>
 						</div>
 					<?php endforeach; ?>
 				</div>

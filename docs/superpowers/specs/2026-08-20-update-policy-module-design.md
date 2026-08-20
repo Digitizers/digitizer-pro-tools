@@ -173,6 +173,13 @@ administered. Switching it on for a subsite alone would hold nothing that the
 network Updates screen or the update cron could see, while looking like
 protection — the switch has to govern the whole network or govern nothing.
 
+Because the main site's switch then decides for the whole network, the switch
+itself asks for network authority: `DPT_Module` gained `user_can_toggle()`,
+which the Modules screen renders as a read-only control with a reason, and
+which the save path enforces regardless of what was posted. Without it a
+main-site administrator holding only `manage_options` could switch off a hold
+they are not allowed to release.
+
 What this does not solve: a network administrator who switches the module on
 from a subsite's Modules screen gets no warning that it will do nothing there.
 Making module enablement network-wide would fix that properly, and it would
