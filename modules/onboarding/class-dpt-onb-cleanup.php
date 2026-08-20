@@ -14,29 +14,50 @@ class DPT_ONB_Cleanup {
 	/**
 	 * Which of the installed default themes may be deleted.
 	 *
-	 * Pure, so the rules can be tested without a filesystem. Three of them,
-	 * and each exists because of a way the site breaks without it:
+	 * Pure, so the rules can be tested without a filesystem. Each exists
+	 * because of a way the site breaks without it:
 	 *
+	 * - Only themes that are core's own. The directory name is not proof of
+	 *   that: a host or an operator can put an entirely different theme in a
+	 *   directory called twentytwentyfour, and deleting it on the strength of
+	 *   its name would destroy someone's work. So a candidate must also carry
+	 *   core's authorship in its own style.css, the same two-signal test
+	 *   DPT_ONB_Installer uses before it will replace a theme. A theme whose
+	 *   author is unknown to the caller is left alone.
 	 * - Never the active theme. Deleting what the site is running takes it
 	 *   down immediately.
 	 * - Never a theme another installed theme names as its parent. That
 	 *   includes child themes we know nothing about: deleting the parent
 	 *   leaves the child unusable.
-	 * - Always keep the newest default that is present. It is the fallback
-	 *   WordPress switches to if the active theme ever becomes unusable.
-	 *   Without one the site does not degrade, it stops.
+	 * - Never WP_DEFAULT_THEME. That constant, not the newest slug in the
+	 *   list below, is the theme core actually switches to when the active
+	 *   theme becomes invalid, and the two disagree on any site running an
+	 *   older WordPress with a newer default installed by hand.
+	 * - Always keep the newest default that is present, as well. It is the
+	 *   fallback on a site where WP_DEFAULT_THEME is undefined or points at
+	 *   something that is not installed. Keeping one theme too many costs a
+	 *   few megabytes; keeping none can stop the site.
 	 *
-	 * @param array  $installed Slugs of installed themes.
-	 * @param string $active    Active stylesheet.
-	 * @param array  $parents   Template (parent) slugs installed themes declare.
+	 * @param array  $installed       Slugs of installed themes.
+	 * @param string $active          Active stylesheet.
+	 * @param array  $parents         Template (parent) slugs installed themes declare.
+	 * @param array  $authors         Map of slug => Author header, for the installed themes.
+	 * @param string $bundled_default WP_DEFAULT_THEME, or '' when undefined.
 	 * @return array Slugs to delete, oldest first.
 	 */
-	public static function removable( $installed, $active, $parents = array() ) {
+	public static function removable( $installed, $active, $parents = array(), $authors = array(), $bundled_default = '' ) {
 		$defaults = array();
 		foreach ( DPT_ONB_Installer::DEFAULT_THEMES as $slug ) {
-			if ( in_array( $slug, $installed, true ) ) {
-				$defaults[] = $slug;
+			if ( ! in_array( $slug, $installed, true ) ) {
+				continue;
 			}
+			$author = isset( $authors[ $slug ] ) ? $authors[ $slug ] : '';
+			if ( ! DPT_ONB_Installer::authored_by_core( $author ) ) {
+				// A third-party theme wearing a core directory name, or one we
+				// were told nothing about. Not ours to delete either way.
+				continue;
+			}
+			$defaults[] = $slug;
 		}
 		if ( count( $defaults ) < 2 ) {
 			// One or none: whatever is there is the fallback.
@@ -47,7 +68,7 @@ class DPT_ONB_Cleanup {
 
 		$out = array();
 		foreach ( $defaults as $slug ) {
-			if ( $slug === $keep || $slug === $active || in_array( $slug, $parents, true ) ) {
+			if ( $slug === $keep || $slug === $active || $slug === $bundled_default || in_array( $slug, $parents, true ) ) {
 				continue;
 			}
 			$out[] = $slug;
@@ -87,8 +108,19 @@ class DPT_ONB_Cleanup {
 			);
 		}
 
-		$installed = array_keys( wp_get_themes() );
-		$removable = self::removable( $installed, get_stylesheet(), self::parents_in_use() );
+		$installed = array();
+		$authors   = array();
+		foreach ( wp_get_themes() as $slug => $theme ) {
+			$installed[]      = $slug;
+			$authors[ $slug ] = (string) $theme->get( 'Author' );
+		}
+		$removable = self::removable(
+			$installed,
+			get_stylesheet(),
+			self::parents_in_use(),
+			$authors,
+			DPT_ONB_Installer::bundled_default_theme()
+		);
 
 		if ( ! $removable ) {
 			return array(

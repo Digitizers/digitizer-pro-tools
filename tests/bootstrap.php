@@ -97,6 +97,11 @@ function update_option( $key, $value ) {
 	return true;
 }
 
+// On a single site core's site-option functions are the option functions, and
+// the stub store is shared for the same reason.
+function get_site_option( $key, $default = false ) { return get_option( $key, $default ); }
+function update_site_option( $key, $value ) { return update_option( $key, $value ); }
+
 function get_transient( $key ) {
 	return array_key_exists( $key, $GLOBALS['dpt_stub_transients'] ) ? $GLOBALS['dpt_stub_transients'][ $key ] : false;
 }

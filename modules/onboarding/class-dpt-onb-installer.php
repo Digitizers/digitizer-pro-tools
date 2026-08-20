@@ -285,9 +285,14 @@ class DPT_ONB_Installer {
 		if ( '' === $key ) {
 			return false;
 		}
+		// Core keeps both lists as network-wide site options and reads them
+		// that way on every screen. On a single site get_site_option() is
+		// get_option(); on multisite the plain option would be written to one
+		// blog and never read, so the wizard would report an enrolment that
+		// does not exist.
 		$option = self::auto_update_option( $item );
-		$merged = self::merge_auto_update( get_option( $option, array() ), $key );
-		update_option( $option, $merged );
+		$merged = self::merge_auto_update( get_site_option( $option, array() ), $key );
+		update_site_option( $option, $merged );
 		return true;
 	}
 
