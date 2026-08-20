@@ -118,6 +118,17 @@ function update_option( $key, $value ) {
 function get_site_option( $key, $default = false ) { return get_option( $key, $default ); }
 function update_site_option( $key, $value ) { return update_option( $key, $value ); }
 
+// Site transients share the stub store, as they share an implementation on a
+// single site.
+$GLOBALS['dpt_stub_site_transients'] = array();
+function get_site_transient( $key ) {
+	return array_key_exists( $key, $GLOBALS['dpt_stub_site_transients'] ) ? $GLOBALS['dpt_stub_site_transients'][ $key ] : false;
+}
+function set_site_transient( $key, $value, $ttl = 0 ) {
+	$GLOBALS['dpt_stub_site_transients'][ $key ] = $value;
+	return true;
+}
+
 function get_transient( $key ) {
 	return array_key_exists( $key, $GLOBALS['dpt_stub_transients'] ) ? $GLOBALS['dpt_stub_transients'][ $key ] : false;
 }
@@ -133,6 +144,8 @@ $GLOBALS['dpt_stub_denied_caps'] = array();
 function current_user_can( $cap ) { return ! in_array( $cap, $GLOBALS['dpt_stub_denied_caps'], true ); }
 $GLOBALS['dpt_stub_multisite'] = false;
 function is_multisite() { return (bool) $GLOBALS['dpt_stub_multisite']; }
+$GLOBALS['dpt_stub_main_site'] = true;
+function is_main_site() { return (bool) $GLOBALS['dpt_stub_main_site']; }
 $GLOBALS['dpt_stub_is_admin'] = true;
 function is_admin() { return (bool) $GLOBALS['dpt_stub_is_admin']; }
 function wp_doing_cron() { return false; }

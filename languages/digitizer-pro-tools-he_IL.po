@@ -1838,3 +1838,45 @@ msgstr "חל גם על Digitizer Pro Tools עצמו, וגם על הפריטים 
 
 msgid "Automatic updates could not be turned on for Digitizer Pro Tools."
 msgstr "לא ניתן היה להפעיל עדכונים אוטומטיים ל-Digitizer Pro Tools."
+
+msgid "Update Policy"
+msgstr "מדיניות עדכונים"
+
+msgid "WordPress %s is available, and this site is holding it back."
+msgstr "וורדפרס %s זמינה, והאתר הזה מחזיק אותה."
+
+msgid "It was first offered here on %1$s, and the hold ends on %2$s. Major releases are held so that the plugins and themes on this site have time to catch up with them; security and maintenance releases are installed as usual and are not affected."
+msgstr "היא הוצעה כאן לראשונה ב-%1$s, וההחזקה מסתיימת ב-%2$s. גרסאות מייג'ור מוחזקות כדי לתת לתוספים ולתבניות באתר הזה זמן להדביק אותן; עדכוני אבטחה ותחזוקה מותקנים כרגיל ואינם מושפעים."
+
+msgid "Offer it now anyway"
+msgstr "הצע אותה עכשיו בכל זאת"
+
+msgid "Update policy settings"
+msgstr "הגדרות מדיניות עדכונים"
+
+msgid "A major WordPress release is held back for a while after this site is first offered it, so that the plugins and themes running here have time to catch up with it. Security and maintenance releases are never held: they are what keeps the site safe, and WordPress installs them on its own."
+msgstr "גרסת מייג'ור של וורדפרס מוחזקת לזמן מה אחרי שהאתר מקבל אותה לראשונה, כדי לתת לתוספים ולתבניות שרצים כאן זמן להדביק אותה. עדכוני אבטחה ותחזוקה לעולם אינם מוחזקים: הם מה ששומר על האתר בטוח, ווורדפרס מתקינה אותם בעצמה."
+
+msgid "Hold major releases for"
+msgstr "החזק גרסאות מייג'ור למשך"
+
+msgid "days"
+msgstr "ימים"
+
+msgid "Counted from the day this site first saw the release, not from the day it was published. Set to 0 to hold nothing."
+msgstr "נספר מהיום שבו האתר ראה את הגרסה לראשונה, לא מיום פרסומה. אפס פירושו לא להחזיק דבר."
+
+msgid "Currently held"
+msgstr "מוחזק כעת"
+
+msgid "Nothing is being held back right now."
+msgstr "שום דבר לא מוחזק כרגע."
+
+msgid "WordPress %1$s, until %2$s"
+msgstr "וורדפרס %1$s, עד %2$s"
+
+msgid "Holds a major WordPress release back for a set number of days after this site is first offered it, so the plugins and themes here have time to catch up. Security and maintenance releases are never held. The hold is shown on the Updates screen and can be lifted from there. On a multisite network the policy belongs to the main site, because the WordPress it governs belongs to the network."
+msgstr "מחזיק גרסת מייג'ור של וורדפרס למספר ימים קבוע אחרי שהאתר מקבל אותה לראשונה, כדי לתת לתוספים ולתבניות כאן זמן להדביק אותה. עדכוני אבטחה ותחזוקה לעולם אינם מוחזקים. ההחזקה מוצגת במסך העדכונים וניתן לשחרר אותה משם. ברשת מולטיסייט המדיניות שייכת לאתר הראשי, כי הוורדפרס שהיא מנהלת שייכת לרשת."
+
+msgid "On a multisite network this policy applies to every site, so only a network administrator can switch it on or off."
+msgstr "ברשת מולטיסייט המדיניות הזו חלה על כל האתרים, ולכן רק מנהל רשת יכול להדליק או לכבות אותה."

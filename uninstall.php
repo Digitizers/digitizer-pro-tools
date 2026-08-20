@@ -9,6 +9,12 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 
 delete_option( 'dpt_settings' );
 delete_option( 'dpt_onboarding' );
+delete_option( 'dpt_update_policy' );
+// The update policy is network-wide on multisite, where it is stored as a
+// site option rather than the blog's own.
+if ( is_multisite() ) {
+	delete_site_option( 'dpt_update_policy' );
+}
 delete_option( 'dpt_cookie_banner' );
 delete_option( 'dpt_duplicate_post' );
 delete_option( 'dpt_update_emails' );
