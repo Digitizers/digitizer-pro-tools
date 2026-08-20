@@ -131,20 +131,32 @@ class DPT_Site_Tweaks_Module extends DPT_Module {
 	}
 
 	/**
-	 * Deregister Elementor's icon fonts.
+	 * Stop Elementor's icon fonts loading, without breaking what depends on
+	 * them.
 	 *
-	 * Font Awesome ships as three separate stylesheets and eicons as a fourth.
-	 * A design that uses no icons loads all four for nothing; a design that
-	 * uses one loses them all, which is why this is off unless someone asks
-	 * for it.
+	 * Deregistering the handles outright would be wrong. WordPress skips a
+	 * style whose dependency is missing, and Elementor registers
+	 * `elementor-common` with `elementor-icons` as a dependency - so removing
+	 * the icons would silently take the stylesheet above them as well. That is
+	 * a much larger hole than the one this setting is for, and it would look
+	 * like a broken page rather than a missing icon.
+	 *
+	 * So each handle is re-registered with no source: still there for anything
+	 * that depends on it, resolving exactly as before, and printing nothing.
 	 *
 	 * @return void
 	 */
 	public function drop_elementor_icon_fonts() {
-		foreach ( array( 'solid', 'regular', 'brands' ) as $style ) {
-			wp_deregister_style( 'elementor-icons-fa-' . $style );
+		$handles = array(
+			'elementor-icons-fa-solid',
+			'elementor-icons-fa-regular',
+			'elementor-icons-fa-brands',
+			'elementor-icons',
+		);
+		foreach ( $handles as $handle ) {
+			wp_deregister_style( $handle );
+			wp_register_style( $handle, false, array(), null );
 		}
-		wp_deregister_style( 'elementor-icons' );
 	}
 
 	/**

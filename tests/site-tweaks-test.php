@@ -27,12 +27,24 @@ dpt_test_eq( $after['x_frame_options'], '0', 'a field absent from the form is of
 $module = new DPT_Site_Tweaks_Module();
 
 $GLOBALS['dpt_stub_deregistered_styles'] = array();
+$GLOBALS['dpt_stub_registered_styles']   = array();
 $module->drop_elementor_icon_fonts();
+$icon_handles = array( 'elementor-icons-fa-solid', 'elementor-icons-fa-regular', 'elementor-icons-fa-brands', 'elementor-icons' );
 dpt_test_eq(
 	$GLOBALS['dpt_stub_deregistered_styles'],
-	array( 'elementor-icons-fa-solid', 'elementor-icons-fa-regular', 'elementor-icons-fa-brands', 'elementor-icons' ),
+	$icon_handles,
 	'Font Awesome ships as three stylesheets and eicons as a fourth - all four go, or the saving is imaginary'
 );
+
+// Each handle is put back with no source. WordPress skips a style whose
+// dependency is missing, and Elementor registers elementor-common with
+// elementor-icons as a dependency - so removing the handle outright would take
+// the stylesheet above it too, which looks like a broken page rather than a
+// missing icon.
+foreach ( $icon_handles as $handle ) {
+	dpt_test_ok( isset( $GLOBALS['dpt_stub_registered_styles'][ $handle ] ), $handle . ' is registered again' );
+	dpt_test_eq( $GLOBALS['dpt_stub_registered_styles'][ $handle ]['src'], false, 'with no source, so it resolves and prints nothing' );
+}
 
 $GLOBALS['dpt_stub_dequeued_styles'] = array();
 $GLOBALS['dpt_stub_is_admin']        = false;
