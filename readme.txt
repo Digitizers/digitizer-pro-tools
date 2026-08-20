@@ -44,6 +44,7 @@ Decides when this site takes a major WordPress release:
 * The hold can be lifted from that notice at any time, permanently for that release line
 * The window is counted from the day this site first saw the release, not from the day it was published: nothing is asked of any external service, and a site checks for updates twice a day
 * Nothing is ever installed automatically. When the window passes the release is simply offered again, and updating stays a deliberate act
+* On a multisite network the policy is the main site's, since the WordPress it governs belongs to the network
 
 = Module: Cookie Banner =
 

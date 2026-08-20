@@ -626,6 +626,6 @@ return array (
     'Currently held' => 'מוחזק כעת',
     'Nothing is being held back right now.' => 'שום דבר לא מוחזק כרגע.',
     'WordPress %1$s, until %2$s' => 'וורדפרס %1$s, עד %2$s',
-    'Holds a major WordPress release back for a set number of days after this site is first offered it, so the plugins and themes here have time to catch up. Security and maintenance releases are never held. The hold is shown on the Updates screen and can be lifted from there.' => 'מחזיק גרסת מייג\'ור של וורדפרס למספר ימים קבוע אחרי שהאתר מקבל אותה לראשונה, כדי לתת לתוספים ולתבניות כאן זמן להדביק אותה. עדכוני אבטחה ותחזוקה לעולם אינם מוחזקים. ההחזקה מוצגת במסך העדכונים וניתן לשחרר אותה משם.',
+    'Holds a major WordPress release back for a set number of days after this site is first offered it, so the plugins and themes here have time to catch up. Security and maintenance releases are never held. The hold is shown on the Updates screen and can be lifted from there. On a multisite network the policy belongs to the main site, because the WordPress it governs belongs to the network.' => 'מחזיק גרסת מייג\'ור של וורדפרס למספר ימים קבוע אחרי שהאתר מקבל אותה לראשונה, כדי לתת לתוספים ולתבניות כאן זמן להדביק אותה. עדכוני אבטחה ותחזוקה לעולם אינם מוחזקים. ההחזקה מוצגת במסך העדכונים וניתן לשחרר אותה משם. ברשת מולטיסייט המדיניות שייכת לאתר הראשי, כי הוורדפרס שהיא מנהלת שייכת לרשת.',
   ),
 );

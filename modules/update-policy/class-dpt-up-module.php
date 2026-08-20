@@ -26,7 +26,7 @@ class DPT_Update_Policy_Module extends DPT_Module {
 	}
 
 	public function description() {
-		return __( 'Holds a major WordPress release back for a set number of days after this site is first offered it, so the plugins and themes here have time to catch up. Security and maintenance releases are never held. The hold is shown on the Updates screen and can be lifted from there.', 'digitizer-pro-tools' );
+		return __( 'Holds a major WordPress release back for a set number of days after this site is first offered it, so the plugins and themes here have time to catch up. Security and maintenance releases are never held. The hold is shown on the Updates screen and can be lifted from there. On a multisite network the policy belongs to the main site, because the WordPress it governs belongs to the network.', 'digitizer-pro-tools' );
 	}
 
 	public function init() {

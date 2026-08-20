@@ -162,10 +162,22 @@ uncertain case resolves towards *not* holding:
 ## Multisite
 
 The core update is network-wide, and so is this policy: the option is written
-with `update_site_option()` on multisite, and the settings screen is offered
-only to a user who can `manage_network_options`. A subsite administrator has no
-`update_core` capability on multisite in the first place, so nothing changes
-for them.
+with `update_site_option()`, and changing it requires `manage_network_options`.
+A subsite administrator has no `update_core` capability on multisite in the
+first place, so nothing changes for them.
+
+The module's own on/off switch is per blog, because that is how every module in
+this plugin is stored, and a core update is not a per-blog thing. So on a
+network the module **acts only on the main site**, where core updates are
+administered. Switching it on for a subsite alone would hold nothing that the
+network Updates screen or the update cron could see, while looking like
+protection — the switch has to govern the whole network or govern nothing.
+
+What this does not solve: a network administrator who switches the module on
+from a subsite's Modules screen gets no warning that it will do nothing there.
+Making module enablement network-wide would fix that properly, and it would
+change the stored meaning of every other module's switch on every existing
+multisite install, which is not a change to make in passing.
 
 ## Testing
 

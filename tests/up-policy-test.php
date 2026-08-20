@@ -233,4 +233,28 @@ dpt_test_ok( ! DPT_UP_Policy::release( '7.1' ), 'and cannot release a hold' );
 $GLOBALS['dpt_stub_denied_caps'] = array();
 $GLOBALS['dpt_stub_multisite']   = false;
 
+/* ---- on a network, the main site decides ---- */
+
+// The module switch is per blog; a core update is not. A subsite that switched
+// this on would hold nothing anyone else could see, while the network Updates
+// screen and the update cron went on offering the major from the main site -
+// a switch that looks like protection and is not. So it answers only where
+// core updates are actually administered.
+$GLOBALS['dpt_stub_filters']   = array();
+$GLOBALS['dpt_stub_multisite'] = true;
+$GLOBALS['dpt_stub_main_site'] = false;
+DPT_UP_Policy::init();
+dpt_test_ok( ! dpt_stub_has_filter( 'site_transient_update_core' ), 'a subsite on a network registers nothing' );
+
+$GLOBALS['dpt_stub_main_site'] = true;
+DPT_UP_Policy::init();
+dpt_test_ok( dpt_stub_has_filter( 'site_transient_update_core' ), 'the main site does' );
+
+$GLOBALS['dpt_stub_filters']   = array();
+$GLOBALS['dpt_stub_multisite'] = false;
+$GLOBALS['dpt_stub_main_site'] = false;
+DPT_UP_Policy::init();
+dpt_test_ok( dpt_stub_has_filter( 'site_transient_update_core' ), 'and a single site is never asked the question' );
+$GLOBALS['dpt_stub_main_site'] = true;
+
 exit( dpt_test_summary() > 0 ? 1 : 0 );

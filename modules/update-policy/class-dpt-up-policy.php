@@ -21,6 +21,21 @@ class DPT_UP_Policy {
 	 * Register the filters.
 	 */
 	public static function init() {
+		// On a network this is the main site's decision and nobody else's.
+		//
+		// A core update is network-wide - one WordPress, one transient, one
+		// Updates screen under Network Admin - while the plugin's module
+		// switch is per blog. Left alone, a subsite could switch this module
+		// on, hold nothing anyone else can see, and look protected: the
+		// network Updates screen and the update cron would go on offering the
+		// major from the main site's context. Answering only where core
+		// updates are actually administered means the switch either governs
+		// the whole network or governs nothing, and never appears to do one
+		// while doing the other.
+		if ( is_multisite() && ! is_main_site() ) {
+			return;
+		}
+
 		add_filter( 'site_transient_update_core', array( __CLASS__, 'apply_hold' ) );
 		add_action( 'set_site_transient_update_core', array( __CLASS__, 'record_sightings' ) );
 

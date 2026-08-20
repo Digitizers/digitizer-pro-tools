@@ -144,6 +144,8 @@ $GLOBALS['dpt_stub_denied_caps'] = array();
 function current_user_can( $cap ) { return ! in_array( $cap, $GLOBALS['dpt_stub_denied_caps'], true ); }
 $GLOBALS['dpt_stub_multisite'] = false;
 function is_multisite() { return (bool) $GLOBALS['dpt_stub_multisite']; }
+$GLOBALS['dpt_stub_main_site'] = true;
+function is_main_site() { return (bool) $GLOBALS['dpt_stub_main_site']; }
 $GLOBALS['dpt_stub_is_admin'] = true;
 function is_admin() { return (bool) $GLOBALS['dpt_stub_is_admin']; }
 function wp_doing_cron() { return false; }
