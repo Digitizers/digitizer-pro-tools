@@ -4,7 +4,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.23.0
+Stable tag: 1.24.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -32,6 +32,18 @@ Brings a new site up to the Digitizer baseline in one pass:
 * One request per item, so a slow download cannot time out the whole run, and each row reports what happened
 * The theme is switched only while the site is still on a WordPress default - a site with a live custom theme keeps it, and the summary says so
 * The list is fixed in code. There is no field for pasting a plugin URL
+
+= Module: Update Policy =
+
+Decides when this site takes a major WordPress release:
+
+* A major release is held back for a set number of days - 30 by default - after this site is first offered it, so the plugins and themes running here have time to catch up with it
+* **Security and maintenance releases are never held.** They are what keeps a site safe, WordPress installs them on its own, and this module does not look at them
+* A held release is removed from the update offer rather than merely discouraged: a warning does not stop someone pressing the button, and a button that is not there does
+* The Updates screen says which release is held, when this site first saw it, and when the hold ends - a hold nobody can see is indistinguishable from a site whose updates are broken
+* The hold can be lifted from that notice at any time, permanently for that release line
+* The window is counted from the day this site first saw the release, not from the day it was published: nothing is asked of any external service, and a site checks for updates twice a day
+* Nothing is ever installed automatically. When the window passes the release is simply offered again, and updating stays a deliberate act
 
 = Module: Cookie Banner =
 
@@ -298,6 +310,13 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 5. Configure each module you enabled from its own screen. For the Cookie Banner that means reviewing the texts per language and pasting your analytics/marketing snippets in the Scripts tab, then checking the site
 
 == Changelog ==
+
+= 1.24.0 =
+* New module: Update Policy - holds a major WordPress release back for a set number of days after this site is first offered it, so the plugins and themes running here have time to catch up with it. Disabled by default, like every module
+* Security and maintenance releases are never held. They are what keeps a site safe, WordPress installs them on its own, and this module does not look at them
+* A held release is removed from the update offer rather than merely discouraged - a warning does not stop the button being pressed - and the Updates screen says which version is held, when the site first saw it, and when the hold ends
+* The hold can be lifted for a release at any time from that notice, permanently for that branch
+* The window is counted from the day this site first saw the release, not from the day it was published: no external service is asked, and a site checks for updates twice a day, so the difference is under half a day
 
 = 1.23.0 =
 * Onboarding now reports updates for the three items it installs from GitHub - the Hello Digitizer child theme, Elementor MCP and MCP Adapter. They are not in the WordPress.org directory and the wizard leaves most of them inactive, so their own code never runs and nothing on the site would otherwise look for a new version. They now appear on the Plugins and Themes screens like anything else, and can be updated with the usual button

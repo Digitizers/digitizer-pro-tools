@@ -33,6 +33,11 @@ class DPT_Plugin {
 				'class'   => 'DPT_Onboarding_Module',
 				'default' => '0',
 			),
+			'update_policy' => array(
+				'file'    => DPT_PATH . 'modules/update-policy/class-dpt-up-module.php',
+				'class'   => 'DPT_Update_Policy_Module',
+				'default' => '0',
+			),
 			'cookie_banner' => array(
 				'file'    => DPT_PATH . 'modules/cookie-banner/class-dpt-cb-module.php',
 				'class'   => 'DPT_Cookie_Banner_Module',

@@ -118,6 +118,17 @@ function update_option( $key, $value ) {
 function get_site_option( $key, $default = false ) { return get_option( $key, $default ); }
 function update_site_option( $key, $value ) { return update_option( $key, $value ); }
 
+// Site transients share the stub store, as they share an implementation on a
+// single site.
+$GLOBALS['dpt_stub_site_transients'] = array();
+function get_site_transient( $key ) {
+	return array_key_exists( $key, $GLOBALS['dpt_stub_site_transients'] ) ? $GLOBALS['dpt_stub_site_transients'][ $key ] : false;
+}
+function set_site_transient( $key, $value, $ttl = 0 ) {
+	$GLOBALS['dpt_stub_site_transients'][ $key ] = $value;
+	return true;
+}
+
 function get_transient( $key ) {
 	return array_key_exists( $key, $GLOBALS['dpt_stub_transients'] ) ? $GLOBALS['dpt_stub_transients'][ $key ] : false;
 }

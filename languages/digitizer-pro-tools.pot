@@ -1838,3 +1838,42 @@ msgstr ""
 
 msgid "Automatic updates could not be turned on for Digitizer Pro Tools."
 msgstr ""
+
+msgid "Update Policy"
+msgstr ""
+
+msgid "WordPress %s is available, and this site is holding it back."
+msgstr ""
+
+msgid "It was first offered here on %1$s, and the hold ends on %2$s. Major releases are held so that the plugins and themes on this site have time to catch up with them; security and maintenance releases are installed as usual and are not affected."
+msgstr ""
+
+msgid "Offer it now anyway"
+msgstr ""
+
+msgid "Update policy settings"
+msgstr ""
+
+msgid "A major WordPress release is held back for a while after this site is first offered it, so that the plugins and themes running here have time to catch up with it. Security and maintenance releases are never held: they are what keeps the site safe, and WordPress installs them on its own."
+msgstr ""
+
+msgid "Hold major releases for"
+msgstr ""
+
+msgid "days"
+msgstr ""
+
+msgid "Counted from the day this site first saw the release, not from the day it was published. Set to 0 to hold nothing."
+msgstr ""
+
+msgid "Currently held"
+msgstr ""
+
+msgid "Nothing is being held back right now."
+msgstr ""
+
+msgid "WordPress %1$s, until %2$s"
+msgstr ""
+
+msgid "Holds a major WordPress release back for a set number of days after this site is first offered it, so the plugins and themes here have time to catch up. Security and maintenance releases are never held. The hold is shown on the Updates screen and can be lifted from there."
+msgstr ""
