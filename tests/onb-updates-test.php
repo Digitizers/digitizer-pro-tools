@@ -276,6 +276,29 @@ dpt_test_ok(
 	'while a failure is forgotten long before a good answer is'
 );
 
+// Core writes the update transient twice during one wp_update_plugins() run -
+// once to mark the check in progress, once with its result - and both writes
+// reach the refresh hook. Each repository is still asked once.
+$GLOBALS['dpt_stub_transients']  = array();
+$GLOBALS['dpt_stub_http_calls']  = array();
+$url = 'https://api.github.com/repos/WordPress/mcp-adapter/releases/latest';
+$GLOBALS['dpt_stub_http'] = array(
+	$url => array(
+		'code' => 200,
+		'body' => wp_json_encode(
+			array(
+				'tag_name' => 'v0.6.1',
+				'assets'   => array( array( 'browser_download_url' => 'https://example.org/mcp-adapter.zip' ) ),
+			)
+		),
+	),
+	'https://api.github.com/repos/Digitizers/elementor-mcp/releases/latest' => array( 'code' => 404, 'body' => '' ),
+);
+$stored = (object) array( 'response' => array(), 'no_update' => array() );
+DPT_ONB_Updates::refresh_plugins( $stored );
+DPT_ONB_Updates::refresh_plugins( $stored );
+dpt_test_eq( $GLOBALS['dpt_stub_http_calls'][ $url ], 1, 'one core check asks each repository once, not once per transient write' );
+
 /* ---- an update is installed over the item, not beside it ---- */
 
 $files = array(

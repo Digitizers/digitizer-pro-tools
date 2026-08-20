@@ -212,7 +212,11 @@ function delete_theme( $slug ) {
  * An unknown URL is a hard failure, so a test can never accidentally depend on
  * a real network call.
  */
+$GLOBALS['dpt_stub_http_calls'] = array();
 function wp_remote_get( $url, $args = array() ) {
+	$GLOBALS['dpt_stub_http_calls'][ $url ] = isset( $GLOBALS['dpt_stub_http_calls'][ $url ] )
+		? $GLOBALS['dpt_stub_http_calls'][ $url ] + 1
+		: 1;
 	if ( ! isset( $GLOBALS['dpt_stub_http'][ $url ] ) ) {
 		return new WP_Error( 'stub_miss', 'No canned response for ' . $url );
 	}

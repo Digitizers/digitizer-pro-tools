@@ -25,6 +25,14 @@ class DPT_ONB_Updates {
 	private static $fetching = false;
 
 	/**
+	 * Repositories already asked about in this request, so one core check
+	 * cannot ask twice.
+	 *
+	 * @var array
+	 */
+	private static $asked = array();
+
+	/**
 	 * Register the filters.
 	 */
 	public static function init() {
@@ -298,9 +306,19 @@ class DPT_ONB_Updates {
 			}
 			return new WP_Error( 'dpt_onb_no_fetch', 'Not fetching outside the admin.' );
 		}
-		// Forced: this is the update check, and the point of it is to find out
-		// what is published now, not to confirm what was published last time.
-		return DPT_ONB_Source::github_release( $item['repo'], 8, true );
+		// Forced once per repository per request. The check is meant to find
+		// out what is published now rather than confirm what was published
+		// last time - but core writes the update transient twice during one
+		// wp_update_plugins() run, once to mark the check in progress and once
+		// with its result, and both writes reach this. Without the memo every
+		// repository would be fetched twice per check: double the wait on a
+		// manual check, and double the rate limit spent.
+		$repo  = $item['repo'];
+		$force = ! isset( self::$asked[ $repo ] );
+
+		self::$asked[ $repo ] = true;
+
+		return DPT_ONB_Source::github_release( $repo, 8, $force );
 	}
 
 	/**
