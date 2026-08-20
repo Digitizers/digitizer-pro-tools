@@ -25,7 +25,7 @@ class DPT_Site_Tweaks_Module extends DPT_Module {
 	}
 
 	public function description() {
-		return __( 'Small site-wide tweaks: HTTP security headers, sanitised SVG uploads, hiding the WordPress version, and Elementor helpers. Each tweak is an independent toggle.', 'digitizer-pro-tools' );
+		return __( 'Small site-wide tweaks: HTTP security headers, sanitised SVG uploads, hiding the WordPress version, Elementor helpers, and dropping front-end weight an Elementor site does not use. Each tweak is an independent toggle.', 'digitizer-pro-tools' );
 	}
 
 	public function install_defaults() {
@@ -67,10 +67,62 @@ class DPT_Site_Tweaks_Module extends DPT_Module {
 		if ( '1' === $o['elementor_tel_validate'] ) {
 			add_action( 'elementor_pro/forms/validation/tel', array( $this, 'validate_tel_field' ), 10, 3 );
 		}
+		if ( '1' === $o['elementor_icon_fonts'] ) {
+			add_action( 'elementor/frontend/after_register_styles', array( $this, 'drop_elementor_icon_fonts' ), 20 );
+		}
+
+		// --- Front-end weight ----------------------------------------------
+		if ( '1' === $o['block_library_css'] ) {
+			// Late, and on the front end only: the block editor and the widget
+			// screen load the same stylesheets and need them.
+			add_action( 'wp_enqueue_scripts', array( $this, 'drop_block_library_css' ), 100 );
+		}
+		if ( '1' === $o['disable_block_editor'] ) {
+			add_filter( 'use_block_editor_for_post', '__return_false', 10 );
+			add_filter( 'use_block_editor_for_post_type', '__return_false', 10 );
+		}
 
 		if ( is_admin() ) {
 			$this->admin = new DPT_ST_Admin();
 		}
+	}
+
+	/**
+	 * Deregister Elementor's icon fonts.
+	 *
+	 * Font Awesome ships as three separate stylesheets and eicons as a fourth.
+	 * A design that uses no icons loads all four for nothing; a design that
+	 * uses one loses them all, which is why this is off unless someone asks
+	 * for it.
+	 *
+	 * @return void
+	 */
+	public function drop_elementor_icon_fonts() {
+		foreach ( array( 'solid', 'regular', 'brands' ) as $style ) {
+			wp_deregister_style( 'elementor-icons-fa-' . $style );
+		}
+		wp_deregister_style( 'elementor-icons' );
+	}
+
+	/**
+	 * Dequeue the block library stylesheets on the front end.
+	 *
+	 * Dequeued rather than deregistered, so anything that asks for them later
+	 * in the same request can still get them - and only on the front end,
+	 * because the editor screens are built out of these styles.
+	 *
+	 * A page that does use a block will lose its styling. On a site built with
+	 * Elementor that is usually no page at all, which is the case this exists
+	 * for; it is off by default because "usually" is not "always".
+	 *
+	 * @return void
+	 */
+	public function drop_block_library_css() {
+		if ( is_admin() ) {
+			return;
+		}
+		wp_dequeue_style( 'wp-block-library' );
+		wp_dequeue_style( 'wp-block-library-theme' );
 	}
 
 	/**

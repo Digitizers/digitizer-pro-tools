@@ -710,7 +710,7 @@ msgstr ""
 msgid "Rejects malformed numbers in Elementor Pro form <code>tel</code> fields (9-14 digits, optional leading +)."
 msgstr ""
 
-msgid "Small site-wide tweaks: HTTP security headers, sanitised SVG uploads, hiding the WordPress version, and Elementor helpers. Each tweak is an independent toggle."
+msgid "Small site-wide tweaks: HTTP security headers, sanitised SVG uploads, hiding the WordPress version, Elementor helpers, and dropping front-end weight an Elementor site does not use. Each tweak is an independent toggle."
 msgstr ""
 
 msgid "You are not allowed to upload SVG files."
@@ -1879,4 +1879,25 @@ msgid "Holds a major WordPress release back for a set number of days after this 
 msgstr ""
 
 msgid "On a multisite network this policy applies to every site, so only a network administrator can switch it on or off."
+msgstr ""
+
+msgid "Do not load Elementor icon fonts"
+msgstr ""
+
+msgid "Drops Font Awesome and eicons - four stylesheets a design that uses no icons never needs. <strong>Check the design first:</strong> a page that does use an icon will show an empty square, which looks like a broken design rather than a setting."
+msgstr ""
+
+msgid "Front-end weight"
+msgstr ""
+
+msgid "Do not load block styles on the front end"
+msgstr ""
+
+msgid "Drops the block editor stylesheets from public pages. A site built entirely in Elementor never uses them. <strong>Any page that does contain a block loses its styling</strong>, so check before switching this on. The editor itself is unaffected."
+msgstr ""
+
+msgid "Edit in the classic editor"
+msgstr ""
+
+msgid "Turns the block editor off for posts and pages, so a site built in Elementor has one way to edit content rather than two. Existing block content is kept and is shown as blocks in the classic editor."
 msgstr ""

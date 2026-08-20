@@ -710,8 +710,8 @@ msgstr "אימות שדות טלפון (Elementor Pro)"
 msgid "Rejects malformed numbers in Elementor Pro form <code>tel</code> fields (9-14 digits, optional leading +)."
 msgstr "דוחה מספרים שגויים בשדות <code>tel</code> של טפסי Elementor Pro (9-14 ספרות, + מוביל אופציונלי)."
 
-msgid "Small site-wide tweaks: HTTP security headers, sanitised SVG uploads, hiding the WordPress version, and Elementor helpers. Each tweak is an independent toggle."
-msgstr "התאמות קטנות לכל האתר: כותרות אבטחה של HTTP, העלאות SVG מנוקות, הסתרת גרסת וורדפרס, ועזרים לאלמנטור. כל התאמה היא מתג עצמאי."
+msgid "Small site-wide tweaks: HTTP security headers, sanitised SVG uploads, hiding the WordPress version, Elementor helpers, and dropping front-end weight an Elementor site does not use. Each tweak is an independent toggle."
+msgstr "התאמות קטנות לאתר: כותרות אבטחה של HTTP, העלאת SVG מנוקה, הסתרת גרסת וורדפרס, עזרים לאלמנטור, והסרת משקל בחזית שאתר אלמנטור לא משתמש בו. כל התאמה היא מתג עצמאי."
 
 msgid "You are not allowed to upload SVG files."
 msgstr "אין לך הרשאה להעלות קובצי SVG."
@@ -1880,3 +1880,24 @@ msgstr "מחזיק גרסת מייג'ור של וורדפרס למספר ימי�
 
 msgid "On a multisite network this policy applies to every site, so only a network administrator can switch it on or off."
 msgstr "ברשת מולטיסייט המדיניות הזו חלה על כל האתרים, ולכן רק מנהל רשת יכול להדליק או לכבות אותה."
+
+msgid "Do not load Elementor icon fonts"
+msgstr "אל תטען את גופני האייקונים של אלמנטור"
+
+msgid "Drops Font Awesome and eicons - four stylesheets a design that uses no icons never needs. <strong>Check the design first:</strong> a page that does use an icon will show an empty square, which looks like a broken design rather than a setting."
+msgstr "מסיר את Font Awesome ואת eicons - ארבעה גיליונות סגנון שעיצוב בלי אייקונים לעולם לא צריך. <strong>בדוק את העיצוב קודם:</strong> עמוד שכן משתמש באייקון יציג ריבוע ריק, שנראה כמו עיצוב שבור ולא כמו הגדרה."
+
+msgid "Front-end weight"
+msgstr "משקל בחזית"
+
+msgid "Do not load block styles on the front end"
+msgstr "אל תטען את סגנונות הבלוקים בחזית"
+
+msgid "Drops the block editor stylesheets from public pages. A site built entirely in Elementor never uses them. <strong>Any page that does contain a block loses its styling</strong>, so check before switching this on. The editor itself is unaffected."
+msgstr "מסיר את גיליונות הסגנון של עורך הבלוקים מעמודים ציבוריים. אתר שנבנה כולו באלמנטור לעולם לא משתמש בהם. <strong>כל עמוד שכן מכיל בלוק יאבד את העיצוב שלו</strong>, אז כדאי לבדוק לפני ההדלקה. העורך עצמו לא מושפע."
+
+msgid "Edit in the classic editor"
+msgstr "ערוך בעורך הקלאסי"
+
+msgid "Turns the block editor off for posts and pages, so a site built in Elementor has one way to edit content rather than two. Existing block content is kept and is shown as blocks in the classic editor."
+msgstr "מכבה את עורך הבלוקים לפוסטים ולעמודים, כך שלאתר שנבנה באלמנטור יש דרך אחת לערוך תוכן ולא שתיים. תוכן בלוקים קיים נשמר ומוצג כבלוקים בעורך הקלאסי."
