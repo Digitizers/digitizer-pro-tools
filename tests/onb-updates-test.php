@@ -216,6 +216,20 @@ dpt_test_ok(
 	'a failed lookup caches the failure'
 );
 
+// The cache has to outlive the gap between two of WordPress's update checks.
+// Core's plugin and theme checks are twice daily; a cache shorter than that
+// leaves a window where a read finds nothing, reports "up to date", and an
+// automatic-update run landing in it silently skips the item - every cycle, if
+// the cron offset is stable.
+dpt_test_ok(
+	DPT_ONB_Source::RELEASE_TTL > 12 * HOUR_IN_SECONDS,
+	'the release cache outlives the interval between core update checks'
+);
+dpt_test_ok(
+	DPT_ONB_Source::FAILURE_TTL < DPT_ONB_Source::RELEASE_TTL,
+	'while a failure is forgotten long before a good answer is'
+);
+
 /* ---- an update is installed over the item, not beside it ---- */
 
 $files = array(

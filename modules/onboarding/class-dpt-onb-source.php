@@ -10,6 +10,19 @@ class DPT_ONB_Source {
 	const TRANSIENT_PREFIX = 'dpt_onb_gh_';
 	const RELEASE_PREFIX   = 'dpt_onb_rel_';
 	const CACHE_TTL        = 6 * HOUR_IN_SECONDS;
+
+	/**
+	 * How long a release lookup is kept.
+	 *
+	 * Deliberately far longer than the install path's six hours, and longer
+	 * than any interval WordPress checks for updates on. The cache is rewritten
+	 * at every one of those checks, so its age is a check cycle in practice;
+	 * the length is there so the gap between two checks can never leave the
+	 * cache empty. It did at six hours against a twice-daily schedule, and an
+	 * empty cache reports "up to date" - which would silently skip an enrolled
+	 * item on every automatic-update run that landed in the gap.
+	 */
+	const RELEASE_TTL      = 3 * DAY_IN_SECONDS;
 	const FAILURE_TTL      = 15 * MINUTE_IN_SECONDS;
 
 	/**
@@ -178,7 +191,8 @@ class DPT_ONB_Source {
 	 * WordPress's update transient rather than behind a button, so an
 	 * unreachable GitHub or a spent rate limit would otherwise mean a request
 	 * on every admin page load. Fifteen minutes is short enough that a rate
-	 * limit clearing is noticed within the hour.
+	 * limit clearing is noticed within the hour, and short against RELEASE_TTL
+	 * so a failure never displaces a good answer for long.
 	 *
 	 * The timeout is shorter than the install path's. This runs inside
 	 * WordPress's own update check, where three repositories are asked in
@@ -237,7 +251,7 @@ class DPT_ONB_Source {
 			return $fail( __( 'That release has no downloadable archive.', 'digitizer-pro-tools' ) );
 		}
 
-		set_transient( $key, $release, self::CACHE_TTL );
+		set_transient( $key, $release, self::RELEASE_TTL );
 		return $release;
 	}
 
