@@ -191,14 +191,14 @@ $GLOBALS['dpt_stub_http']       = array(
 	),
 	'https://api.github.com/repos/Digitizers/elementor-mcp/releases/latest' => array( 'code' => 404, 'body' => '' ),
 );
+// Runs after WordPress has stored its own value, so there is nothing to hand
+// back and nothing of ours in what was stored. Writing an offer in there would
+// leave it installable after the module - and the hooks that rename the
+// archive and strip the site address - had been switched off.
 $stored = (object) array( 'response' => array(), 'no_update' => array() );
-$out    = DPT_ONB_Updates::refresh_plugins( $stored );
-
-// What WordPress stores stays WordPress's. Writing an offer into the stored
-// transient would leave it installable after the module - and the hooks that
-// rename the archive and strip the site address - had been switched off.
-dpt_test_eq( $out->response, array(), 'the update check stores nothing of ours' );
-dpt_test_eq( $out->no_update, array(), 'not even a no_update record' );
+DPT_ONB_Updates::after_plugins_check();
+dpt_test_eq( $stored->response, array(), 'the update check stores nothing of ours' );
+dpt_test_eq( $stored->no_update, array(), 'not even a no_update record' );
 dpt_test_ok(
 	isset( $GLOBALS['dpt_stub_transients'][ DPT_ONB_Source::RELEASE_PREFIX . md5( 'WordPress/mcp-adapter' ) ]['version'] ),
 	'but the release cache is filled, which is what it is for'
@@ -294,9 +294,8 @@ $GLOBALS['dpt_stub_http'] = array(
 	),
 	'https://api.github.com/repos/Digitizers/elementor-mcp/releases/latest' => array( 'code' => 404, 'body' => '' ),
 );
-$stored = (object) array( 'response' => array(), 'no_update' => array() );
-DPT_ONB_Updates::refresh_plugins( $stored );
-DPT_ONB_Updates::refresh_plugins( $stored );
+DPT_ONB_Updates::after_plugins_check();
+DPT_ONB_Updates::after_plugins_check();
 dpt_test_eq( $GLOBALS['dpt_stub_http_calls'][ $url ], 1, 'one core check asks each repository once, not once per transient write' );
 
 /* ---- an update is installed over the item, not beside it ---- */

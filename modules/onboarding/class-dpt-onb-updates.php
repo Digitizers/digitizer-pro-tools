@@ -41,11 +41,14 @@ class DPT_ONB_Updates {
 		add_filter( 'site_transient_update_plugins', array( __CLASS__, 'plugins' ) );
 		add_filter( 'site_transient_update_themes', array( __CLASS__, 'themes' ) );
 
-		// Fetching happens here and nowhere else: this is WordPress finishing
+		// Fetching happens here and nowhere else: WordPress has just finished
 		// an update check of its own, which is already a network operation the
-		// caller expects to wait for.
-		add_filter( 'pre_set_site_transient_update_plugins', array( __CLASS__, 'refresh_plugins' ) );
-		add_filter( 'pre_set_site_transient_update_themes', array( __CLASS__, 'refresh_themes' ) );
+		// caller waited for. After the write rather than before it, so the
+		// last_checked marker core stores is already persisted - a second
+		// process arriving mid-fetch sees a check in progress instead of
+		// starting one of its own and asking GitHub all over again.
+		add_action( 'set_site_transient_update_plugins', array( __CLASS__, 'after_plugins_check' ) );
+		add_action( 'set_site_transient_update_themes', array( __CLASS__, 'after_themes_check' ) );
 
 		// An update we reported is downloaded by core, in a request of its own
 		// that would otherwise carry WordPress's default user agent - and that
@@ -74,32 +77,28 @@ class DPT_ONB_Updates {
 	}
 
 	/**
-	 * Refresh the plugin lookups while WordPress runs an update check.
+	 * Refresh the plugin lookups, just after WordPress stored an update check.
 	 *
-	 * Deliberately returns the value untouched. What this module knows is
-	 * added when the transient is read, not written into what WordPress
-	 * stores, so nothing it reported outlives it: disable the module and the
-	 * offers disappear with the same request. An entry persisted into the
-	 * stored transient would still be installable after the module - and with
-	 * it the archive-renaming and user-agent hooks - had gone.
+	 * Nothing is written into what WordPress stores. What this module knows is
+	 * added when the transient is read, so nothing it reported outlives it:
+	 * disable the module and the offers disappear in the same request. An
+	 * entry persisted into the stored transient would still be installable
+	 * after the module - and with it the archive-renaming and user-agent hooks
+	 * - had gone.
 	 *
-	 * @param mixed $value The transient value being stored.
-	 * @return mixed
+	 * @return void
 	 */
-	public static function refresh_plugins( $value ) {
+	public static function after_plugins_check() {
 		self::warm( 'plugin' );
-		return $value;
 	}
 
 	/**
 	 * The same for themes.
 	 *
-	 * @param mixed $value The transient value being stored.
-	 * @return mixed
+	 * @return void
 	 */
-	public static function refresh_themes( $value ) {
+	public static function after_themes_check() {
 		self::warm( 'theme' );
-		return $value;
 	}
 
 	/**
