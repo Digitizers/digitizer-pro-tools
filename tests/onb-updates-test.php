@@ -195,6 +195,10 @@ $GLOBALS['dpt_stub_http']       = array(
 // back and nothing of ours in what was stored. Writing an offer in there would
 // leave it installable after the module - and the hooks that rename the
 // archive and strip the site address - had been switched off.
+$GLOBALS['dpt_stub_plugins'] = array(
+	'mcp-adapter/mcp-adapter.php' => array( 'Name' => 'MCP Adapter', 'Version' => '0.4.1' ),
+	'elementor-mcp/plugin.php'    => array( 'Name' => 'Elementor MCP', 'Version' => '1.0.0' ),
+);
 $stored = (object) array( 'response' => array(), 'no_update' => array() );
 DPT_ONB_Updates::after_plugins_check();
 dpt_test_eq( $stored->response, array(), 'the update check stores nothing of ours' );
@@ -297,6 +301,21 @@ $GLOBALS['dpt_stub_http'] = array(
 DPT_ONB_Updates::after_plugins_check();
 DPT_ONB_Updates::after_plugins_check();
 dpt_test_eq( $GLOBALS['dpt_stub_http_calls'][ $url ], 1, 'one core check asks each repository once, not once per transient write' );
+
+// Nothing is asked about an item nobody installed. The reads could never
+// report it, so the request, its timeout and its slice of a shared rate limit
+// would all be spent on an answer with nowhere to go.
+$GLOBALS['dpt_stub_transients'] = array();
+$GLOBALS['dpt_stub_http_calls'] = array();
+$GLOBALS['dpt_stub_plugins']    = array();
+$GLOBALS['dpt_stub_themes']     = array();
+DPT_ONB_Updates::after_plugins_check();
+DPT_ONB_Updates::after_themes_check();
+dpt_test_eq( $GLOBALS['dpt_stub_http_calls'], array(), 'a site with none of them installed asks nothing' );
+
+$GLOBALS['dpt_stub_plugins'] = array( 'mcp-adapter/mcp-adapter.php' => array( 'Name' => 'MCP Adapter', 'Version' => '0.4.1' ) );
+DPT_ONB_Updates::after_plugins_check();
+dpt_test_eq( count( $GLOBALS['dpt_stub_http_calls'] ), 1, 'and only the installed one is asked about' );
 
 /* ---- an update is installed over the item, not beside it ---- */
 

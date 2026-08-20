@@ -112,11 +112,31 @@ class DPT_ONB_Updates {
 		self::$fetching = true;
 		try {
 			foreach ( self::items_of_type( $type ) as $item ) {
+				// An item nobody installed has nothing to be told about. The
+				// reads could never report it, so asking its repository is a
+				// request, a timeout's worth of waiting and a slice of a
+				// shared rate limit spent on an answer that goes nowhere.
+				if ( ! self::is_installed( $item ) ) {
+					continue;
+				}
 				self::release( $item );
 			}
 		} finally {
 			self::$fetching = false;
 		}
+	}
+
+	/**
+	 * Whether an item is on disk.
+	 *
+	 * @param array $item Manifest item.
+	 * @return bool
+	 */
+	public static function is_installed( $item ) {
+		if ( 'theme' === $item['type'] ) {
+			return wp_get_theme( $item['slug'] )->exists();
+		}
+		return null !== DPT_ONB_State::plugin_file( $item['slug'] );
 	}
 
 	/**
@@ -223,8 +243,7 @@ class DPT_ONB_Updates {
 	}
 
 	/**
-	 * The manifest items this can answer for: installed, from GitHub, of the
-	 * given type.
+	 * The manifest's GitHub items of one type, installed or not.
 	 *
 	 * @param string $type 'plugin' or 'theme'.
 	 * @return array
