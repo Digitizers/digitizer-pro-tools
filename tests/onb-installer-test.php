@@ -277,7 +277,11 @@ $GLOBALS['dpt_stub_plugins']        = array( 'wordfence/wordfence.php' => array(
 $GLOBALS['dpt_stub_active_plugins'] = array();
 $res = DPT_ONB_Installer::apply( 'wordfence', true );
 dpt_test_eq( $res['outcome'], 'skipped', 'an install-only item already present is skipped' );
-dpt_test_eq( get_option( 'auto_update_plugins' ), array( 'wordfence/wordfence.php' ), 'and is still enrolled in automatic updates' );
+dpt_test_eq(
+	get_option( 'auto_update_plugins' ),
+	array( 'wordfence/wordfence.php', DPT_BASENAME ),
+	'and is still enrolled in automatic updates, alongside the plugin itself'
+);
 
 // Without the flag nothing is touched.
 $GLOBALS['dpt_stub_options'] = array();
@@ -320,7 +324,11 @@ DPT_ONB_Installer::apply( 'wordfence', true );
 dpt_test_eq( get_option( 'auto_update_plugins', array() ), array(), 'a site administrator cannot enrol network-wide' );
 $GLOBALS['dpt_stub_denied_caps'] = array();
 DPT_ONB_Installer::apply( 'wordfence', true );
-dpt_test_eq( get_option( 'auto_update_plugins' ), array( 'wordfence/wordfence.php' ), 'while a network administrator can' );
+dpt_test_eq(
+	get_option( 'auto_update_plugins' ),
+	array( 'wordfence/wordfence.php', DPT_BASENAME ),
+	'while a network administrator can'
+);
 $GLOBALS['dpt_stub_multisite'] = false;
 
 // An item WordPress cannot check for updates is never added to the list.
@@ -337,9 +345,17 @@ $GLOBALS['dpt_stub_plugins']        = array(
 );
 $GLOBALS['dpt_stub_active_plugins'] = array();
 DPT_ONB_Installer::apply( 'elementor_mcp', true );
-dpt_test_eq( get_option( 'auto_update_plugins', array() ), array(), 'so it is left out of the list entirely' );
+dpt_test_eq(
+	get_option( 'auto_update_plugins', array() ),
+	array( DPT_BASENAME ),
+	'so the list holds only the plugin itself, which does have an update check'
+);
 DPT_ONB_Installer::apply( 'wordfence', true );
-dpt_test_eq( get_option( 'auto_update_plugins' ), array( 'wordfence/wordfence.php' ), 'while its WordPress.org neighbour goes in' );
+dpt_test_eq(
+	get_option( 'auto_update_plugins' ),
+	array( DPT_BASENAME, 'wordfence/wordfence.php' ),
+	'while its WordPress.org neighbour goes in'
+);
 
 // A site that has turned background updates off keeps the capability but never
 // processes the list, so the box is not offered and nothing is written.
@@ -355,5 +371,52 @@ dpt_test_ok(
 	'though a plugin is still enrollable on its own'
 );
 $GLOBALS['dpt_stub_auto_update_types_off'] = array();
+
+// The plugin enrols itself alongside the baseline. It is not a manifest item
+// and the GitHub rule does not reach it: it carries its own update checker, so
+// core's unattended updater has a package to install.
+$GLOBALS['dpt_stub_options']        = array();
+$GLOBALS['dpt_stub_plugins']        = array( 'wordfence/wordfence.php' => array( 'Name' => 'Wordfence' ) );
+$GLOBALS['dpt_stub_active_plugins'] = array();
+DPT_ONB_Installer::apply( 'wordfence', true );
+dpt_test_eq(
+	get_option( 'auto_update_plugins' ),
+	array( 'wordfence/wordfence.php', DPT_BASENAME ),
+	'the plugin goes into the list with the item'
+);
+
+// Twice is once: the merge is what makes calling this per item safe.
+DPT_ONB_Installer::apply( 'wordfence', true );
+dpt_test_eq(
+	get_option( 'auto_update_plugins' ),
+	array( 'wordfence/wordfence.php', DPT_BASENAME ),
+	'and a second pass does not duplicate it'
+);
+
+// Without the box, not at all.
+$GLOBALS['dpt_stub_options'] = array();
+DPT_ONB_Installer::apply( 'wordfence' );
+dpt_test_eq( get_option( 'auto_update_plugins', array() ), array(), 'an unticked box leaves the plugin out too' );
+
+// The same gates apply to it as to everything else.
+$GLOBALS['dpt_stub_options']     = array();
+$GLOBALS['dpt_stub_denied_caps'] = array( 'update_plugins' );
+dpt_test_ok( ! DPT_ONB_Installer::enable_self_auto_update(), 'no self-enrolment without the update capability' );
+dpt_test_eq( get_option( 'auto_update_plugins', array() ), array(), 'and nothing is written' );
+$GLOBALS['dpt_stub_denied_caps'] = array();
+
+$GLOBALS['dpt_stub_auto_update_types_off'] = array( 'plugin' );
+dpt_test_ok( ! DPT_ONB_Installer::enable_self_auto_update(), 'nor on a site that runs no plugin auto-updates' );
+$GLOBALS['dpt_stub_auto_update_types_off'] = array();
+
+$GLOBALS['dpt_stub_multisite']   = true;
+$GLOBALS['dpt_stub_denied_caps'] = array( 'manage_network_options' );
+dpt_test_ok( ! DPT_ONB_Installer::enable_self_auto_update(), 'nor from one blog of a network' );
+$GLOBALS['dpt_stub_denied_caps'] = array();
+$GLOBALS['dpt_stub_multisite']   = false;
+
+$GLOBALS['dpt_stub_options'] = array();
+dpt_test_ok( DPT_ONB_Installer::enable_self_auto_update(), 'and it enrols when everything allows it' );
+dpt_test_eq( get_option( 'auto_update_plugins' ), array( DPT_BASENAME ), 'under its own plugin file' );
 
 exit( dpt_test_summary() > 0 ? 1 : 0 );

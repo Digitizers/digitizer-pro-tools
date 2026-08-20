@@ -4,7 +4,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.21.0
+Stable tag: 1.22.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -24,7 +24,7 @@ Brings a new site up to the Digitizer baseline in one pass:
 * Untick anything a given client does not need, then install the rest
 * **Only the child theme and Elementor are switched on.** Everything else is installed and left inactive, so you decide per client what actually runs
 * Installs from WordPress.org, and from the public GitHub repositories for Hello Digitizer, Elementor MCP and MCP Adapter
-* Optionally turns on WordPress's automatic updates for the items it installed - and only for the ones WordPress can actually update, which excludes anything installed from GitHub
+* Optionally turns on WordPress's automatic updates for the items it installed, and for Digitizer Pro Tools itself - the baseline's GitHub items are excluded, because nothing on the site could check them for a new version
 * Optionally removes the unused default themes, always keeping the newest one and the theme this WordPress is configured to fall back to if the active theme ever breaks. The active theme, any theme another theme depends on, and anything that is not actually one of WordPress's own themes are never removed. Not offered on a multisite network, where one directory of themes is shared by every site
 * Nothing already installed is updated, downgraded or reconfigured
 * Safe to run again: the second pass finds everything in place and does nothing
@@ -295,6 +295,9 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 5. Configure each module you enabled from its own screen. For the Cookie Banner that means reviewing the texts per language and pasting your analytics/marketing snippets in the Scripts tab, then checking the site
 
 == Changelog ==
+
+= 1.22.0 =
+* The Onboarding wizard's automatic-updates checkbox now covers Digitizer Pro Tools itself. The plugin brings its own update check, so WordPress installs its releases unattended exactly as it would a plugin from the directory - which is why it is included while the baseline's other GitHub items are not
 
 = 1.21.0 =
 * Onboarding now installs the baseline without switching it on. Only the Hello Digitizer child theme and Elementor are activated; the other eleven plugins are installed and left inactive, so each client site runs what you choose for it

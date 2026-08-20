@@ -387,6 +387,31 @@ class DPT_ONB_Installer {
 	}
 
 	/**
+	 * Enrol Digitizer Pro Tools itself in WordPress's automatic updates.
+	 *
+	 * The plugin is not a manifest item and auto_updatable() does not apply
+	 * to it. That rule refuses GitHub-sourced items because nothing on the
+	 * site would ever check them for a new version; this plugin carries its
+	 * own update checker, which puts its releases into the same transient
+	 * core reads, so core's unattended updater installs them exactly as it
+	 * would a WordPress.org plugin. The list entry is therefore acted on.
+	 *
+	 * Called once per applied item rather than from a moment of its own: the
+	 * merge is idempotent and update_option() does not write when the value
+	 * is unchanged, so the repetition costs a comparison.
+	 *
+	 * @return bool Whether the plugin is now enrolled.
+	 */
+	public static function enable_self_auto_update() {
+		if ( ! defined( 'DPT_BASENAME' ) || ! self::may_auto_update( array( 'type' => 'plugin' ) ) ) {
+			return false;
+		}
+		$merged = self::merge_auto_update( get_site_option( 'auto_update_plugins', array() ), DPT_BASENAME );
+		update_site_option( 'auto_update_plugins', $merged );
+		return true;
+	}
+
+	/**
 	 * Apply one item by id.
 	 *
 	 * @param string $item_id     Manifest item id.
@@ -405,6 +430,7 @@ class DPT_ONB_Installer {
 		if ( 'skip' === $action ) {
 			if ( $auto_update ) {
 				self::enable_auto_update( $item );
+				self::enable_self_auto_update();
 			}
 			// The message replaces the row's status text, so it has to be as
 			// true as the status it overwrites. An install-only item that is
@@ -431,6 +457,7 @@ class DPT_ONB_Installer {
 		// declines to activate is still installed, and still wants updating.
 		if ( $auto_update ) {
 			self::enable_auto_update( $item );
+			self::enable_self_auto_update();
 		}
 
 		$activated = self::activate( $item );

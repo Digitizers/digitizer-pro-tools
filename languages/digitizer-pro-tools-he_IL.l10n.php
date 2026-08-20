@@ -603,7 +603,7 @@ return array (
     'Installed, but not activated: WordPress reports the theme as broken, and activating it would take the site down.' => 'הותקן, אך לא הופעל: וורדפרס מדווחת שהתבנית שבורה, והפעלה שלה הייתה מפילה את האתר.',
     'The theme switch did not take effect.' => 'החלפת התבנית לא נכנסה לתוקף.',
     'It was activated but switched itself off again, which usually means it needs something this site does not have yet.' => 'הוא הופעל אך כיבה את עצמו מיד, מה שבדרך כלל אומר שהוא זקוק למשהו שעדיין אין באתר.',
-    'Turn on automatic updates for these items' => 'הפעל עדכונים אוטומטיים לפריטים האלה',
+    'Turn on automatic updates for these items and for Digitizer Pro Tools itself' => 'הפעל עדכונים אוטומטיים לפריטים האלה ולתוסף Digitizer Pro Tools עצמו',
     'Remove unused default themes afterwards' => 'הסר בסוף תבניות ברירת מחדל שאינן בשימוש',
     'The newest one is always kept, as the fallback WordPress needs if the active theme ever breaks. The active theme and any theme another theme depends on are never removed.' => 'החדשה ביותר תמיד נשמרת, כרשת הביטחון שוורדפרס צריכה אם התבנית הפעילה תישבר. התבנית הפעילה, וכל תבנית שתבנית אחרת תלויה בה, לעולם לא מוסרות.',
     'Removing unused default themes...' => 'מסיר תבניות ברירת מחדל שאינן בשימוש...',
@@ -612,6 +612,6 @@ return array (
     'The theme could not be removed.' => 'לא ניתן היה להסיר את התבנית.',
     'This site does not allow deleting themes from the dashboard.' => 'האתר הזה לא מאפשר מחיקת תבניות מלוח הבקרה.',
     'Themes are shared across a multisite network, so they are not removed from here.' => 'תבניות משותפות לכל אתרי הרשת, ולכן הן לא מוסרות מכאן.',
-    'Applies to the items WordPress updates itself. The ones installed from GitHub are not included: WordPress has no way to check them for updates.' => 'חל על הפריטים שוורדפרס מעדכנת בעצמה. אלה שהותקנו מ-GitHub לא נכללים: לוורדפרס אין דרך לבדוק עבורם עדכונים.',
+    'Digitizer Pro Tools brings its own update check, so it is included here. The baseline items installed from GitHub are not: WordPress has no way to check them for updates.' => 'ל-Digitizer Pro Tools יש בדיקת עדכונים משלו, ולכן הוא נכלל כאן. פריטי הבייסליין שהותקנו מ-GitHub לא נכללים: לוורדפרס אין דרך לבדוק עבורם עדכונים.',
   ),
 );
