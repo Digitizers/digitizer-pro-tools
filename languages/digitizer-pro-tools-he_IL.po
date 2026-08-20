@@ -389,15 +389,6 @@ msgstr "עוצמת שכבת הכיסוי (0-1)"
 msgid "Layout and border"
 msgstr "פריסה ומסגרת"
 
-msgid "Max width (px)"
-msgstr "רוחב מקסימלי (פיקסלים)"
-
-msgid "Relevant for the centered modal and corner positions - full-width bars size automatically."
-msgstr "רלוונטי למודאל מרכזי ולפינות - בר מלא מקבל רוחב אוטומטי."
-
-msgid "Max width on small screens (%)"
-msgstr "רוחב מקסימלי במסכים קטנים (%)"
-
 msgid "Corner radius (px)"
 msgstr "עיגול פינות (פיקסלים)"
 
@@ -1667,12 +1658,6 @@ msgstr "חל מתחת לרוחב 640px, כך שהבאנר יכול להיות כ
 
 msgid "Width on mobile (%)"
 msgstr "רוחב במובייל (%)"
-
-msgid "Relevant for the centered modal and corner positions - full-width bars size automatically. For a compact corner card try 380-450px."
-msgstr "רלוונטי למודאל הממורכז ולמיקומי הפינות - פסים ברוחב מלא מתאימים את עצמם. לכרטיס פינה קומפקטי נסו 380-450px."
-
-msgid "For a compact corner card try 380-450px. Corner positions use this pixel width directly (the percentage below does not apply to them)."
-msgstr "לכרטיס פינה קומפקטי נסו 380-450px. מיקומי פינה משתמשים ברוחב בפיקסלים ישירות (האחוז שלמטה אינו חל עליהם)."
 
 msgid "Used by the full-width bars and the centered modal. Corner positions have their own width below."
 msgstr "בשימוש עבור הפסים ברוחב מלא והמודאל הממורכז. למיקומי פינה יש רוחב משלהם למטה."

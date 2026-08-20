@@ -389,15 +389,6 @@ msgstr ""
 msgid "Layout and border"
 msgstr ""
 
-msgid "Max width (px)"
-msgstr ""
-
-msgid "Relevant for the centered modal and corner positions - full-width bars size automatically."
-msgstr ""
-
-msgid "Max width on small screens (%)"
-msgstr ""
-
 msgid "Corner radius (px)"
 msgstr ""
 
@@ -1666,12 +1657,6 @@ msgid "Applied below 640px wide, so the banner can be a narrow card on desktop a
 msgstr ""
 
 msgid "Width on mobile (%)"
-msgstr ""
-
-msgid "Relevant for the centered modal and corner positions - full-width bars size automatically. For a compact corner card try 380-450px."
-msgstr ""
-
-msgid "For a compact corner card try 380-450px. Corner positions use this pixel width directly (the percentage below does not apply to them)."
 msgstr ""
 
 msgid "Used by the full-width bars and the centered modal. Corner positions have their own width below."
