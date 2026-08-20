@@ -78,13 +78,56 @@ class DPT_Site_Tweaks_Module extends DPT_Module {
 			add_action( 'wp_enqueue_scripts', array( $this, 'drop_block_library_css' ), 100 );
 		}
 		if ( '1' === $o['disable_block_editor'] ) {
-			add_filter( 'use_block_editor_for_post', '__return_false', 10 );
-			add_filter( 'use_block_editor_for_post_type', '__return_false', 10 );
+			add_filter( 'use_block_editor_for_post', array( $this, 'classic_editor_for_post' ), 10, 2 );
+			add_filter( 'use_block_editor_for_post_type', array( $this, 'classic_editor_for_post_type' ), 10, 2 );
 		}
 
 		if ( is_admin() ) {
 			$this->admin = new DPT_ST_Admin();
 		}
+	}
+
+	/**
+	 * The post types the classic editor is forced for.
+	 *
+	 * Posts and pages, which is what the setting says and all it should mean.
+	 * Returning false for everything would also take the block editor from
+	 * post types that require it - reusable blocks and template parts are
+	 * edited with it and have no classic equivalent - and from any custom type
+	 * a plugin registered expecting it.
+	 *
+	 * @return array
+	 */
+	public function classic_editor_post_types() {
+		/**
+		 * Filter which post types are edited in the classic editor.
+		 *
+		 * @param array $types Post type names.
+		 */
+		return (array) apply_filters( 'dpt_st_classic_editor_post_types', array( 'post', 'page' ) );
+	}
+
+	/**
+	 * Force the classic editor for one post, leaving other types alone.
+	 *
+	 * @param bool  $use  Whether the block editor would be used.
+	 * @param mixed $post The post being edited.
+	 * @return bool
+	 */
+	public function classic_editor_for_post( $use, $post = null ) {
+		$type = ( is_object( $post ) && isset( $post->post_type ) ) ? (string) $post->post_type : '';
+		return in_array( $type, $this->classic_editor_post_types(), true ) ? false : $use;
+	}
+
+	/**
+	 * The same question asked about a post type rather than a post.
+	 *
+	 * @param bool   $use       Whether the block editor would be used.
+	 * @param string $post_type Post type name.
+	 * @return bool
+	 */
+	public function classic_editor_for_post_type( $use, $post_type = '' ) {
+		return in_array( (string) $post_type, $this->classic_editor_post_types(), true ) ? false : $use;
 	}
 
 	/**

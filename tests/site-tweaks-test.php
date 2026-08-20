@@ -50,4 +50,23 @@ $GLOBALS['dpt_stub_is_admin']        = true;
 $module->drop_block_library_css();
 dpt_test_eq( $GLOBALS['dpt_stub_dequeued_styles'], array(), 'and never in the admin' );
 
+/* ---- the classic editor, for what the setting actually says ---- */
+
+// "Posts and pages" has to mean posts and pages. Returning false for
+// everything would also take the block editor from post types that have no
+// classic equivalent - reusable blocks and template parts are edited with it -
+// and from any custom type a plugin registered expecting it.
+dpt_test_ok( ! $module->classic_editor_for_post( true, (object) array( 'post_type' => 'post' ) ), 'a post is edited classically' );
+dpt_test_ok( ! $module->classic_editor_for_post( true, (object) array( 'post_type' => 'page' ) ), 'and so is a page' );
+dpt_test_ok( $module->classic_editor_for_post( true, (object) array( 'post_type' => 'wp_block' ) ), 'a reusable block keeps the only editor it has' );
+dpt_test_ok( $module->classic_editor_for_post( true, (object) array( 'post_type' => 'portfolio' ) ), 'and a custom type keeps whatever it asked for' );
+
+// An answer already given by something else is passed through rather than
+// overturned, in both directions.
+dpt_test_ok( ! $module->classic_editor_for_post( false, (object) array( 'post_type' => 'portfolio' ) ), 'including an answer of no' );
+dpt_test_ok( $module->classic_editor_for_post( true, null ), 'and a call with no post at all changes nothing' );
+
+dpt_test_ok( ! $module->classic_editor_for_post_type( true, 'page' ), 'the post-type question is answered the same way' );
+dpt_test_ok( $module->classic_editor_for_post_type( true, 'wp_template' ), 'for the types it covers, and only those' );
+
 exit( dpt_test_summary() > 0 ? 1 : 0 );
