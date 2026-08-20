@@ -17,6 +17,7 @@ define( 'DPT_PATH', dirname( __DIR__ ) . '/' );
 define( 'DPT_URL', 'https://example.test/wp-content/plugins/digitizer-pro-tools/' );
 define( 'DPT_BASENAME', 'digitizer-pro-tools/digitizer-pro-tools.php' );
 define( 'DPT_OPTION', 'dpt_settings' );
+define( 'MINUTE_IN_SECONDS', 60 );
 define( 'HOUR_IN_SECONDS', 3600 );
 define( 'DAY_IN_SECONDS', 86400 );
 
@@ -83,8 +84,18 @@ function trailingslashit( $s ) { return rtrim( (string) $s, '/\\' ) . '/'; }
 function untrailingslashit( $s ) { return rtrim( (string) $s, '/\\' ); }
 function apply_filters( $tag, $value ) { return $value; }
 function add_action() {}
-function add_filter() {}
-function remove_filter() {}
+// Filters are recorded, not run: a test can ask whether something was hooked
+// without the harness pretending to be WordPress's hook system.
+$GLOBALS['dpt_stub_filters'] = array();
+function add_filter( $tag = '', $callback = null ) {
+	$GLOBALS['dpt_stub_filters'][ $tag ] = true;
+}
+function remove_filter( $tag = '', $callback = null ) {
+	unset( $GLOBALS['dpt_stub_filters'][ $tag ] );
+}
+function dpt_stub_has_filter( $tag ) {
+	return isset( $GLOBALS['dpt_stub_filters'][ $tag ] );
+}
 function did_action() { return 0; }
 function wp_json_encode( $d ) { return json_encode( $d, JSON_UNESCAPED_UNICODE ); }
 function wp_parse_url( $url, $component = -1 ) { return parse_url( $url, $component ); }

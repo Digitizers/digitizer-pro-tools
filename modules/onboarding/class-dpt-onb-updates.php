@@ -18,26 +18,185 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 class DPT_ONB_Updates {
 
 	/**
-	 * Register the transient filters.
+	 * Whether the current call is allowed to ask GitHub anything.
+	 *
+	 * @var bool
+	 */
+	private static $fetching = false;
+
+	/**
+	 * Register the filters.
 	 */
 	public static function init() {
+		// Reading is cache-only, always. These fire on every request that
+		// touches the transients, the front end included.
 		add_filter( 'site_transient_update_plugins', array( __CLASS__, 'plugins' ) );
 		add_filter( 'site_transient_update_themes', array( __CLASS__, 'themes' ) );
+
+		// Fetching happens here and nowhere else: this is WordPress finishing
+		// an update check of its own, which is already a network operation the
+		// caller expects to wait for.
+		add_filter( 'pre_set_site_transient_update_plugins', array( __CLASS__, 'refresh_plugins' ) );
+		add_filter( 'pre_set_site_transient_update_themes', array( __CLASS__, 'refresh_themes' ) );
+
+		// An update we reported is downloaded by core, in a request of its own
+		// that would otherwise carry WordPress's default user agent - and that
+		// agent embeds the site URL.
+		add_filter( 'upgrader_pre_download', array( __CLASS__, 'before_package_download' ), 10, 2 );
+
+		// A GitHub archive's top-level directory is not reliably the plugin's
+		// own slug, and core installs an update into whatever the archive is
+		// called. Left alone, an update can land beside the plugin instead of
+		// replacing it.
+		add_filter( 'upgrader_source_selection', array( __CLASS__, 'normalize_source' ), 10, 4 );
 	}
 
 	/**
-	 * Whether this request may talk to GitHub.
+	 * Whether this call may talk to GitHub.
 	 *
-	 * The update transients are read on the front end too, and a lookup there
-	 * would put a network round trip in front of a visitor's page load and
-	 * spend a rate limit nobody asked to spend. Front-end requests are served
-	 * from whatever is already cached, which is what WordPress's own update
-	 * checks do.
+	 * False on an ordinary transient read - the front end included, where a
+	 * lookup would put a network round trip in front of a visitor's page and
+	 * spend a rate limit nobody asked to spend. True only inside WordPress's
+	 * own update check.
 	 *
 	 * @return bool
 	 */
 	public static function may_fetch() {
-		return is_admin() || wp_doing_cron() || ( defined( 'WP_CLI' ) && WP_CLI );
+		return self::$fetching;
+	}
+
+	/**
+	 * Refresh the plugin lookups while WordPress runs an update check, and add
+	 * what we know to the value it is about to store.
+	 *
+	 * @param mixed $value The transient value being stored.
+	 * @return mixed
+	 */
+	public static function refresh_plugins( $value ) {
+		self::$fetching = true;
+		try {
+			return self::plugins( $value );
+		} finally {
+			self::$fetching = false;
+		}
+	}
+
+	/**
+	 * The same for themes.
+	 *
+	 * @param mixed $value The transient value being stored.
+	 * @return mixed
+	 */
+	public static function refresh_themes( $value ) {
+		self::$fetching = true;
+		try {
+			return self::themes( $value );
+		} finally {
+			self::$fetching = false;
+		}
+	}
+
+	/**
+	 * Attach the anonymised user agent when core is about to download one of
+	 * the packages this module reported.
+	 *
+	 * Matched against the manifest's repositories, so an unrelated GitHub
+	 * download in the same request is left alone. Passes the reply through
+	 * untouched - it hooks, it does not answer.
+	 *
+	 * @param mixed  $reply   Short-circuit reply.
+	 * @param string $package Package URL about to be downloaded.
+	 * @return mixed
+	 */
+	public static function before_package_download( $reply, $package = '' ) {
+		if ( ! is_string( $package ) || '' === $package ) {
+			return $reply;
+		}
+		foreach ( DPT_ONB_Manifest::items() as $item ) {
+			if ( empty( $item['repo'] ) ) {
+				continue;
+			}
+			if ( false !== strpos( $package, '/' . $item['repo'] . '/' ) ) {
+				add_filter( 'http_request_args', array( 'DPT_ONB_Source', 'anonymize_request' ), 10, 2 );
+				break;
+			}
+		}
+		return $reply;
+	}
+
+	/**
+	 * Rename an extracted archive to the directory the item already occupies.
+	 *
+	 * Core installs an update into a directory named after whatever the
+	 * archive unpacked to. A GitHub release asset is built by whoever tagged
+	 * it and its top-level directory is not guaranteed to be the plugin's
+	 * slug, so without this an update can be installed beside the plugin
+	 * rather than over it - leaving the old copy in place and still loaded.
+	 *
+	 * Only ever renames for an item on the manifest, identified from the
+	 * upgrader's own arguments, so an unrelated install in the same request is
+	 * untouched.
+	 *
+	 * @param string|WP_Error $source        Directory the archive unpacked to.
+	 * @param string          $remote_source Working directory it sits in.
+	 * @param mixed           $upgrader      The upgrader instance.
+	 * @param array           $args          Upgrader hook_extra.
+	 * @return string|WP_Error
+	 */
+	public static function normalize_source( $source, $remote_source = '', $upgrader = null, $args = array() ) {
+		if ( is_wp_error( $source ) || ! is_string( $source ) || ! is_array( $args ) ) {
+			return $source;
+		}
+		$slug = self::slug_for_upgrade( $args );
+		if ( null === $slug ) {
+			return $source;
+		}
+
+		global $wp_filesystem;
+		$desired = DPT_ONB_Installer::desired_source_path( $source, $slug );
+		if ( $source === $desired ) {
+			return $source;
+		}
+		if ( ! is_object( $wp_filesystem ) || ! $wp_filesystem->move( $source, $desired, true ) ) {
+			return new WP_Error(
+				'dpt_onb_rename_failed',
+				__( 'Could not normalise the downloaded folder name.', 'digitizer-pro-tools' )
+			);
+		}
+		return $desired;
+	}
+
+	/**
+	 * The manifest slug an upgrade is for, or null when it is not ours.
+	 *
+	 * Pure: the upgrader's hook_extra names either a plugin file or a theme
+	 * stylesheet, and both are matched against the manifest's GitHub items.
+	 *
+	 * @param array $args Upgrader hook_extra.
+	 * @param array $files Plugin files by manifest slug, for testing.
+	 * @return string|null
+	 */
+	public static function slug_for_upgrade( $args, $files = null ) {
+		if ( ! empty( $args['theme'] ) ) {
+			foreach ( self::items_of_type( 'theme' ) as $item ) {
+				if ( $item['slug'] === $args['theme'] ) {
+					return $item['slug'];
+				}
+			}
+			return null;
+		}
+		if ( empty( $args['plugin'] ) ) {
+			return null;
+		}
+		foreach ( self::items_of_type( 'plugin' ) as $item ) {
+			$file = ( null === $files )
+				? DPT_ONB_State::plugin_file( $item['slug'] )
+				: ( isset( $files[ $item['slug'] ] ) ? $files[ $item['slug'] ] : null );
+			if ( null !== $file && $file === $args['plugin'] ) {
+				return $item['slug'];
+			}
+		}
+		return null;
 	}
 
 	/**

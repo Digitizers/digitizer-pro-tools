@@ -180,10 +180,15 @@ class DPT_ONB_Source {
 	 * on every admin page load. Fifteen minutes is short enough that a rate
 	 * limit clearing is noticed within the hour.
 	 *
-	 * @param string $repo Owner/name pair.
+	 * The timeout is shorter than the install path's. This runs inside
+	 * WordPress's own update check, where three repositories are asked in
+	 * sequence and the whole check is something the operator is waiting on.
+	 *
+	 * @param string $repo    Owner/name pair.
+	 * @param int    $timeout Seconds to wait.
 	 * @return array|WP_Error array( version, package ), version without the tag's leading v.
 	 */
-	public static function github_release( $repo ) {
+	public static function github_release( $repo, $timeout = 8 ) {
 		$key    = self::RELEASE_PREFIX . md5( (string) $repo );
 		$cached = get_transient( $key );
 		if ( is_array( $cached ) ) {
@@ -195,7 +200,7 @@ class DPT_ONB_Source {
 		$res = wp_remote_get(
 			'https://api.github.com/repos/' . $repo . '/releases/latest',
 			array(
-				'timeout' => 15,
+				'timeout' => (int) $timeout,
 				'headers' => array(
 					'Accept'     => 'application/vnd.github+json',
 					'User-Agent' => self::user_agent(),

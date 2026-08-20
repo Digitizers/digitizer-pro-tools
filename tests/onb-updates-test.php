@@ -144,28 +144,100 @@ $t = DPT_ONB_Updates::themes( (object) array( 'response' => array(), 'no_update'
 dpt_test_ok( ! isset( $t->response['hello-digitizer'] ), 'a current theme is not offered one' );
 dpt_test_ok( isset( $t->no_update['hello-digitizer'] ), 'and is recorded as up to date' );
 
-/* ---- the front end never becomes a GitHub request ---- */
+/* ---- reading never reaches the network, wherever it happens ---- */
 
-$GLOBALS['dpt_stub_is_admin'] = false;
-dpt_test_ok( ! DPT_ONB_Updates::may_fetch(), 'a front-end request may not look anything up' );
+// Not "not on the front end" - not on any read at all. A transient read in the
+// admin is just as much a page someone is waiting for, and three repositories
+// asked in sequence is a stalled dashboard.
+dpt_test_ok( ! DPT_ONB_Updates::may_fetch(), 'an ordinary read may not look anything up' );
 
 $GLOBALS['dpt_stub_http']    = array(); // any request at all is a hard failure
 $GLOBALS['dpt_stub_plugins'] = array(
 	'mcp-adapter/mcp-adapter.php' => array( 'Name' => 'MCP Adapter', 'Version' => '0.4.1' ),
 );
+$GLOBALS['dpt_stub_transients'] = array(
+	DPT_ONB_Source::RELEASE_PREFIX . md5( 'WordPress/mcp-adapter' ) => array(
+		'version' => '0.6.1',
+		'package' => 'https://example.org/mcp-adapter.zip',
+	),
+);
 $t = DPT_ONB_Updates::plugins( (object) array( 'response' => array(), 'no_update' => array() ) );
 dpt_test_eq(
 	$t->response['mcp-adapter/mcp-adapter.php']->new_version,
 	'0.6.1',
-	'but it still serves what is already cached, so the front end and the admin agree'
+	'but a read still serves what is already cached'
 );
 
 // With nothing cached it reports nothing rather than reaching out.
 $GLOBALS['dpt_stub_transients'] = array();
 $t = DPT_ONB_Updates::plugins( (object) array( 'response' => array(), 'no_update' => array() ) );
-dpt_test_eq( $t->response, array(), 'an uncached item is not looked up from the front end' );
+dpt_test_eq( $t->response, array(), 'an uncached item is not looked up on a read' );
 dpt_test_ok( isset( $t->no_update['mcp-adapter/mcp-adapter.php'] ), 'and is recorded as up to date rather than as unavailable' );
 
-$GLOBALS['dpt_stub_is_admin'] = true;
+/* ---- the update check is the one place that fetches ---- */
+
+$GLOBALS['dpt_stub_transients'] = array();
+$GLOBALS['dpt_stub_http']       = array(
+	'https://api.github.com/repos/WordPress/mcp-adapter/releases/latest' => array(
+		'code' => 200,
+		'body' => wp_json_encode(
+			array(
+				'tag_name' => 'v0.6.1',
+				'assets'   => array(
+					array( 'browser_download_url' => 'https://github.com/WordPress/mcp-adapter/releases/download/v0.6.1/mcp-adapter.zip' ),
+				),
+			)
+		),
+	),
+);
+$t = DPT_ONB_Updates::refresh_plugins( (object) array( 'response' => array(), 'no_update' => array() ) );
+dpt_test_eq( $t->response['mcp-adapter/mcp-adapter.php']->new_version, '0.6.1', 'an update check does look the release up' );
+dpt_test_ok( ! DPT_ONB_Updates::may_fetch(), 'and the permission is put back down afterwards' );
+
+// A failed lookup is remembered, so an unreachable GitHub is asked once per
+// check rather than on every page that follows.
+$GLOBALS['dpt_stub_transients'] = array();
+$GLOBALS['dpt_stub_http']       = array();
+$GLOBALS['dpt_stub_plugins']    = array(
+	'elementor-mcp/plugin.php' => array( 'Name' => 'Elementor MCP', 'Version' => '1.0.0' ),
+);
+$t = DPT_ONB_Updates::refresh_plugins( (object) array( 'response' => array(), 'no_update' => array() ) );
+dpt_test_ok( ! isset( $t->response['elementor-mcp/plugin.php'] ), 'a failed lookup offers no update' );
+dpt_test_ok(
+	isset( $GLOBALS['dpt_stub_transients'][ DPT_ONB_Source::RELEASE_PREFIX . md5( 'Digitizers/elementor-mcp' ) ]['error'] ),
+	'and the failure itself is cached'
+);
+
+/* ---- an update is installed over the item, not beside it ---- */
+
+$files = array(
+	'mcp-adapter'   => 'mcp-adapter/mcp-adapter.php',
+	'elementor-mcp' => 'elementor-mcp/plugin.php',
+);
+dpt_test_eq( DPT_ONB_Updates::slug_for_upgrade( array( 'plugin' => 'mcp-adapter/mcp-adapter.php' ), $files ), 'mcp-adapter', 'an upgrade of one of ours is recognised by its plugin file' );
+dpt_test_eq( DPT_ONB_Updates::slug_for_upgrade( array( 'plugin' => 'elementor-mcp/plugin.php' ), $files ), 'elementor-mcp', 'including one whose file is not slug/slug.php' );
+dpt_test_eq( DPT_ONB_Updates::slug_for_upgrade( array( 'theme' => 'hello-digitizer' ), $files ), 'hello-digitizer', 'and a theme by its stylesheet' );
+
+// Somebody else's install in the same request must never be renamed.
+dpt_test_eq( DPT_ONB_Updates::slug_for_upgrade( array( 'plugin' => 'akismet/akismet.php' ), $files ), null, 'an unrelated plugin is not ours to rename' );
+dpt_test_eq( DPT_ONB_Updates::slug_for_upgrade( array( 'theme' => 'astra' ), $files ), null, 'nor an unrelated theme' );
+dpt_test_eq( DPT_ONB_Updates::slug_for_upgrade( array(), $files ), null, 'nor an install that names nothing at all' );
+dpt_test_eq( DPT_ONB_Updates::slug_for_upgrade( array( 'plugin' => 'hello-elementor/hello-elementor.php' ), $files ), null, 'nor a WordPress.org item, which core already names correctly' );
+
+// The filter leaves a source alone when the upgrade is not ours, which is the
+// case that would otherwise move another plugin's files.
+dpt_test_eq(
+	DPT_ONB_Updates::normalize_source( '/tmp/x/akismet-1.2.3/', '/tmp/x/', null, array( 'plugin' => 'akismet/akismet.php' ) ),
+	'/tmp/x/akismet-1.2.3/',
+	'the source of an unrelated upgrade is returned untouched'
+);
+
+/* ---- the download carries no site address ---- */
+
+dpt_test_ok( ! dpt_stub_has_filter( 'http_request_args' ), 'nothing is hooked to begin with' );
+DPT_ONB_Updates::before_package_download( false, 'https://downloads.wordpress.org/plugin/akismet.zip' );
+dpt_test_ok( ! dpt_stub_has_filter( 'http_request_args' ), 'a download that is not ours is left alone' );
+DPT_ONB_Updates::before_package_download( false, 'https://github.com/WordPress/mcp-adapter/releases/download/v0.6.1/mcp-adapter.zip' );
+dpt_test_ok( dpt_stub_has_filter( 'http_request_args' ), 'ours is anonymised' );
 
 exit( dpt_test_summary() > 0 ? 1 : 0 );
