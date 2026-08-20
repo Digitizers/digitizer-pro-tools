@@ -361,6 +361,30 @@ class DPT_ONB_Installer {
 	}
 
 	/**
+	 * Add one entry to one of core's automatic-update lists.
+	 *
+	 * Returns whether the entry is on the list afterwards, which is not the
+	 * same as whether anything was written. update_site_option() returns
+	 * false both when the write failed and when the value was already what it
+	 * is being set to, so an entry that is present is answered before the
+	 * write is attempted; anything else reports the write's own result, so a
+	 * database error or a filter refusing the option reaches the operator
+	 * instead of being reported as success.
+	 *
+	 * @param string $option Option name.
+	 * @param string $key    Entry to add.
+	 * @return bool
+	 */
+	private static function write_auto_update_list( $option, $key ) {
+		$list   = get_site_option( $option, array() );
+		$merged = self::merge_auto_update( $list, $key );
+		if ( $merged === $list ) {
+			return true;
+		}
+		return (bool) update_site_option( $option, $merged );
+	}
+
+	/**
 	 * Enrol an installed item in WordPress's automatic updates.
 	 *
 	 * Applied to items the wizard skipped as well as ones it installed: a site
@@ -381,9 +405,7 @@ class DPT_ONB_Installer {
 		// blog and never read, so the wizard would report an enrolment that
 		// does not exist.
 		$option = self::auto_update_option( $item );
-		$merged = self::merge_auto_update( get_site_option( $option, array() ), $key );
-		update_site_option( $option, $merged );
-		return true;
+		return self::write_auto_update_list( $option, $key );
 	}
 
 	/**
@@ -408,9 +430,7 @@ class DPT_ONB_Installer {
 		if ( ! defined( 'DPT_BASENAME' ) || ! self::may_auto_update( array( 'type' => 'plugin' ) ) ) {
 			return false;
 		}
-		$merged = self::merge_auto_update( get_site_option( 'auto_update_plugins', array() ), DPT_BASENAME );
-		update_site_option( 'auto_update_plugins', $merged );
-		return true;
+		return self::write_auto_update_list( 'auto_update_plugins', DPT_BASENAME );
 	}
 
 	/**

@@ -390,6 +390,17 @@ $GLOBALS['dpt_stub_options'] = array();
 dpt_test_ok( DPT_ONB_Installer::enable_self_auto_update(), 'it needs no item to have been applied' );
 dpt_test_eq( get_option( 'auto_update_plugins' ), array( DPT_BASENAME ), 'and the list holds just the plugin' );
 
+// A write that does not happen is not an enrolment. update_site_option()
+// answers false both for a failed write and for a value that was already
+// there, so the two are told apart rather than both reported as success.
+$GLOBALS['dpt_stub_options']            = array();
+$GLOBALS['dpt_stub_unwritable_options'] = array( 'auto_update_plugins' );
+dpt_test_ok( ! DPT_ONB_Installer::enable_self_auto_update(), 'a refused write is reported as a failure' );
+dpt_test_eq( get_option( 'auto_update_plugins', array() ), array(), 'and nothing landed on the list' );
+$GLOBALS['dpt_stub_options']            = array( 'auto_update_plugins' => array( DPT_BASENAME ) );
+dpt_test_ok( DPT_ONB_Installer::enable_self_auto_update(), 'while an entry already on the list needs no write' );
+$GLOBALS['dpt_stub_unwritable_options'] = array();
+
 // The same gates apply to it as to everything else.
 $GLOBALS['dpt_stub_options']     = array();
 $GLOBALS['dpt_stub_denied_caps'] = array( 'update_plugins' );
