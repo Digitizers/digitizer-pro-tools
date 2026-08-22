@@ -636,5 +636,6 @@ return array (
     'Edit in the classic editor' => 'ערוך בעורך הקלאסי',
     'Turns the block editor off for posts and pages, so a site built in Elementor has one way to edit content rather than two. Existing block content is kept and is shown as blocks in the classic editor.' => 'מכבה את עורך הבלוקים לפוסטים ולעמודים, כך שלאתר שנבנה באלמנטור יש דרך אחת לערוך תוכן ולא שתיים. תוכן בלוקים קיים נשמר ומוצג כבלוקים בעורך הקלאסי.',
     'The standalone Update Policy plugin is active, so this module is standing down - its settings live under Settings > Update Policy.' => 'התוסף העצמאי Update Policy פעיל, ולכן המודול הזה נסוג - ההגדרות שלו נמצאות תחת הגדרות > Update Policy.',
+    'The standalone Update Policy plugin is active, so this module is standing down - its settings live under Network Admin > Settings > Update Policy.' => 'התוסף העצמאי Update Policy פעיל, ולכן המודול הזה נסוג - ההגדרות שלו נמצאות תחת ניהול רשת > הגדרות > Update Policy.',
   ),
 );

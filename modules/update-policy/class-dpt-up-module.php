@@ -85,9 +85,16 @@ class DPT_Update_Policy_Module extends DPT_Module {
 	 * @return string
 	 */
 	public function standing_down_reason() {
-		return self::standalone_active()
-			? __( 'The standalone Update Policy plugin is active, so this module is standing down - its settings live under Settings > Update Policy.', 'digitizer-pro-tools' )
-			: '';
+		if ( ! self::standalone_active() ) {
+			return '';
+		}
+		// The standalone keeps its screen where core updates are administered:
+		// under Network Admin on a network, under Settings on a single site.
+		// Point at the one that exists here.
+		if ( is_multisite() ) {
+			return __( 'The standalone Update Policy plugin is active, so this module is standing down - its settings live under Network Admin > Settings > Update Policy.', 'digitizer-pro-tools' );
+		}
+		return __( 'The standalone Update Policy plugin is active, so this module is standing down - its settings live under Settings > Update Policy.', 'digitizer-pro-tools' );
 	}
 
 	public function register_admin_menu( $parent_slug ) {

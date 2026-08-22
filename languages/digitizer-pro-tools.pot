@@ -1904,3 +1904,6 @@ msgstr ""
 
 msgid "The standalone Update Policy plugin is active, so this module is standing down - its settings live under Settings > Update Policy."
 msgstr ""
+
+msgid "The standalone Update Policy plugin is active, so this module is standing down - its settings live under Network Admin > Settings > Update Policy."
+msgstr ""

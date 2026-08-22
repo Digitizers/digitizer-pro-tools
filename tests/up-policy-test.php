@@ -304,5 +304,10 @@ dpt_test_ok( DPT_Update_Policy_Module::standalone_active(), 'with the standalone
 $module->init();
 dpt_test_ok( ! dpt_stub_has_filter( 'site_transient_update_core' ), 'and registers nothing - one filter on the transient, not two' );
 dpt_test_ok( '' !== $module->standing_down_reason(), 'while telling the Modules screen why' );
+dpt_test_ok( false !== strpos( $module->standing_down_reason(), 'Settings > Update Policy' ), 'pointing a single site at Settings' );
+dpt_test_ok( false === strpos( $module->standing_down_reason(), 'Network Admin' ), 'and not at a network screen it does not have' );
+$GLOBALS['dpt_stub_multisite'] = true;
+dpt_test_ok( false !== strpos( $module->standing_down_reason(), 'Network Admin > Settings > Update Policy' ), 'and a network at Network Admin, where the standalone actually keeps its screen' );
+$GLOBALS['dpt_stub_multisite'] = false;
 
 exit( dpt_test_summary() > 0 ? 1 : 0 );
