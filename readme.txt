@@ -4,7 +4,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.25.0
+Stable tag: 1.26.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -45,6 +45,7 @@ Decides when this site takes a major WordPress release:
 * The window is counted from the day this site first saw the release, not from the day it was published: nothing is asked of any external service, and a site checks for updates twice a day
 * Nothing is ever installed automatically. When the window passes the release is simply offered again, and updating stays a deliberate act
 * On a multisite network the policy is the main site's, since the WordPress it governs belongs to the network
+* Also available as a standalone plugin, Update Policy, for sites that do not run Digitizer Pro Tools. When that plugin is active this module stands down and says so
 
 = Module: Cookie Banner =
 
@@ -312,6 +313,9 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 5. Configure each module you enabled from its own screen. For the Cookie Banner that means reviewing the texts per language and pasting your analytics/marketing snippets in the Scripts tab, then checking the site
 
 == Changelog ==
+
+= 1.26.0 =
+* Update Policy stands down when the standalone Update Policy plugin is active. The module was extracted into a plugin of its own for the WordPress.org directory; a site running both would have two filters on one update transient and two screens saying the same thing, so the module now does nothing on such a site and says so on the Modules screen
 
 = 1.25.0 =
 * Site Tweaks: three more toggles, all off by default, taken from the snippets the Hello Digitizer child theme used to carry

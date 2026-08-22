@@ -51,7 +51,26 @@ class DPT_Update_Policy_Module extends DPT_Module {
 		return __( 'On a multisite network this policy applies to every site, so only a network administrator can switch it on or off.', 'digitizer-pro-tools' );
 	}
 
+	/**
+	 * Whether the standalone Update Policy plugin is running on this site.
+	 *
+	 * The module was extracted into a plugin of its own for WordPress.org. A
+	 * site with both would have two filters on one transient, two settings
+	 * screens and two notices saying the same thing - so when the standalone
+	 * is active this module does nothing and says so on the Modules screen.
+	 * The standalone wins because it is the one the operator chose to install.
+	 *
+	 * @return bool
+	 */
+	public static function standalone_active() {
+		return class_exists( 'Update_Policy_Core' );
+	}
+
 	public function init() {
+		if ( self::standalone_active() ) {
+			return;
+		}
+
 		// Not admin-only: the update transient is read on the front end too,
 		// and a hold that applies in one place and not the other is worse than
 		// no hold at all.
@@ -60,6 +79,22 @@ class DPT_Update_Policy_Module extends DPT_Module {
 		if ( is_admin() ) {
 			$this->admin = new DPT_UP_Admin();
 		}
+	}
+
+	/**
+	 * @return string
+	 */
+	public function standing_down_reason() {
+		if ( ! self::standalone_active() ) {
+			return '';
+		}
+		// The standalone keeps its screen where core updates are administered:
+		// under Network Admin on a network, under Settings on a single site.
+		// Point at the one that exists here.
+		if ( is_multisite() ) {
+			return __( 'The standalone Update Policy plugin is active, so this module is standing down - its settings live under Network Admin > Settings > Update Policy.', 'digitizer-pro-tools' );
+		}
+		return __( 'The standalone Update Policy plugin is active, so this module is standing down - its settings live under Settings > Update Policy.', 'digitizer-pro-tools' );
 	}
 
 	public function register_admin_menu( $parent_slug ) {
