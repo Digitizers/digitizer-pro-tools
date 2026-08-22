@@ -113,6 +113,9 @@ class DPT_Admin {
 							<?php if ( ! $dpt_can_toggle && $module->toggle_denied_reason() ) : ?>
 								<p class="description"><?php echo esc_html( $module->toggle_denied_reason() ); ?></p>
 							<?php endif; ?>
+							<?php if ( $module->standing_down_reason() ) : ?>
+								<p class="description"><strong><?php echo esc_html( $module->standing_down_reason() ); ?></strong></p>
+							<?php endif; ?>
 						</div>
 					<?php endforeach; ?>
 				</div>

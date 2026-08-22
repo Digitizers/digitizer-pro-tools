@@ -62,6 +62,20 @@ abstract class DPT_Module {
 	}
 
 	/**
+	 * Why this module is doing nothing even though it is switched on.
+	 *
+	 * A module stands down when something else on the site already does its
+	 * job - a standalone plugin it was extracted into, say. The Modules
+	 * screen shows this next to the switch, because a module that is on and
+	 * silent is indistinguishable from one that is broken.
+	 *
+	 * @return string Translated sentence, or '' when the module is in charge.
+	 */
+	public function standing_down_reason() {
+		return '';
+	}
+
+	/**
 	 * Register the module's admin submenu under the main DPT menu.
 	 * Called only when the module is enabled.
 	 *

@@ -281,4 +281,28 @@ $GLOBALS['dpt_stub_denied_caps'] = array();
 dpt_test_ok( $module->user_can_toggle(), 'while a network administrator may' );
 $GLOBALS['dpt_stub_multisite'] = false;
 
+/* ---- standing down for the standalone plugin ---- */
+
+// The module was extracted into a plugin of its own. A site with both would
+// run two filters on one transient and show two screens saying the same
+// thing, so when the standalone is present this module does nothing and says
+// why on the Modules screen.
+$GLOBALS['dpt_stub_filters'] = array();
+$GLOBALS['dpt_stub_multisite'] = false;
+dpt_test_ok( ! DPT_Update_Policy_Module::standalone_active(), 'without the standalone plugin the module is in charge' );
+dpt_test_eq( $module->standing_down_reason(), '', 'and has nothing to explain' );
+$module->init();
+dpt_test_ok( dpt_stub_has_filter( 'site_transient_update_core' ), 'so it registers its hold' );
+
+// The standalone's presence is its core class being loaded. Declared inside a
+// block so PHP does not hoist it above the assertions before this line.
+if ( ! class_exists( 'Update_Policy_Core' ) ) {
+	class Update_Policy_Core {}
+}
+$GLOBALS['dpt_stub_filters'] = array();
+dpt_test_ok( DPT_Update_Policy_Module::standalone_active(), 'with the standalone plugin loaded the module sees it' );
+$module->init();
+dpt_test_ok( ! dpt_stub_has_filter( 'site_transient_update_core' ), 'and registers nothing - one filter on the transient, not two' );
+dpt_test_ok( '' !== $module->standing_down_reason(), 'while telling the Modules screen why' );
+
 exit( dpt_test_summary() > 0 ? 1 : 0 );
