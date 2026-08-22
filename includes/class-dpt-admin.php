@@ -113,7 +113,12 @@ class DPT_Admin {
 							<?php if ( ! $dpt_can_toggle && $module->toggle_denied_reason() ) : ?>
 								<p class="description"><?php echo esc_html( $module->toggle_denied_reason() ); ?></p>
 							<?php endif; ?>
-							<?php if ( $module->standing_down_reason() ) : ?>
+							<?php
+							// A module that is switched off is not standing down, it is off;
+							// saying otherwise would imply a fallback that will not happen.
+							$dpt_is_on = isset( $enabled[ $id ] ) && '1' === $enabled[ $id ];
+							if ( $dpt_is_on && $module->standing_down_reason() ) :
+								?>
 								<p class="description"><strong><?php echo esc_html( $module->standing_down_reason() ); ?></strong></p>
 							<?php endif; ?>
 						</div>
