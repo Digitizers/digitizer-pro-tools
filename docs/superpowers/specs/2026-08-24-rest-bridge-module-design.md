@@ -73,7 +73,8 @@ by WordPress.
 | textarea | string | `sanitize_textarea_field` |
 | wysiwyg | string | `wp_kses_post` |
 | number | number | `floatval` (int when step absent/integer) |
-| checkbox / switcher | boolean-ish (string) | `'true'`/`'false'` normalized |
+| switcher | boolean-ish (string) | `'true'`/`'false'` normalized |
+| checkbox | object of option-key => `'true'`/`'false'` | keys `sanitize_key`, values normalized |
 | select / radio | string | `sanitize_text_field` |
 | date / time / datetime-local | string | `sanitize_text_field` |
 | media | integer (attachment id) | `absint` |
