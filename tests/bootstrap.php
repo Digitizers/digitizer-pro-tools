@@ -56,6 +56,27 @@ function dpt_test_summary() {
 	return $GLOBALS['dpt_test_fail'];
 }
 
+/**
+ * A notice raised while a REST response is being built corrupts the JSON
+ * before a single byte of it reaches a client, so a notice, warning or
+ * deprecation raised while a test runs is not noise to be scrolled past - it
+ * is the exact failure this plugin exists to avoid, and is made to fail the
+ * assertion count like anything else the tests check.
+ */
+set_error_handler(
+	function ( $errno, $errstr, $errfile, $errline ) {
+		$as_failure = E_NOTICE | E_WARNING | E_DEPRECATED | E_USER_NOTICE | E_USER_WARNING | E_USER_DEPRECATED;
+		if ( 0 === ( $errno & $as_failure ) ) {
+			// Not one of the levels this handler answers for; let PHP's
+			// normal handling run instead of pretending to have handled it.
+			return false;
+		}
+		$GLOBALS['dpt_test_fail']++;
+		echo "FAIL: PHP raised: {$errstr} in {$errfile} on line {$errline}\n";
+		return true;
+	}
+);
+
 /* ------------------------------------------------------------ WP stubs */
 
 class WP_Error {
