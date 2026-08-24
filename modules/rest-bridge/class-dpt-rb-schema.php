@@ -47,6 +47,89 @@ class DPT_RB_Schema {
 	);
 
 	/**
+	 * The object/target/meta-key triples this module treats as URLs whatever
+	 * type the site's own definition gives them.
+	 *
+	 * These are the two legacy names a theme prints straight into an href
+	 * and a src. The compatibility layer sanitizes them with esc_url_raw()
+	 * for exactly that reason - but it only registers a legacy field where
+	 * discovery did not already produce the name, and on a real site (and in
+	 * this repository's own fixture) JetEngine really does define linkedin
+	 * and author_image on the authors taxonomy, as text fields. Discovery
+	 * won the name, the url descriptor was dropped, and the write went
+	 * through sanitize_text_field(), which leaves javascript:alert(1)
+	 * intact: the discovery-wins rule stepping over the sanitizer that
+	 * exists to stop precisely that, in metadata this module publishes to
+	 * anonymous readers.
+	 *
+	 * The trade is deliberate and it is this way round on purpose. A site
+	 * that defined linkedin on authors as a text field and stores something
+	 * that is not a URL in it will see that value emptied by esc_url_raw().
+	 * That is a real cost. It is the smaller one: the field is named
+	 * linkedin on a taxonomy of authors, the plugin this module replaces has
+	 * always treated it as a URL, this module publishes it anonymously, and
+	 * the failure mode on the other side is stored XSS in an href. Do not
+	 * quietly relax this.
+	 *
+	 * A second list rather than $public_legacy serving both, though these
+	 * two are a subset of it and the two concerns are nearly the same
+	 * concern seen twice - what this module publishes to the world is what
+	 * it must insist on sanitizing. The three names they leave behind are
+	 * why the lists cannot be one: reading_time is a text field, a
+	 * wysiwyg bio is markup, and the FAQ is a repeater, and running any of
+	 * those through esc_url_raw() would destroy the value rather than
+	 * protect it. What makes a name public is that the replaced plugin
+	 * published it; what makes it a URL is what a theme does with it, and
+	 * only these two end up in an href.
+	 *
+	 * @var array
+	 */
+	private static $url_legacy = array(
+		'taxonomy/authors/author_image',
+		'taxonomy/authors/linkedin',
+	);
+
+	/**
+	 * A descriptor as this module treats it on one target.
+	 *
+	 * The advertised schema, the write sanitizer and the read shaping are
+	 * all written from the descriptor alone, which is what keeps the three
+	 * of them agreeing with each other. So a rule that depends on the target
+	 * is applied once, here, by handing back the descriptor all three should
+	 * be reading - rather than as a special case in the registration path,
+	 * which only one of the three would ever see.
+	 *
+	 * Only a field the type map already describes as a plain string is
+	 * turned into a url. That is not a hedge on the rule above: it is what
+	 * the rule means. The values that reach an href unescaped are exactly
+	 * the plain strings. A media field named author_image is a real
+	 * definition on a real site and already keeps its URL half out of
+	 * javascript: (see sanitize_media()); a repeater, a checkbox or a select
+	 * is not a string at all, and esc_url_raw() would answer '' for the
+	 * whole of it - deleting a shape this module could not read instead of
+	 * cleaning it, which is the one thing this class never does.
+	 *
+	 * @param array  $descriptor Field descriptor.
+	 * @param string $target     Post type or taxonomy it is being registered on.
+	 * @return array
+	 */
+	public static function resolve_descriptor( $descriptor, $target ) {
+		$object = isset( $descriptor['object'] ) ? $descriptor['object'] : '';
+		$triple = $object . '/' . $target . '/' . $descriptor['meta_key'];
+
+		if ( ! in_array( $triple, self::$url_legacy, true ) ) {
+			return $descriptor;
+		}
+
+		$advertised = self::type_schema( $descriptor );
+		if ( isset( $advertised['type'] ) && 'string' === $advertised['type'] ) {
+			$descriptor['type'] = 'url';
+		}
+
+		return $descriptor;
+	}
+
+	/**
 	 * The schema for one descriptor, as it lands on one target.
 	 *
 	 * The target is asked for because the read context depends on it: the

@@ -1136,6 +1136,94 @@ dpt_test_eq( call_user_func( $avatar_read, array( 'id' => 5 ) ), 'https://exampl
 call_user_func( $avatar_write, 'javascript:alert(1)', (object) array( 'term_id' => 5 ) );
 dpt_test_eq( get_term_meta( 5, 'author_image', true ), '', 'a javascript: URL does not survive into the stored avatar' );
 dpt_test_eq( DPT_RB_Schema::for_descriptor( array( 'meta_key' => 'author_image', 'title' => 'x', 'type' => 'url', 'fields' => array(), 'object' => 'taxonomy' ) )['type'], 'string', 'and the field is still advertised as the string it produces' );
+dpt_test_ok( in_array( 'author_image', DPT_RB_Fields::compat(), true ), 'and here it is the compatibility layer that registered it, JetEngine defining no such field' );
+
+/* ---- and discovery owning the name does not take the URL treatment away ---- */
+
+// A real site - and the fixture above - defines linkedin on the authors
+// taxonomy as a JetEngine text field. Discovery wins the name, so the legacy
+// url descriptor is never registered, and the write used to go through
+// sanitize_text_field(): javascript:alert(1) storable in metadata this
+// module publishes to anonymous readers and the theme prints into an href.
+// The object/target/meta-key pair decides the treatment, not the type
+// JetEngine happens to give the field.
+$fixture_boxes = $GLOBALS['dpt_stub_options']['jet_engine_meta_boxes'];
+$fixture_taxes = $GLOBALS['dpt_stub_rest_taxonomies'];
+
+// A second taxonomy, so the site can have a linkedin of its own somewhere
+// the replaced plugin never published one.
+$GLOBALS['dpt_stub_rest_taxonomies']                    = array( 'category', 'post_tag', 'authors', 'client' );
+$GLOBALS['dpt_stub_options']['jet_engine_meta_boxes'][] = array(
+	'id'          => 'author-avatar',
+	'args'        => array( 'object_type' => 'taxonomy', 'allowed_tax' => array( 'authors' ) ),
+	'meta_fields' => array(
+		array( 'name' => 'author_image', 'title' => 'Avatar', 'object_type' => 'field', 'type' => 'text' ),
+	),
+);
+$GLOBALS['dpt_stub_options']['jet_engine_meta_boxes'][] = array(
+	'id'          => 'client-contacts',
+	'args'        => array( 'object_type' => 'taxonomy', 'allowed_tax' => array( 'client' ) ),
+	'meta_fields' => array(
+		array( 'name' => 'linkedin', 'title' => 'LinkedIn handle', 'object_type' => 'field', 'type' => 'text' ),
+	),
+);
+DPT_RB_Definitions::reset();
+$GLOBALS['dpt_stub_rest_fields'] = array();
+DPT_RB_Fields::register();
+
+dpt_test_ok( ! in_array( 'author_image', DPT_RB_Fields::compat(), true ), 'with both names discovered, neither is a compatibility field any more' );
+
+$disc_link_write = $GLOBALS['dpt_stub_rest_fields']['authors']['linkedin']['update_callback'];
+$disc_link_read  = $GLOBALS['dpt_stub_rest_fields']['authors']['linkedin']['get_callback'];
+call_user_func( $disc_link_write, 'javascript:alert(1)', (object) array( 'term_id' => 71 ) );
+dpt_test_eq( get_term_meta( 71, 'linkedin', true ), '', 'a linkedin discovered as a text field on authors still refuses a javascript: URL' );
+
+$disc_img_write = $GLOBALS['dpt_stub_rest_fields']['authors']['author_image']['update_callback'];
+$disc_img_read  = $GLOBALS['dpt_stub_rest_fields']['authors']['author_image']['get_callback'];
+call_user_func( $disc_img_write, 'javascript:alert(1)', (object) array( 'term_id' => 71 ) );
+dpt_test_eq( get_term_meta( 71, 'author_image', true ), '', 'and so does an author_image discovered as one' );
+
+// And the spelling that hides the protocol behind a character a URL may not
+// contain, which core removes before it decides what the protocol is.
+call_user_func( $disc_link_write, "java\tscript:alert(1)", (object) array( 'term_id' => 71 ) );
+dpt_test_eq( get_term_meta( 71, 'linkedin', true ), '', 'an obfuscated javascript: URL is refused too' );
+
+// The treatment has to leave a real URL alone, or it is not a sanitizer but
+// a field nobody can use.
+dpt_test_ok( true === call_user_func( $disc_link_write, 'https://example.test/in/ben', (object) array( 'term_id' => 71 ) ), 'a real profile URL is written' );
+dpt_test_eq( call_user_func( $disc_link_read, array( 'id' => 71 ) ), 'https://example.test/in/ben', 'and round-trips unchanged' );
+dpt_test_ok( true === call_user_func( $disc_img_write, 'https://example.test/avatar.png', (object) array( 'term_id' => 71 ) ), 'so is a real avatar URL' );
+dpt_test_eq( call_user_func( $disc_img_read, array( 'id' => 71 ) ), 'https://example.test/avatar.png', 'and it round-trips too' );
+
+// The invariant this class is held to: what is advertised, what the
+// sanitizer produces and what the read hands back are one answer.
+dpt_test_eq( $GLOBALS['dpt_stub_rest_fields']['authors']['linkedin']['schema']['type'], 'string', 'the schema still advertises the string the sanitizer produces' );
+dpt_test_eq( $GLOBALS['dpt_stub_rest_fields']['authors']['linkedin']['schema']['context'], array( 'view', 'edit' ), 'and the field is as public as it always was' );
+
+// The pair is the key, not the name alone. A linkedin on some other
+// taxonomy is the text field the site defined it as - this module has no
+// business deciding what a name it never published means there.
+$client_write = $GLOBALS['dpt_stub_rest_fields']['client']['linkedin']['update_callback'];
+call_user_func( $client_write, 'javascript:alert(1)', (object) array( 'term_id' => 72 ) );
+dpt_test_eq( get_term_meta( 72, 'linkedin', true ), 'javascript:alert(1)', 'a linkedin on another taxonomy is left as the text field the site defined' );
+dpt_test_eq( $GLOBALS['dpt_stub_rest_fields']['client']['linkedin']['schema']['context'], array( 'edit' ), 'and it is not published to anonymous readers either' );
+
+// Only a field the type map already calls a plain string is forced. A
+// media author_image is a definition a real site has, it keeps its own URL
+// half out of javascript: already, and esc_url_raw() over the id-and-URL
+// pair would answer '' for the whole of it - deleting a shape rather than
+// cleaning it.
+$media_avatar = array( 'meta_key' => 'author_image', 'title' => 'Avatar', 'type' => 'media', 'fields' => array(), 'object' => 'taxonomy', 'value_format' => 'both' );
+dpt_test_eq( DPT_RB_Schema::resolve_descriptor( $media_avatar, 'authors' )['type'], 'media', 'a media field of the same name keeps its own shape' );
+$text_avatar = array( 'meta_key' => 'author_image', 'title' => 'Avatar', 'type' => 'text', 'fields' => array(), 'object' => 'taxonomy' );
+dpt_test_eq( DPT_RB_Schema::resolve_descriptor( $text_avatar, 'authors' )['type'], 'url', 'while the text field it usually is becomes a URL' );
+dpt_test_eq( DPT_RB_Schema::resolve_descriptor( $text_avatar, 'client' )['type'], 'text', 'on the authors taxonomy and nowhere else' );
+
+$GLOBALS['dpt_stub_options']['jet_engine_meta_boxes'] = $fixture_boxes;
+$GLOBALS['dpt_stub_rest_taxonomies']                  = $fixture_taxes;
+DPT_RB_Definitions::reset();
+$GLOBALS['dpt_stub_rest_fields'] = array();
+DPT_RB_Fields::register();
 
 /* ---- reading and writing through the callbacks ---- */
 

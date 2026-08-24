@@ -185,6 +185,50 @@ A site can opt a discovered field back into public read with the
 `dpt_rb_field_context` filter, which receives the context array, the descriptor
 and the target. A filter rather than a setting: this module stores nothing.
 
+### URL fields, whatever the site calls them
+
+`author_image` and `linkedin` on the `authors` taxonomy are sanitized with
+`esc_url_raw()` **even where discovery owns the name** - the one exception to
+the discovery-wins rule below, and the reason it is written here rather than
+only in the code.
+
+The compatibility layer registers a legacy field only where discovery did not
+already produce that name, on the sound principle that a site's own definition
+knows more than a hard-coded list. But a real site - and this repository's own
+fixture - defines both of these on `authors` as JetEngine **text** fields. So
+discovery won the name, the `url` descriptor was dropped, and the write went
+through `sanitize_text_field()`, which leaves `javascript:alert(1)` intact in
+metadata this module publishes to anonymous readers and the documented theme
+usage puts straight into an `href` or a `src`. The rule stepped over the
+sanitizer that exists to close exactly that.
+
+So `DPT_RB_Schema` keeps a second list of object/target/meta-key triples -
+`taxonomy/authors/author_image` and `taxonomy/authors/linkedin` - whose
+treatment is URL regardless of the type JetEngine gives them, and
+`resolve_descriptor()` applies it once at registration, handing the schema,
+the write sanitizer and the read path the same descriptor so the three cannot
+disagree. The pair is the key, not the name: a `linkedin` on some other
+taxonomy is whatever the site defined it as.
+
+The trade is deliberate. A site that defined `linkedin` on `authors` as a text
+field and stores something that is not a URL there will have that value emptied
+by `esc_url_raw()`. That is a real cost, and it is the smaller one: the field is
+named `linkedin` on a taxonomy of authors, the replaced plugin has always
+treated it as a URL, this module publishes it anonymously, and the failure on
+the other side is stored XSS in an `href`.
+
+It is a second list rather than `$public_legacy` serving both, though these two
+are a subset of it and the two concerns are nearly the same one seen twice -
+what this module publishes to the world is what it must insist on sanitizing.
+The three names left behind are why they cannot be one list: `reading_time` is
+a text field, the bio is wysiwyg and the FAQ is a repeater, and `esc_url_raw()`
+over any of those would destroy the value rather than protect it. For the same
+reason only a field the type map already calls a plain string is forced: a
+`media` field of that name already keeps its URL half out of `javascript:`, and
+a repeater, checkbox or select is not a string at all, so forcing one would
+answer `''` for the whole value - deleting a shape this module could not read
+instead of cleaning it.
+
 ### DPT_RB_Fields — registration
 
 On `rest_api_init`:
@@ -221,7 +265,11 @@ discovery did not already expose the name:
   wysiwyg), `author_image` (authors, url → `esc_url_raw`), `linkedin`
   (authors, url) — the old plugin's hard-coded set, kept because consumers use
   them and they may be plain meta rather than JetEngine fields. Registered
-  only if the `authors` taxonomy / target object exists.
+  only if the `authors` taxonomy / target object exists. The two URL fields
+  are the exception to "each item only when discovery did not already expose
+  the name": their *registration* still stands down for the site's own
+  definition, but their URL *treatment* does not — see "URL fields, whatever
+  the site calls them" above.
 
 ### DPT_RB_Elementor — ported endpoints
 
@@ -328,7 +376,16 @@ options, no `user_can_toggle` override.
    against the schema `for_descriptor()` advertised.
 3. Fields: registration targets (REST-enabled only), read normalization
    (array / JSON string / serialized string / garbage), alias registered only
-   when missing, compat set skips discovered names.
+   when missing, compat set skips discovered names. `linkedin` and
+   `author_image` discovered as JetEngine **text** fields on `authors` still
+   refuse `javascript:alert(1)` through the registered update callback - in
+   the obfuscated spelling as well as the plain one - while a real URL round
+   trips unchanged and the advertised schema still says `string`; a `linkedin`
+   on another taxonomy is left as the text field the site defined, and a
+   `media` field of the same name on `authors` keeps its own shape. The
+   harness's `esc_url_raw` stub reads the protocol off a copy with every
+   character a URL may not contain removed, the way core does, so that
+   obfuscated spelling cannot pass a check core would refuse.
 4. Elementor: tree build, updates applied/not_found, per-post capability
    denial, cache clear called (the harness stubs `\Elementor\Plugin` so that
    call is really made), a refused write reported as an error with the cache

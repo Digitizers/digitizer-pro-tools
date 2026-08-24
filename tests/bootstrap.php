@@ -129,7 +129,15 @@ function esc_url_raw( $s ) {
 	if ( '' === $s ) {
 		return '';
 	}
-	if ( preg_match( '#^([a-z0-9+.\-]+):#i', $s, $m ) && ! in_array( strtolower( $m[1] ), array( 'http', 'https', 'mailto', 'tel' ), true ) ) {
+	// The protocol is read off a copy with every character a URL may not
+	// contain removed, because that is what core does before it decides:
+	// "java\tscript:alert(1)" is javascript:alert(1) by the time core's own
+	// protocol check sees it. Read off the string as typed instead, the stub
+	// would answer "safe" to a spelling core refuses, and a test claiming a
+	// javascript: URL cannot be stored would only be claiming it about the
+	// tidy spelling of one.
+	$probe = preg_replace( '#[^a-z0-9\-~+_.?\#=!&;,/:%@$|*\'()\[\]\x80-\xff]#i', '', $s );
+	if ( preg_match( '#^([a-z0-9+.\-]+):#i', $probe, $m ) && ! in_array( strtolower( $m[1] ), array( 'http', 'https', 'mailto', 'tel' ), true ) ) {
 		return '';
 	}
 	return $s;

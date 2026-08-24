@@ -309,10 +309,20 @@ class DPT_RB_Fields {
 				continue;
 			}
 
+			// The descriptor as this module treats it here, which is not
+			// always the descriptor discovery handed over: a handful of
+			// object/target/meta-key triples are URLs whatever type the
+			// site's own definition gives them, because a theme prints them
+			// into an href. Resolved once, into a new variable the schema and
+			// both callbacks then share, so the advertised type, the write
+			// sanitizer and the read shaping cannot disagree - and the loop's
+			// next target still starts from the descriptor it was given.
+			$resolved = DPT_RB_Schema::resolve_descriptor( $descriptor, $target );
+
 			// Built per target rather than once for the descriptor: the read
 			// context is a per-target answer, because a legacy name is only
 			// public on the target the replaced plugin published it on.
-			$schema = DPT_RB_Schema::for_descriptor( $descriptor, $target );
+			$schema = DPT_RB_Schema::for_descriptor( $resolved, $target );
 			/**
 			 * Filters the REST contexts one field may be read in.
 			 *
@@ -326,17 +336,17 @@ class DPT_RB_Fields {
 			 * @param array  $descriptor The field descriptor being registered.
 			 * @param string $target     Post type or taxonomy it lands on.
 			 */
-			$schema['context'] = array_values( (array) apply_filters( 'dpt_rb_field_context', $schema['context'], $descriptor, $target ) );
+			$schema['context'] = array_values( (array) apply_filters( 'dpt_rb_field_context', $schema['context'], $resolved, $target ) );
 
 			register_rest_field(
 				$target,
 				$name,
 				array(
-					'get_callback'    => function ( $object ) use ( $descriptor ) {
-						return DPT_RB_Fields::read( $descriptor, $object );
+					'get_callback'    => function ( $object ) use ( $resolved ) {
+						return DPT_RB_Fields::read( $resolved, $object );
 					},
-					'update_callback' => function ( $value, $object ) use ( $descriptor ) {
-						return DPT_RB_Fields::write( $descriptor, $value, $object );
+					'update_callback' => function ( $value, $object ) use ( $resolved ) {
+						return DPT_RB_Fields::write( $resolved, $value, $object );
 					},
 					'schema'          => $schema,
 				)
