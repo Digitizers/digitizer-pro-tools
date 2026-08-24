@@ -272,4 +272,35 @@ dpt_test_eq( DPT_RB_Schema::for_descriptor( $checkbox )['type'], 'object', 'a ch
 dpt_test_eq( wp_json_encode( DPT_RB_Schema::normalize_read( $checkbox, array() ) ), '{}', 'an empty checkbox encodes as an object, not a list' );
 dpt_test_eq( wp_json_encode( DPT_RB_Schema::normalize_read( $checkbox, array( '0' => 'true', '1' => 'false' ) ) ), '{"0":"true","1":"false"}', 'and numeric-looking keys still encode as an object' );
 
+// normalize_read() and sanitize() have to agree with each other, not only
+// with json_type(): anything that composes the read and the write in
+// process - without an HTTP round trip through json_decode() in between to
+// flatten the object back to an array - must get the same map back, or a
+// checkbox silently loses every option it had.
+dpt_test_eq(
+	DPT_RB_Schema::sanitize( $checkbox, DPT_RB_Schema::normalize_read( $checkbox, array( 'wifi' => 'true', 'parking' => 'false' ) ) ),
+	array( 'wifi' => 'true', 'parking' => 'false' ),
+	'a checkbox read composes back into the same sanitized map'
+);
+dpt_test_eq(
+	DPT_RB_Schema::sanitize( $checkbox, DPT_RB_Schema::normalize_read( $checkbox, array( '0' => 'true', '1' => 'false' ) ) ),
+	array( '0' => 'true', '1' => 'false' ),
+	'even when its keys look numeric'
+);
+dpt_test_eq(
+	DPT_RB_Schema::sanitize( $checkbox, DPT_RB_Schema::normalize_read( $checkbox, array() ) ),
+	array(),
+	'and an empty checkbox composes back into an empty map, not a wipe'
+);
+
+// number and media are advertised as 'number' and 'integer' by json_type(),
+// so a read that hands either one back as a string would be the same
+// promise-versus-delivery mismatch the checkbox object fix was for - only
+// silent, because a JSON number and a JSON string that looks like one are
+// easy to mistake for each other until something strict parses the response.
+dpt_test_eq( wp_json_encode( DPT_RB_Schema::normalize_read( $num, '42' ) ), '42', 'a number reads back as a number, not "42"' );
+dpt_test_eq( wp_json_encode( DPT_RB_Schema::normalize_read( $num, null ) ), '0', 'and an unset number reads back as 0, not ""' );
+dpt_test_eq( wp_json_encode( DPT_RB_Schema::normalize_read( $media, '12' ) ), '12', 'media reads back as an integer, not "12"' );
+dpt_test_eq( wp_json_encode( DPT_RB_Schema::normalize_read( $media, null ) ), '0', 'and an unset attachment id reads back as 0, not ""' );
+
 exit( dpt_test_summary() > 0 ? 1 : 0 );

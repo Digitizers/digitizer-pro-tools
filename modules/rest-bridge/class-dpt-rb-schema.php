@@ -154,6 +154,13 @@ class DPT_RB_Schema {
 				// may send a real boolean; both end up saying the same thing.
 				return ( $value && 'false' !== $value && '0' !== $value ) ? 'true' : 'false';
 			case 'checkbox':
+				// normalize_read() hands a checkbox back as an object, so this
+				// has to accept one too - otherwise composing the two in
+				// process, with no JSON round trip in between to flatten it
+				// back to an array, silently wipes the field.
+				if ( is_object( $value ) ) {
+					$value = get_object_vars( $value );
+				}
 				$out = array();
 				if ( is_array( $value ) ) {
 					foreach ( $value as $key => $on ) {
@@ -181,15 +188,7 @@ class DPT_RB_Schema {
 	 */
 	public static function normalize_read( $descriptor, $stored ) {
 		if ( 'repeater' !== $descriptor['type'] ) {
-			if ( 'checkbox' === $descriptor['type'] ) {
-				// The schema promises an object. A PHP array with no items,
-				// or with keys that happen to look sequential once
-				// sanitize() has run them through sanitize_key(), still
-				// encodes as a JSON array - casting to stdClass is what
-				// forces {} and {"0":...} instead of [] and [...].
-				return is_array( $stored ) ? (object) $stored : (object) array();
-			}
-			return ( null === $stored || ! is_scalar( $stored ) ) ? '' : (string) $stored;
+			return self::normalize_scalar_read( $descriptor['type'], $stored );
 		}
 
 		if ( is_array( $stored ) ) {
@@ -208,5 +207,43 @@ class DPT_RB_Schema {
 		// without allowing classes keeps a crafted string from building one.
 		$unserialized = @unserialize( $stored, array( 'allowed_classes' => false ) ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
 		return is_array( $unserialized ) ? array_values( $unserialized ) : array();
+	}
+
+	/**
+	 * Present one non-repeater stored value the way its own schema promises.
+	 *
+	 * Mirrors json_type() type for type, on purpose: json_type() and this are
+	 * the two places that get to say what a field's stored value looks like
+	 * from outside, and letting either one drift from the other is the exact
+	 * failure this class exists to prevent.
+	 *
+	 * @param string $type   JetEngine type.
+	 * @param mixed  $stored Whatever the database held.
+	 * @return mixed
+	 */
+	private static function normalize_scalar_read( $type, $stored ) {
+		switch ( $type ) {
+			case 'checkbox':
+				// The schema promises an object. A PHP array with no items,
+				// or with keys that happen to look sequential once
+				// sanitize() has run them through sanitize_key(), still
+				// encodes as a JSON array - casting to stdClass is what
+				// forces {} and {"0":...} instead of [] and [...].
+				return is_array( $stored ) ? (object) $stored : (object) array();
+			case 'number':
+				// A field never saved reads back as 0, the schema-honest "no
+				// value" for a number, not the empty string a text field uses.
+				return is_numeric( $stored ) ? $stored + 0 : 0;
+			case 'media':
+				// Same reasoning as number: an unset attachment id is 0, not "".
+				return is_scalar( $stored ) ? absint( $stored ) : 0;
+			default:
+				// text, textarea, wysiwyg, select, radio, switcher, dates: all of
+				// them are advertised as a string by json_type(), so a scalar
+				// cast is honest for all of them; anything that is not a scalar
+				// - an array or object left behind by corrupt data - has no
+				// honest string form and reads back as empty instead.
+				return ( null === $stored || ! is_scalar( $stored ) ) ? '' : (string) $stored;
+		}
 	}
 }
