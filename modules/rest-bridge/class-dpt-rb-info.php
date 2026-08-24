@@ -56,15 +56,13 @@ class DPT_RB_Info {
 	 * @return array
 	 */
 	public static function payload() {
-		$fields = array();
-		foreach ( DPT_RB_Fields::registered() as $where => $names ) {
-			$fields[ $where ] = array_values( $names );
-		}
-
 		return array(
 			'module'    => 'Digitizer Pro Tools - REST Bridge',
 			'version'   => DPT_VERSION,
-			'fields'    => $fields,
+			// Names and their schemas, not names alone: an agent handed a
+			// site it has never seen has to know a field's type and shape
+			// before it can write to it, and this is where it is told.
+			'fields'    => DPT_RB_Fields::registered(),
 			'compat'    => array_values( DPT_RB_Fields::compat() ),
 			// Discovery's diagnostics first, then registration's - a
 			// registration skip (e.g. jet_qna) only makes sense once
@@ -74,7 +72,10 @@ class DPT_RB_Info {
 			),
 			'rank_math' => DPT_RB_Rankmath::active(),
 			'routes'    => array(
-				'/digitizer/v1/elementor/{post_id}',
+				// With their methods: the Elementor route reads on GET and
+				// writes on POST, and a list that says neither leaves an
+				// agent to guess that the write side exists at all.
+				'/digitizer/v1/elementor/{post_id} (GET, POST)',
 				'/digitizer/v1/info',
 			),
 		);

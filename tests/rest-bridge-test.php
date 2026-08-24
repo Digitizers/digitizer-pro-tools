@@ -681,6 +681,41 @@ dpt_test_eq( $GLOBALS['dpt_stub_rest_fields']['post']['internal_note']['schema']
 dpt_test_eq( $GLOBALS['dpt_stub_rest_fields']['post']['qna']['schema']['context'], array( 'view', 'edit' ), 'without disturbing the fields it did not name' );
 remove_filter( 'dpt_rb_field_context' );
 
+/* ---- jet_qna is a name on posts, and only on posts ---- */
+
+// A qna repeater attached to a taxonomy is not the FAQ ContentEngine writes.
+// Aliasing it there would put jet_qna where no consumer looks for it, and
+// would leave the post-side fallback free to register the name a second time
+// and report it twice.
+$GLOBALS['dpt_stub_options'] = array(
+	'jet_engine_meta_boxes' => array(
+		array(
+			'id'          => 'author-faq',
+			'args'        => array( 'object_type' => 'taxonomy', 'allowed_tax' => array( 'authors' ) ),
+			'meta_fields' => array(
+				array(
+					'name'            => 'qna',
+					'title'           => 'Author FAQ',
+					'object_type'     => 'field',
+					'type'            => 'repeater',
+					'repeater-fields' => array(
+						array( 'name' => 'question', 'title' => 'Question', 'type' => 'text' ),
+						array( 'name' => 'answer', 'title' => 'Answer', 'type' => 'wysiwyg' ),
+					),
+				),
+			),
+		),
+	),
+);
+DPT_RB_Definitions::reset();
+$GLOBALS['dpt_stub_rest_fields'] = array();
+DPT_RB_Fields::register();
+dpt_test_ok( isset( $GLOBALS['dpt_stub_rest_fields']['authors']['qna'] ), 'the taxonomy repeater is exposed under its own name' );
+dpt_test_ok( ! isset( $GLOBALS['dpt_stub_rest_fields']['authors']['jet_qna'] ), 'but the alias is not put on a taxonomy' );
+dpt_test_ok( isset( $GLOBALS['dpt_stub_rest_fields']['post']['jet_qna'] ), 'while posts still get one, where the automation writes it' );
+$jet_qna_reports = array_keys( DPT_RB_Fields::compat(), 'jet_qna', true );
+dpt_test_eq( count( $jet_qna_reports ), 1, 'and the info endpoint is told about it exactly once' );
+
 /* ---- the qna fallback defers to whatever already owns the meta key ---- */
 
 // A site whose own qna field is not a repeater must never have the legacy
@@ -1008,6 +1043,18 @@ dpt_test_ok( in_array( 'jet_qna', $info['compat'], true ), 'names the compatibil
 dpt_test_ok( is_array( $info['skipped'] ), 'reports what discovery passed over' );
 dpt_test_ok( $info['rank_math'], 'and whether Rank Math is here' );
 dpt_test_ok( in_array( '/digitizer/v1/info', $info['routes'], true ), 'while naming its own route' );
+
+// An agent is handed a site it has never seen. A list of names tells it what
+// exists; only the schema tells it what a field will accept, so the payload
+// carries the schemas the fields were really registered with.
+dpt_test_ok( isset( $info['fields']['post/post']['jet_qna'] ), 'the field list is keyed by name' );
+dpt_test_eq( $info['fields']['post/post']['jet_qna']['type'], 'array', 'and each name carries its schema' );
+dpt_test_ok( isset( $info['fields']['post/post']['jet_qna']['items']['properties']['question'] ), 'down to a repeater\'s sub-fields' );
+dpt_test_ok( isset( $info['fields']['post/post']['jet_qna']['context'] ), 'and what it may be read in' );
+
+// The Elementor route both reads and writes; a list that says neither leaves
+// an agent to guess that the write side is there at all.
+dpt_test_ok( in_array( '/digitizer/v1/elementor/{post_id} (GET, POST)', $info['routes'], true ), 'the Elementor route names both its methods' );
 
 $GLOBALS['dpt_stub_rest_routes'] = array();
 DPT_RB_Info::register();

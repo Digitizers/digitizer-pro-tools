@@ -58,7 +58,8 @@ Puts this site's own custom fields on the REST API (disabled by default; enable 
 * Legacy field names from the standalone Digitizer API Extensions plugin - reading_time, the author bio fields, and the qna FAQ repeater under its old name jet_qna - keep working wherever a discovered field does not already claim that name, including a fallback for jet_qna on a site whose JetEngine definitions this module cannot see
 * Exposes Rank Math's SEO fields on posts and pages - title and meta description overrides, focus keyword, robots directives, canonical URL, primary category, SEO score, and the Open Graph and Twitter card fields - only while Rank Math is active
 * Elementor endpoints (GET/POST /digitizer/v1/elementor/{post_id}) for reading and merging widget settings by widget ID, without touching the rest of the page's layout
-* An /digitizer/v1/info endpoint reports exactly what was discovered, registered and skipped on this site, and why - restricted to users who can edit posts
+* An /digitizer/v1/info endpoint reports exactly what was discovered, registered and skipped on this site, and why - each registered field with the schema it was given, so an automation can see what a field will accept before it writes to it. Restricted to users who can edit posts
+* Two notes for anything reading and writing these fields: a number field that was never saved reads back as 0 rather than as empty, so a read-modify-write cycle stores a 0 where there was nothing; and the Elementor endpoint saves widget settings as Elementor itself does, without stripping HTML, so anyone who may edit a page may put markup in it - the same as editing that page in Elementor
 * Replaces the standalone Digitizer API Extensions plugin and stands down while that plugin is active, since both would register the same fields and the same routes
 
 = Module: Cookie Banner =

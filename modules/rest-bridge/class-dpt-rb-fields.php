@@ -49,6 +49,9 @@ class DPT_RB_Fields {
 	 * The legacy fields the replaced plugin promised, kept because
 	 * automations use them and they may not be JetEngine fields at all.
 	 *
+	 * Every entry names a single target, so free_targets()' per-target
+	 * decision has no multi-target entry to exercise on today's data.
+	 *
 	 * @return array
 	 */
 	private static function legacy() {
@@ -114,11 +117,20 @@ class DPT_RB_Fields {
 		// a taxonomy or post type the site does not expose to REST must not
 		// be claimed as a compatibility field regardless.
 		foreach ( $discovered as $descriptor ) {
-			if ( 'qna' === $descriptor['meta_key'] && 'repeater' === $descriptor['type'] ) {
-				if ( self::register_one( $descriptor, 'jet_qna' ) > 0 ) {
-					self::$compat[] = 'jet_qna';
-				}
+			// jet_qna is a name on posts, where ContentEngine writes it. A
+			// site whose qna repeater sits on a taxonomy gets no alias: it
+			// would put the name somewhere no consumer looks for it, and
+			// leave the post-side fallback below free to claim it a second
+			// time.
+			if ( 'post' !== $descriptor['object'] || 'qna' !== $descriptor['meta_key'] || 'repeater' !== $descriptor['type'] ) {
+				continue;
 			}
+			if ( self::register_one( $descriptor, 'jet_qna' ) > 0 ) {
+				self::$compat[] = 'jet_qna';
+			}
+			// One meta key, one alias: a second definition of the same key
+			// would register nothing new and report the name twice.
+			break;
 		}
 
 		// And the fields the old plugin hard-coded. Each is decided per
@@ -172,9 +184,13 @@ class DPT_RB_Fields {
 				// The site's own qna field means something else. Recording
 				// why keeps an automation from finding the absence as a
 				// bare 404 with nothing to explain it.
+				//
+				// English, untranslated, like every other line in this list:
+				// they are merged into one payload the info endpoint hands
+				// to agents, and one language throughout is what makes that
+				// list readable. It is not interface copy.
 				self::$skipped[] = sprintf(
-					/* translators: %s: the JetEngine type of the site's own qna field */
-					__( 'jet_qna was not registered because the site\'s own qna field is a %s field, not a repeater.', 'digitizer-pro-tools' ),
+					'jet_qna was not registered because the site\'s own qna field is a %s field, not a repeater.',
 					$owner['type']
 				);
 			}

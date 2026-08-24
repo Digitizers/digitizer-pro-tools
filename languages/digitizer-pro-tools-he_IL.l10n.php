@@ -645,7 +645,6 @@ return array (
     'The object to update could not be identified.' => 'לא ניתן לזהות את האובייקט לעדכון.',
     'The field %s could not be cleared.' => 'לא ניתן היה לרוקן את השדה %s.',
     'The field %s could not be saved.' => 'לא ניתן היה לשמור את השדה %s.',
-    'jet_qna was not registered because the site\'s own qna field is a %s field, not a repeater.' => 'jet_qna לא נרשם כי שדה ה-qna של האתר עצמו הוא שדה מסוג %s, ולא ריפיטר.',
     'A list of { widget_id, settings } objects.' => 'רשימה של אובייקטי { widget_id, settings }.',
     'This post has no Elementor data.' => 'לפוסט הזה אין נתוני אלמנטור.',
     'The stored Elementor data is not valid JSON.' => 'נתוני האלמנטור השמורים אינם JSON תקין.',
