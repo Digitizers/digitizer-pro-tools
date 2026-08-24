@@ -35,5 +35,6 @@ $GLOBALS['dpt_stub_denied_post_caps'] = array();
 $GLOBALS['dpt_stub_filters'] = array();
 add_action( 'rest_api_init', '__return_true' );
 dpt_test_ok( dpt_stub_has_filter( 'rest_api_init' ), 'add_action records into the same registry as add_filter' );
+$GLOBALS['dpt_stub_filters'] = array();
 
 exit( dpt_test_summary() > 0 ? 1 : 0 );
