@@ -1,3 +1,4 @@
 *.code-workspace
 dist/
 .DS_Store
+/messages.mo

@@ -2396,7 +2396,7 @@ Translations to use (these are the strings this plan introduces):
 
 ```bash
 msgfmt -o languages/digitizer-pro-tools-he_IL.mo languages/digitizer-pro-tools-he_IL.po
-msgfmt --statistics languages/digitizer-pro-tools-he_IL.po
+msgfmt --statistics -o /dev/null languages/digitizer-pro-tools-he_IL.po
 php -l languages/digitizer-pro-tools-he_IL.l10n.php
 ```
 

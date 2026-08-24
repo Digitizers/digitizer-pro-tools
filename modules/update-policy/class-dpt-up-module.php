@@ -52,7 +52,7 @@ class DPT_Update_Policy_Module extends DPT_Module {
 	}
 
 	/**
-	 * Whether the standalone Update Policy plugin is running on this site.
+	 * Whether the standalone Digitizer Update Hold plugin is running here.
 	 *
 	 * The module was extracted into a plugin of its own for WordPress.org. A
 	 * site with both would have two filters on one transient, two settings
@@ -63,7 +63,13 @@ class DPT_Update_Policy_Module extends DPT_Module {
 	 * @return bool
 	 */
 	public static function standalone_active() {
-		return class_exists( 'Update_Policy_Core' );
+		// The standalone was renamed for the WordPress.org directory, which
+		// judged "Update Policy" too generic a name to list. A site that
+		// installed it before the rename still has the old class, so both
+		// spellings count as the standalone being present - dropping the old
+		// one would silently un-stand-down those sites and put two filters
+		// back on one transient.
+		return class_exists( 'Digitizer_Update_Hold_Core' ) || class_exists( 'Update_Policy_Core' );
 	}
 
 	public function init() {
@@ -88,13 +94,22 @@ class DPT_Update_Policy_Module extends DPT_Module {
 		if ( ! self::standalone_active() ) {
 			return '';
 		}
-		// The standalone keeps its screen where core updates are administered:
-		// under Network Admin on a network, under Settings on a single site.
-		// Point at the one that exists here.
-		if ( is_multisite() ) {
-			return __( 'The standalone Update Policy plugin is active, so this module is standing down - its settings live under Network Admin > Settings > Update Policy.', 'digitizer-pro-tools' );
+		// Two things vary, and a sentence naming either wrongly sends someone
+		// hunting for a menu that is not there. The standalone keeps its
+		// screen where core updates are administered - under Network Admin on
+		// a network, under Settings on a single site - and it is called
+		// whatever the installed build calls itself, which for anyone who
+		// adopted it before the rename is still Update Policy.
+		if ( ! class_exists( 'Digitizer_Update_Hold_Core' ) ) {
+			if ( is_multisite() ) {
+				return __( 'The standalone Update Policy plugin is active, so this module is standing down - its settings live under Network Admin > Settings > Update Policy.', 'digitizer-pro-tools' );
+			}
+			return __( 'The standalone Update Policy plugin is active, so this module is standing down - its settings live under Settings > Update Policy.', 'digitizer-pro-tools' );
 		}
-		return __( 'The standalone Update Policy plugin is active, so this module is standing down - its settings live under Settings > Update Policy.', 'digitizer-pro-tools' );
+		if ( is_multisite() ) {
+			return __( 'The standalone Digitizer Update Hold plugin is active, so this module is standing down - its settings live under Network Admin > Settings > Digitizer Update Hold.', 'digitizer-pro-tools' );
+		}
+		return __( 'The standalone Digitizer Update Hold plugin is active, so this module is standing down - its settings live under Settings > Digitizer Update Hold.', 'digitizer-pro-tools' );
 	}
 
 	public function register_admin_menu( $parent_slug ) {
