@@ -428,7 +428,14 @@ class DPT_RB_Fields {
 			// read-side shaping asks the question this check actually
 			// means: does storage now hold what was asked for.
 			$stored = $is_tax ? get_term_meta( $id, $key, true ) : get_post_meta( $id, $key, true );
-			if ( DPT_RB_Schema::normalize_read( $descriptor, $stored ) !== DPT_RB_Schema::normalize_read( $descriptor, $clean ) ) {
+			// Compared as the API would send them rather than as PHP values:
+			// read shaping hands a checkbox back as a fresh object, and two
+			// separate objects are never identical however equal they read.
+			// An encode that fails on either side answers nothing, so it is
+			// treated as the failure it might be.
+			$after = wp_json_encode( DPT_RB_Schema::normalize_read( $descriptor, $stored ) );
+			$asked = wp_json_encode( DPT_RB_Schema::normalize_read( $descriptor, $clean ) );
+			if ( false === $after || $after !== $asked ) {
 				return new WP_Error(
 					'dpt_rb_not_saved',
 					sprintf(

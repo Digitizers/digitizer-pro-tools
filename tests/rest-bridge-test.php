@@ -382,6 +382,37 @@ dpt_test_eq( wp_json_encode( DPT_RB_Schema::normalize_read( $num, null ) ), '0',
 dpt_test_eq( wp_json_encode( DPT_RB_Schema::normalize_read( $media, '12' ) ), '12', 'media reads back as an integer, not "12"' );
 dpt_test_eq( wp_json_encode( DPT_RB_Schema::normalize_read( $media, null ) ), '0', 'and an unset attachment id reads back as 0, not ""' );
 
+// A repeater advertises a type per sub-field, so the same promise holds one
+// level down: a sub-field advertised as a number that reads back as the
+// string storage happened to hold is the same mismatch, just harder to see.
+$rep_typed = array(
+	'meta_key' => 'stock',
+	'title'    => 'Stock',
+	'type'     => 'repeater',
+	'fields'   => array(
+		array( 'meta_key' => 'sku', 'title' => 'SKU', 'type' => 'text', 'fields' => array() ),
+		array( 'meta_key' => 'qty', 'title' => 'Quantity', 'type' => 'number', 'fields' => array() ),
+		array( 'meta_key' => 'perks', 'title' => 'Perks', 'type' => 'checkbox', 'fields' => array() ),
+	),
+);
+$typed_read = DPT_RB_Schema::normalize_read( $rep_typed, array( array( 'sku' => 'A1', 'qty' => '42', 'perks' => array(), 'icon' => 'fa-star' ) ) );
+dpt_test_eq( $typed_read[0]['qty'], 42, 'a numeric sub-field reads back as a number' );
+dpt_test_ok( false !== strpos( wp_json_encode( $typed_read ), '"qty":42' ), 'and encodes as 42, not "42"' );
+dpt_test_ok( false !== strpos( wp_json_encode( $typed_read ), '"perks":{}' ), 'a checkbox sub-field encodes as the object its schema advertises' );
+dpt_test_eq( $typed_read[0]['icon'], 'fa-star', 'while a sub-key with no definition behind it is handed back untouched' );
+
+// The same shaping has to happen whichever way storage held the list, or a
+// site whose repeaters predate the array format reads back differently from
+// one whose do not.
+$typed_json = DPT_RB_Schema::normalize_read( $rep_typed, '[{"sku":"A1","qty":"42"}]' );
+dpt_test_eq( $typed_json[0]['qty'], 42, 'a JSON-stored repeater is shaped the same way' );
+$typed_ser = DPT_RB_Schema::normalize_read( $rep_typed, serialize( array( array( 'sku' => 'A1', 'qty' => '42' ) ) ) );
+dpt_test_eq( $typed_ser[0]['qty'], 42, 'and so is a serialized one' );
+
+// Corrupt storage can hold a scalar where an item should be. There is no
+// sub-field to shape it by and no notice may be raised trying.
+dpt_test_eq( DPT_RB_Schema::normalize_read( $rep_typed, array( 'not-an-item' ) ), array( 'not-an-item' ), 'an item that is not an object is handed back as found' );
+
 require_once dirname( __DIR__ ) . '/modules/rest-bridge/class-dpt-rb-fields.php';
 
 /* ---- discovered fields become REST fields under their own names ---- */
@@ -494,6 +525,16 @@ $after_trip = DPT_RB_Fields::read( $qna, array( 'id' => 12 ) );
 dpt_test_eq( $after_trip[0]['question'], 'Why not?', 'the change landed' );
 dpt_test_eq( $after_trip[0]['icon'], 'fa-star', 'and the unmapped column survived the round trip' );
 dpt_test_eq( $after_trip[1]['icon'], 'fa-bolt', 'on every row, not only the one that changed' );
+
+/* ---- a checkbox written twice is not a failure the second time ---- */
+
+// update_*_meta() answers false for a write that asked for nothing new, and
+// the check that follows compares what each side reads back as. A checkbox
+// reads back as a fresh object each time, and two objects are never
+// identical - so the comparison has to be made on what the API would send.
+$perks = array( 'meta_key' => 'perks', 'title' => 'Perks', 'type' => 'checkbox', 'fields' => array(), 'object' => 'post' );
+dpt_test_ok( true === DPT_RB_Fields::write( $perks, array( 'wifi' => 'true' ), (object) array( 'ID' => 12 ) ), 'a checkbox writes' );
+dpt_test_ok( true === DPT_RB_Fields::write( $perks, array( 'wifi' => 'true' ), (object) array( 'ID' => 12 ) ), 'and writing the same map again is still a success' );
 
 // Taxonomy fields live in term meta, and the callbacks are handed terms
 // rather than posts.

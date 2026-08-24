@@ -203,7 +203,7 @@ class DPT_RB_Schema {
 		}
 
 		if ( is_array( $stored ) ) {
-			return array_values( $stored );
+			return self::normalize_items( $descriptor, array_values( $stored ) );
 		}
 		if ( ! is_string( $stored ) || '' === $stored ) {
 			return array();
@@ -211,13 +211,54 @@ class DPT_RB_Schema {
 
 		$decoded = json_decode( $stored, true );
 		if ( is_array( $decoded ) ) {
-			return array_values( $decoded );
+			return self::normalize_items( $descriptor, array_values( $decoded ) );
 		}
 
 		// JetEngine has stored repeaters as PHP serialization. Unserializing
 		// without allowing classes keeps a crafted string from building one.
 		$unserialized = @unserialize( $stored, array( 'allowed_classes' => false ) ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
-		return is_array( $unserialized ) ? array_values( $unserialized ) : array();
+		return is_array( $unserialized ) ? self::normalize_items( $descriptor, array_values( $unserialized ) ) : array();
+	}
+
+	/**
+	 * Present a repeater's items the way their own sub-schemas promise.
+	 *
+	 * A repeater advertises a type per sub-field, and until this ran the
+	 * items went out exactly as storage held them - so a sub-field
+	 * advertised as a number read back as the string it was stored as, the
+	 * same advertised-versus-produced gap normalize_scalar_read() exists to
+	 * close one level up.
+	 *
+	 * @param array $descriptor Repeater descriptor.
+	 * @param array $items      Items as storage held them.
+	 * @return array
+	 */
+	private static function normalize_items( $descriptor, $items ) {
+		$known = array();
+		foreach ( $descriptor['fields'] as $sub ) {
+			$known[ $sub['meta_key'] ] = $sub['type'];
+		}
+
+		$out = array();
+		foreach ( $items as $item ) {
+			if ( ! is_array( $item ) ) {
+				// Corrupt storage can hold anything here. There is no sub-field
+				// to shape it by, so it is handed back as found.
+				$out[] = $item;
+				continue;
+			}
+			foreach ( $known as $key => $type ) {
+				if ( array_key_exists( $key, $item ) ) {
+					$item[ $key ] = self::normalize_scalar_read( $type, $item[ $key ] );
+				}
+			}
+			// Keys with no sub-field behind them are left exactly as they are,
+			// for the reason sanitize() keeps them: this bridge does not
+			// understand them, which is not a licence to reshape them.
+			$out[] = $item;
+		}
+
+		return $out;
 	}
 
 	/**
