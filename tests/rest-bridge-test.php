@@ -409,6 +409,14 @@ function dpt_rb_test_core_accepts( $schema, $value ) {
 		case 'object':
 			return is_array( $value ) || $value instanceof stdClass;
 		case 'array':
+			if ( is_scalar( $value ) ) {
+				// rest_is_array() answers yes to a scalar and
+				// rest_sanitize_array() then makes a list of it with
+				// wp_parse_list(), so core accepts one here rather than
+				// refusing it - and the list it becomes is what the items
+				// below are checked against.
+				$value = preg_split( '/[\s,]+/', (string) $value, -1, PREG_SPLIT_NO_EMPTY );
+			}
 			if ( ! is_array( $value ) ) {
 				return false;
 			}
@@ -794,6 +802,143 @@ dpt_test_eq(
 	array( 'id' => 12, 'url' => 'https://example.test/hero.jpg' ),
 	'and lands in storage as the array JetEngine reads' );
 
+/* ---- a select field, single and multiple ---- */
+
+// JetEngine's Multiple toggle writes is_multiple beside the type, and a
+// select with it on stores and submits an array. Its spellings are the ones
+// JetEngine's own reader settles with FILTER_VALIDATE_BOOLEAN.
+$GLOBALS['dpt_stub_options'] = array(
+	'jet_engine_meta_boxes' => array(
+		array(
+			'id'          => 'select-shapes',
+			'args'        => array( 'object_type' => 'post', 'allowed_post_type' => array( 'post' ) ),
+			'meta_fields' => array(
+				array( 'name' => 'colour', 'title' => 'Colour', 'object_type' => 'field', 'type' => 'select' ),
+				array( 'name' => 'tags', 'title' => 'Tags', 'object_type' => 'field', 'type' => 'select', 'is_multiple' => true ),
+				array( 'name' => 'flags', 'title' => 'Flags', 'object_type' => 'field', 'type' => 'select', 'is_multiple' => 'true' ),
+				array( 'name' => 'plain', 'title' => 'Plain', 'object_type' => 'field', 'type' => 'select', 'is_multiple' => 'false' ),
+				array(
+					'name'            => 'rows',
+					'title'           => 'Rows',
+					'object_type'     => 'field',
+					'type'            => 'repeater',
+					'repeater-fields' => array(
+						array( 'name' => 'topics', 'title' => 'Topics', 'type' => 'select', 'is_multiple' => true ),
+					),
+				),
+			),
+		),
+	),
+);
+DPT_RB_Definitions::reset();
+$select_defs = array();
+foreach ( DPT_RB_Definitions::all() as $d ) {
+	$select_defs[ $d['meta_key'] ] = $d;
+}
+dpt_test_eq( $select_defs['colour']['multiple'], false, 'a select with no Multiple toggle is a single choice' );
+dpt_test_eq( $select_defs['tags']['multiple'], true, 'and one with it on is a list' );
+dpt_test_eq( $select_defs['flags']['multiple'], true, "including when the toggle was stored as the string 'true'" );
+dpt_test_eq( $select_defs['plain']['multiple'], false, "and 'false' is off, not a non-empty string" );
+dpt_test_eq( $select_defs['rows']['fields'][0]['multiple'], true, 'a select column inside a repeater carries its own toggle' );
+
+$one   = $select_defs['colour'];
+$many  = $select_defs['tags'];
+$one_s = DPT_RB_Schema::for_descriptor( $one );
+$many_s = DPT_RB_Schema::for_descriptor( $many );
+
+dpt_test_eq( $many_s['type'], array( 'array', 'string', 'object' ), 'a multi-select is advertised as the list it stores' );
+dpt_test_eq( $many_s['items']['type'], 'string', 'of the option strings it holds' );
+dpt_test_eq( $one_s['type'], array( 'string', 'object' ), 'and a single select as the string it stores' );
+dpt_test_eq(
+	DPT_RB_Schema::for_descriptor( $select_defs['rows'] )['items']['properties']['topics']['type'],
+	array( 'array', 'string', 'object' ),
+	'and a multi-select inside a repeater the same way as one outside it'
+);
+
+// The bug this replaces, run against the model of core's gate so the model is
+// known to be able to see it: a plain string type refused the list the field
+// really holds, before any sanitizer ran.
+dpt_test_ok( ! dpt_rb_test_core_accepts( array( 'type' => 'string' ), array( 'red', 'blue' ) ), 'a list does not validate against a string schema - the 400 this fixes' );
+dpt_test_eq( DPT_RB_Schema::normalize_read( array( 'meta_key' => 'tags', 'title' => 'Tags', 'type' => 'text', 'fields' => array() ), array( 'red', 'blue' ) ), '', 'and the string read hands an array back as "" - the read this fixes' );
+
+// Every shape, both ways round.
+// The last column is whether a read, write, read of that shape is expected to
+// leave storage exactly as it was. Every shape but one is: the exception is a
+// field whose toggle has just been turned on while a single string is still
+// in storage, where core's own array handling makes a one-item list of it on
+// the way back in. Nothing is lost - the option is still there, in the shape
+// the field now means - and it is asserted below rather than left implied.
+$select_trips = array(
+	array( $many, array( 'red', 'blue' ), 'a multi-select holding a list', true ),
+	array( $many, '', 'a multi-select nobody has chosen from', true ),
+	array( $many, 'red', 'a multi-select still holding the string it held before the toggle', false ),
+	array( $one, 'New York', 'a single select holding a string', true ),
+	array( $one, '', 'a single select nobody has chosen from', true ),
+	array( $one, array( 'red', 'blue' ), 'a single select whose storage holds a list anyway', true ),
+);
+foreach ( $select_trips as $trip_case ) {
+	$descriptor = $trip_case[0];
+	$stored     = $trip_case[1];
+	$label      = $trip_case[2];
+	$trip       = dpt_rb_test_round_trip( $descriptor, $stored );
+
+	dpt_test_ok( $trip['accepted'], "what $label reads back is a value its own schema accepts" );
+	dpt_test_ok( dpt_rb_test_core_accepts( DPT_RB_Schema::for_descriptor( $descriptor ), $stored ), "and a client can write what $label holds" );
+	if ( $trip_case[3] ) {
+		dpt_test_eq( wp_json_encode( $trip['again'] ), wp_json_encode( $trip['read'] ), "and reading $label, writing it back and reading again changes nothing" );
+	}
+}
+
+// The one shape that does not survive unchanged, said out loud: a string left
+// in storage from before the Multiple toggle was turned on becomes the
+// one-item list the field now means, because core makes a list of a scalar
+// written to an array-typed field before this module sees it. The option
+// itself is not lost, which is the part that matters.
+$carried = dpt_rb_test_round_trip( $many, 'red' );
+dpt_test_eq( $carried['read'], 'red', 'the string still in storage reads back as itself' );
+dpt_test_eq( $carried['again'], array( 'red' ), 'and writing it back leaves the same option, now as the list the field means' );
+
+// The list reads back as the list, which is the finding in one line.
+dpt_test_eq( DPT_RB_Schema::normalize_read( $many, array( 'red', 'blue' ) ), array( 'red', 'blue' ), 'a multi-select reads its list back, not an empty string' );
+dpt_test_eq( wp_json_encode( DPT_RB_Schema::normalize_read( $many, array( 'red', 'blue' ) ) ), '["red","blue"]', 'and encodes as the JSON array its schema names' );
+dpt_test_eq( DPT_RB_Schema::normalize_read( $many, array() ), array(), 'an empty multi-select is an empty list' );
+dpt_test_eq( DPT_RB_Schema::normalize_read( $many, '' ), '', 'and one that has never been written is what storage holds' );
+dpt_test_eq( DPT_RB_Schema::normalize_read( $one, 'New York' ), 'New York', 'a single select still reads back its string' );
+
+// A field whose Multiple toggle this module failed to see - the case the
+// setting name being wrong would produce - still hands every option back
+// rather than dropping the value on the floor.
+dpt_test_eq(
+	wp_json_encode( DPT_RB_Schema::normalize_read( $one, array( 'red', 'blue' ) ) ),
+	wp_json_encode( (object) array( 'red', 'blue' ) ),
+	'a list stored on a field advertised as a string reads back with both options, as the object that schema names'
+);
+dpt_test_ok( dpt_rb_test_core_accepts( $one_s, array( 'red', 'blue' ) ), 'and a client can write that list back' );
+dpt_test_eq( DPT_RB_Schema::sanitize( $one, dpt_rb_test_core_sanitize( $one_s, array( 'red', 'blue' ) ) ), array( 'red', 'blue' ), 'landing in storage as the list it was' );
+
+// The reason the string-first variant names 'object' and not 'array' for its
+// container: core resolves a union by walking it, rest_is_array() says yes to
+// any scalar, and wp_parse_list() then splits it on whitespace and commas.
+dpt_test_eq( dpt_rb_test_core_best_type( array( 'string', 'object' ), 'New York' ), 'string', 'a plain select value resolves as the string it is' );
+dpt_test_eq( dpt_rb_test_core_sanitize( $one_s, 'New York' ), 'New York', 'and survives the gate whole' );
+dpt_test_eq( dpt_rb_test_core_sanitize( array( 'type' => array( 'string', 'array' ) ), 'New York' ), array( 'New', 'York' ), 'while naming array beside string would have split it in two' );
+
+// Writing. A list is cleaned option by option and a single value as itself.
+dpt_test_eq( DPT_RB_Schema::sanitize( $many, array( ' red ', '<b>blue</b>' ) ), array( 'red', 'blue' ), 'each option of a list is sanitized on its own' );
+dpt_test_eq( DPT_RB_Schema::sanitize( $one, ' <b>red</b> ' ), 'red', 'and a single value the same way' );
+$odd_list = DPT_RB_Schema::sanitize( $many, array( 'red', array( 'nested' => 1 ) ) );
+dpt_test_eq( $odd_list[1], array( 'nested' => 1 ), 'a member with no string form is kept as it arrived rather than emptied' );
+dpt_test_eq(
+	DPT_RB_Schema::sanitize( $many, DPT_RB_Schema::normalize_read( $many, array( 'red', 'blue' ) ) ),
+	array( 'red', 'blue' ),
+	'and a list composed straight from a read writes back unchanged'
+);
+dpt_test_eq(
+	DPT_RB_Schema::sanitize( $one, DPT_RB_Schema::normalize_read( $one, array( 'red', 'blue' ) ) ),
+	array( 'red', 'blue' ),
+	'as does the object a string-advertised field hands back, object and all'
+);
+
 // A url field is not a JetEngine type - discovery never produces one - but
 // the legacy descriptors have two, and a theme prints both straight into an
 // href or a src. A text sanitizer would leave a javascript: URL intact.
@@ -860,7 +1005,7 @@ dpt_test_eq( wp_json_encode( DPT_RB_Schema::normalize_read( $checkbox, array() )
 dpt_test_eq( wp_json_encode( DPT_RB_Schema::normalize_read( $checkbox, array( '0' => 'true', '1' => 'false' ) ) ), '{"0":"true","1":"false"}', 'and numeric-looking keys still encode as an object' );
 
 // normalize_read() and sanitize() have to agree with each other, not only
-// with json_type(): anything that composes the read and the write in
+// with type_schema(): anything that composes the read and the write in
 // process - without an HTTP round trip through json_decode() in between to
 // flatten the object back to an array - must get the same map back, or a
 // checkbox silently loses every option it had.
@@ -880,8 +1025,9 @@ dpt_test_eq(
 	'and an empty checkbox composes back into an empty map, not a wipe'
 );
 
-// number and media are advertised as 'number' and 'integer' by json_type(),
-// so a read that hands either one back as a string would be the same
+// A number is advertised as 'number' by type_schema(), and a media field
+// names 'integer' among its own three shapes; a read that hands either one
+// back as a string would be the same
 // promise-versus-delivery mismatch the checkbox object fix was for - only
 // silent, because a JSON number and a JSON string that looks like one are
 // easy to mistake for each other until something strict parses the response.
@@ -1105,6 +1251,23 @@ dpt_test_ok( true === DPT_RB_Fields::write( $photo_both, array( 'id' => 12, 'url
 dpt_test_eq( wp_json_encode( DPT_RB_Fields::read( $photo_both, array( 'id' => 11 ) ) ), wp_json_encode( (object) array( 'id' => 12, 'url' => 'https://example.test/hero.jpg' ) ), 'and hands back both halves' );
 dpt_test_ok( true === DPT_RB_Fields::write( $photo_both, DPT_RB_Fields::read( $photo_both, array( 'id' => 11 ) ), (object) array( 'ID' => 11 ) ), 'and the object it just handed out writes back as a success' );
 dpt_test_eq( wp_json_encode( DPT_RB_Fields::read( $photo_both, array( 'id' => 11 ) ) ), wp_json_encode( (object) array( 'id' => 12, 'url' => 'https://example.test/hero.jpg' ) ), 'still holding both halves' );
+
+/* ---- a multi-select through real meta storage ---- */
+
+// The other half of the same finding: a select with JetEngine's Multiple
+// toggle on stores an array, and the string branch read that back as ''.
+// Through the callbacks and the meta store, where it happened.
+$topics = array( 'meta_key' => 'topics', 'title' => 'Topics', 'type' => 'select', 'fields' => array(), 'object' => 'post', 'multiple' => true );
+$colour = array( 'meta_key' => 'colour', 'title' => 'Colour', 'type' => 'select', 'fields' => array(), 'object' => 'post', 'multiple' => false );
+
+dpt_test_ok( true === DPT_RB_Fields::write( $topics, array( 'seo', 'wordpress' ), (object) array( 'ID' => 11 ) ), 'a multi-select takes a list' );
+dpt_test_eq( DPT_RB_Fields::read( $topics, array( 'id' => 11 ) ), array( 'seo', 'wordpress' ), 'and hands the list back, not an empty string' );
+dpt_test_ok( true === DPT_RB_Fields::write( $topics, DPT_RB_Fields::read( $topics, array( 'id' => 11 ) ), (object) array( 'ID' => 11 ) ), 'writing back exactly what was read is a success' );
+dpt_test_eq( DPT_RB_Fields::read( $topics, array( 'id' => 11 ) ), array( 'seo', 'wordpress' ), 'and changes nothing' );
+dpt_test_eq( DPT_RB_Fields::read( $topics, array( 'id' => 999 ) ), '', 'a post that has never had one reads back as what storage holds' );
+
+dpt_test_ok( true === DPT_RB_Fields::write( $colour, 'New York', (object) array( 'ID' => 11 ) ), 'a single select takes a string' );
+dpt_test_eq( DPT_RB_Fields::read( $colour, array( 'id' => 11 ) ), 'New York', 'and hands it back whole, spaces and all' );
 
 /* ---- the id helper's other shapes ---- */
 

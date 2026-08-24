@@ -75,7 +75,9 @@ by WordPress.
 | number | number | `floatval` (int when step absent/integer) |
 | switcher | boolean | stored as `'true'`/`'false'`, read back as a boolean |
 | checkbox | object of option-key => `'true'`/`'false'` | keys `sanitize_key`, values normalized |
-| select / radio | string | `sanitize_text_field` |
+| select (single) | string, or object for a list storage still holds | `sanitize_text_field`, per member for a list |
+| select (multiple) | array of strings; also string/object for what storage still holds | `sanitize_text_field` per option |
+| radio | string | `sanitize_text_field` |
 | date / time / datetime-local | string | `sanitize_text_field` |
 | media | integer, string or object - id, URL, or `{id, url}` | by the shape received: `absint` / `esc_url_raw` / member by member |
 | repeater | array of objects; properties from sub-fields | recurse per sub-field |
@@ -98,13 +100,32 @@ thing only: what an *unset* field reads back as, where there is no value in
 hand to read a shape off - `0` for the id format, which consumers already
 rely on, and `''` for the other two, about which `0` would be a lie.
 
-The type is a union rather than a single narrowed type on purpose, and the
-member order is the order core resolves it in: `rest_get_best_type_for_value()`
-tries `integer`, then `object`, and falls back to `string`. `array` is
-deliberately **not** among them - `rest_is_array()` accepts any scalar and
-`wp_parse_list()` then splits it on whitespace and commas, so naming `array`
-beside `string` would shred a plain string before the module's sanitizer ever
-saw it.
+A union rather than a single narrowed type on purpose, and the member order is
+the order core resolves it in: `rest_get_best_type_for_value()` walks the
+union and falls back to `string`, which has no check of its own. `array` is
+deliberately not named beside `string` anywhere - `rest_is_array()` accepts
+any scalar and `wp_parse_list()` then splits it on whitespace and commas, so a
+URL or a select value with a space in it would be shredded before this class
+saw it. `object` is the container type core passes through untouched, which is
+why it is the one a string-first field names.
+
+A select is advertised by the same rule, from the second setting discovery
+carries: `is_multiple`, JetEngine's Multiple toggle, which makes a select
+store and submit an **array** where a plain one stores a string. Modelled as a
+string, a multi-select read its list back as `''` and had a client's real list
+refused by validation before the sanitizer ran. So a multiple select is
+`[array, string, object]` with `items: string` and a single one is
+`[string, object]` - each naming the other's shape, because the toggle can be
+turned on between two requests and a list already in storage must still read
+back with every option in it. `sanitize()` cleans the shape in hand, option by
+option for a list; `normalize_read()` hands a list back as a list on a
+multiple field and as an object elsewhere, so the options survive whatever the
+toggle says.
+
+One shape does not round-trip byte for byte: a single string still in storage
+from before the toggle was turned on comes back in as a one-item list, because
+core makes a list of a scalar written to an array-typed field before this
+module sees it. The option itself is not lost, and the test says so out loud.
 
 A switcher is advertised as a **boolean**, not as the string JetEngine stores.
 Core validates a registered field against the advertised type *before* the
@@ -297,7 +318,11 @@ options, no `user_can_toggle` override.
    formats - discovery carrying `value_format`, every shape accepted by the
    schema, read back as itself and unchanged by a read, write, read round
    trip through the meta store, and a stored URL specifically not read back
-   as `0`. A switcher round-trips from a JSON boolean *and*
+   as `0`. A select is exercised single and multiple, with discovery carrying
+   `is_multiple` in each spelling JetEngine writes it, a list read back as a
+   list rather than as `''`, a list still readable and writable on a field
+   whose toggle this module did not see, and a plain value with a space in it
+   surviving core's gate whole. A switcher round-trips from a JSON boolean *and*
    from the string form, through a model of the validation core runs before
    any of these sanitizers, and what `normalize_read()` gives back is checked
    against the schema `for_descriptor()` advertised.

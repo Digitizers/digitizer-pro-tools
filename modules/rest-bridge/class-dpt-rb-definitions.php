@@ -159,10 +159,12 @@ class DPT_RB_Definitions {
 	 * handful of per-field settings into the same option row, and some of
 	 * them decide the format of the stored value rather than how it is
 	 * edited. A media field's `value_format` is one - 'id', 'url' or 'both'
-	 * for the array of an attachment id and its URL. Reading only the type
-	 * left the schema, the sanitizer and the read path all assuming the
-	 * default, which is how a site storing URLs had its own data read back
-	 * as 0.
+	 * for the array of an attachment id and its URL - and a select field's
+	 * `is_multiple` is another: a select with it on stores and submits an
+	 * array where a plain one stores a string. Reading only the type left
+	 * the schema, the sanitizer and the read path all assuming the default,
+	 * which is how a site storing URLs had its own data read back as 0 and a
+	 * multi-select had its list read back as an empty string.
 	 *
 	 * Only settings this bridge acts on are carried, and only in the
 	 * spellings JetEngine's own admin writes - an unrecognized value falls
@@ -182,6 +184,16 @@ class DPT_RB_Definitions {
 			// writes the key once a format has been chosen, so a field that
 			// predates the setting holds an attachment id.
 			$settings['value_format'] = in_array( $format, array( 'id', 'url', 'both' ), true ) ? $format : 'id';
+		}
+
+		if ( 'select' === $type ) {
+			// Read the way JetEngine reads it: the admin's switcher writes a
+			// real boolean, but the same key has held the strings 'true' and
+			// 'false' over the plugin's life, and JetEngine itself settles
+			// all of them with FILTER_VALIDATE_BOOLEAN.
+			$raw = isset( $field['is_multiple'] ) && is_scalar( $field['is_multiple'] ) ? $field['is_multiple'] : false;
+
+			$settings['multiple'] = (bool) filter_var( $raw, FILTER_VALIDATE_BOOLEAN );
 		}
 
 		return $settings;

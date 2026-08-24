@@ -152,6 +152,35 @@ class DPT_RB_Schema {
 				// and falls back to string, so an id stays an integer, an
 				// array stays an array and a URL stays the string it is.
 				return array( 'type' => array( 'integer', 'string', 'object' ) );
+			case 'select':
+				// A JetEngine select with its Multiple toggle on stores and
+				// submits an array where a plain one stores a string, so the
+				// two cannot share one type: modelled as a string, a
+				// multi-select had its list read back as '' and had a client's
+				// real list refused by validation before the sanitizer ran.
+				//
+				// Each variant still names the other's shape, because
+				// is_multiple is JetEngine's setting and this module only
+				// reads it - a site that has just turned the toggle on still
+				// has yesterday's strings in storage, and one whose toggle
+				// this module failed to see still has today's lists. What is
+				// named is what a read may hand back; which one it hands back
+				// is decided by what storage holds.
+				//
+				// 'object', not 'array', is how the string-first variant
+				// names a container: rest_is_array() accepts any scalar and
+				// wp_parse_list() then splits it on whitespace and commas, so
+				// naming 'array' beside 'string' would turn the plain select
+				// value "New York" into two values before this class saw it.
+				// rest_is_object() says no to a non-empty scalar, so a string
+				// stays whole.
+				if ( ! empty( $descriptor['multiple'] ) ) {
+					return array(
+						'type'  => array( 'array', 'string', 'object' ),
+						'items' => array( 'type' => 'string' ),
+					);
+				}
+				return array( 'type' => array( 'string', 'object' ) );
 			case 'checkbox':
 				return array( 'type' => 'object' );
 			case 'repeater':
@@ -173,7 +202,7 @@ class DPT_RB_Schema {
 				// '0', 1 and 0 - and it is the type the read really has.
 				return array( 'type' => 'boolean' );
 			default:
-				// text, textarea, wysiwyg, select, radio, dates, url.
+				// text, textarea, wysiwyg, radio, dates, url.
 				return array( 'type' => 'string' );
 		}
 	}
@@ -277,6 +306,8 @@ class DPT_RB_Schema {
 				return is_numeric( $value ) ? $value + 0 : 0;
 			case 'media':
 				return self::sanitize_media( $value );
+			case 'select':
+				return self::sanitize_select( $value );
 			case 'switcher':
 				// The field is advertised as a boolean and core hands one over
 				// after validating against that, but the string forms JetEngine
@@ -303,11 +334,47 @@ class DPT_RB_Schema {
 				}
 				return $out;
 			default:
-				// text, select, radio, date, time, datetime-local: none of
-				// these carry markup, so the plain-text sanitizer is right
-				// for all of them.
+				// text, radio, date, time, datetime-local: none of these
+				// carry markup, so the plain-text sanitizer is right for all
+				// of them.
 				return sanitize_text_field( $value );
 		}
+	}
+
+	/**
+	 * Clean a select value by the shape it arrived in.
+	 *
+	 * One selection is a string and several are a list of them, and which of
+	 * the two a given field means is JetEngine's Multiple toggle - a setting
+	 * that can be turned on between two requests, and one this module can
+	 * only read. So the value in hand decides, not the setting: a list is
+	 * cleaned option by option and a single value on its own is cleaned as
+	 * itself. Neither shape carries markup, so the plain-text sanitizer is
+	 * right for every member.
+	 *
+	 * @param mixed $value Raw value.
+	 * @return string|array
+	 */
+	private static function sanitize_select( $value ) {
+		if ( is_object( $value ) ) {
+			// normalize_read() hands a list back as an object where the
+			// field's own type says string, so composing the two in process
+			// has to mean the same thing here.
+			$value = get_object_vars( $value );
+		}
+
+		if ( ! is_array( $value ) ) {
+			return sanitize_text_field( $value );
+		}
+
+		$out = array();
+		foreach ( $value as $key => $member ) {
+			// Keys are kept as they arrived: in a list they are positions,
+			// and anything else is a shape this bridge did not invent and
+			// has no business renaming.
+			$out[ $key ] = is_scalar( $member ) ? sanitize_text_field( $member ) : $member;
+		}
+		return $out;
 	}
 
 	/**
@@ -511,6 +578,8 @@ class DPT_RB_Schema {
 				return is_numeric( $stored ) ? $stored + 0 : 0;
 			case 'media':
 				return self::normalize_media_read( $descriptor, $stored );
+			case 'select':
+				return self::normalize_select_read( $descriptor, $stored );
 			case 'switcher':
 				// The schema promises a boolean, so one comes back whatever
 				// storage holds - JetEngine's 'true'/'false' strings, an older
@@ -521,13 +590,76 @@ class DPT_RB_Schema {
 				// write side to the read side.
 				return self::truthy( $stored );
 			default:
-				// text, textarea, wysiwyg, select, radio, dates,
-				// url: all are advertised as a string by json_type(), so a
+				// text, textarea, wysiwyg, radio, dates,
+				// url: all are advertised as a string by type_schema(), so a
 				// scalar cast is honest for all of them; anything that is
 				// not a scalar - an array or object left behind by corrupt
 				// data - has no honest string form and reads back as empty.
 				return ( null === $stored || ! is_scalar( $stored ) ) ? '' : (string) $stored;
 		}
+	}
+
+	/**
+	 * Present a stored select value as the shape storage actually holds.
+	 *
+	 * A list reads back as a list on a field whose Multiple toggle is on -
+	 * which is the whole of this fix, the string branch having read a
+	 * multi-select's array back as ''. On a field whose toggle this module
+	 * did not see, a list still reads back with every option in it, as the
+	 * object the string-first schema names, because a value this bridge
+	 * cannot shape is not a value it may throw away.
+	 *
+	 * @param array $descriptor Field descriptor.
+	 * @param mixed $stored     Whatever the database held.
+	 * @return string|array|object
+	 */
+	private static function normalize_select_read( $descriptor, $stored ) {
+		if ( is_object( $stored ) ) {
+			$stored = get_object_vars( $stored );
+		}
+
+		if ( is_array( $stored ) ) {
+			$multiple = ! empty( $descriptor['multiple'] );
+			if ( ! $stored ) {
+				// Nothing is selected. On a multi-select that is the empty
+				// list the schema promises; on a single one there is no
+				// value, and no option is lost by saying so.
+				return $multiple ? array() : '';
+			}
+
+			$out = array();
+			foreach ( $stored as $key => $member ) {
+				// A member that is not a scalar is corrupt storage with no
+				// string form to give it. It is handed back as found, the
+				// way a repeater hands back an item it cannot shape.
+				$out[ $key ] = is_scalar( $member ) ? (string) $member : $member;
+			}
+
+			// A list goes out as a list, which is what a multi-select means
+			// and what its schema names. Anything else - keys storage holds
+			// that this bridge did not put there - goes out as an object, so
+			// the keys survive and the JSON is still a shape the schema
+			// names.
+			return $multiple && self::is_list( $out ) ? $out : (object) $out;
+		}
+
+		return ( null === $stored || ! is_scalar( $stored ) ) ? '' : (string) $stored;
+	}
+
+	/**
+	 * Whether an array is a plain list, and so encodes as a JSON array.
+	 *
+	 * PHP 7.2 has no array_is_list(), and range() would answer 0, -1 for an
+	 * empty array, so the empty case is settled before it is asked.
+	 *
+	 * @param array $value Array to inspect.
+	 * @return bool
+	 */
+	private static function is_list( $value ) {
+		if ( ! $value ) {
+			return true;
+		}
+		return array_keys( $value ) === range( 0, count( $value ) - 1 );
 	}
 
 	/**
