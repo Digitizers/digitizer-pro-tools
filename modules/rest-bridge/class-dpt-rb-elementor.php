@@ -157,7 +157,12 @@ class DPT_RB_Elementor {
 
 		$map = array();
 		foreach ( $updates as $update ) {
-			if ( ! is_array( $update ) || ! isset( $update['widget_id'] ) || ! isset( $update['settings'] ) || ! is_array( $update['settings'] ) ) {
+			// widget_id has to be a scalar before it can become a map key.
+			// Casting an array straight to string would only raise a PHP
+			// warning and then key the map under the literal string "Array",
+			// silently corrupting the request instead of rejecting it - and
+			// this is untrusted input off the wire, not just stored data.
+			if ( ! is_array( $update ) || ! isset( $update['widget_id'] ) || ! is_scalar( $update['widget_id'] ) || ! isset( $update['settings'] ) || ! is_array( $update['settings'] ) ) {
 				return new WP_Error( 'invalid_update', __( 'Each update must have a widget_id and a settings object.', 'digitizer-pro-tools' ), array( 'status' => 400 ) );
 			}
 			$map[ (string) $update['widget_id'] ] = $update['settings'];
@@ -249,11 +254,7 @@ class DPT_RB_Elementor {
 				if ( ! isset( $settings[ $key ] ) || ! is_string( $settings[ $key ] ) || '' === $settings[ $key ] ) {
 					continue;
 				}
-				$value = $settings[ $key ];
-				if ( strlen( $value ) > 200 ) {
-					$value = substr( $value, 0, 200 ) . '...';
-				}
-				$node[ $key ] = $value;
+				$node[ $key ] = self::truncate( $settings[ $key ] );
 			}
 
 			if ( ! empty( $element['elements'] ) && is_array( $element['elements'] ) ) {
@@ -264,6 +265,41 @@ class DPT_RB_Elementor {
 		}
 
 		return $tree;
+	}
+
+	/**
+	 * Shorten a text value for the tree, without cutting a multi-byte UTF-8
+	 * character in half.
+	 *
+	 * substr() cuts on raw bytes, which only works for single-byte content.
+	 * Hebrew - what this plugin's own sites run - is two bytes per character
+	 * in UTF-8, so a byte-based cut lands mid-character routinely, and a
+	 * malformed byte sequence reaching wp_json_encode() fails the *whole*
+	 * response, not just the one truncated field.
+	 *
+	 * Cut by character count (mb_substr) rather than by byte count
+	 * (mb_strcut): 200 characters reads as "about this much text" in any
+	 * script, where a 200-*byte* cap would hand back roughly half as much
+	 * visible Hebrew as Latin for the same limit - the wrong trade-off for
+	 * text meant to be read, on a plugin built for Hebrew sites.
+	 *
+	 * @param string $value Raw text.
+	 * @return string
+	 */
+	private static function truncate( $value ) {
+		if ( ! function_exists( 'mb_strlen' ) ) {
+			// No character-safe way to cut a multi-byte string without
+			// mbstring; not truncating at all is the safe failure here; a
+			// byte-based fallback risks handing back the exact invalid
+			// sequence this method exists to avoid.
+			return $value;
+		}
+
+		if ( mb_strlen( $value, 'UTF-8' ) <= 200 ) {
+			return $value;
+		}
+
+		return mb_substr( $value, 0, 200, 'UTF-8' ) . '...';
 	}
 
 	/**
@@ -291,6 +327,12 @@ class DPT_RB_Elementor {
 	/**
 	 * Merge the update map into the tree, counting what landed.
 	 *
+	 * If a hand-edited tree has more than one element sharing the same id,
+	 * every one of them is merged and $applied counts each match - so it can
+	 * end up larger than the number of ids that were requested. That is
+	 * intentional (every widget an id could plausibly mean gets the update),
+	 * not a bug to fix.
+	 *
 	 * @param array $elements Elementor elements.
 	 * @param array $map      widget id => settings to merge.
 	 * @param int   $applied  Running count, by reference.
@@ -301,7 +343,11 @@ class DPT_RB_Elementor {
 			if ( ! is_array( $element ) ) {
 				continue;
 			}
-			$id = isset( $element['id'] ) ? (string) $element['id'] : '';
+			// An id that survived hand-editing as an array or object would
+			// raise "Array to string conversion" on a bare (string) cast;
+			// treated as no id at all instead, the same as an element with
+			// none, rather than risking that warning on untrusted stored data.
+			$id = ( isset( $element['id'] ) && is_scalar( $element['id'] ) ) ? (string) $element['id'] : '';
 
 			if ( '' !== $id && isset( $map[ $id ] ) ) {
 				if ( ! isset( $element['settings'] ) || ! is_array( $element['settings'] ) ) {
@@ -334,7 +380,10 @@ class DPT_RB_Elementor {
 			if ( ! is_array( $element ) ) {
 				continue;
 			}
-			if ( ! empty( $element['id'] ) ) {
+			// Same guard as apply(): a hand-edited id that is not a scalar
+			// cannot become a string without a warning, so it is left out of
+			// the id list rather than cast.
+			if ( ! empty( $element['id'] ) && is_scalar( $element['id'] ) ) {
 				$ids[] = (string) $element['id'];
 			}
 			if ( ! empty( $element['elements'] ) && is_array( $element['elements'] ) ) {

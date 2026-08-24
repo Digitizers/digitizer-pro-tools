@@ -592,6 +592,71 @@ $malformed_response = DPT_RB_Elementor::get_tree( new DPT_Stub_Request( array( '
 dpt_test_ok( ! is_wp_error( $malformed_response ), 'a tree with scalar elements, a non-array "elements", and non-array settings does not fatal' );
 dpt_test_eq( $malformed_response['widget_count'], 1, 'the one real widget is still counted past the malformed siblings' );
 
+/* ---- a hand-edited id that is not a scalar must not warn apply() or collect_ids() ---- */
+
+// isset( $element['id'] ) is true for an array id too, so the (string) cast
+// that follows it is the one that would raise "Array to string conversion" -
+// and then key the id list under the literal string "Array". Both apply()
+// and collect_ids() are exercised in the same update() call.
+$GLOBALS['dpt_stub_posts'][23] = 'page';
+update_post_meta(
+	23,
+	'_elementor_data',
+	wp_json_encode(
+		array(
+			array(
+				'id'         => array( 'not', 'a', 'string' ),
+				'elType'     => 'widget',
+				'widgetType' => 'heading',
+				'settings'   => array( 'title' => 'Untouched' ),
+			),
+			array(
+				'id'         => 'w4',
+				'elType'     => 'widget',
+				'widgetType' => 'heading',
+				'settings'   => array( 'title' => 'Old' ),
+			),
+		)
+	)
+);
+$array_id_result = DPT_RB_Elementor::update( new DPT_Stub_Request( array(
+	'post_id' => 23,
+	'updates' => array(
+		array( 'widget_id' => 'w4', 'settings' => array( 'title' => 'New' ) ),
+	),
+) ) );
+dpt_test_ok( ! is_wp_error( $array_id_result ), 'a stored element with a non-scalar id does not fatal apply() or collect_ids()' );
+dpt_test_eq( $array_id_result['updates_applied'], 1, 'and the real widget still gets updated' );
+dpt_test_eq( $array_id_result['not_found'], array(), 'nothing is misreported as not found because of it' );
+
+/* ---- truncation must not split a multi-byte UTF-8 character ---- */
+
+// This plugin's own sites are Hebrew, two bytes per character in UTF-8. A
+// byte-based substr() cuts mid-character routinely, leaving an invalid byte
+// sequence in the tree node - which fails wp_json_encode() for the *whole*
+// response when the REST server serializes it, not just the one field.
+$GLOBALS['dpt_stub_posts'][24] = 'page';
+$hebrew                        = str_repeat( 'שלום ', 60 ); // 300 characters, well past the 200-character boundary.
+update_post_meta(
+	24,
+	'_elementor_data',
+	wp_json_encode(
+		array(
+			array(
+				'id'         => 'heb1',
+				'elType'     => 'widget',
+				'widgetType' => 'heading',
+				'settings'   => array( 'title' => $hebrew ),
+			),
+		)
+	)
+);
+$hebrew_response = DPT_RB_Elementor::get_tree( new DPT_Stub_Request( array( 'post_id' => 24 ) ) );
+dpt_test_ok( ! is_wp_error( $hebrew_response ), 'Hebrew content past the truncation boundary does not error' );
+$truncated_title = $hebrew_response['tree'][0]['title'];
+dpt_test_eq( mb_strlen( $truncated_title, 'UTF-8' ), 203, 'truncated to 200 characters plus the ellipsis, not split mid-character' );
+dpt_test_ok( false !== wp_json_encode( $hebrew_response ), 'and the whole response, truncated Hebrew included, still encodes to JSON' );
+
 /* ---- updating one widget without disturbing the rest ---- */
 
 $GLOBALS['dpt_stub_elementor_cache_cleared'] = 0;
@@ -613,6 +678,17 @@ dpt_test_eq( get_post_meta( 20, '_elementor_css', true ), '', 'the stale CSS is 
 
 dpt_test_ok( is_wp_error( DPT_RB_Elementor::update( new DPT_Stub_Request( array( 'post_id' => 20, 'updates' => array() ) ) ) ), 'an empty update list is refused' );
 dpt_test_ok( is_wp_error( DPT_RB_Elementor::update( new DPT_Stub_Request( array( 'post_id' => 20, 'updates' => array( array( 'widget_id' => 'w1' ) ) ) ) ) ), 'an update with no settings is refused' );
+
+// widget_id off the wire, not merely stored data - an array here would
+// otherwise reach a bare (string) cast, warn "Array to string conversion",
+// and key the update under the literal string "Array" instead of being
+// rejected.
+dpt_test_ok( is_wp_error( DPT_RB_Elementor::update( new DPT_Stub_Request( array(
+	'post_id' => 20,
+	'updates' => array(
+		array( 'widget_id' => array( 'a', 'b' ), 'settings' => array( 'title' => 'x' ) ),
+	),
+) ) ) ), 'a widget_id that is not a scalar is refused, not silently stringified' );
 
 /* ---- a write that cannot round-trip through JSON must not blank the page ---- */
 
