@@ -165,7 +165,7 @@ class DPT_RB_Definitions {
 
 		// Tabs, accordions and the like share the list with real fields and
 		// carry no value of their own.
-		$kind = isset( $field['object_type'] ) ? (string) $field['object_type'] : 'field';
+		$kind = isset( $field['object_type'] ) && is_scalar( $field['object_type'] ) ? (string) $field['object_type'] : 'field';
 		if ( 'field' !== $kind ) {
 			return null;
 		}

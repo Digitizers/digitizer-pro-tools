@@ -174,6 +174,7 @@ $GLOBALS['dpt_stub_options'] = array(
 			'meta_fields' => array(
 				array( 'name' => 'weird_title', 'title' => array( 'x' ), 'object_type' => 'field', 'type' => 'text' ),
 				array( 'name' => 'weird_type', 'title' => 'Weird Type', 'object_type' => 'field', 'type' => array( 'x' ) ),
+				array( 'name' => 'weird_kind', 'title' => 'Weird Kind', 'object_type' => array( 'x' ) ),
 				array(
 					'name'            => 'weird_sub',
 					'title'           => 'Weird Sub',
@@ -197,5 +198,6 @@ dpt_test_ok( isset( $by_key['weird_title'] ), 'an array title does not block the
 dpt_test_eq( $by_key['weird_title']['title'], 'weird_title', 'and falls back to the field name' );
 dpt_test_ok( ! isset( $by_key['weird_type'] ), 'an array type is treated as not exposed' );
 dpt_test_eq( $by_key['weird_sub']['fields'][0]['title'], 'sub_bad_title', 'a sub-field with an array title falls back to its own name' );
+dpt_test_ok( ! isset( $by_key['weird_kind'] ), 'a field row whose object_type is an array does not raise a notice, and is skipped' );
 
 exit( dpt_test_summary() > 0 ? 1 : 0 );
