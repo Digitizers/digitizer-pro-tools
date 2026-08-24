@@ -327,8 +327,10 @@ class DPT_RB_Elementor {
 		}
 
 		// Only now, with the new layout known to be stored: everything
-		// Elementor generated from the old one is describing a page that no
-		// longer exists.
+		// Elementor derived from the old one is describing a page that no
+		// longer exists. In Elementor's own order - save_elements() rewrites
+		// the plain text before save() invalidates the generated files.
+		self::save_plain_text( $post_id );
 		self::invalidate( $post_id );
 
 		return rest_ensure_response(
@@ -395,6 +397,57 @@ class DPT_RB_Elementor {
 				return is_bool( $value ) || is_null( $value ) ? $value : wp_kses_post( $value );
 			}
 		);
+	}
+
+	/**
+	 * Have Elementor rewrite the post's plain-text rendering, when Elementor
+	 * is here to do it.
+	 *
+	 * `_elementor_data` is the layout, but it is not the only thing a save
+	 * writes. Elementor's own `save_elements()` follows the meta write with
+	 * `Plugin::$instance->db->save_plain_text( $post_id )`, which renders the
+	 * layout to plain content and `wp_update_post()`s it into
+	 * **`post_content`**. That column is what WordPress search indexes, what
+	 * `the_excerpt()` falls back to, and what RSS serves - so an endpoint that
+	 * wrote only the layout left all three describing the previous version of
+	 * the page, silently, and possibly for the life of the post.
+	 *
+	 * Elementor's own function rather than a rendering of our own, and for a
+	 * reason stronger than usual here: producing that text means instantiating
+	 * every widget through the elements manager and calling its
+	 * render_plain_content(), with dynamic tags switched to removal mode
+	 * around it. That is Elementor's rendering stack, it belongs to whichever
+	 * widget plugins are active, and nothing outside Elementor can reproduce
+	 * it. Reading `_elementor_data` and stripping tags out of the settings
+	 * would produce a *different* post_content from the one the editor
+	 * produces for the same page, which is worse than the staleness it
+	 * replaced.
+	 *
+	 * So this is the one thing on this route that genuinely cannot be done
+	 * without Elementor loaded, and where it is not, post_content is left
+	 * exactly as it was rather than approximated. That is written into the
+	 * readme as well as here, because it is a limitation a site owner can
+	 * observe - a page edited through this endpoint while Elementor is
+	 * deactivated keeps its old search text - and a silent one is the kind of
+	 * thing this module refuses to have.
+	 *
+	 * Note that Elementor hands `wp_update_post()` an unslashed string, so a
+	 * backslash in the rendered text does not survive. That is Elementor's
+	 * behaviour on its own save too, and matching what the editor produces is
+	 * the whole point of calling its function; slashing it here would make
+	 * this endpoint's post_content differ from the editor's.
+	 *
+	 * @param int $post_id Post id.
+	 */
+	private static function save_plain_text( $post_id ) {
+		if ( ! class_exists( '\Elementor\Plugin' ) ) {
+			return;
+		}
+
+		$elementor = \Elementor\Plugin::instance();
+		if ( isset( $elementor->db ) && is_callable( array( $elementor->db, 'save_plain_text' ) ) ) {
+			$elementor->db->save_plain_text( $post_id );
+		}
 	}
 
 	/**

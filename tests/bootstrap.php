@@ -825,7 +825,11 @@ function dpt_stub_post_row( $id ) {
 		'post_parent' => isset( $row['post_parent'] ) ? (int) $row['post_parent'] : 0,
 		// Elementor's own editing gate refuses a trashed post before it looks
 		// at any capability, so the status has to be a thing a test can set.
-		'post_status' => isset( $row['post_status'] ) ? $row['post_status'] : 'publish',
+		'post_status'  => isset( $row['post_status'] ) ? $row['post_status'] : 'publish',
+		// What search, the excerpt fallback and RSS read. Elementor's own save
+		// rewrites it from the layout, and an endpoint that writes only the
+		// layout leaves it describing the previous version of the page.
+		'post_content' => isset( $row['post_content'] ) ? $row['post_content'] : '',
 	);
 }
 function get_post( $id = 0 ) {
@@ -843,6 +847,31 @@ function get_post( $id = 0 ) {
  * another. A harness that treated a revision as an ordinary post would report
  * a clean run over exactly that bug.
  */
+function wp_strip_all_tags( $s ) {
+	return trim( preg_replace( '/[\r\n\t ]+/', ' ', strip_tags( (string) $s ) ) );
+}
+/**
+ * Only the fields a post row here has. Elementor's save_plain_text() writes
+ * post_content through this, and the assertion that matters is that the column
+ * really changes - so it is stored on the row rather than discarded.
+ */
+function wp_update_post( $args = array() ) {
+	$id = isset( $args['ID'] ) ? (int) $args['ID'] : 0;
+	if ( ! $id || ! isset( $GLOBALS['dpt_stub_posts'][ $id ] ) ) {
+		return 0;
+	}
+	$row = $GLOBALS['dpt_stub_posts'][ $id ];
+	if ( ! is_array( $row ) ) {
+		$row = array( 'post_type' => $row );
+	}
+	foreach ( $args as $key => $value ) {
+		if ( 'ID' !== $key ) {
+			$row[ $key ] = $value;
+		}
+	}
+	$GLOBALS['dpt_stub_posts'][ $id ] = $row;
+	return $id;
+}
 function wp_is_post_revision( $id ) {
 	$row = dpt_stub_post_row( $id );
 	if ( null === $row || 'revision' !== $row['post_type'] || ! $row['post_parent'] ) {
@@ -894,10 +923,56 @@ class DPT_Stub_Elementor_Files_Manager {
 		unset( $GLOBALS['dpt_stub_options']['_elementor_global_css'] );
 	}
 }
+/**
+ * Elementor\DB, in the one method the module reaches for. The real
+ * save_plain_text() renders the stored layout through every widget's
+ * render_plain_content() and wp_update_post()s the result into post_content;
+ * there is no widget registry here, so the stub renders the one thing a test
+ * can meaningfully check - the layout that is in storage *now* - and writes it
+ * the same way.
+ *
+ * Reading _elementor_data rather than taking the text from the caller is the
+ * point: the real function reads the document back out of the database, so an
+ * assertion is only worth anything if the stub can tell "rendered from what
+ * was just saved" from "rendered from what was there before".
+ */
+class DPT_Stub_Elementor_DB {
+	public function save_plain_text( $post_id ) {
+		$data = get_post_meta( $post_id, '_elementor_data', true );
+		$data = is_string( $data ) ? json_decode( $data, true ) : $data;
+		wp_update_post(
+			array(
+				'ID'           => $post_id,
+				'post_content' => trim( implode( ' ', self::text( is_array( $data ) ? $data : array() ) ) ),
+			)
+		);
+	}
+	private static function text( $elements ) {
+		$out = array();
+		foreach ( $elements as $element ) {
+			if ( ! is_array( $element ) ) {
+				continue;
+			}
+			if ( isset( $element['settings'] ) && is_array( $element['settings'] ) ) {
+				foreach ( $element['settings'] as $value ) {
+					if ( is_string( $value ) && '' !== $value ) {
+						$out[] = wp_strip_all_tags( $value );
+					}
+				}
+			}
+			if ( ! empty( $element['elements'] ) && is_array( $element['elements'] ) ) {
+				$out = array_merge( $out, self::text( $element['elements'] ) );
+			}
+		}
+		return $out;
+	}
+}
 class DPT_Stub_Elementor_Plugin {
 	public $files_manager;
+	public $db;
 	public function __construct() {
 		$this->files_manager = new DPT_Stub_Elementor_Files_Manager();
+		$this->db            = new DPT_Stub_Elementor_DB();
 	}
 	public static function instance() {
 		static $instance = null;

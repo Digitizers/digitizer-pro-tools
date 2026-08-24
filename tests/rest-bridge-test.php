@@ -3311,6 +3311,39 @@ dpt_test_eq( $GLOBALS['dpt_stub_elementor_cache_cleared'], 0, 'because the site-
 
 unset( $GLOBALS['dpt_stub_posts'][27], $GLOBALS['dpt_stub_post_meta'][27] );
 
+/* ---- and the post's plain text is rewritten, as Elementor's save does ---- */
+
+// _elementor_data is the layout, but Elementor's own save_elements() follows
+// the meta write with db->save_plain_text(), which renders the layout and
+// wp_update_post()s it into post_content - the column WordPress search
+// indexes, the_excerpt() falls back to, and RSS serves. Writing only the
+// layout left all three describing the previous version of the page.
+$GLOBALS['dpt_stub_posts'][28] = array(
+	'post_type'    => 'page',
+	'post_content' => 'The text of the page as it was before',
+);
+update_post_meta( 28, '_elementor_data', wp_slash( wp_json_encode( array(
+	array(
+		'id'       => 's1',
+		'elType'   => 'section',
+		'elements' => array(
+			array( 'id' => 'p1', 'elType' => 'widget', 'widgetType' => 'heading', 'settings' => array( 'title' => 'Old heading' ) ),
+		),
+	),
+) ) ) );
+
+DPT_RB_Elementor::update( new DPT_Stub_Request( array(
+	'post_id' => 28,
+	'updates' => array( array( 'widget_id' => 'p1', 'settings' => array( 'title' => 'A brand new heading' ) ) ),
+) ) );
+
+$plain = get_post( 28 );
+dpt_test_ok( false !== strpos( $plain->post_content, 'A brand new heading' ), 'post_content carries the text of the layout that is now stored' );
+dpt_test_ok( false === strpos( $plain->post_content, 'The text of the page as it was before' ), 'and not the text of the page as it was, which search and RSS would have gone on serving' );
+dpt_test_ok( false === strpos( $plain->post_content, 'Old heading' ), 'nor the setting that was replaced' );
+
+unset( $GLOBALS['dpt_stub_posts'][28], $GLOBALS['dpt_stub_post_meta'][28] );
+
 dpt_test_ok( is_wp_error( DPT_RB_Elementor::update( new DPT_Stub_Request( array( 'post_id' => 20, 'updates' => array() ) ) ) ), 'an empty update list is refused' );
 dpt_test_ok( is_wp_error( DPT_RB_Elementor::update( new DPT_Stub_Request( array( 'post_id' => 20, 'updates' => array( array( 'widget_id' => 'w1' ) ) ) ) ) ), 'an update with no settings is refused' );
 

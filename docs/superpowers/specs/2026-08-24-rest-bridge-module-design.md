@@ -759,6 +759,29 @@ the replaced plugin):
   them apart: by reading storage back and comparing it against the encoded
   JSON that was asked for. A refusal is a `WP_Error` with a 500 status; an
   unchanged re-write is a success.
+- After a save that is known to have landed, the post's **plain-text
+  rendering** is rewritten, as Elementor's own save rewrites it:
+  `save_elements()` follows its meta write with
+  `Plugin::$instance->db->save_plain_text( $post_id )`, which renders the
+  layout and `wp_update_post()`s it into `post_content` — the column WordPress
+  search indexes, `the_excerpt()` falls back to, and RSS serves. Writing only
+  `_elementor_data` left all three describing the previous version of the
+  page, silently and possibly for the life of the post.
+  Elementor's own function, not a rendering of ours, and here that is not
+  merely tidier: producing that text means instantiating every widget through
+  the elements manager and calling its `render_plain_content()` with dynamic
+  tags in removal mode. That is Elementor's rendering stack and it belongs to
+  whichever widget plugins are active; reading `_elementor_data` and stripping
+  tags out of the settings would produce a **different** `post_content` from
+  the one the editor produces for the same page, which is worse than the
+  staleness it replaced.
+  So this is the one thing on this route that genuinely cannot be done without
+  Elementor loaded. Where it is not, `post_content` is left exactly as it was
+  rather than approximated, and that limitation is stated in the readme,
+  because a site owner can observe it and a silent one is what this module
+  refuses to have. (Elementor hands `wp_update_post()` an unslashed string, so
+  a backslash in the rendered text does not survive; that is its behaviour on
+  its own save too, and matching the editor is the point of calling it.)
 - After a save that is known to have landed, everything Elementor generated
   from the old layout is invalidated — **for that post and nothing else**.
   Three per-post things, each protecting something different:
@@ -1052,6 +1075,12 @@ options, no `user_can_toggle` override.
    door, so the absent case cannot be reproduced by a flag on a stub, and the
    stub itself is `is_current_user_can_edit()` copied in its own order rather
    than summarised - inverted black-list method included.
+   Also: a landed write rewrites `post_content` from the layout that is now
+   stored, carrying the new setting and neither the page's previous text nor
+   the setting that was replaced. The harness's `save_plain_text()` renders
+   from `_elementor_data` read back out of storage, the way the real one
+   does, so "rendered from what was just saved" is distinguishable from
+   "rendered from what was there before".
    Also: what a landed write invalidates and what it leaves alone - the edited
    page's rendered HTML, page assets and generated CSS all gone, the CSS
    through Elementor's own `Post_CSS::delete()` and for that post alone, while
