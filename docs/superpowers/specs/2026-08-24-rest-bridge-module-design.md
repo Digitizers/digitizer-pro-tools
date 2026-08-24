@@ -759,11 +759,39 @@ the replaced plugin):
   them apart: by reading storage back and comparing it against the encoded
   JSON that was asked for. A refusal is a `WP_Error` with a 500 status; an
   unchanged re-write is a success.
-- After a save that is known to have landed:
-  `delete_post_meta( $post_id, '_elementor_css' )` **and**, when Elementor is
-  loaded, `\Elementor\Plugin::instance()->files_manager->clear_cache()`.
-  Neither runs on a refused write: the rendered CSS still describes the layout
-  that is still stored.
+- After a save that is known to have landed, everything Elementor generated
+  from the old layout is invalidated — **for that post and nothing else**.
+  Three per-post things, each protecting something different:
+  - `_elementor_element_cache`, which holds the **fully rendered HTML** of the
+    page for `elementor_element_cache_ttl` hours. This is the one that matters
+    most: leave it and the front end serves yesterday's markup for a day,
+    whatever else is cleared. Nobody may narrow this further without keeping
+    it.
+  - `_elementor_page_assets`, the list of styles and scripts this page's
+    widgets need, which a changed layout can change. Deleting it makes
+    Elementor rebuild it on the next render; Elementor's own save recomputes
+    it in place instead, from a widget iteration this module does not run.
+  - the post's generated CSS — the `_elementor_css` meta row and the file on
+    disk — through `Post_CSS::create( $id )->delete()`, which is what
+    Elementor's own document save calls. The plain `delete_post_meta()` beside
+    it is what a site with no Elementor loaded is left with, and is enough
+    there, because nothing is regenerating that file either.
+
+  This replaces `files_manager->clear_cache()`, which is a **site-wide purge**:
+  unlink every generated CSS file on the site, then `delete_post_meta_by_key()`
+  for those same three keys across every post there is, then delete the global
+  CSS option — for one widget's text on one page. It was nonetheless
+  *accidentally* right about the element cache, which is why that line is
+  named first here. Elementor calls that purge from the Tools screen, a
+  database upgrade, an experiment switch and a Kit save, where global colours
+  really have changed under the whole site, and from nothing that edits a
+  document; `Document::save()` invalidates the edited document alone. The
+  global CSS option and the kit's files are deliberately left alone: a widget
+  setting on one page does not invalidate them, and Elementor's own save does
+  not touch them either.
+
+  None of it runs on a refused write: the rendered CSS still describes the
+  layout that is still stored.
 - Helper functions become private static methods (`tree()`, `apply()`,
   `collect_ids()`, `count_widgets()`), behaviour identical to the old
   plugin's helpers.
@@ -1024,9 +1052,17 @@ options, no `user_can_toggle` override.
    door, so the absent case cannot be reproduced by a flag on a stub, and the
    stub itself is `is_current_user_can_edit()` copied in its own order rather
    than summarised - inverted black-list method included.
-   Also: cache clear called (the harness stubs `\Elementor\Plugin` so that
-   call is really made), a refused write reported as an error with the cache
-   left alone, and an unchanged re-write reported as a success. A revision id
+   Also: what a landed write invalidates and what it leaves alone - the edited
+   page's rendered HTML, page assets and generated CSS all gone, the CSS
+   through Elementor's own `Post_CSS::delete()` and for that post alone, while
+   a second page nobody edited keeps all three and the site-wide purge is
+   never reached. The harness's `files_manager->clear_cache()` really does
+   what Elementor's does - the three `delete_post_meta_by_key()` sweeps across
+   every post in the store and the global option - because a stub that only
+   counted made "a page nobody edited keeps its rendered HTML" true of a run
+   in which the module had just wiped it, which is the whole finding. A
+   refused write is reported as an error with all of it left alone, and an
+   unchanged re-write is reported as a success. A revision id
    refused identically on both routes, with the parent's stored layout, its
    rendered CSS and Elementor's cache all untouched - the harness models
    `update_post_meta()`'s redirect to the parent, so it can reproduce the

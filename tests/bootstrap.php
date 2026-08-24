@@ -851,8 +851,11 @@ function wp_is_post_revision( $id ) {
 	return $row['post_parent'];
 }
 
-// A counter rather than a boolean, so a test can tell "cleared once" from
-// "cleared on every save", which is the kind of bug a cache-clearing hook invites.
+// The site-wide purge, counted so a test can assert it is *not* reached: it
+// unlinks every generated CSS file on the site and drops the element cache and
+// page assets of every post there is, which is not what one widget edit
+// invalidates. Elementor calls it from the Tools screen, a database upgrade,
+// an experiment switch and a Kit save, and from nothing that edits a document.
 $GLOBALS['dpt_stub_elementor_cache_cleared'] = 0;
 
 /**
@@ -867,9 +870,28 @@ $GLOBALS['dpt_stub_elementor_cache_cleared'] = 0;
  * declaration would force every line of these flat test files into a
  * namespace block of its own.
  */
+/**
+ * files_manager->clear_cache(), doing what core/files/manager.php really does
+ * rather than only counting: delete_post_meta_by_key() for the post CSS, the
+ * element cache and the page assets - across **every post there is** - and
+ * delete_option() for the global CSS. (The glob-and-unlink of every generated
+ * file has no filesystem here; the three by-key deletes are the part a test
+ * can see.)
+ *
+ * A stub that only incremented a counter made "a page nobody edited keeps its
+ * rendered HTML" true of every run, including one where the module had just
+ * wiped that page's cache along with the whole site's - which is the entire
+ * finding. The blast radius has to be reproducible before it can be narrowed.
+ */
 class DPT_Stub_Elementor_Files_Manager {
 	public function clear_cache() {
 		$GLOBALS['dpt_stub_elementor_cache_cleared']++;
+		foreach ( array_keys( $GLOBALS['dpt_stub_post_meta'] ) as $post_id ) {
+			foreach ( array( '_elementor_css', '_elementor_element_cache', '_elementor_page_assets' ) as $key ) {
+				unset( $GLOBALS['dpt_stub_post_meta'][ $post_id ][ $key ] );
+			}
+		}
+		unset( $GLOBALS['dpt_stub_options']['_elementor_global_css'] );
 	}
 }
 class DPT_Stub_Elementor_Plugin {
@@ -886,6 +908,33 @@ class DPT_Stub_Elementor_Plugin {
 	}
 }
 class_alias( 'DPT_Stub_Elementor_Plugin', 'Elementor\Plugin' );
+
+/**
+ * Elementor\Core\Files\CSS\Post, in the one shape the module reaches for:
+ * create( $post_id ) then delete(), which is what Elementor's own document
+ * save calls and which removes both the _elementor_css meta row and the
+ * generated file on disk.
+ *
+ * Recorded per post id rather than counted, because the whole of the finding
+ * here is scope: a stub that only said "something was cleared" could not tell
+ * an invalidation of the edited page from a purge of every page on the site,
+ * which is what files_manager->clear_cache() really does.
+ */
+$GLOBALS['dpt_stub_elementor_post_css_deleted'] = array();
+class DPT_Stub_Elementor_Post_CSS {
+	private $post_id;
+	public function __construct( $post_id ) {
+		$this->post_id = (int) $post_id;
+	}
+	public static function create( $post_id ) {
+		return new self( $post_id );
+	}
+	public function delete() {
+		$GLOBALS['dpt_stub_elementor_post_css_deleted'][] = $this->post_id;
+		delete_post_meta( $this->post_id, '_elementor_css' );
+	}
+}
+class_alias( 'DPT_Stub_Elementor_Post_CSS', 'Elementor\Core\Files\CSS\Post' );
 
 // The four things Elementor's own editing gate refuses beyond the post's edit
 // capability, each switchable so the module can be measured against every one

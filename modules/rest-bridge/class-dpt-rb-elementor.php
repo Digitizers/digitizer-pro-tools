@@ -326,10 +326,10 @@ class DPT_RB_Elementor {
 			);
 		}
 
-		// Only now, with the new layout known to be stored: the rendered CSS
-		// is describing a page that no longer exists.
-		delete_post_meta( $post_id, '_elementor_css' );
-		self::clear_cache();
+		// Only now, with the new layout known to be stored: everything
+		// Elementor generated from the old one is describing a page that no
+		// longer exists.
+		self::invalidate( $post_id );
 
 		return rest_ensure_response(
 			array(
@@ -398,22 +398,64 @@ class DPT_RB_Elementor {
 	}
 
 	/**
-	 * Ask Elementor to forget its generated files, when Elementor is here.
+	 * Make Elementor forget everything it generated from the old layout - for
+	 * this one post, and for nothing else.
 	 *
-	 * Deleting the post's own _elementor_css is not enough on its own: the
-	 * global and per-post files are managed elsewhere, and a page can keep
-	 * serving the old CSS until they are cleared. is_callable() is checked
-	 * rather than assumed, because this runs against whatever Elementor
-	 * version is installed, and files_manager's shape is not this plugin's
-	 * to guarantee.
+	 * Deleting `_elementor_css` alone was never enough, and the answer this
+	 * had was `files_manager->clear_cache()`, which is a site-wide purge:
+	 * unlink every generated CSS file on the site, then
+	 * delete_post_meta_by_key() three times - the post CSS meta, the element
+	 * cache and the page assets - across **every post there is**, then delete
+	 * the global CSS option. For one widget's text, on one page. Elementor
+	 * itself only calls that from the Tools screen, a database upgrade, an
+	 * experiment being switched, and a Kit save, where global colours really
+	 * have changed under the whole site.
+	 *
+	 * Elementor's own document save is the right model, and it invalidates the
+	 * edited document only: `Post_CSS::create( $id )->delete()` and
+	 * `$this->delete_cache()`. Three per-post things need to go, and it is
+	 * worth naming what each one protects, because the old call was
+	 * *accidentally* right about the one that matters most:
+	 *
+	 * - `_elementor_element_cache` holds the **fully rendered HTML** of the
+	 *   page, for elementor_element_cache_ttl hours. Leave it and the front
+	 *   end serves the old markup for up to a day, whatever else is cleared.
+	 *   Anyone narrowing this further needs to keep this line.
+	 * - `_elementor_page_assets` is the list of styles and scripts this page's
+	 *   widgets need. A changed layout can need a different set. Elementor
+	 *   rebuilds it on the next render once it is not an array, which is what
+	 *   deleting it arranges; Elementor's own save recomputes it in place
+	 *   instead, from a widget iteration this module does not run.
+	 * - the post's generated CSS - the `_elementor_css` meta row **and** the
+	 *   file on disk. Post_CSS::delete() removes both; the plain
+	 *   delete_post_meta() beside it is what a site with no Elementor loaded
+	 *   is left with, and is enough there, because nothing is regenerating
+	 *   that file either.
+	 *
+	 * What is deliberately not touched is everything that belongs to other
+	 * posts and to the site: the global CSS option and the kit's files are not
+	 * invalidated by a widget setting on one page, and Elementor's own save
+	 * does not touch them either.
+	 *
+	 * is_callable() rather than a bare class_exists(), for the reason
+	 * elementor_allows_editing() checks the same way: this runs against
+	 * whatever Elementor version is installed and that class's shape is not
+	 * this plugin's to guarantee.
+	 *
+	 * @param int $post_id Post id.
 	 */
-	private static function clear_cache() {
-		if ( ! class_exists( '\Elementor\Plugin' ) ) {
+	private static function invalidate( $post_id ) {
+		delete_post_meta( $post_id, '_elementor_element_cache' );
+		delete_post_meta( $post_id, '_elementor_page_assets' );
+		delete_post_meta( $post_id, '_elementor_css' );
+
+		if ( ! is_callable( array( '\Elementor\Core\Files\CSS\Post', 'create' ) ) ) {
 			return;
 		}
-		$elementor = \Elementor\Plugin::instance();
-		if ( isset( $elementor->files_manager ) && is_callable( array( $elementor->files_manager, 'clear_cache' ) ) ) {
-			$elementor->files_manager->clear_cache();
+
+		$css = \Elementor\Core\Files\CSS\Post::create( $post_id );
+		if ( is_object( $css ) && is_callable( array( $css, 'delete' ) ) ) {
+			$css->delete();
 		}
 	}
 

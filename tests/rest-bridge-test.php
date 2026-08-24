@@ -3270,6 +3270,47 @@ dpt_test_eq( $saved[0]['elements'][0]['settings']['title'], 'New title', 'the se
 dpt_test_eq( $saved[0]['elements'][0]['settings']['align'], 'center', 'and the settings around it did not' );
 dpt_test_eq( get_post_meta( 20, '_elementor_css', true ), '', 'the stale CSS is gone' );
 
+/* ---- what a landed write invalidates, and what it leaves alone ---- */
+
+// The old answer was files_manager->clear_cache(), which unlinks every
+// generated CSS file on the site, drops the element cache and page assets of
+// every post there is, and deletes the global CSS option - for one widget's
+// text on one page. Elementor calls that from the Tools screen, a database
+// upgrade, an experiment switch and a Kit save, and from nothing that edits a
+// document; its own document save invalidates the edited document alone.
+//
+// It was nonetheless right about the thing that matters most, and that has to
+// keep working: _elementor_element_cache holds the fully rendered HTML of the
+// page for elementor_element_cache_ttl hours, so a narrower invalidation that
+// dropped it would leave the front end serving yesterday's markup for a day.
+$GLOBALS['dpt_stub_post_meta'][20]['_elementor_css']            = 'body{}';
+$GLOBALS['dpt_stub_post_meta'][20]['_elementor_element_cache']  = '{"content":"the old page"}';
+$GLOBALS['dpt_stub_post_meta'][20]['_elementor_page_assets']    = array( 'styles' => array( 'old-widget' ) );
+// A second page, untouched by this request, with all three of its own.
+$GLOBALS['dpt_stub_posts'][27]                                  = 'page';
+$GLOBALS['dpt_stub_post_meta'][27]['_elementor_css']            = 'body{}';
+$GLOBALS['dpt_stub_post_meta'][27]['_elementor_element_cache']  = '{"content":"another page"}';
+$GLOBALS['dpt_stub_post_meta'][27]['_elementor_page_assets']    = array( 'styles' => array( 'other-widget' ) );
+$GLOBALS['dpt_stub_elementor_cache_cleared']                    = 0;
+$GLOBALS['dpt_stub_elementor_post_css_deleted']                 = array();
+
+DPT_RB_Elementor::update( new DPT_Stub_Request( array(
+	'post_id' => 20,
+	'updates' => array( array( 'widget_id' => 'w1', 'settings' => array( 'title' => 'New title' ) ) ),
+) ) );
+
+dpt_test_eq( get_post_meta( 20, '_elementor_element_cache', true ), '', 'the rendered HTML of the edited page is dropped - the one thing the site-wide purge was accidentally right about' );
+dpt_test_eq( get_post_meta( 20, '_elementor_page_assets', true ), '', 'so is the list of assets its widgets needed, which a changed layout can change' );
+dpt_test_eq( get_post_meta( 20, '_elementor_css', true ), '', 'and its generated CSS' );
+dpt_test_eq( $GLOBALS['dpt_stub_elementor_post_css_deleted'], array( 20 ), 'through Elementor\'s own Post_CSS::delete(), which takes the file on disk with the meta row, and for this post alone' );
+
+dpt_test_eq( get_post_meta( 27, '_elementor_element_cache', true ), '{"content":"another page"}', 'while a page nobody edited keeps its rendered HTML' );
+dpt_test_eq( get_post_meta( 27, '_elementor_page_assets', true ), array( 'styles' => array( 'other-widget' ) ), 'and its assets' );
+dpt_test_eq( get_post_meta( 27, '_elementor_css', true ), 'body{}', 'and its CSS' );
+dpt_test_eq( $GLOBALS['dpt_stub_elementor_cache_cleared'], 0, 'because the site-wide purge is not what one widget edit invalidates, and is not called' );
+
+unset( $GLOBALS['dpt_stub_posts'][27], $GLOBALS['dpt_stub_post_meta'][27] );
+
 dpt_test_ok( is_wp_error( DPT_RB_Elementor::update( new DPT_Stub_Request( array( 'post_id' => 20, 'updates' => array() ) ) ) ), 'an empty update list is refused' );
 dpt_test_ok( is_wp_error( DPT_RB_Elementor::update( new DPT_Stub_Request( array( 'post_id' => 20, 'updates' => array( array( 'widget_id' => 'w1' ) ) ) ) ) ), 'an update with no settings is refused' );
 
@@ -3414,7 +3455,8 @@ dpt_test_eq( $GLOBALS['dpt_stub_elementor_cache_cleared'], 0, 'and Elementor is 
 // already stored, so nothing happened - which is not the same as a refusal,
 // and reading storage back is the only way to tell them apart. An agent that
 // re-sends the settings it just sent must not be told the write failed.
-$GLOBALS['dpt_stub_elementor_cache_cleared'] = 0;
+$GLOBALS['dpt_stub_elementor_cache_cleared']    = 0;
+$GLOBALS['dpt_stub_elementor_post_css_deleted'] = array();
 $unchanged = DPT_RB_Elementor::update( new DPT_Stub_Request( array(
 	'post_id' => 20,
 	'updates' => array(
@@ -3424,7 +3466,8 @@ $unchanged = DPT_RB_Elementor::update( new DPT_Stub_Request( array(
 dpt_test_ok( ! is_wp_error( $unchanged ), 'writing the layout that is already stored is not a failure' );
 dpt_test_ok( isset( $unchanged['success'] ) && true === $unchanged['success'], 'it reports success' );
 dpt_test_eq( $unchanged['updates_applied'], 1, 'with the widget it merged into' );
-dpt_test_eq( $GLOBALS['dpt_stub_elementor_cache_cleared'], 1, 'and the cache is cleared once, as after any landed write' );
+dpt_test_eq( $GLOBALS['dpt_stub_elementor_post_css_deleted'], array( 20 ), 'and the page is invalidated once, as after any landed write' );
+dpt_test_eq( $GLOBALS['dpt_stub_elementor_cache_cleared'], 0, 'without reaching for the site-wide purge' );
 
 /* ---- and only for someone allowed to edit that post ---- */
 
