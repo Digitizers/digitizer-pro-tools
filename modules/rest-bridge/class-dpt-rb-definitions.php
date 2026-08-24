@@ -220,6 +220,16 @@ class DPT_RB_Definitions {
 					'fields'   => array(),
 				);
 			}
+
+			if ( ! $descriptor['fields'] ) {
+				// A repeater whose every column this bridge had to pass over
+				// has no shape left to offer: the API would advertise a list
+				// of empty objects and a write would have nothing to check.
+				// Saying so is better than exposing a field that cannot mean
+				// anything.
+				self::$skipped[] = sprintf( 'field %s: a repeater with no sub-field this bridge can expose', $name );
+				return null;
+			}
 		}
 
 		return $descriptor;

@@ -130,9 +130,11 @@ $GLOBALS['dpt_stub_options'] = array( 'jet_engine_meta_boxes' => 'garbage' );
 DPT_RB_Definitions::reset();
 dpt_test_eq( DPT_RB_Definitions::all(), array(), 'a corrupt option yields nothing' );
 
-// A repeater whose sub-field list is not a list is still a field - dropping
-// its sub-fields silently would make it indistinguishable from a repeater
-// that legitimately has none, so it has to be reported.
+// A repeater this bridge cannot see a single column of is not registered at
+// all. Exposing it would advertise a list of empty objects, and - because
+// sanitize() only knows the sub-fields the descriptor carries - every write
+// would have nothing to check and nothing to keep. Both halves of why it is
+// missing have to be sayable.
 $GLOBALS['dpt_stub_options'] = array(
 	'jet_engine_meta_boxes' => array(
 		array(
@@ -155,10 +157,71 @@ $GLOBALS['dpt_stub_options'] = array(
 );
 DPT_RB_Definitions::reset();
 $defs = DPT_RB_Definitions::all();
-dpt_test_eq( count( $defs ), 1, 'the repeater itself is still returned' );
-dpt_test_eq( $defs[0]['fields'], array(), 'with no sub-fields' );
+dpt_test_eq( $defs, array(), 'a repeater with no sub-field this bridge can expose is not registered' );
 $joined = implode( ' | ', DPT_RB_Definitions::skipped() );
 dpt_test_ok( false !== strpos( $joined, 'broken_repeater' ), 'and the missing sub-fields are reported by name' );
+dpt_test_ok( false !== strpos( $joined, 'no sub-field this bridge can expose' ), 'along with why the field itself is absent' );
+
+// The same when the sub-fields are a perfectly good list of types this
+// bridge does not map - an icon picker and a gallery next to each other is
+// an ordinary JetEngine FAQ row.
+$GLOBALS['dpt_stub_options'] = array(
+	'jet_engine_meta_boxes' => array(
+		array(
+			'id'          => 'unmappable-repeater',
+			'args'        => array(
+				'object_type'       => 'post',
+				'allowed_post_type' => array( 'post' ),
+			),
+			'meta_fields' => array(
+				array(
+					'name'            => 'icons_only',
+					'title'           => 'Icons',
+					'object_type'     => 'field',
+					'type'            => 'repeater',
+					'repeater-fields' => array(
+						array( 'name' => 'icon', 'title' => 'Icon', 'type' => 'iconpicker' ),
+						array( 'name' => 'shots', 'title' => 'Gallery', 'type' => 'gallery' ),
+					),
+				),
+			),
+		),
+	),
+);
+DPT_RB_Definitions::reset();
+dpt_test_eq( DPT_RB_Definitions::all(), array(), 'a repeater whose every column is an unmapped type is not registered either' );
+$joined = implode( ' | ', DPT_RB_Definitions::skipped() );
+dpt_test_ok( false !== strpos( $joined, 'icons_only' ), 'and the info endpoint can say which field is missing' );
+
+// One mappable column is enough to be worth exposing: the rest are still
+// reported, and sanitize() leaves them alone rather than dropping them.
+$GLOBALS['dpt_stub_options'] = array(
+	'jet_engine_meta_boxes' => array(
+		array(
+			'id'          => 'mixed-repeater',
+			'args'        => array(
+				'object_type'       => 'post',
+				'allowed_post_type' => array( 'post' ),
+			),
+			'meta_fields' => array(
+				array(
+					'name'            => 'mixed',
+					'title'           => 'Mixed',
+					'object_type'     => 'field',
+					'type'            => 'repeater',
+					'repeater-fields' => array(
+						array( 'name' => 'question', 'title' => 'Question', 'type' => 'text' ),
+						array( 'name' => 'icon', 'title' => 'Icon', 'type' => 'iconpicker' ),
+					),
+				),
+			),
+		),
+	),
+);
+DPT_RB_Definitions::reset();
+$defs = DPT_RB_Definitions::all();
+dpt_test_eq( count( $defs ), 1, 'a repeater with one mappable column is still exposed' );
+dpt_test_eq( count( $defs[0]['fields'] ), 1, 'carrying only the columns it understands' );
 
 // Corrupted option data can put an array anywhere a scalar was expected. None
 // of that may be fatal, and none of it may raise a PHP notice - a notice
@@ -242,15 +305,31 @@ dpt_test_eq( DPT_RB_Schema::sanitize( $text, '0' ), '0', 'a value of "0" is cont
 // A repeater accepts a list of objects, keeps only the keys it knows, and
 // says no to anything else.
 $clean = DPT_RB_Schema::sanitize( $rep, array(
-	array( 'question' => ' Why? ', 'answer' => '<b>Because</b>', 'sneaky' => 'x' ),
+	array( 'question' => ' Why? ', 'answer' => '<b>Because</b>', 'icon' => 'fa-star' ),
 ) );
 dpt_test_eq( $clean[0]['question'], 'Why?', 'sub-values are sanitized by their own type' );
 dpt_test_eq( $clean[0]['answer'], '<b>Because</b>', 'including the rich one' );
-dpt_test_ok( ! isset( $clean[0]['sneaky'] ), 'a key the definition does not have is dropped' );
+
+// A key with no sub-field behind it is a column JetEngine has and this
+// bridge could not map - an icon picker, a gallery, a nested repeater. read()
+// hands those out, so dropping them here would delete one column of every
+// row on the GET, modify, PUT round trip this API documents.
+dpt_test_eq( $clean[0]['icon'], 'fa-star', 'a key the definition does not have is kept exactly as it arrived' );
 dpt_test_eq( DPT_RB_Schema::sanitize( $rep, array() ), array(), 'an empty list stays empty - that is how a field is cleared' );
 dpt_test_ok( is_wp_error( DPT_RB_Schema::sanitize( $rep, 'nope' ) ), 'a scalar is not a repeater' );
 dpt_test_ok( is_wp_error( DPT_RB_Schema::sanitize( $rep, array( 'nope' ) ) ), 'nor is a list of scalars' );
 dpt_test_ok( is_wp_error( DPT_RB_Schema::sanitize( $rep, false ) ), 'and false is not an empty list' );
+
+// The item number in the refusal is the one a person can count to in their
+// own payload: the first item is item 1, not item 0.
+dpt_test_ok(
+	false !== strpos( DPT_RB_Schema::sanitize( $rep, array( 'nope' ) )->get_error_message(), 'Item 1' ),
+	'the first item is named as item 1, not item 0'
+);
+dpt_test_ok(
+	false !== strpos( DPT_RB_Schema::sanitize( $rep, array( array( 'question' => 'ok' ), 'nope' ) )->get_error_message(), 'Item 2' ),
+	'and the second as item 2'
+);
 
 // Reading. JetEngine has stored repeaters as arrays, as JSON and as PHP
 // serialization over the years; all three have to come back as an array.
@@ -389,6 +468,32 @@ dpt_test_ok( true === DPT_RB_Fields::write( $qna, array(), (object) array( 'ID' 
 $GLOBALS['dpt_stub_meta_write_fails'] = array( 'qna' );
 dpt_test_ok( is_wp_error( DPT_RB_Fields::write( $qna, array( array( 'question' => 'q', 'answer' => 'a' ) ), (object) array( 'ID' => 11 ) ) ), 'a refused write is an error, not a shrug' );
 $GLOBALS['dpt_stub_meta_write_fails'] = array();
+
+/* ---- the documented round trip does not cost the row a column ---- */
+
+// A FAQ repeater on a real site carries columns this bridge cannot map - an
+// icon picker beside the question and answer. read() hands them out, so a
+// consumer that does what this API documents - GET the field, change one
+// value, PUT the whole list back - must get them back intact. Filtering
+// them on the way in would delete that column from every row on the first
+// write, and answer 200 while doing it.
+$GLOBALS['dpt_stub_post_meta'] = array();
+update_post_meta(
+	12,
+	'qna',
+	array(
+		array( 'question' => 'Why?', 'answer' => 'Because', 'icon' => 'fa-star' ),
+		array( 'question' => 'How?', 'answer' => 'Like this', 'icon' => 'fa-bolt' ),
+	)
+);
+$round_trip = DPT_RB_Fields::read( $qna, array( 'id' => 12 ) );
+dpt_test_eq( $round_trip[0]['icon'], 'fa-star', 'a sub-field this bridge cannot map is still read out' );
+$round_trip[0]['question'] = 'Why not?';
+dpt_test_ok( true === DPT_RB_Fields::write( $qna, $round_trip, (object) array( 'ID' => 12 ) ), 'the modified list writes back' );
+$after_trip = DPT_RB_Fields::read( $qna, array( 'id' => 12 ) );
+dpt_test_eq( $after_trip[0]['question'], 'Why not?', 'the change landed' );
+dpt_test_eq( $after_trip[0]['icon'], 'fa-star', 'and the unmapped column survived the round trip' );
+dpt_test_eq( $after_trip[1]['icon'], 'fa-bolt', 'on every row, not only the one that changed' );
 
 // Taxonomy fields live in term meta, and the callbacks are handed terms
 // rather than posts.

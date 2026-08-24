@@ -102,8 +102,13 @@ class DPT_RB_Schema {
 			$known[ $sub['meta_key'] ] = $sub['type'];
 		}
 
-		$clean = array();
-		foreach ( $value as $index => $item ) {
+		$clean    = array();
+		$position = 0;
+		foreach ( $value as $item ) {
+			// Counted rather than taken from the array key: a client may send
+			// the list as a JSON object, whose keys are strings, and an item
+			// number a person can find in their payload is the point.
+			$position++;
 			if ( ! is_array( $item ) ) {
 				return new WP_Error(
 					'dpt_rb_invalid_repeater_item',
@@ -111,12 +116,18 @@ class DPT_RB_Schema {
 						/* translators: 1: field name, 2: item number */
 						__( 'Item %2$d of the field %1$s must be an object.', 'digitizer-pro-tools' ),
 						$descriptor['meta_key'],
-						(int) $index
+						$position
 					),
 					array( 'status' => 400 )
 				);
 			}
-			$row = array();
+			// The item is kept whole and its known keys are then cleaned in
+			// place. A sub-field this bridge could not map - an icon picker,
+			// a gallery, a nested repeater - is still real data JetEngine and
+			// the site's templates use, and read() hands it out; filtering it
+			// away here would delete a column of every row on the documented
+			// GET, modify, PUT round trip.
+			$row = $item;
 			foreach ( $known as $key => $type ) {
 				if ( array_key_exists( $key, $item ) ) {
 					$row[ $key ] = self::sanitize_scalar( $type, $item[ $key ] );
