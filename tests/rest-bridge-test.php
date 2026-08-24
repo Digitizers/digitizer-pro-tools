@@ -303,4 +303,123 @@ dpt_test_eq( wp_json_encode( DPT_RB_Schema::normalize_read( $num, null ) ), '0',
 dpt_test_eq( wp_json_encode( DPT_RB_Schema::normalize_read( $media, '12' ) ), '12', 'media reads back as an integer, not "12"' );
 dpt_test_eq( wp_json_encode( DPT_RB_Schema::normalize_read( $media, null ) ), '0', 'and an unset attachment id reads back as 0, not ""' );
 
+require_once dirname( __DIR__ ) . '/modules/rest-bridge/class-dpt-rb-fields.php';
+
+/* ---- discovered fields become REST fields under their own names ---- */
+
+$GLOBALS['dpt_stub_options'] = array(
+	'jet_engine_meta_boxes' => array(
+		array(
+			'id'          => 'post-extras',
+			'args'        => array( 'object_type' => 'post', 'allowed_post_type' => array( 'post', 'ghost' ) ),
+			'meta_fields' => array(
+				array(
+					'name'            => 'qna',
+					'title'           => 'FAQ',
+					'object_type'     => 'field',
+					'type'            => 'repeater',
+					'repeater-fields' => array(
+						array( 'name' => 'question', 'title' => 'Question', 'type' => 'text' ),
+						array( 'name' => 'answer', 'title' => 'Answer', 'type' => 'wysiwyg' ),
+					),
+				),
+			),
+		),
+		array(
+			'id'          => 'author-extras',
+			'args'        => array( 'object_type' => 'taxonomy', 'allowed_tax' => array( 'authors' ) ),
+			'meta_fields' => array(
+				array( 'name' => 'linkedin', 'title' => 'LinkedIn', 'object_type' => 'field', 'type' => 'text' ),
+			),
+		),
+	),
+);
+DPT_RB_Definitions::reset();
+$GLOBALS['dpt_stub_rest_fields'] = array();
+DPT_RB_Fields::register();
+
+dpt_test_ok( isset( $GLOBALS['dpt_stub_rest_fields']['post']['qna'] ), 'the repeater is exposed under its real name' );
+dpt_test_ok( isset( $GLOBALS['dpt_stub_rest_fields']['authors']['linkedin'] ), 'and the taxonomy field on its taxonomy' );
+dpt_test_ok( ! isset( $GLOBALS['dpt_stub_rest_fields']['ghost'] ), 'a post type the site does not expose to REST is left alone' );
+
+$args = $GLOBALS['dpt_stub_rest_fields']['post']['qna'];
+dpt_test_eq( $args['schema']['type'], 'array', 'carrying the schema its type earns' );
+dpt_test_ok( is_callable( $args['get_callback'] ), 'with a reader' );
+dpt_test_ok( is_callable( $args['update_callback'] ), 'and a writer' );
+
+/* ---- the old plugin's names keep working ---- */
+
+// ContentEngine writes jet_qna. The field is really called qna, and both must
+// reach the same meta key, or a working automation breaks on upgrade day.
+dpt_test_ok( isset( $GLOBALS['dpt_stub_rest_fields']['post']['jet_qna'] ), 'jet_qna is still there' );
+dpt_test_ok( in_array( 'jet_qna', DPT_RB_Fields::compat(), true ), 'and is named as a compatibility alias' );
+dpt_test_ok( isset( $GLOBALS['dpt_stub_rest_fields']['post']['reading_time'] ), 'so is reading_time, which JetEngine here does not define' );
+dpt_test_ok( isset( $GLOBALS['dpt_stub_rest_fields']['authors']['author_description'] ), 'and the author fields the old plugin promised' );
+
+// But a name the discovery already produced is never taken over by the
+// compatibility layer - the real definition wins.
+dpt_test_ok( ! in_array( 'linkedin', DPT_RB_Fields::compat(), true ), 'a discovered field is not also a compatibility field' );
+
+/* ---- reading and writing through the callbacks ---- */
+
+$defs = DPT_RB_Definitions::all();
+$qna  = null;
+foreach ( $defs as $d ) {
+	if ( 'qna' === $d['meta_key'] ) {
+		$qna = $d;
+	}
+}
+
+$GLOBALS['dpt_stub_post_meta'] = array();
+$post_object                   = array( 'id' => 11 );
+dpt_test_eq( DPT_RB_Fields::read( $qna, $post_object ), array(), 'a post with no FAQ reads as an empty list' );
+
+$written = DPT_RB_Fields::write( $qna, array( array( 'question' => 'Why?', 'answer' => 'Because' ) ), (object) array( 'ID' => 11 ) );
+dpt_test_ok( true === $written, 'a valid FAQ is written' );
+dpt_test_eq( DPT_RB_Fields::read( $qna, $post_object )[0]['question'], 'Why?', 'and reads back' );
+
+dpt_test_ok( is_wp_error( DPT_RB_Fields::write( $qna, 'nope', (object) array( 'ID' => 11 ) ) ), 'a malformed FAQ is refused' );
+dpt_test_eq( DPT_RB_Fields::read( $qna, $post_object )[0]['question'], 'Why?', 'and the stored one is untouched' );
+
+dpt_test_ok( true === DPT_RB_Fields::write( $qna, array(), (object) array( 'ID' => 11 ) ), 'an empty list clears the field' );
+dpt_test_eq( DPT_RB_Fields::read( $qna, $post_object ), array(), 'which reads back as empty' );
+dpt_test_ok( true === DPT_RB_Fields::write( $qna, array(), (object) array( 'ID' => 11 ) ), 'clearing an already-empty field is still a success' );
+
+// A site that refuses the write must not be told it succeeded.
+$GLOBALS['dpt_stub_meta_write_fails'] = array( 'qna' );
+dpt_test_ok( is_wp_error( DPT_RB_Fields::write( $qna, array( array( 'question' => 'q', 'answer' => 'a' ) ), (object) array( 'ID' => 11 ) ) ), 'a refused write is an error, not a shrug' );
+$GLOBALS['dpt_stub_meta_write_fails'] = array();
+
+// Taxonomy fields live in term meta, and the callbacks are handed terms
+// rather than posts.
+$linkedin = null;
+foreach ( $defs as $d ) {
+	if ( 'linkedin' === $d['meta_key'] ) {
+		$linkedin = $d;
+	}
+}
+$GLOBALS['dpt_stub_term_meta'] = array();
+DPT_RB_Fields::write( $linkedin, 'https://example.test/x', (object) array( 'term_id' => 4 ) );
+dpt_test_eq( DPT_RB_Fields::read( $linkedin, array( 'id' => 4 ) ), 'https://example.test/x', 'a taxonomy field round-trips through term meta' );
+
+/* ---- the id helper's other shapes ---- */
+
+// Core always keys a read array as 'id', for posts and terms alike - the
+// helper's term_id fallback on the array side is pure defence. It still
+// needs its own assertion, or a change that quietly broke it would pass.
+dpt_test_eq( DPT_RB_Fields::read( $linkedin, array( 'term_id' => 4 ) ), 'https://example.test/x', 'a read array keyed by term_id instead of id still resolves' );
+
+// Neither shape names an id at all - not a real request core would send,
+// but the helper still has to answer with "nothing" rather than a notice.
+dpt_test_eq( DPT_RB_Fields::read( $qna, array() ), array(), 'a read target with no id at all reads as empty, not a fatal' );
+dpt_test_eq( DPT_RB_Fields::read( $qna, null ), array(), 'and neither an array nor an object resolves to anything either' );
+dpt_test_ok( is_wp_error( DPT_RB_Fields::write( $qna, array(), (object) array() ) ), 'a write target with no id at all is refused, not written nowhere' );
+
+/* ---- what the site is told it exposes ---- */
+
+$registered = DPT_RB_Fields::registered();
+dpt_test_ok( isset( $registered['post/post'] ), 'the report knows about posts' );
+dpt_test_ok( in_array( 'qna', $registered['post/post'], true ), 'and lists the field there' );
+dpt_test_ok( isset( $registered['taxonomy/authors'] ), 'and about the taxonomy' );
+
 exit( dpt_test_summary() > 0 ? 1 : 0 );
