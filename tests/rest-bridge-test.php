@@ -130,4 +130,72 @@ $GLOBALS['dpt_stub_options'] = array( 'jet_engine_meta_boxes' => 'garbage' );
 DPT_RB_Definitions::reset();
 dpt_test_eq( DPT_RB_Definitions::all(), array(), 'a corrupt option yields nothing' );
 
+// A repeater whose sub-field list is not a list is still a field - dropping
+// its sub-fields silently would make it indistinguishable from a repeater
+// that legitimately has none, so it has to be reported.
+$GLOBALS['dpt_stub_options'] = array(
+	'jet_engine_meta_boxes' => array(
+		array(
+			'id'          => 'malformed-repeater',
+			'args'        => array(
+				'object_type'       => 'post',
+				'allowed_post_type' => array( 'post' ),
+			),
+			'meta_fields' => array(
+				array(
+					'name'             => 'broken_repeater',
+					'title'            => 'Broken',
+					'object_type'      => 'field',
+					'type'             => 'repeater',
+					'repeater-fields'  => 'not-a-list',
+				),
+			),
+		),
+	),
+);
+DPT_RB_Definitions::reset();
+$defs = DPT_RB_Definitions::all();
+dpt_test_eq( count( $defs ), 1, 'the repeater itself is still returned' );
+dpt_test_eq( $defs[0]['fields'], array(), 'with no sub-fields' );
+$joined = implode( ' | ', DPT_RB_Definitions::skipped() );
+dpt_test_ok( false !== strpos( $joined, 'broken_repeater' ), 'and the missing sub-fields are reported by name' );
+
+// Corrupted option data can put an array anywhere a scalar was expected. None
+// of that may be fatal, and none of it may raise a PHP notice - a notice
+// raised while a REST response is being built would corrupt the JSON.
+$GLOBALS['dpt_stub_options'] = array(
+	'jet_engine_meta_boxes' => array(
+		array(
+			'id'          => array( 'not', 'a', 'string' ),
+			'args'        => array(
+				'object_type'       => 'post',
+				'allowed_post_type' => array( 'post' ),
+			),
+			'meta_fields' => array(
+				array( 'name' => 'weird_title', 'title' => array( 'x' ), 'object_type' => 'field', 'type' => 'text' ),
+				array( 'name' => 'weird_type', 'title' => 'Weird Type', 'object_type' => 'field', 'type' => array( 'x' ) ),
+				array(
+					'name'            => 'weird_sub',
+					'title'           => 'Weird Sub',
+					'object_type'     => 'field',
+					'type'            => 'repeater',
+					'repeater-fields' => array(
+						array( 'name' => 'sub_bad_title', 'type' => 'text', 'title' => array( 'x' ) ),
+					),
+				),
+			),
+		),
+	),
+);
+DPT_RB_Definitions::reset();
+$defs   = DPT_RB_Definitions::all();
+$by_key = array();
+foreach ( $defs as $d ) {
+	$by_key[ $d['meta_key'] ] = $d;
+}
+dpt_test_ok( isset( $by_key['weird_title'] ), 'an array title does not block the field' );
+dpt_test_eq( $by_key['weird_title']['title'], 'weird_title', 'and falls back to the field name' );
+dpt_test_ok( ! isset( $by_key['weird_type'] ), 'an array type is treated as not exposed' );
+dpt_test_eq( $by_key['weird_sub']['fields'][0]['title'], 'sub_bad_title', 'a sub-field with an array title falls back to its own name' );
+
 exit( dpt_test_summary() > 0 ? 1 : 0 );

@@ -114,7 +114,7 @@ class DPT_RB_Definitions {
 			if ( ! is_array( $row ) ) {
 				continue;
 			}
-			$id     = isset( $row['id'] ) ? (string) $row['id'] : '(unnamed meta box)';
+			$id     = isset( $row['id'] ) && is_scalar( $row['id'] ) ? (string) $row['id'] : '(unnamed meta box)';
 			$args   = isset( $row['args'] ) && is_array( $row['args'] ) ? $row['args'] : array();
 			$fields = isset( $row['meta_fields'] ) && is_array( $row['meta_fields'] ) ? $row['meta_fields'] : array();
 
@@ -123,7 +123,7 @@ class DPT_RB_Definitions {
 				continue;
 			}
 
-			$object = isset( $args['object_type'] ) ? (string) $args['object_type'] : '';
+			$object = isset( $args['object_type'] ) && is_scalar( $args['object_type'] ) ? (string) $args['object_type'] : '';
 			if ( 'post' === $object ) {
 				$targets = isset( $args['allowed_post_type'] ) ? (array) $args['allowed_post_type'] : array();
 			} elseif ( 'taxonomy' === $object ) {
@@ -176,7 +176,7 @@ class DPT_RB_Definitions {
 			return null;
 		}
 
-		$type = isset( $field['type'] ) ? (string) $field['type'] : '';
+		$type = isset( $field['type'] ) && is_scalar( $field['type'] ) ? (string) $field['type'] : '';
 		if ( ! self::known_type( $type ) ) {
 			self::$skipped[] = sprintf( 'field %1$s: type %2$s is not exposed', $name, '' === $type ? '(none)' : $type );
 			return null;
@@ -184,21 +184,29 @@ class DPT_RB_Definitions {
 
 		$descriptor = array(
 			'meta_key' => $name,
-			'title'    => isset( $field['title'] ) ? (string) $field['title'] : $name,
+			'title'    => isset( $field['title'] ) && is_scalar( $field['title'] ) ? (string) $field['title'] : $name,
 			'type'     => $type,
 			'fields'   => array(),
 		);
 
 		if ( 'repeater' === $type ) {
-			$subs = isset( $field['repeater-fields'] ) && is_array( $field['repeater-fields'] )
-				? $field['repeater-fields']
-				: array();
+			$subs = array();
+			if ( isset( $field['repeater-fields'] ) ) {
+				if ( is_array( $field['repeater-fields'] ) ) {
+					$subs = $field['repeater-fields'];
+				} else {
+					// Present but not a list: a real repeater, just one this
+					// bridge cannot see the inside of - not the same as a
+					// repeater that legitimately has no sub-fields.
+					self::$skipped[] = sprintf( 'field %s: repeater sub-field list is not a list', $name );
+				}
+			}
 			foreach ( $subs as $sub ) {
 				if ( ! is_array( $sub ) ) {
 					continue;
 				}
 				$sub_name = isset( $sub['name'] ) ? sanitize_key( $sub['name'] ) : '';
-				$sub_type = isset( $sub['type'] ) ? (string) $sub['type'] : '';
+				$sub_type = isset( $sub['type'] ) && is_scalar( $sub['type'] ) ? (string) $sub['type'] : '';
 				// A repeater inside a repeater is more than this bridge
 				// promises, and an unknown type is a guess it will not make.
 				if ( '' === $sub_name || 'repeater' === $sub_type || ! self::known_type( $sub_type ) ) {
@@ -207,7 +215,7 @@ class DPT_RB_Definitions {
 				}
 				$descriptor['fields'][] = array(
 					'meta_key' => $sub_name,
-					'title'    => isset( $sub['title'] ) ? (string) $sub['title'] : $sub_name,
+					'title'    => isset( $sub['title'] ) && is_scalar( $sub['title'] ) ? (string) $sub['title'] : $sub_name,
 					'type'     => $sub_type,
 					'fields'   => array(),
 				);
