@@ -787,6 +787,49 @@ dpt_test_ok( ! call_user_func( $route['permission_callback'] ), 'a visitor may n
 $GLOBALS['dpt_stub_denied_caps'] = array();
 dpt_test_ok( call_user_func( $route['permission_callback'] ), 'an editor may' );
 
+/* ---- a jet_qna gap reaches the info payload, not just Fields::skipped() ---- */
+
+// The same non-repeater qna scenario tested against DPT_RB_Fields::skipped()
+// above, but read through the endpoint an agent actually calls. jet_qna is a
+// required workflow gate for a live automation; a diagnostic that is
+// recorded and translated but never surfaced here is worse than none - it
+// reads as done when it is not. An unrelated meta box with no fields at all
+// is included too, so this also proves DPT_RB_Definitions::skipped() still
+// leads the merged list, ahead of DPT_RB_Fields::skipped(), exactly as
+// DPT_RB_Info::payload() promises to order them.
+$GLOBALS['dpt_stub_options'] = array(
+	'jet_engine_meta_boxes' => array(
+		array(
+			'id'          => 'empty-box',
+			'args'        => array( 'object_type' => 'post', 'allowed_post_type' => array( 'post' ) ),
+			'meta_fields' => array(),
+		),
+		array(
+			'id'          => 'post-basics',
+			'args'        => array( 'object_type' => 'post', 'allowed_post_type' => array( 'post' ) ),
+			'meta_fields' => array(
+				array( 'name' => 'qna', 'title' => 'Not actually a repeater', 'object_type' => 'field', 'type' => 'text' ),
+			),
+		),
+	),
+);
+DPT_RB_Definitions::reset();
+$GLOBALS['dpt_stub_rest_fields'] = array();
+DPT_RB_Fields::register();
+$gap_info = DPT_RB_Info::payload();
+dpt_test_ok( is_array( $gap_info['skipped'] ) && count( $gap_info['skipped'] ) >= 2, 'both a discovery skip and a registration skip are reported' );
+dpt_test_eq( $gap_info['skipped'][0], DPT_RB_Definitions::skipped()[0], 'discovery\'s diagnostics come first' );
+$gap_joined = implode( ' | ', $gap_info['skipped'] );
+dpt_test_ok( false !== strpos( $gap_joined, 'empty-box' ), 'the discovery skip is in the merged list' );
+dpt_test_ok( false !== strpos( $gap_joined, 'jet_qna' ), 'and so is the registration skip - the gap an agent needs explained does not go missing' );
+dpt_test_ok( strpos( $gap_joined, 'empty-box' ) < strpos( $gap_joined, 'jet_qna' ), 'in order: discovery before registration' );
+
+// Restore the no-qna-at-all scenario the module boot() test below expects.
+$GLOBALS['dpt_stub_options'] = array();
+DPT_RB_Definitions::reset();
+$GLOBALS['dpt_stub_rest_fields'] = array();
+DPT_RB_Fields::register();
+
 require_once dirname( __DIR__ ) . '/includes/class-dpt-module.php';
 require_once dirname( __DIR__ ) . '/modules/rest-bridge/class-dpt-rb-module.php';
 

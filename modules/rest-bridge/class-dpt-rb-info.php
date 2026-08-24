@@ -66,7 +66,12 @@ class DPT_RB_Info {
 			'version'   => DPT_VERSION,
 			'fields'    => $fields,
 			'compat'    => array_values( DPT_RB_Fields::compat() ),
-			'skipped'   => array_values( DPT_RB_Definitions::skipped() ),
+			// Discovery's diagnostics first, then registration's - a
+			// registration skip (e.g. jet_qna) only makes sense once
+			// discovery has already been read.
+			'skipped'   => array_values(
+				array_merge( DPT_RB_Definitions::skipped(), DPT_RB_Fields::skipped() )
+			),
 			'rank_math' => DPT_RB_Rankmath::active(),
 			'routes'    => array(
 				'/digitizer/v1/elementor/{post_id}',
