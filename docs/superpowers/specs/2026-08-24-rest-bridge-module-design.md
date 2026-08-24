@@ -266,7 +266,7 @@ options, no `user_can_toggle` override.
 1. Definitions: real-shaped option fixture (post repeater, taxonomy fields,
    tab chrome, unknown type, broken row) → descriptors + skipped list.
 2. Schema: type map, repeater schema from sub-fields, sanitizers incl. kses
-   pass-through stub, unknown-key dropping, "0" survives, empty array clears,
+   pass-through stub, unknown keys preserved verbatim, "0" survives, empty array clears,
    failed delete reported. A switcher round-trips from a JSON boolean *and*
    from the string form, through a model of the validation core runs before
    any of these sanitizers, and what `normalize_read()` gives back is checked
