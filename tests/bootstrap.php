@@ -65,6 +65,14 @@ function dpt_test_summary() {
  */
 set_error_handler(
 	function ( $errno, $errstr, $errfile, $errline ) {
+		// An @ before a call that is known to warn on bad input - unserialize()
+		// on an untrusted string, say - lowers error_reporting() for the
+		// duration of that one call rather than skipping this handler; honour
+		// that the way PHP's own default handler would, or every deliberate
+		// silencing in the modules under test would fail here instead.
+		if ( ! ( error_reporting() & $errno ) ) {
+			return false;
+		}
 		$as_failure = E_NOTICE | E_WARNING | E_DEPRECATED | E_USER_NOTICE | E_USER_WARNING | E_USER_DEPRECATED;
 		if ( 0 === ( $errno & $as_failure ) ) {
 			// Not one of the levels this handler answers for; let PHP's
