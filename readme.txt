@@ -4,7 +4,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.26.0
+Stable tag: 1.27.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -46,6 +46,24 @@ Decides when this site takes a major WordPress release:
 * Nothing is ever installed automatically. When the window passes the release is simply offered again, and updating stays a deliberate act
 * On a multisite network the policy is the main site's, since the WordPress it governs belongs to the network
 * Also available as a standalone plugin, Update Policy, for sites that do not run Digitizer Pro Tools. When that plugin is active this module stands down and says so
+
+= Module: REST Bridge =
+
+Puts this site's own custom fields on the REST API (disabled by default; enable it on the Modules screen):
+
+* Fields are discovered from the definitions JetEngine already stores - meta boxes and their fields, including repeaters with their sub-fields - so a field added in JetEngine appears in the API without anyone writing code for it
+* Discovered fields are added to the standard wp/v2 posts, pages and terms endpoints, reading and writing exactly like a post title or any other core field
+* Discovered fields are readable only by someone logged in (with context=edit), because this module cannot tell which of a site's fields were meant for the public - a field holding internal notes or a client's details is not put on an anonymous request. The fields the old plugin already published - reading_time, the author bio fields and the FAQ - stay public, and a site can make any other field public with the dpt_rb_field_context filter
+* Reading and writing a field goes through the same per-field permission check WordPress applies to custom fields of its own, which the posts and terms endpoints do not apply on their own: a key the site has restricted with an auth_post_meta_ or auth_term_meta_ filter is neither readable nor writable here either, and a key WordPress protects outright - one whose name begins with an underscore - is not put on the API at all, since nobody, administrators included, would be allowed to use it. The fields the old plugin published stay readable without logging in, exactly as they were
+* A repeater keeps the columns this module does not understand - an icon, a gallery, a nested repeater - exactly as they were: read the field, change one value, write the whole list back, and nothing else in the row is lost. A repeater with no column this module understands at all is left off the API rather than exposed as an empty shape, and the info endpoint says so
+* A field whose name is one the REST API already uses on that endpoint - title, excerpt, meta, or the name of a taxonomy attached to the post type - is never registered over it: that would replace the real property rather than sit beside it, and would break the endpoint for everything else reading it, the block editor included. The field is exposed under another name instead, and never dropped - the FAQ section title, whose meta key really is title, is jet_faq_title, the name the old plugin gave it, and anything else takes a jet_ prefix. The info endpoint names every field this happened to and the name it answers to now
+* Legacy field names from the standalone Digitizer API Extensions plugin - reading_time, the author bio fields, the FAQ section title as jet_faq_title, and the qna FAQ repeater under its old name jet_qna - keep working wherever a discovered field does not already claim that name, including a fallback for jet_qna on a site whose JetEngine definitions this module cannot see
+* Exposes Rank Math's SEO fields on posts and pages - title and meta description overrides, focus keyword, robots directives, canonical URL, primary category, SEO score, and the Open Graph and Twitter card fields - only while Rank Math is active
+* Elementor endpoints (GET/POST /digitizer/v1/elementor/{post_id}) for reading and merging widget settings by widget ID, without touching the rest of the page's layout. A page is only editable here if Elementor itself would let this user edit it - the same rules the editor applies, including a role excluded under Elementor > Settings > Advanced, a page in the trash, and a post type Elementor was not switched on for. After a save the page's own generated CSS and cached HTML are cleared and its plain-text content is rewritten, exactly as saving in Elementor does, so search results, excerpts and RSS reflect the edit
+* One limitation worth knowing: rewriting that plain-text content needs Elementor's own rendering, so on a site where Elementor is deactivated a page edited through these endpoints keeps its layout change but its old search text. Nothing is lost - opening and saving the page in Elementor rewrites it - and this module will not guess at a text that would differ from the one the editor produces
+* An /digitizer/v1/info endpoint reports exactly what was discovered, registered and skipped on this site, and why - each registered field with the schema it was given, so an automation can see what a field will accept before it writes to it. Restricted to users who can edit posts
+* Two notes for anything reading and writing these fields: a number field that was never saved reads back as 0 rather than as empty, so a read-modify-write cycle stores a 0 where there was nothing; and the Elementor endpoint saves widget settings as Elementor itself does, without stripping HTML, so anyone who may edit a page may put markup in it - the same as editing that page in Elementor
+* Replaces the standalone Digitizer API Extensions plugin and stands down while that plugin is active, since both would register the same fields and the same routes
 
 = Module: Cookie Banner =
 
@@ -313,6 +331,10 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 5. Configure each module you enabled from its own screen. For the Cookie Banner that means reviewing the texts per language and pasting your analytics/marketing snippets in the Scripts tab, then checking the site
 
 == Changelog ==
+
+= 1.27.0 =
+* New module: REST Bridge - puts this site's own custom fields on the REST API, discovered from the definitions JetEngine already stores, repeaters included. Also exposes Rank Math's SEO fields on posts and pages, and endpoints for reading and editing Elementor content
+* The module replaces the standalone Digitizer API Extensions plugin and stands down while that plugin is active
 
 = 1.26.0 =
 * Update Policy stands down when the standalone Update Policy plugin is active. The module was extracted into a plugin of its own for the WordPress.org directory; a site running both would have two filters on one update transient and two screens saying the same thing, so the module now does nothing on such a site and says so on the Modules screen

@@ -56,17 +56,64 @@ function dpt_test_summary() {
 	return $GLOBALS['dpt_test_fail'];
 }
 
+/**
+ * A notice raised while a REST response is being built corrupts the JSON
+ * before a single byte of it reaches a client, so a notice, warning or
+ * deprecation raised while a test runs is not noise to be scrolled past - it
+ * is the exact failure this plugin exists to avoid, and is made to fail the
+ * assertion count like anything else the tests check.
+ *
+ * The handler's own error_reporting() & $errno check is how it tells "silenced
+ * by @ for this one call" apart from "silenced for good" - and without
+ * pinning the ambient level here first, a runner whose php.ini already hides
+ * deprecations would make that check answer the same way for both, letting a
+ * genuine deprecation through unfailed. Setting E_ALL first means the only
+ * way a level can go missing from that check is a deliberate @ in the code
+ * under test, which is the one case this handler is meant to let pass.
+ */
+error_reporting( E_ALL );
+set_error_handler(
+	function ( $errno, $errstr, $errfile, $errline ) {
+		// An @ before a call that is known to warn on bad input - unserialize()
+		// on an untrusted string, say - lowers error_reporting() for the
+		// duration of that one call rather than skipping this handler; honour
+		// that the way PHP's own default handler would, or every deliberate
+		// silencing in the modules under test would fail here instead.
+		if ( ! ( error_reporting() & $errno ) ) {
+			return false;
+		}
+		$as_failure = E_NOTICE | E_WARNING | E_DEPRECATED | E_USER_NOTICE | E_USER_WARNING | E_USER_DEPRECATED;
+		if ( 0 === ( $errno & $as_failure ) ) {
+			// Not one of the levels this handler answers for; let PHP's
+			// normal handling run instead of pretending to have handled it.
+			return false;
+		}
+		$GLOBALS['dpt_test_fail']++;
+		echo "FAIL: PHP raised: {$errstr} in {$errfile} on line {$errline}\n";
+		return true;
+	}
+);
+
 /* ------------------------------------------------------------ WP stubs */
 
+/**
+ * The data argument is kept, not dropped: it is where every one of this
+ * plugin's WP_Errors puts the HTTP status, and a stub that threw it away made
+ * "this is refused with a 401 rather than a 403" an assertion nobody could
+ * write.
+ */
 class WP_Error {
 	private $code;
 	private $message;
-	public function __construct( $code = '', $message = '' ) {
+	private $data;
+	public function __construct( $code = '', $message = '', $data = '' ) {
 		$this->code    = $code;
 		$this->message = $message;
+		$this->data    = $data;
 	}
 	public function get_error_code() { return $this->code; }
 	public function get_error_message() { return $this->message; }
+	public function get_error_data() { return $this->data; }
 }
 
 function is_wp_error( $thing ) { return $thing instanceof WP_Error; }
@@ -76,19 +123,118 @@ function esc_html__( $text, $domain = null ) { return $text; }
 function esc_attr__( $text, $domain = null ) { return $text; }
 function esc_html( $s ) { return htmlspecialchars( (string) $s, ENT_QUOTES, 'UTF-8' ); }
 function esc_attr( $s ) { return htmlspecialchars( (string) $s, ENT_QUOTES, 'UTF-8' ); }
-function esc_url( $s ) { return (string) $s; }
-function esc_url_raw( $s ) { return (string) $s; }
-function sanitize_key( $s ) { return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( (string) $s ) ); }
-function wp_unslash( $s ) { return is_array( $s ) ? array_map( 'stripslashes', $s ) : stripslashes( (string) $s ); }
+function esc_url( $s ) { return esc_url_raw( $s ); }
+/**
+ * Core's esc_url_raw() allows a fixed list of protocols and answers with an
+ * empty string for anything else - javascript: and data: among them, which is
+ * the whole difference between a url field and a text field. A stub that only
+ * cast to string would let a test claiming that difference pass without it.
+ */
+function esc_url_raw( $s ) {
+	if ( ! is_scalar( $s ) ) {
+		return '';
+	}
+	$s = trim( (string) $s );
+	if ( '' === $s ) {
+		return '';
+	}
+	// Core drops every character a URL may not contain before it decides
+	// anything else, so "java\tscript:alert(1)" is javascript:alert(1) by the
+	// time the protocol check sees it. Stripped here for the same reason: a
+	// stub that read the protocol off the string as typed would answer "safe"
+	// to a spelling core refuses.
+	$s = preg_replace( '#[^a-z0-9\-~+_.?\#=!&;,/:%@$|*\'()\[\]\x80-\xff]#i', '', $s );
+	if ( '' === $s ) {
+		return '';
+	}
+	if ( preg_match( '#^([a-z0-9+.\-]+):#i', $s, $m ) ) {
+		return in_array( strtolower( $m[1] ), array( 'http', 'https', 'mailto', 'tel' ), true ) ? $s : '';
+	}
+	// And what core does to a string that names no protocol at all: it makes
+	// an address of it. This is the half a lenient stub used to leave out,
+	// and leaving it out hid a real defect - sanitize_media() ran every
+	// member of a media pair through here, so an alt text of "A hero" really
+	// became http://Ahero on a live site while the suite saw it survive.
+	if ( '/' === $s[0] || '#' === $s[0] || '?' === $s[0] ) {
+		return $s;
+	}
+	return 'http://' . $s;
+}
+/**
+ * sanitize_key(), including the half a lenient stub leaves out: core hands
+ * its argument straight to strtolower(), and PHP 8 makes that a TypeError for
+ * an array or an object rather than a warning. A stub that cast to string
+ * first would answer "array" to a malformed option row and hide the fatal
+ * that row really causes - and a fatal raised while REST fields are being
+ * registered takes the whole module down for every request on the site, not
+ * just the one row.
+ */
+function sanitize_key( $s ) {
+	if ( is_array( $s ) || is_object( $s ) ) {
+		throw new TypeError( 'strtolower(): Argument #1 ($string) must be of type string, ' . gettype( $s ) . ' given' );
+	}
+	return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( (string) $s ) );
+}
+/**
+ * stripslashes_deep(), which is all core's wp_unslash() is: a string loses one
+ * level of escaping, an array or an object is walked to the bottom, and
+ * anything else - an int, a bool, null - is handed back as it was rather than
+ * cast to a string.
+ *
+ * The recursion is not decoration. update_metadata() unslashes whatever it is
+ * given before storing it, so a repeater's rows are exactly where a stub that
+ * only mapped the top level would stop looking, and a module that forgot to
+ * slash its write would look correct here while losing a backslash on a live
+ * site.
+ */
+function wp_unslash( $value ) {
+	if ( is_array( $value ) ) {
+		foreach ( $value as $k => $v ) {
+			$value[ $k ] = wp_unslash( $v );
+		}
+		return $value;
+	}
+	if ( is_object( $value ) ) {
+		foreach ( get_object_vars( $value ) as $k => $v ) {
+			$value->$k = wp_unslash( $v );
+		}
+		return $value;
+	}
+	return is_string( $value ) ? stripslashes( $value ) : $value;
+}
 function trailingslashit( $s ) { return rtrim( (string) $s, '/\\' ) . '/'; }
 function untrailingslashit( $s ) { return rtrim( (string) $s, '/\\' ); }
-function apply_filters( $tag, $value ) { return $value; }
-function add_action() {}
-// Filters are recorded, not run: a test can ask whether something was hooked
-// without the harness pretending to be WordPress's hook system.
+/**
+ * Filters are recorded and run: a test can ask whether something was hooked,
+ * and - since a module that offers a filter is offering behaviour a site can
+ * change - can hook one itself and see the change. Priorities and argument
+ * counts are not modelled; callbacks run in the order they were added, each
+ * receiving every argument apply_filters() was given.
+ */
 $GLOBALS['dpt_stub_filters'] = array();
+function apply_filters( $tag, $value ) {
+	$args = func_get_args();
+	array_shift( $args );
+	if ( empty( $GLOBALS['dpt_stub_filters'][ $tag ] ) ) {
+		return $value;
+	}
+	foreach ( $GLOBALS['dpt_stub_filters'][ $tag ] as $callback ) {
+		if ( is_callable( $callback ) ) {
+			$args[0] = call_user_func_array( $callback, $args );
+		}
+	}
+	return $args[0];
+}
 function add_filter( $tag = '', $callback = null ) {
-	$GLOBALS['dpt_stub_filters'][ $tag ] = true;
+	if ( ! isset( $GLOBALS['dpt_stub_filters'][ $tag ] ) ) {
+		$GLOBALS['dpt_stub_filters'][ $tag ] = array();
+	}
+	$GLOBALS['dpt_stub_filters'][ $tag ][] = $callback;
+}
+// WordPress keeps actions and filters in one registry, so add_action shares
+// the filter store rather than getting its own.
+function add_action( $tag = '', $callback = null ) {
+	add_filter( $tag, $callback );
 }
 function remove_filter( $tag = '', $callback = null ) {
 	unset( $GLOBALS['dpt_stub_filters'][ $tag ] );
@@ -152,7 +298,76 @@ function get_plugins() { return $GLOBALS['dpt_stub_plugins']; }
 function is_plugin_active( $file ) { return in_array( $file, $GLOBALS['dpt_stub_active_plugins'], true ); }
 function get_stylesheet() { return $GLOBALS['dpt_stub_stylesheet']; }
 $GLOBALS['dpt_stub_denied_caps'] = array();
-function current_user_can( $cap ) { return ! in_array( $cap, $GLOBALS['dpt_stub_denied_caps'], true ); }
+/**
+ * Capabilities. A bare capability is granted unless denied; a post-specific
+ * one - edit_post, say - is granted unless that post id was denied, which is
+ * how a test reaches the "not your post" branch.
+ */
+$GLOBALS['dpt_stub_denied_post_caps'] = array();
+// Whether there is a user at all. "This reader is not allowed" and "there is
+// no reader" are two different answers, and a module that publishes a handful
+// of keys anonymously on purpose has to keep telling them apart.
+$GLOBALS['dpt_stub_no_user'] = false;
+// Meta keys an auth_{$type}_meta_{$key} filter says no to. A site really does
+// install these, and a controller that has established the request may edit
+// the post or the term has not answered them.
+$GLOBALS['dpt_stub_denied_meta_caps'] = array();
+
+function is_user_logged_in() {
+	return ! $GLOBALS['dpt_stub_no_user'];
+}
+function rest_authorization_required_code() {
+	return is_user_logged_in() ? 403 : 401;
+}
+/**
+ * Core's own rule, character for character: a meta key is protected when the
+ * first character left after everything outside printable ASCII and the
+ * Unicode letters is stripped out is an underscore. map_meta_cap() then denies
+ * the per-key meta capability for it to every user there is, administrators
+ * included.
+ *
+ * The stripping is not decoration and a stub that only looked at the first
+ * byte would hide the answer core really gives: PCRE reads \p{L} a byte at a
+ * time here - there is no /u modifier in core's pattern - so every byte of a
+ * Hebrew name falls outside both classes and is removed, and a key like
+ * "field_price" written in Hebrew before the underscore is left as "_price"
+ * and really is protected. A module that has to explain why a field was
+ * refused cannot get that from a stub which answers differently.
+ *
+ * The filter is core's too, and it is not decoration either: it is the only
+ * way a plugin's protection reaches map_meta_cap(), and Rank Math uses it to
+ * mark every rank_math_* key protected from Common::__construct(). Without it
+ * here, an assertion about what a module's auth_callback is handed would be
+ * testing a seed the harness invented rather than the one a site produces.
+ */
+function is_protected_meta( $key, $type = '' ) {
+	$sanitized = preg_replace( "/[^\x20-\x7E\p{L}]/", '', (string) $key );
+	$protected = strlen( $sanitized ) > 0 && '_' === $sanitized[0];
+	return (bool) apply_filters( 'is_protected_meta', $protected, $key, $type );
+}
+function current_user_can( $cap, $id = null, $meta_key = null ) {
+	if ( $GLOBALS['dpt_stub_no_user'] ) {
+		return false;
+	}
+	// The per-key metadata capabilities, in the order map_meta_cap() resolves
+	// them: a flat no for a protected key, then whatever an
+	// auth_{$type}_meta_{$key} filter has said, then the containing object's
+	// own edit capability below. The post and term controllers establish only
+	// that last one before a field callback runs, which is exactly why a
+	// callback that writes metadata has to ask for the rest itself.
+	if ( 'edit_post_meta' === $cap || 'edit_term_meta' === $cap ) {
+		if ( is_protected_meta( $meta_key ) ) {
+			return false;
+		}
+		if ( in_array( $meta_key, $GLOBALS['dpt_stub_denied_meta_caps'], true ) ) {
+			return false;
+		}
+	}
+	if ( null !== $id ) {
+		return ! in_array( (int) $id, $GLOBALS['dpt_stub_denied_post_caps'], true );
+	}
+	return ! in_array( $cap, $GLOBALS['dpt_stub_denied_caps'], true );
+}
 $GLOBALS['dpt_stub_multisite'] = false;
 function is_multisite() { return (bool) $GLOBALS['dpt_stub_multisite']; }
 $GLOBALS['dpt_stub_main_site'] = true;
@@ -248,3 +463,685 @@ function wp_remote_get( $url, $args = array() ) {
 }
 function wp_remote_retrieve_response_code( $res ) { return is_array( $res ) ? (int) $res['code'] : 0; }
 function wp_remote_retrieve_body( $res ) { return is_array( $res ) ? (string) $res['body'] : ''; }
+
+/* ------------------------------------------------- REST, meta, post types */
+
+/**
+ * Post and term meta.
+ *
+ * A meta key listed in dpt_stub_meta_write_fails refuses writes and deletes,
+ * which is how a test reaches the branch where WordPress says no.
+ */
+$GLOBALS['dpt_stub_post_meta']        = array();
+$GLOBALS['dpt_stub_term_meta']        = array();
+$GLOBALS['dpt_stub_meta_write_fails'] = array();
+
+function dpt_stub_meta_get( &$store, $id, $key, $single ) {
+	$id = (int) $id;
+	if ( ! isset( $store[ $id ] ) || ! array_key_exists( $key, $store[ $id ] ) ) {
+		return $single ? '' : array();
+	}
+	return $single ? $store[ $id ][ $key ] : array( $store[ $id ][ $key ] );
+}
+
+function dpt_stub_meta_update( &$store, $id, $key, $value ) {
+	if ( in_array( $key, $GLOBALS['dpt_stub_meta_write_fails'], true ) ) {
+		return false;
+	}
+	$id = (int) $id;
+	// update_metadata() opens by unslashing what it was handed, so a caller
+	// that did not slash its value has the backslashes in it stripped out on
+	// the way to the database. Modelling that is what makes an assertion about
+	// a Windows path or a regular expression mean anything: a stub that stored
+	// what it was given would pass whether or not the caller slashed.
+	$value = wp_unslash( $value );
+	// Real meta storage is a text column: a scalar round-trips through a
+	// string on the way in and back out, which is why get_*_meta() never
+	// hands a number field its int back. Modelling that here is what makes
+	// "the value already stored" comparison below - and the one code under
+	// test has to make on a false return - a genuine round trip rather than
+	// a same-PHP-type comparison that would never catch a real mismatch.
+	$to_store = is_scalar( $value ) ? (string) $value : $value;
+	if ( isset( $store[ $id ] ) && array_key_exists( $key, $store[ $id ] ) && $store[ $id ][ $key ] === $to_store ) {
+		// update_metadata() answers false here too: the write asked for
+		// nothing new, so nothing happened - not the same thing as a site
+		// refusing the write above, but indistinguishable from the return
+		// value alone.
+		return false;
+	}
+	if ( ! isset( $store[ $id ] ) ) {
+		$store[ $id ] = array();
+	}
+	$store[ $id ][ $key ] = $to_store;
+	return true;
+}
+
+function dpt_stub_meta_delete( &$store, $id, $key ) {
+	if ( in_array( $key, $GLOBALS['dpt_stub_meta_write_fails'], true ) ) {
+		return false;
+	}
+	$id = (int) $id;
+	if ( ! isset( $store[ $id ] ) || ! array_key_exists( $key, $store[ $id ] ) ) {
+		return false;
+	}
+	unset( $store[ $id ][ $key ] );
+	return true;
+}
+
+// Post meta, backed by the store above. Only the two writers send a revision
+// id on to its parent, exactly as core's own post-meta functions do - see
+// wp_is_post_revision() below for why the reader deliberately does not.
+function get_post_meta( $id, $key = '', $single = false ) {
+	return dpt_stub_meta_get( $GLOBALS['dpt_stub_post_meta'], $id, $key, $single );
+}
+function update_post_meta( $id, $key, $value ) {
+	return dpt_stub_meta_update( $GLOBALS['dpt_stub_post_meta'], dpt_stub_meta_target( $id ), $key, $value );
+}
+function delete_post_meta( $id, $key ) {
+	return dpt_stub_meta_delete( $GLOBALS['dpt_stub_post_meta'], dpt_stub_meta_target( $id ), $key );
+}
+/**
+ * Which post a write to post meta really lands on. Core opens both
+ * update_post_meta() and delete_post_meta() with "make sure meta is added to
+ * the post, not a revision" and swaps the id for the parent's.
+ */
+function dpt_stub_meta_target( $id ) {
+	$parent = wp_is_post_revision( $id );
+	return $parent ? $parent : $id;
+}
+// Term meta, backed by its own store, the way core keeps posts and terms apart.
+function get_term_meta( $id, $key = '', $single = false ) {
+	return dpt_stub_meta_get( $GLOBALS['dpt_stub_term_meta'], $id, $key, $single );
+}
+function update_term_meta( $id, $key, $value ) {
+	return dpt_stub_meta_update( $GLOBALS['dpt_stub_term_meta'], $id, $key, $value );
+}
+function delete_term_meta( $id, $key ) {
+	return dpt_stub_meta_delete( $GLOBALS['dpt_stub_term_meta'], $id, $key );
+}
+
+/** REST registration, recorded rather than performed. */
+$GLOBALS['dpt_stub_rest_fields']          = array();
+$GLOBALS['dpt_stub_rest_routes']          = array();
+$GLOBALS['dpt_stub_registered_post_meta'] = array();
+
+// A field registered against several object types at once lands under each of
+// them, the way register_rest_field() itself accepts an array of types.
+function register_rest_field( $object_type, $attribute, $args = array() ) {
+	foreach ( (array) $object_type as $type ) {
+		$GLOBALS['dpt_stub_rest_fields'][ $type ][ $attribute ] = $args;
+	}
+}
+
+/**
+ * The additional fields a controller really finds for one target.
+ *
+ * register_rest_field() files what it is given under the string it is given,
+ * and a controller looks its own up by WP_REST_Controller::get_object_type(),
+ * which returns $schema['title']. WP_REST_Posts_Controller titles itself
+ * $this->post_type; WP_REST_Terms_Controller titles itself
+ * `'post_tag' === $this->taxonomy ? 'tag' : $this->taxonomy`, and core writes
+ * that same rule out again in WP_REST_Term_Meta_Fields::get_rest_field_type()
+ * for this exact purpose. `category` is not remapped - its REST *base* is
+ * `categories`, which is a different thing and not what the lookup uses.
+ *
+ * Modelled from the controller's side on purpose: a stub that simply read
+ * back whatever key the module wrote would agree with the module however
+ * wrong they both were, and the whole finding here is a field filed under a
+ * name nothing ever looks up.
+ *
+ * @param string $target     Post type or taxonomy name.
+ * @param bool   $is_taxonomy Which controller is asking.
+ * @return array Field name => registration args.
+ */
+function dpt_stub_controller_fields( $target, $is_taxonomy = false ) {
+	$type = ( $is_taxonomy && 'post_tag' === $target ) ? 'tag' : $target;
+	return isset( $GLOBALS['dpt_stub_rest_fields'][ $type ] ) ? $GLOBALS['dpt_stub_rest_fields'][ $type ] : array();
+}
+// Routes are keyed by namespace + route so a test can assert a specific
+// endpoint was registered without caring about registration order.
+function register_rest_route( $namespace, $route, $args = array() ) {
+	$GLOBALS['dpt_stub_rest_routes'][ $namespace . $route ][] = $args;
+	return true;
+}
+function register_post_meta( $post_type, $key, $args = array() ) {
+	$GLOBALS['dpt_stub_registered_post_meta'][ $post_type ][ $key ] = $args;
+	return true;
+}
+
+/**
+ * The schema WP_REST_Meta_Fields builds for the `meta` property of a post
+ * response, assembled the way core assembles it: a default schema per
+ * registered key from its `type`, `description` and `default`, with whatever
+ * `show_in_rest['schema']` says merged over the top - which is the only place
+ * a registered meta key can carry a `context` of its own.
+ *
+ * The container itself is `array( 'view', 'edit' )`, as get_field_schema()
+ * hard-codes it. That is not the same thing as each key being readable in
+ * both, and modelling only the container is how a leak like this one hides.
+ */
+function dpt_stub_meta_field_schema( $post_type ) {
+	$registered = isset( $GLOBALS['dpt_stub_registered_post_meta'][ $post_type ] )
+		? $GLOBALS['dpt_stub_registered_post_meta'][ $post_type ]
+		: array();
+
+	$properties = array();
+	foreach ( $registered as $key => $args ) {
+		if ( empty( $args['show_in_rest'] ) ) {
+			continue;
+		}
+		$schema = array(
+			'type'        => isset( $args['type'] ) ? $args['type'] : 'string',
+			'description' => isset( $args['description'] ) ? $args['description'] : '',
+		);
+		if ( is_array( $args['show_in_rest'] ) && isset( $args['show_in_rest']['schema'] ) ) {
+			$schema = array_merge( $schema, $args['show_in_rest']['schema'] );
+		}
+		$properties[ $key ] = $schema;
+	}
+
+	return array(
+		'type'       => 'object',
+		'context'    => array( 'view', 'edit' ),
+		'properties' => $properties,
+	);
+}
+
+/**
+ * rest_filter_response_by_context(), in the one shape these tests need: a
+ * property whose schema names no `context` at all is left alone, and one
+ * whose context does not include the request's is removed.
+ *
+ * The first half is the half that matters. It is why an `auth_callback` is no
+ * defence on a read - WP_REST_Meta_Fields::get_value() performs no capability
+ * check of any kind, unlike its update and delete siblings - and why a key
+ * registered without a context of its own reaches an anonymous GET however
+ * protected it is.
+ */
+function dpt_stub_filter_by_context( $data, $schema, $context ) {
+	if ( ! is_array( $data ) ) {
+		return $data;
+	}
+	$properties = isset( $schema['properties'] ) ? $schema['properties'] : array();
+	foreach ( $data as $key => $ignored ) {
+		if ( ! isset( $properties[ $key ]['context'] ) ) {
+			continue;
+		}
+		if ( ! in_array( $context, $properties[ $key ]['context'], true ) ) {
+			unset( $data[ $key ] );
+		}
+	}
+	return $data;
+}
+
+/**
+ * The `meta` object one post response really carries, in one context.
+ *
+ * Values are read with no capability check, exactly as get_value() reads
+ * them, and the assembled object is then filtered by context the way
+ * prepare_item_for_response() filters it. Those two together are the whole
+ * mechanism a registered meta key's read visibility rests on.
+ */
+function dpt_stub_meta_response( $post_type, $post_id, $context ) {
+	$schema = dpt_stub_meta_field_schema( $post_type );
+	$data   = array();
+	foreach ( $schema['properties'] as $key => $ignored ) {
+		$data[ $key ] = get_post_meta( $post_id, $key, true );
+	}
+	return dpt_stub_filter_by_context( $data, $schema, $context );
+}
+
+/** Which post types and taxonomies are visible to the REST API. */
+$GLOBALS['dpt_stub_rest_post_types'] = array( 'post', 'page' );
+$GLOBALS['dpt_stub_rest_taxonomies'] = array( 'category', 'post_tag', 'authors' );
+// Registered on the site but deliberately kept off the REST API. Without
+// these two lists a post type or taxonomy either exists and is on the API or
+// does not exist at all, so "no taxonomy of that name is registered here" and
+// "that taxonomy was registered with show_in_rest off" are one state in the
+// harness - and a diagnostic that tells them apart could not be asserted.
+$GLOBALS['dpt_stub_private_post_types'] = array();
+$GLOBALS['dpt_stub_private_taxonomies'] = array();
+
+// Which taxonomies are attached to which post type, and what each of them is
+// called on the REST API. This is not decoration: WP_REST_Posts_Controller
+// turns every REST-enabled taxonomy attached to a post type into a property
+// of the post response, named by that taxonomy's rest base - which is how a
+// site's own field can collide with a property no written list could predict.
+$GLOBALS['dpt_stub_object_taxonomies']  = array( 'post' => array( 'category', 'post_tag' ) );
+$GLOBALS['dpt_stub_taxonomy_rest_base'] = array( 'category' => 'categories', 'post_tag' => 'tags' );
+
+// Shared shape for the post-type and taxonomy objects below: both real
+// objects expose show_in_rest and rest_base, and those are the only fields a
+// test needs.
+function dpt_stub_rest_object( $name, $show_in_rest = true ) {
+	return (object) array(
+		'show_in_rest' => $show_in_rest,
+		'name'         => $name,
+		'rest_base'    => isset( $GLOBALS['dpt_stub_taxonomy_rest_base'][ $name ] ) ? $GLOBALS['dpt_stub_taxonomy_rest_base'][ $name ] : '',
+	);
+}
+function get_post_type_object( $name ) {
+	if ( in_array( $name, $GLOBALS['dpt_stub_rest_post_types'], true ) ) {
+		return dpt_stub_rest_object( $name );
+	}
+	return in_array( $name, $GLOBALS['dpt_stub_private_post_types'], true )
+		? dpt_stub_rest_object( $name, false )
+		: null;
+}
+function taxonomy_exists( $name ) {
+	return in_array( $name, $GLOBALS['dpt_stub_rest_taxonomies'], true )
+		|| in_array( $name, $GLOBALS['dpt_stub_private_taxonomies'], true );
+}
+function get_taxonomy( $name ) {
+	if ( in_array( $name, $GLOBALS['dpt_stub_rest_taxonomies'], true ) ) {
+		return dpt_stub_rest_object( $name );
+	}
+	return in_array( $name, $GLOBALS['dpt_stub_private_taxonomies'], true )
+		? dpt_stub_rest_object( $name, false )
+		: false;
+}
+function get_object_taxonomies( $object, $output = 'names' ) {
+	$names = isset( $GLOBALS['dpt_stub_object_taxonomies'][ $object ] )
+		? array_values( array_filter( $GLOBALS['dpt_stub_object_taxonomies'][ $object ], 'taxonomy_exists' ) )
+		: array();
+	if ( 'objects' !== $output ) {
+		return $names;
+	}
+	$objects = array();
+	foreach ( $names as $name ) {
+		$objects[ $name ] = get_taxonomy( $name );
+	}
+	return $objects;
+}
+
+/**
+ * The properties core's own controllers put on an item, and what a response
+ * really looks like once register_rest_field() has run over them.
+ *
+ * The distinction this models is the whole of the collision: register_rest_
+ * field() does not add a property beside an existing one, it *replaces* the
+ * schema and the value core had under that name. A stub that only recorded
+ * additional fields in a bucket of their own could never show that, so an
+ * assertion that a core property survived would pass whatever the module did.
+ *
+ * Only a handful of each controller's properties are listed - enough to model
+ * the failure. The module carries the complete list; it is not read from here.
+ */
+// Every entry carries dpt_stub_core, which no schema this plugin produces
+// has. Comparing types alone would be vacuous wherever a core property and a
+// discovered field are both, say, a string: the marker is how an assertion
+// says "this is still core's property" rather than "this happens to look
+// like it".
+$GLOBALS['dpt_stub_core_rest_properties'] = array(
+	'post' => array(
+		'id'      => array( 'type' => 'integer', 'dpt_stub_core' => true ),
+		'slug'    => array( 'type' => 'string', 'dpt_stub_core' => true ),
+		'status'  => array( 'type' => 'string', 'dpt_stub_core' => true ),
+		'title'   => array( 'type' => 'object', 'dpt_stub_core' => true ),
+		'content' => array( 'type' => 'object', 'dpt_stub_core' => true ),
+		'excerpt' => array( 'type' => 'object', 'dpt_stub_core' => true ),
+		'meta'    => array( 'type' => 'object', 'dpt_stub_core' => true ),
+	),
+	'term' => array(
+		'id'          => array( 'type' => 'integer', 'dpt_stub_core' => true ),
+		'name'        => array( 'type' => 'string', 'dpt_stub_core' => true ),
+		'description' => array( 'type' => 'string', 'dpt_stub_core' => true ),
+		'slug'        => array( 'type' => 'string', 'dpt_stub_core' => true ),
+		'meta'        => array( 'type' => 'object', 'dpt_stub_core' => true ),
+	),
+);
+function dpt_stub_rest_item_schema( $object_type ) {
+	$kind = get_post_type_object( $object_type ) ? 'post' : 'term';
+	// Through the controller's own lookup, not a bare read of whatever key
+	// the module wrote: on the tag taxonomy those two are different strings,
+	// and a schema assembled from the wrong one would show a field that never
+	// reaches a response.
+	$properties = $GLOBALS['dpt_stub_core_rest_properties'][ $kind ];
+	$extra      = dpt_stub_controller_fields( $object_type, 'term' === $kind );
+	foreach ( $extra as $name => $args ) {
+		$properties[ $name ] = isset( $args['schema'] ) ? $args['schema'] : array();
+	}
+	return $properties;
+}
+
+// Posts exist when the test says they do. An entry is either the post type on
+// its own - all a REST-field callback needs to decide what to do with a post -
+// or array( 'post_type' => ..., 'post_parent' => ... ) for a post that hangs
+// off another one. A revision is the only reason this stub needs a parent, and
+// modelling it is what lets a test reach the redirect below.
+$GLOBALS['dpt_stub_posts'] = array();
+function dpt_stub_post_row( $id ) {
+	$id = (int) $id;
+	if ( ! isset( $GLOBALS['dpt_stub_posts'][ $id ] ) ) {
+		return null;
+	}
+	$row = $GLOBALS['dpt_stub_posts'][ $id ];
+	if ( ! is_array( $row ) ) {
+		$row = array( 'post_type' => $row );
+	}
+	return array(
+		'ID'          => $id,
+		'post_type'   => isset( $row['post_type'] ) ? $row['post_type'] : 'post',
+		'post_parent' => isset( $row['post_parent'] ) ? (int) $row['post_parent'] : 0,
+		// Elementor's own editing gate refuses a trashed post before it looks
+		// at any capability, so the status has to be a thing a test can set.
+		'post_status'  => isset( $row['post_status'] ) ? $row['post_status'] : 'publish',
+		// What search, the excerpt fallback and RSS read. Elementor's own save
+		// rewrites it from the layout, and an endpoint that writes only the
+		// layout leaves it describing the previous version of the page.
+		'post_content' => isset( $row['post_content'] ) ? $row['post_content'] : '',
+	);
+}
+function get_post( $id = 0 ) {
+	$row = dpt_stub_post_row( $id );
+	return null === $row ? null : (object) $row;
+}
+/**
+ * Core's answer to "is this id a revision": the id of the post it revises, or
+ * false. update_post_meta() and delete_post_meta() ask it before they touch
+ * anything and quietly work on the parent when it says yes, while
+ * get_post_meta() does not and reads the revision's own row.
+ *
+ * That asymmetry is not a detail worth skipping in a stub: it is the whole
+ * mechanism by which a request naming a revision could read one post and write
+ * another. A harness that treated a revision as an ordinary post would report
+ * a clean run over exactly that bug.
+ */
+function wp_strip_all_tags( $s ) {
+	return trim( preg_replace( '/[\r\n\t ]+/', ' ', strip_tags( (string) $s ) ) );
+}
+/**
+ * Only the fields a post row here has. Elementor's save_plain_text() writes
+ * post_content through this, and the assertion that matters is that the column
+ * really changes - so it is stored on the row rather than discarded.
+ */
+function wp_update_post( $args = array() ) {
+	$id = isset( $args['ID'] ) ? (int) $args['ID'] : 0;
+	if ( ! $id || ! isset( $GLOBALS['dpt_stub_posts'][ $id ] ) ) {
+		return 0;
+	}
+	$row = $GLOBALS['dpt_stub_posts'][ $id ];
+	if ( ! is_array( $row ) ) {
+		$row = array( 'post_type' => $row );
+	}
+	foreach ( $args as $key => $value ) {
+		if ( 'ID' !== $key ) {
+			$row[ $key ] = $value;
+		}
+	}
+	$GLOBALS['dpt_stub_posts'][ $id ] = $row;
+	return $id;
+}
+function wp_is_post_revision( $id ) {
+	$row = dpt_stub_post_row( $id );
+	if ( null === $row || 'revision' !== $row['post_type'] || ! $row['post_parent'] ) {
+		return false;
+	}
+	return $row['post_parent'];
+}
+
+// The site-wide purge, counted so a test can assert it is *not* reached: it
+// unlinks every generated CSS file on the site and drops the element cache and
+// page assets of every post there is, which is not what one widget edit
+// invalidates. Elementor calls it from the Tools screen, a database upgrade,
+// an experiment switch and a Kit save, and from nothing that edits a document.
+$GLOBALS['dpt_stub_elementor_cache_cleared'] = 0;
+
+/**
+ * Elementor, in the one shape the module reaches for: Plugin::instance()
+ * carrying a files_manager that can be told to forget its generated files.
+ * Without it class_exists( '\Elementor\Plugin' ) is false, the module's
+ * clear_cache() returns before it does anything, and the counter above can
+ * never be anything but zero - which makes "the cache was not cleared" true
+ * of every run and worth nothing as an assertion.
+ *
+ * class_alias() is what gives the stub its namespaced name: a namespace
+ * declaration would force every line of these flat test files into a
+ * namespace block of its own.
+ */
+/**
+ * files_manager->clear_cache(), doing what core/files/manager.php really does
+ * rather than only counting: delete_post_meta_by_key() for the post CSS, the
+ * element cache and the page assets - across **every post there is** - and
+ * delete_option() for the global CSS. (The glob-and-unlink of every generated
+ * file has no filesystem here; the three by-key deletes are the part a test
+ * can see.)
+ *
+ * A stub that only incremented a counter made "a page nobody edited keeps its
+ * rendered HTML" true of every run, including one where the module had just
+ * wiped that page's cache along with the whole site's - which is the entire
+ * finding. The blast radius has to be reproducible before it can be narrowed.
+ */
+class DPT_Stub_Elementor_Files_Manager {
+	public function clear_cache() {
+		$GLOBALS['dpt_stub_elementor_cache_cleared']++;
+		foreach ( array_keys( $GLOBALS['dpt_stub_post_meta'] ) as $post_id ) {
+			foreach ( array( '_elementor_css', '_elementor_element_cache', '_elementor_page_assets' ) as $key ) {
+				unset( $GLOBALS['dpt_stub_post_meta'][ $post_id ][ $key ] );
+			}
+		}
+		unset( $GLOBALS['dpt_stub_options']['_elementor_global_css'] );
+	}
+}
+/**
+ * Elementor\DB, in the one method the module reaches for. The real
+ * save_plain_text() renders the stored layout through every widget's
+ * render_plain_content() and wp_update_post()s the result into post_content;
+ * there is no widget registry here, so the stub renders the one thing a test
+ * can meaningfully check - the layout that is in storage *now* - and writes it
+ * the same way.
+ *
+ * Reading _elementor_data rather than taking the text from the caller is the
+ * point: the real function reads the document back out of the database, so an
+ * assertion is only worth anything if the stub can tell "rendered from what
+ * was just saved" from "rendered from what was there before".
+ */
+class DPT_Stub_Elementor_DB {
+	public function save_plain_text( $post_id ) {
+		$data = get_post_meta( $post_id, '_elementor_data', true );
+		$data = is_string( $data ) ? json_decode( $data, true ) : $data;
+		wp_update_post(
+			array(
+				'ID'           => $post_id,
+				'post_content' => trim( implode( ' ', self::text( is_array( $data ) ? $data : array() ) ) ),
+			)
+		);
+	}
+	private static function text( $elements ) {
+		$out = array();
+		foreach ( $elements as $element ) {
+			if ( ! is_array( $element ) ) {
+				continue;
+			}
+			if ( isset( $element['settings'] ) && is_array( $element['settings'] ) ) {
+				foreach ( $element['settings'] as $value ) {
+					if ( is_string( $value ) && '' !== $value ) {
+						$out[] = wp_strip_all_tags( $value );
+					}
+				}
+			}
+			if ( ! empty( $element['elements'] ) && is_array( $element['elements'] ) ) {
+				$out = array_merge( $out, self::text( $element['elements'] ) );
+			}
+		}
+		return $out;
+	}
+}
+class DPT_Stub_Elementor_Plugin {
+	public $files_manager;
+	public $db;
+	public function __construct() {
+		$this->files_manager = new DPT_Stub_Elementor_Files_Manager();
+		$this->db            = new DPT_Stub_Elementor_DB();
+	}
+	public static function instance() {
+		static $instance = null;
+		if ( null === $instance ) {
+			$instance = new self();
+		}
+		return $instance;
+	}
+}
+class_alias( 'DPT_Stub_Elementor_Plugin', 'Elementor\Plugin' );
+
+/**
+ * Elementor\Core\Files\CSS\Post, in the one shape the module reaches for:
+ * create( $post_id ) then delete(), which is what Elementor's own document
+ * save calls and which removes both the _elementor_css meta row and the
+ * generated file on disk.
+ *
+ * Recorded per post id rather than counted, because the whole of the finding
+ * here is scope: a stub that only said "something was cleared" could not tell
+ * an invalidation of the edited page from a purge of every page on the site,
+ * which is what files_manager->clear_cache() really does.
+ */
+$GLOBALS['dpt_stub_elementor_post_css_deleted'] = array();
+class DPT_Stub_Elementor_Post_CSS {
+	private $post_id;
+	public function __construct( $post_id ) {
+		$this->post_id = (int) $post_id;
+	}
+	public static function create( $post_id ) {
+		return new self( $post_id );
+	}
+	public function delete() {
+		$GLOBALS['dpt_stub_elementor_post_css_deleted'][] = $this->post_id;
+		delete_post_meta( $this->post_id, '_elementor_css' );
+	}
+}
+class_alias( 'DPT_Stub_Elementor_Post_CSS', 'Elementor\Core\Files\CSS\Post' );
+
+// The four things Elementor's own editing gate refuses beyond the post's edit
+// capability, each switchable so the module can be measured against every one
+// of them.
+$GLOBALS['dpt_stub_elementor_cpt_support']   = array( 'post', 'page' );
+$GLOBALS['dpt_stub_elementor_excluded_roles'] = array();
+$GLOBALS['dpt_stub_current_user_roles']       = array( 'administrator' );
+$GLOBALS['dpt_stub_page_for_posts']           = 0;
+
+/**
+ * \Elementor\User::is_current_user_can_edit(), copied from
+ * elementor/includes/user.php rather than summarised, in its own order:
+ *
+ *   - no such post -> no;
+ *   - the post is in the trash -> no;
+ *   - the post type is one Elementor does not support, or the current user's
+ *     role is in elementor_exclude_user_roles, or they cannot edit_posts at
+ *     all -> no (that is is_current_user_can_edit_post_type(), whose first
+ *     call is to the black-list check);
+ *   - they fail the post type's own edit_post capability -> no;
+ *   - the post is the site's posts page -> no.
+ *
+ * Elementor's is_current_user_in_editing_black_list() returns **false** when
+ * the user *is* in the list, which reads backwards and is copied that way on
+ * purpose: a stub that quietly corrected it would be measuring something
+ * Elementor does not do.
+ *
+ * NOT aliased to \Elementor\User here. The test file does that at the point
+ * where it says "and now Elementor is installed", so the assertions before
+ * that line really run against a site with no Elementor - which is a
+ * configuration this module supports and which no flag on a stub could
+ * honestly reproduce, class_alias() being a one-way door.
+ */
+class DPT_Stub_Elementor_User {
+	public static function is_current_user_in_editing_black_list() {
+		$shared = array_intersect( $GLOBALS['dpt_stub_current_user_roles'], $GLOBALS['dpt_stub_elementor_excluded_roles'] );
+		return empty( $shared );
+	}
+	public static function is_current_user_can_edit_post_type( $post_type ) {
+		if ( ! self::is_current_user_in_editing_black_list() ) {
+			return false;
+		}
+		if ( ! in_array( $post_type, $GLOBALS['dpt_stub_elementor_cpt_support'], true ) ) {
+			return false;
+		}
+		return (bool) current_user_can( 'edit_posts' );
+	}
+	public static function is_current_user_can_edit( $post_id = 0 ) {
+		$post = get_post( $post_id );
+		if ( ! $post ) {
+			return false;
+		}
+		if ( 'trash' === $post->post_status ) {
+			return false;
+		}
+		if ( ! self::is_current_user_can_edit_post_type( $post->post_type ) ) {
+			return false;
+		}
+		if ( ! current_user_can( 'edit_post', $post->ID ) ) {
+			return false;
+		}
+		return (int) $GLOBALS['dpt_stub_page_for_posts'] !== (int) $post->ID;
+	}
+}
+
+// Sanitisers a REST callback runs input through before writing it, kept
+// close enough to the real ones that a test can feed them markup and tags.
+function sanitize_text_field( $s ) { return is_scalar( $s ) ? trim( strip_tags( (string) $s ) ) : ''; }
+function sanitize_textarea_field( $s ) { return is_scalar( $s ) ? trim( strip_tags( (string) $s ) ) : ''; }
+/**
+ * wp_kses_post(), close enough to the real one that an assertion about it
+ * means something. A stub that only cast to string would let "a user without
+ * unfiltered_html cannot store a script tag" pass whether or not the code
+ * under test filtered anything at all - and Elementor prints widget settings
+ * raw (Html::render() calls print_unescaped_setting, Text_Editor echoes its
+ * content), so that assertion is the whole of the difference between this
+ * endpoint and stored XSS.
+ *
+ * Three of the things core really does: an element whose content kses drops
+ * takes the content with it, an element the post context does not allow is
+ * removed and its text kept, and an event handler is stripped off an element
+ * that is allowed.
+ */
+function wp_kses_post( $s ) {
+	if ( ! is_scalar( $s ) ) {
+		return '';
+	}
+	$s       = (string) $s;
+	$s       = preg_replace( '#<(script|style|iframe|object|embed)\b[^>]*>.*?</\1\s*>#is', '', $s );
+	$allowed = 'a|abbr|b|blockquote|br|code|div|em|h1|h2|h3|h4|h5|h6|i|img|li|ol|p|pre|small|span|strong|sub|sup|table|tbody|td|th|thead|tr|u|ul';
+	$s       = preg_replace( '#</?(?!(?:' . $allowed . ')\b)[a-z0-9:_-]+\b[^>]*/?>#i', '', $s );
+	$s       = preg_replace( '#\son[a-z]+\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]*)#i', '', $s );
+	return $s;
+}
+/**
+ * map_deep(), core's own: arrays and objects are walked to the bottom and
+ * every leaf is handed to the callback. Elementor's save runs exactly this
+ * over everything it is about to store, so a module claiming to match that
+ * behaviour has to be measured against the same walk.
+ */
+function map_deep( $value, $callback ) {
+	if ( is_array( $value ) ) {
+		foreach ( $value as $index => $item ) {
+			$value[ $index ] = map_deep( $item, $callback );
+		}
+		return $value;
+	}
+	if ( is_object( $value ) ) {
+		foreach ( get_object_vars( $value ) as $property => $property_value ) {
+			$value->$property = map_deep( $property_value, $callback );
+		}
+		return $value;
+	}
+	return call_user_func( $callback, $value );
+}
+function absint( $v ) { return abs( (int) $v ); }
+// wp_json_encode() already exists above, for the same purpose; not redeclared here.
+/**
+ * The other half of the pair above, and core's own asymmetry with it: strings
+ * and arrays are escaped, objects are not walked. A value written through
+ * wp_slash() must come back out of wp_unslash() as itself, which is the
+ * property every meta write in this plugin leans on.
+ */
+function wp_slash( $value ) {
+	if ( is_array( $value ) ) {
+		foreach ( $value as $k => $v ) {
+			$value[ $k ] = wp_slash( $v );
+		}
+		return $value;
+	}
+	return is_string( $value ) ? addslashes( $value ) : $value;
+}
+// A REST callback's return value passes straight through: there is no
+// transport for it to be prepared for here.
+function rest_ensure_response( $v ) { return $v; }
