@@ -66,7 +66,7 @@ class DPT_RB_Schema {
 			case 'repeater':
 				return 'array';
 			default:
-				// text, textarea, wysiwyg, select, radio, switcher, dates.
+				// text, textarea, wysiwyg, select, radio, switcher, dates, url.
 				// A switcher is stored as the string 'true' or 'false' by
 				// JetEngine, so it is advertised as what it is.
 				return 'string';
@@ -154,6 +154,14 @@ class DPT_RB_Schema {
 				// or object reaches string-only internals and fatals instead
 				// of degrading, so the guard has to happen here.
 				return is_scalar( $value ) ? wp_kses_post( $value ) : '';
+			case 'url':
+				// JetEngine has no url type, so discovery never produces one;
+				// this is here for the legacy descriptors, whose two URL
+				// fields a theme prints straight into an href or a src. The
+				// plain-text sanitizer would let javascript: and data: through
+				// untouched, and the plugin this module replaces did use
+				// esc_url_raw() on exactly these two.
+				return is_scalar( $value ) ? esc_url_raw( $value ) : '';
 			case 'textarea':
 				return sanitize_textarea_field( $value );
 			case 'number':
@@ -290,11 +298,11 @@ class DPT_RB_Schema {
 				// Same reasoning as number: an unset attachment id is 0, not "".
 				return is_scalar( $stored ) ? absint( $stored ) : 0;
 			default:
-				// text, textarea, wysiwyg, select, radio, switcher, dates: all of
-				// them are advertised as a string by json_type(), so a scalar
-				// cast is honest for all of them; anything that is not a scalar
-				// - an array or object left behind by corrupt data - has no
-				// honest string form and reads back as empty instead.
+				// text, textarea, wysiwyg, select, radio, switcher, dates,
+				// url: all are advertised as a string by json_type(), so a
+				// scalar cast is honest for all of them; anything that is
+				// not a scalar - an array or object left behind by corrupt
+				// data - has no honest string form and reads back as empty.
 				return ( null === $stored || ! is_scalar( $stored ) ) ? '' : (string) $stored;
 		}
 	}

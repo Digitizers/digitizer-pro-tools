@@ -114,8 +114,26 @@ function esc_html__( $text, $domain = null ) { return $text; }
 function esc_attr__( $text, $domain = null ) { return $text; }
 function esc_html( $s ) { return htmlspecialchars( (string) $s, ENT_QUOTES, 'UTF-8' ); }
 function esc_attr( $s ) { return htmlspecialchars( (string) $s, ENT_QUOTES, 'UTF-8' ); }
-function esc_url( $s ) { return (string) $s; }
-function esc_url_raw( $s ) { return (string) $s; }
+function esc_url( $s ) { return esc_url_raw( $s ); }
+/**
+ * Core's esc_url_raw() allows a fixed list of protocols and answers with an
+ * empty string for anything else - javascript: and data: among them, which is
+ * the whole difference between a url field and a text field. A stub that only
+ * cast to string would let a test claiming that difference pass without it.
+ */
+function esc_url_raw( $s ) {
+	if ( ! is_scalar( $s ) ) {
+		return '';
+	}
+	$s = trim( (string) $s );
+	if ( '' === $s ) {
+		return '';
+	}
+	if ( preg_match( '#^([a-z0-9+.\-]+):#i', $s, $m ) && ! in_array( strtolower( $m[1] ), array( 'http', 'https', 'mailto', 'tel' ), true ) ) {
+		return '';
+	}
+	return $s;
+}
 function sanitize_key( $s ) { return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( (string) $s ) ); }
 function wp_unslash( $s ) { return is_array( $s ) ? array_map( 'stripslashes', $s ) : stripslashes( (string) $s ); }
 function trailingslashit( $s ) { return rtrim( (string) $s, '/\\' ) . '/'; }

@@ -331,6 +331,17 @@ dpt_test_ok(
 	'and the second as item 2'
 );
 
+// A url field is not a JetEngine type - discovery never produces one - but
+// the legacy descriptors have two, and a theme prints both straight into an
+// href or a src. A text sanitizer would leave a javascript: URL intact.
+$url = array( 'meta_key' => 'linkedin', 'title' => 'LinkedIn', 'type' => 'url', 'fields' => array() );
+dpt_test_eq( DPT_RB_Schema::for_descriptor( $url )['type'], 'string', 'a url is advertised as a string, which is what it produces' );
+dpt_test_eq( DPT_RB_Schema::sanitize( $url, 'https://example.test/in/someone' ), 'https://example.test/in/someone', 'a real URL survives' );
+dpt_test_eq( DPT_RB_Schema::sanitize( $url, 'javascript:alert(1)' ), '', 'a javascript: URL does not' );
+dpt_test_eq( DPT_RB_Schema::sanitize( $url, 'data:text/html;base64,PHN2Zz4=' ), '', 'nor a data: one' );
+dpt_test_eq( DPT_RB_Schema::sanitize( $url, array( 'x' ) ), '', 'and an array is not a URL at all' );
+dpt_test_ok( ! DPT_RB_Definitions::known_type( 'url' ), 'while url stays out of the types discovery maps - JetEngine has none' );
+
 // Reading. JetEngine has stored repeaters as arrays, as JSON and as PHP
 // serialization over the years; all three have to come back as an array.
 dpt_test_eq( DPT_RB_Schema::normalize_read( $rep, array( array( 'question' => 'q', 'answer' => 'a' ) ) )[0]['question'], 'q', 'an array reads back' );
@@ -469,6 +480,19 @@ dpt_test_ok( isset( $GLOBALS['dpt_stub_rest_fields']['authors']['author_descript
 // But a name the discovery already produced is never taken over by the
 // compatibility layer - the real definition wins.
 dpt_test_ok( ! in_array( 'linkedin', DPT_RB_Fields::compat(), true ), 'a discovered field is not also a compatibility field' );
+
+// The two legacy URL fields are sanitized as URLs, not as text. A theme
+// prints author_image into a src and linkedin into an href, and anyone who
+// may edit a term on the authors taxonomy may write them - so a javascript:
+// URL surviving into that meta is a hole the replaced plugin did not have.
+$GLOBALS['dpt_stub_term_meta'] = array();
+$avatar_write = $GLOBALS['dpt_stub_rest_fields']['authors']['author_image']['update_callback'];
+$avatar_read  = $GLOBALS['dpt_stub_rest_fields']['authors']['author_image']['get_callback'];
+dpt_test_ok( true === call_user_func( $avatar_write, 'https://example.test/avatar.png', (object) array( 'term_id' => 5 ) ), 'a real avatar URL is written' );
+dpt_test_eq( call_user_func( $avatar_read, array( 'id' => 5 ) ), 'https://example.test/avatar.png', 'and reads back' );
+call_user_func( $avatar_write, 'javascript:alert(1)', (object) array( 'term_id' => 5 ) );
+dpt_test_eq( get_term_meta( 5, 'author_image', true ), '', 'a javascript: URL does not survive into the stored avatar' );
+dpt_test_eq( DPT_RB_Schema::for_descriptor( array( 'meta_key' => 'author_image', 'title' => 'x', 'type' => 'url', 'fields' => array(), 'object' => 'taxonomy' ) )['type'], 'string', 'and the field is still advertised as the string it produces' );
 
 /* ---- reading and writing through the callbacks ---- */
 

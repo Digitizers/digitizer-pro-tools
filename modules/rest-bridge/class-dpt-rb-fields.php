@@ -68,10 +68,15 @@ class DPT_RB_Fields {
 				'object'   => 'taxonomy',
 				'targets'  => array( 'authors' ),
 			),
+			// Both of these end up in an href or a src in a theme template,
+			// and anyone who may edit a term on the authors taxonomy may
+			// write them. url, not text: sanitize_text_field() would leave a
+			// javascript: or data: URL intact, which is the treatment the
+			// plugin this replaces was already careful to avoid.
 			array(
 				'meta_key' => 'author_image',
 				'title'    => 'Author avatar image URL',
-				'type'     => 'text',
+				'type'     => 'url',
 				'fields'   => array(),
 				'object'   => 'taxonomy',
 				'targets'  => array( 'authors' ),
@@ -79,7 +84,7 @@ class DPT_RB_Fields {
 			array(
 				'meta_key' => 'linkedin',
 				'title'    => 'Author LinkedIn URL',
-				'type'     => 'text',
+				'type'     => 'url',
 				'fields'   => array(),
 				'object'   => 'taxonomy',
 				'targets'  => array( 'authors' ),
