@@ -123,11 +123,14 @@ class DPT_RB_Definitions {
 				continue;
 			}
 
-			$object = isset( $args['object_type'] ) && is_scalar( $args['object_type'] ) ? (string) $args['object_type'] : '';
+			$object = self::object_type( $args );
 			if ( 'post' === $object ) {
 				$targets = isset( $args['allowed_post_type'] ) ? (array) $args['allowed_post_type'] : array();
 			} elseif ( 'taxonomy' === $object ) {
 				$targets = isset( $args['allowed_tax'] ) ? (array) $args['allowed_tax'] : array();
+			} elseif ( null === $object ) {
+				self::$skipped[] = sprintf( 'meta box %s: an object type that is not a string', $id );
+				continue;
 			} else {
 				self::$skipped[] = sprintf( 'meta box %1$s: object type %2$s is not exposed', $id, '' === $object ? '(none)' : $object );
 				continue;
@@ -157,6 +160,48 @@ class DPT_RB_Definitions {
 				self::$defs[]          = $descriptor;
 			}
 		}
+	}
+
+	/**
+	 * What kind of object a meta box is attached to, read the way JetEngine
+	 * reads it.
+	 *
+	 * A missing object_type is not an unknown one. JetEngine's own reader -
+	 * Jet_Engine_Meta_Boxes_Manager::register_instances() - opens its switch
+	 * with `isset( $args['object_type'] ) ? esc_attr( $args['object_type'] )
+	 * : 'post'`, so a row saved before that key existed, or written by an
+	 * import or a migration rather than by the admin screen, really is
+	 * registered on post types and really is read by the site's templates.
+	 * Passing the whole meta box over cost it every field it holds, and said
+	 * the object type was unknown when JetEngine's answer for it is `post` -
+	 * silent absence in exactly the case this module exists for.
+	 *
+	 * `tax` is JetEngine's older spelling of `taxonomy` and the same switch
+	 * still answers to both (`case 'tax': case 'taxonomy':`), so a meta box
+	 * saved under it is a taxonomy meta box and is normalized to the one
+	 * spelling the rest of this module uses.
+	 *
+	 * A value that is present but is not a string is the one thing still
+	 * refused. JetEngine hands it to esc_attr(), which raises a notice on an
+	 * array - and this parse runs on rest_api_init, where a notice corrupts
+	 * the JSON of every REST response the site is building. Recorded on the
+	 * same footing as every other malformed row.
+	 *
+	 * @param array $args The meta box's args.
+	 * @return string|null 'post', 'taxonomy', another kind JetEngine knows,
+	 *                     or null for a value that is not a string at all.
+	 */
+	private static function object_type( $args ) {
+		if ( ! isset( $args['object_type'] ) ) {
+			return 'post';
+		}
+		if ( ! is_scalar( $args['object_type'] ) ) {
+			return null;
+		}
+
+		$object = (string) $args['object_type'];
+
+		return 'tax' === $object ? 'taxonomy' : $object;
 	}
 
 	/**

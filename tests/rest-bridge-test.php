@@ -209,6 +209,77 @@ $GLOBALS['dpt_stub_options'] = array( 'jet_engine_meta_boxes' => 'garbage' );
 DPT_RB_Definitions::reset();
 dpt_test_eq( DPT_RB_Definitions::all(), array(), 'a corrupt option yields nothing' );
 
+// An object type is read the way JetEngine's own register_instances() reads
+// it: absent means `post`, and `tax` is the older spelling of `taxonomy`. A
+// row saved before that key existed is registered by JetEngine on post types
+// and read by every template on the site, so passing the whole meta box over
+// cost it every field it holds - and said the object type was unknown when
+// JetEngine's answer for it is not unknown at all.
+$GLOBALS['dpt_stub_options'] = array(
+	'jet_engine_meta_boxes' => array(
+		array(
+			'id'          => 'older-jetengine',
+			'args'        => array(
+				'name'              => 'Older JetEngine',
+				'allowed_post_type' => array( 'post' ),
+			),
+			'meta_fields' => array(
+				array( 'name' => 'subtitle', 'title' => 'Subtitle', 'object_type' => 'field', 'type' => 'text' ),
+			),
+		),
+		array(
+			'id'          => 'older-spelling',
+			'args'        => array(
+				'name'        => 'Older Spelling',
+				'object_type' => 'tax',
+				'allowed_tax' => array( 'authors' ),
+			),
+			'meta_fields' => array(
+				array( 'name' => 'twitter', 'title' => 'Twitter', 'object_type' => 'field', 'type' => 'text' ),
+			),
+		),
+		array(
+			'id'          => 'still-refused',
+			'args'        => array(
+				'name'              => 'Still Refused',
+				'object_type'       => array( 'post' ),
+				'allowed_post_type' => array( 'post' ),
+			),
+			'meta_fields' => array(
+				array( 'name' => 'never', 'title' => 'Never', 'object_type' => 'field', 'type' => 'text' ),
+			),
+		),
+		array(
+			'id'          => 'users',
+			'args'        => array(
+				'name'        => 'Users',
+				'object_type' => 'user',
+			),
+			'meta_fields' => array(
+				array( 'name' => 'nickname', 'title' => 'Nickname', 'object_type' => 'field', 'type' => 'text' ),
+			),
+		),
+	),
+);
+DPT_RB_Definitions::reset();
+$defaulted = array();
+foreach ( DPT_RB_Definitions::all() as $d ) {
+	$defaulted[ $d['meta_key'] ] = $d;
+}
+dpt_test_ok( isset( $defaulted['subtitle'] ), 'a meta box with no object_type at all is not passed over' );
+dpt_test_eq( $defaulted['subtitle']['object'], 'post', 'it is a post meta box, which is what JetEngine defaults it to' );
+dpt_test_eq( $defaulted['subtitle']['targets'], array( 'post' ), 'on the post types it names' );
+dpt_test_ok( isset( $defaulted['twitter'] ), 'and one saved under the older spelling tax is not either' );
+dpt_test_eq( $defaulted['twitter']['object'], 'taxonomy', 'normalized to the one spelling the rest of this module uses' );
+dpt_test_eq( $defaulted['twitter']['targets'], array( 'authors' ), 'on the taxonomy it names' );
+dpt_test_ok( ! isset( $defaulted['never'] ), 'an object_type that is not a string is still refused' );
+dpt_test_ok( ! isset( $defaulted['nickname'] ), 'and a kind JetEngine has but this bridge does not expose still is' );
+$defaulted_skips = implode( ' | ', DPT_RB_Definitions::skipped() );
+dpt_test_ok( false !== strpos( $defaulted_skips, 'still-refused' ), 'the malformed one is named' );
+dpt_test_ok( false !== strpos( $defaulted_skips, 'not a string' ), 'with the reason it is really refused for' );
+dpt_test_ok( false !== strpos( $defaulted_skips, 'object type user is not exposed' ), 'while a user meta box keeps the sentence it always had' );
+dpt_test_ok( false === strpos( $defaulted_skips, 'older-jetengine' ), 'and nothing is said about the meta box that now works' );
+
 // A repeater this bridge cannot see a single column of is not registered at
 // all. Exposing it would advertise a list of empty objects, and - because
 // sanitize() only knows the sub-fields the descriptor carries - every write

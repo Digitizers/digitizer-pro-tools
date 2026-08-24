@@ -72,8 +72,24 @@ reads, and the API answered 200 over both. Which of JetEngine's keys
 WordPress will actually carry is a separate question, asked in
 `DPT_RB_Fields` — see "Metadata capabilities" below.
 
-Defensive parsing: a row or field missing `name`/`type`, or with an unknown
-`object_type`, is skipped and recorded in `skipped()` (reason strings surfaced
+A meta box's `object_type` is read the way JetEngine reads it, which is not
+the same as reading it literally. `Jet_Engine_Meta_Boxes_Manager::register_instances()`
+opens its switch with `isset( $args['object_type'] ) ? esc_attr( … ) : 'post'`,
+so an **absent** key means `post` rather than "unknown" — a row saved before
+that key existed, or written by an import, a migration or WP-CLI rather than
+by the admin screen, is registered by JetEngine on post types and read by
+every template on the site. Skipping the whole meta box cost it every field
+it held, with a diagnostic saying the object type was unknown when JetEngine's
+answer for it is not unknown at all. The same switch is `case 'tax': case
+'taxonomy':`, so `tax` is JetEngine's older spelling and is normalized to the
+one spelling the rest of this module uses. A value that is **present but not a
+string** is still refused, and now with its own sentence: JetEngine hands one
+to `esc_attr()`, which raises a notice on an array, and this parse runs on
+`rest_api_init`.
+
+Defensive parsing: a row or field missing `name`/`type`, or with an
+`object_type` this module does not expose, is skipped and recorded in
+`skipped()` (reason strings surfaced
 by the info endpoint). A **name that is not a string** — a field's, a repeater
 sub-field's, or a member of the list of targets — is skipped and recorded on
 the same footing rather than cast: this parse runs on `rest_api_init`, and a
@@ -730,7 +746,12 @@ options, no `user_can_toggle` override.
    vacuous. Plus a Hebrew meta box: a wholly Hebrew field name, an accented
    one and a mixed one all arrive under the names JetEngine stored, a Hebrew
    repeater column keeps its own name, and none of them is reported as a
-   field with no name.
+   field with no name. Plus a meta box with **no** `object_type` and one
+   saved under the older spelling `tax`: both are read the way JetEngine
+   reads them - `post` and `taxonomy` - with their fields present and
+   nothing said about them, while an `object_type` that is not a string is
+   still refused with its own sentence and a `user` meta box keeps the
+   sentence it always had.
 2. Schema: type map, repeater schema from sub-fields, sanitizers incl. kses
    pass-through stub, unknown keys preserved verbatim, "0" survives, empty array clears,
    failed delete reported. A media field is exercised in each of its three
