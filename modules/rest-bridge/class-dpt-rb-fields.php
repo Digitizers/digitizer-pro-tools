@@ -84,14 +84,39 @@ class DPT_RB_Fields {
 	 * API surface: renaming one of these would break /wp/v2 for everyone,
 	 * which is not a change core makes.
 	 *
-	 * The one part of the answer that genuinely differs per site is computed
-	 * rather than listed - see reserved_for().
+	 * What belongs here is only what a target's *own* controller defines.
+	 * One list wide enough to cover every controller at once is a rename
+	 * list for names the target never owned, and a needless rename is the
+	 * one thing this module exists not to do: a JetEngine field called
+	 * `description` on `page` collides with nothing on /wp/v2/pages, so
+	 * answering to jet_description there breaks the promise discovery is
+	 * for - a site's fields under the names the site gave them - and an
+	 * automation asking for `description` finds nothing. So the post list
+	 * below is WP_REST_Posts_Controller's own surface, which is every post
+	 * type's controller; what one named post type adds to it is in
+	 * $reserved_post_type; and the taxonomy properties a post response
+	 * carries are in neither, because reserved_for() reads those from the
+	 * registry.
+	 *
+	 * Within that scope the list is the controller's surface rather than the
+	 * schema one target would really build: most of these properties are
+	 * switched on by a post type support, which any plugin may add after
+	 * this list has been consulted. Over-reserving there costs one renamed
+	 * field and says so in the diagnostics; under-reserving hands core's own
+	 * property to a meta value and breaks the post type for every consumer.
+	 * The gates that are exact rather than mutable - the ones core makes on
+	 * the post type's *name* - are the ones split out below.
 	 *
 	 * @var array
 	 */
 	private static $reserved = array(
-		// WP_REST_Posts_Controller, plus what
-		// WP_REST_Attachments_Controller adds for the attachment post type.
+		// WP_REST_Posts_Controller: its base properties, the three a public
+		// type adds, the parent of a hierarchical one, the ten a post type
+		// support turns on, and the template every type carries. The rest
+		// bases of the taxonomies attached to the target are deliberately
+		// not listed - `categories` and `tags` are core's post type's, not
+		// every post type's, and reserved_for() reads whichever ones the
+		// target really has from the registry.
 		'post'     => array(
 			'id',
 			'date',
@@ -104,6 +129,10 @@ class DPT_RB_Fields {
 			'status',
 			'type',
 			'link',
+			'permalink_template',
+			'generated_slug',
+			'class_list',
+			'parent',
 			'title',
 			'content',
 			'author',
@@ -114,29 +143,10 @@ class DPT_RB_Fields {
 			'menu_order',
 			'format',
 			'meta',
-			'sticky',
 			'template',
-			'parent',
-			'permalink_template',
-			'generated_slug',
-			'class_list',
-			// The rest bases of the two taxonomies core's own post type
-			// ships with. reserved_for() computes these from the taxonomy
-			// registry as well, but naming them keeps this list complete on
-			// its own for a target whose taxonomies cannot be read.
-			'categories',
-			'tags',
-			'alt_text',
-			'caption',
-			'description',
-			'media_type',
-			'mime_type',
-			'media_details',
-			'post',
-			'source_url',
-			'missing_image_sizes',
 		),
-		// WP_REST_Terms_Controller.
+		// WP_REST_Terms_Controller, which is the same nine properties on
+		// every taxonomy there is.
 		'taxonomy' => array(
 			'id',
 			'count',
@@ -147,6 +157,48 @@ class DPT_RB_Fields {
 			'taxonomy',
 			'parent',
 			'meta',
+		),
+	);
+
+	/**
+	 * What a single named post type adds to the list above.
+	 *
+	 * Two of core's gates are on the post type's name rather than on a
+	 * support or a registry flag, so they can be answered exactly rather
+	 * than reserved everywhere and hoped for: WP_REST_Posts_Controller adds
+	 * `sticky` only for `post`, and attachments are served by
+	 * WP_REST_Attachments_Controller, which puts fifteen properties of its
+	 * own on top of its parent's schema. Those fifteen reserved on every
+	 * post type is what renamed an ordinary `description` field on `page` to
+	 * jet_description - a collision with a controller that post type never
+	 * uses.
+	 *
+	 * One inexactness is left, and it is the cheap way round: the
+	 * attachments controller *unsets* `password`, so that one name stays
+	 * reserved on a target that no longer owns it. A rename of a `password`
+	 * field on the media library is a cost nobody will meet; handing core
+	 * its own property back full of meta is not.
+	 *
+	 * @var array
+	 */
+	private static $reserved_post_type = array(
+		'post'       => array( 'sticky' ),
+		'attachment' => array(
+			'alt_text',
+			'caption',
+			'description',
+			'media_type',
+			'mime_type',
+			'media_details',
+			'post',
+			'source_url',
+			'missing_image_sizes',
+			'filename',
+			'filesize',
+			'exif_orientation',
+			'image_quality',
+			'image_output_format',
+			'image_save_progressive',
 		),
 	);
 
@@ -541,17 +593,22 @@ class DPT_RB_Fields {
 	}
 
 	/**
-	 * The property names already spoken for on one target: core's own, plus
-	 * whatever this site's taxonomy registry adds to them.
+	 * The property names already spoken for on one target: what every
+	 * controller of that kind defines, what this one target's controller
+	 * adds, and whatever this site's taxonomy registry adds on top.
 	 *
-	 * A post type's controller turns every REST-enabled taxonomy attached to
+	 * Three sources because the answer is genuinely three answers, and a
+	 * name reserved on the wrong target is a field renamed for nothing.
+	 * `sticky` and the attachment properties belong to one post type each;
+	 * a post type's controller turns every REST-enabled taxonomy attached to
 	 * it into a property of its own, named by that taxonomy's rest base -
 	 * categories and tags on core's post, and whatever a site has called its
-	 * own. No written list can know those, so they are asked for: it is one
-	 * read of the in-memory taxonomy registry per target, with no query
-	 * behind it, and the answer is kept for the rest of the request. Terms
-	 * have no equivalent - WP_REST_Terms_Controller's schema is the same
-	 * nine properties on every taxonomy.
+	 * own. No written list can know the last of those, so they are asked
+	 * for: it is one read of the in-memory taxonomy registry per target,
+	 * with no query behind it, and the answer is kept for the rest of the
+	 * request. Terms have no equivalent of either -
+	 * WP_REST_Terms_Controller's schema is the same nine properties on every
+	 * taxonomy.
 	 *
 	 * @param string $object Object kind.
 	 * @param string $target Post type or taxonomy name.
@@ -566,6 +623,10 @@ class DPT_RB_Fields {
 		$names = isset( self::$reserved[ $object ] ) ? self::$reserved[ $object ] : array();
 
 		if ( 'post' === $object ) {
+			if ( isset( self::$reserved_post_type[ $target ] ) ) {
+				$names = array_merge( $names, self::$reserved_post_type[ $target ] );
+			}
+
 			$taxonomies = get_object_taxonomies( $target, 'objects' );
 			if ( is_array( $taxonomies ) ) {
 				foreach ( $taxonomies as $taxonomy ) {

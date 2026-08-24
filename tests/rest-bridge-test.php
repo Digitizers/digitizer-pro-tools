@@ -2226,6 +2226,58 @@ dpt_test_ok( ! isset( $GLOBALS['dpt_stub_rest_fields']['post']['authors'] ), 'a 
 dpt_test_ok( isset( $GLOBALS['dpt_stub_rest_fields']['post']['jet_authors'] ), 'it is renamed by the same rule' );
 $GLOBALS['dpt_stub_object_taxonomies'] = $saved_object_tax;
 
+/* ---- a name only one target's controller owns is reserved only there ---- */
+
+// The reserved set is per target or it is a rename list for collisions that
+// cannot happen, and a needless rename is the promise this module is here to
+// keep: a site's fields under the names the site gave them. `description` is
+// a property of a term and of an attachment; on /wp/v2/pages it is nothing at
+// all. `sticky` is core's, on `post` and on no other post type. And the rest
+// bases of the taxonomies attached to a target are the registry's answer, per
+// target, not a written pair of names.
+$GLOBALS['dpt_stub_rest_post_types'] = array( 'post', 'page', 'attachment' );
+$GLOBALS['dpt_stub_options']         = array(
+	'jet_engine_meta_boxes' => array(
+		array(
+			'id'          => 'shared-box',
+			'args'        => array( 'object_type' => 'post', 'allowed_post_type' => array( 'post', 'page', 'attachment' ) ),
+			'meta_fields' => array(
+				array( 'name' => 'description', 'title' => 'Short description', 'object_type' => 'field', 'type' => 'textarea' ),
+				array( 'name' => 'source_url', 'title' => 'Where it came from', 'object_type' => 'field', 'type' => 'text' ),
+				array( 'name' => 'sticky', 'title' => 'Pin this', 'object_type' => 'field', 'type' => 'switcher' ),
+				array( 'name' => 'categories', 'title' => 'Category labels', 'object_type' => 'field', 'type' => 'text' ),
+			),
+		),
+		array(
+			'id'          => 'author-box',
+			'args'        => array( 'object_type' => 'taxonomy', 'allowed_tax' => array( 'authors' ) ),
+			'meta_fields' => array(
+				array( 'name' => 'description', 'title' => 'Bio', 'object_type' => 'field', 'type' => 'wysiwyg' ),
+			),
+		),
+	),
+);
+DPT_RB_Definitions::reset();
+$GLOBALS['dpt_stub_rest_fields'] = array();
+DPT_RB_Fields::register();
+
+dpt_test_ok( isset( $GLOBALS['dpt_stub_rest_fields']['page']['description'] ), 'a description field on a page keeps the name the site gave it' );
+dpt_test_ok( ! isset( $GLOBALS['dpt_stub_rest_fields']['page']['jet_description'] ), 'and is not renamed for a collision the page controller cannot have' );
+dpt_test_ok( isset( $GLOBALS['dpt_stub_rest_fields']['authors']['jet_description'] ), 'while the same name on a taxonomy, whose controller really does define it, is still renamed' );
+dpt_test_ok( ! empty( dpt_stub_rest_item_schema( 'authors' )['description']['dpt_stub_core'] ), 'leaving the term\'s own description exactly as core defined it' );
+
+dpt_test_ok( isset( $GLOBALS['dpt_stub_rest_fields']['attachment']['jet_source_url'] ), 'a property only the attachments controller adds is reserved on attachment' );
+dpt_test_ok( isset( $GLOBALS['dpt_stub_rest_fields']['post']['source_url'] ), 'and left alone on a post type that controller never serves' );
+dpt_test_ok( isset( $GLOBALS['dpt_stub_rest_fields']['attachment']['jet_description'] ), 'description is reserved there too, by the same controller and on the same one target' );
+
+dpt_test_ok( isset( $GLOBALS['dpt_stub_rest_fields']['post']['jet_sticky'] ), 'sticky is reserved on post, the one post type core adds it to' );
+dpt_test_ok( isset( $GLOBALS['dpt_stub_rest_fields']['page']['sticky'] ), 'and not on a post type it never appears on' );
+
+dpt_test_ok( isset( $GLOBALS['dpt_stub_rest_fields']['post']['jet_categories'] ), 'a taxonomy rest base is reserved where that taxonomy is attached' );
+dpt_test_ok( isset( $GLOBALS['dpt_stub_rest_fields']['page']['categories'] ), 'and nowhere else, because the registry answers it per target rather than a written list' );
+
+$GLOBALS['dpt_stub_rest_post_types'] = $saved_post_types;
+
 /* ---- and the alias is never laid over a name the site itself defined ---- */
 
 // A site can define both `title` and a field of its own literally called

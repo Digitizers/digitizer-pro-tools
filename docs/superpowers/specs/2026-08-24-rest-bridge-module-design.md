@@ -368,15 +368,39 @@ and discovery finds it under its real name.
 So a discovered name is checked against the reserved set for its target
 before registration, and **never registered over one**.
 
-**How the reserved set is decided.** A written list of core's own controller
-properties per object kind (`WP_REST_Posts_Controller` plus what
-`WP_REST_Attachments_Controller` adds; `WP_REST_Terms_Controller` for
-taxonomies), **plus** the one part that genuinely differs per site: a post
-type's controller turns every REST-enabled taxonomy attached to it into a
-property named by that taxonomy's `rest_base`, which is read from the
-taxonomy registry with `get_object_taxonomies( $target, 'objects' )` — an
-in-memory read with no query behind it, done once per target per request and
-kept.
+**How the reserved set is decided.** Per target, and only what that target's
+own controller defines — three sources, because the answer is genuinely three
+answers:
+
+- a written list per object kind: `WP_REST_Posts_Controller`, which is every
+  post type's controller, and `WP_REST_Terms_Controller`, whose nine
+  properties are the same on every taxonomy;
+- a written list per named post type, for the gates core makes on the post
+  type's *name* rather than on a support or a registry flag: `sticky`, which
+  the posts controller adds for `post` alone, and the fifteen properties
+  `WP_REST_Attachments_Controller` adds on top of its parent's schema, which
+  reach `attachment` and nothing else;
+- the part that genuinely differs per site: a post type's controller turns
+  every REST-enabled taxonomy attached to it into a property named by that
+  taxonomy's `rest_base`, read from the taxonomy registry with
+  `get_object_taxonomies( $target, 'objects' )` — an in-memory read with no
+  query behind it, done once per target per request and kept. `categories`
+  and `tags` are that read's answer on core's `post`, not a written pair, and
+  are not duplicated into the post list.
+
+One set applied to every target would be a rename list for collisions that
+cannot happen, and a needless rename costs the module its whole promise: a
+JetEngine field called `description` on a **page** collides with nothing on
+`/wp/v2/pages`, so renaming it to `jet_description` hides a field the site
+asked to see under the name the site gave it, and an automation looking for
+`description` does not find it. Inside each set the list is still the
+controller's *surface* rather than the schema one target would really build —
+most post properties are switched on by a post type support, a runtime fact
+any plugin may change after the list is consulted, so over-reserving there is
+the cheap side (one renamed field, recorded in `skipped()`) and
+under-reserving is the expensive one (core's own property handed a meta
+value). The same trade leaves `password` reserved on `attachment`, where the
+attachments controller in fact unsets it.
 
 A written list rather than a question put to the controller, deliberately.
 `WP_REST_Controller::add_additional_fields_schema()` folds every field
@@ -597,7 +621,12 @@ options, no `user_can_toggle` override.
    `title` meta key; a colliding field with no legacy name is reachable under
    the `jet_` prefix; a field named after a taxonomy the site attached to
    posts is renamed too, which is the half of the reserved set no written
-   list could hold; the alias is withheld where the site defines it itself,
+   list could hold; each of those is reserved **only on the target whose
+   controller defines it** - the same `description` keeps its own name on
+   `page`, `sticky` is reserved on `post` and not on `page`, an
+   attachment-only property is reserved on `attachment` and not on `post`,
+   and a `categories` field is renamed only where that taxonomy is really
+   attached; the alias is withheld where the site defines it itself,
    and every one of those is explained in `skipped()`.
    Also: registration targets (REST-enabled only), read normalization
    (array / JSON string / serialized string / garbage), alias registered only
