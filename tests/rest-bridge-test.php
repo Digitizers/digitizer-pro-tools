@@ -379,6 +379,53 @@ $joined = implode( ' | ', DPT_RB_Definitions::skipped() );
 dpt_test_ok( false !== strpos( $joined, 'a field whose name is not a string' ), 'the malformed field name is recorded with a reason' );
 dpt_test_ok( false !== strpos( $joined, 'a sub-field whose name is not a string' ), 'and so is the malformed sub-field name' );
 
+/* ---- the meta key is the one JetEngine stored, not one derived from it ---- */
+
+// JetEngine's save loop is update_post_meta( $post_id, $key, $value ) with
+// $key taken straight off the stored definition (cherry-x-post-meta.php), and
+// a repeater column's name and a checkbox option's key are never touched by
+// JetEngine's server side at all. So a key this module derives rather than
+// reads is a key nothing else on the site uses: reads come back empty, writes
+// create a row no template looks at, and the API answers 200 either way.
+$GLOBALS['dpt_stub_options'] = array(
+	'jet_engine_meta_boxes' => array(
+		array(
+			'id'          => 'hebrew-box',
+			'args'        => array(
+				'object_type'       => 'post',
+				'allowed_post_type' => array( 'post' ),
+			),
+			'meta_fields' => array(
+				array( 'name' => 'מחיר', 'title' => 'מחיר', 'object_type' => 'field', 'type' => 'text' ),
+				array( 'name' => 'précio', 'title' => 'Precio', 'object_type' => 'field', 'type' => 'text' ),
+				array( 'name' => 'שדה_price', 'title' => 'Price', 'object_type' => 'field', 'type' => 'text' ),
+				array(
+					'name'            => 'שאלות',
+					'title'           => 'FAQ',
+					'object_type'     => 'field',
+					'type'            => 'repeater',
+					'repeater-fields' => array(
+						array( 'name' => 'שאלה', 'title' => 'Question', 'type' => 'text' ),
+					),
+				),
+			),
+		),
+	),
+);
+DPT_RB_Definitions::reset();
+$defs   = DPT_RB_Definitions::all();
+$by_key = array();
+foreach ( $defs as $d ) {
+	$by_key[ $d['meta_key'] ] = $d;
+}
+dpt_test_eq( count( $defs ), 4, 'every field in a Hebrew meta box is found' );
+dpt_test_ok( isset( $by_key['מחיר'] ), 'a wholly Hebrew name is the meta key JetEngine stored' );
+dpt_test_ok( isset( $by_key['précio'] ), 'an accented name is kept whole rather than reduced to a valid but wrong key' );
+dpt_test_ok( isset( $by_key['שדה_price'] ), 'and a mixed name keeps both of its halves' );
+dpt_test_eq( $by_key['שאלות']['fields'][0]['meta_key'], 'שאלה', 'a repeater column keeps its own name too - JetEngine never sanitizes those at all' );
+$joined = implode( ' | ', DPT_RB_Definitions::skipped() );
+dpt_test_ok( false === strpos( $joined, 'a field with no name' ), 'and none of them is reported as a field with no name, which was never true of any of them' );
+
 require_once dirname( __DIR__ ) . '/modules/rest-bridge/class-dpt-rb-schema.php';
 
 /* ---- one field's type decides its schema and its sanitizer ---- */
@@ -1164,6 +1211,24 @@ dpt_test_eq(
 	DPT_RB_Schema::sanitize( $checkbox, DPT_RB_Schema::normalize_read( $checkbox, array() ) ),
 	array(),
 	'and an empty checkbox composes back into an empty map, not a wipe'
+);
+
+// The option keys are JetEngine's too. They are free text - the "Add custom
+// value" flow writes whatever an editor typed straight into the definition
+// with nothing but esc_attr() over it - so a key this module reshapes on the
+// way in is an option nothing else on the site has. The read path never
+// reshaped them, which is what made the write side's reshaping a silent
+// disagreement between the two.
+$hebrew_options = array( 'כחול' => true, 'Sky Blue' => 'true', 'red' => false );
+dpt_test_eq(
+	DPT_RB_Schema::sanitize( $checkbox, $hebrew_options ),
+	array( 'כחול' => 'true', 'Sky Blue' => 'true', 'red' => 'false' ),
+	'a checkbox option key survives a write whatever it is spelled with'
+);
+dpt_test_eq(
+	DPT_RB_Schema::sanitize( $checkbox, DPT_RB_Schema::normalize_read( $checkbox, array( 'כחול' => 'true', 'Sky Blue' => 'false' ) ) ),
+	array( 'כחול' => 'true', 'Sky Blue' => 'false' ),
+	'and a read of those keys composes back into itself rather than into a different set of options'
 );
 
 // A number is advertised as 'number' by type_schema(), and a media field
@@ -2025,7 +2090,13 @@ DPT_RB_Fields::register();
 dpt_test_ok( ! isset( $GLOBALS['dpt_stub_rest_fields']['post']['_secret'] ), 'a protected meta key is not registered at all' );
 $protected_joined = implode( ' | ', DPT_RB_Fields::skipped() );
 dpt_test_ok( false !== strpos( $protected_joined, '_secret' ), 'and the field is named in the diagnostics' );
-dpt_test_ok( false !== strpos( $protected_joined, 'underscore' ), 'along with why WordPress will not have it' );
+// "protected", not "begins with an underscore": core strips everything
+// outside printable ASCII and the Unicode letters before it looks for the
+// underscore, and is_protected_meta() is filterable besides, so a leading
+// underscore is one way a key becomes protected rather than the definition
+// of it. A diagnostic that names the wrong rule sends whoever reads it
+// looking for a character their field does not have.
+dpt_test_ok( false !== strpos( $protected_joined, 'protected' ), 'along with why WordPress will not have it' );
 
 $notes_read  = $GLOBALS['dpt_stub_rest_fields']['post']['notes']['get_callback'];
 $notes_write = $GLOBALS['dpt_stub_rest_fields']['post']['notes']['update_callback'];
@@ -2385,6 +2456,82 @@ dpt_test_ok( ! in_array( 'author_description', DPT_RB_Fields::compat(), true ), 
 dpt_test_ok( ! in_array( 'author_image', DPT_RB_Fields::compat(), true ), 'nor is its sibling' );
 dpt_test_ok( ! in_array( 'linkedin', DPT_RB_Fields::compat(), true ), 'nor any other legacy field for that taxonomy' );
 $GLOBALS['dpt_stub_rest_taxonomies'] = $saved_taxonomies;
+
+/* ---- a Hebrew field is a field, all the way through ---- */
+
+// The whole of the key fix, end to end and through the registered callbacks:
+// a site whose editors name their fields in their own language has those
+// fields on the API, reading and writing the meta key JetEngine really
+// stored - and the keys WordPress genuinely will not carry are refused with
+// the reason WordPress genuinely has, rather than with a sentence about a
+// name the site never wrote.
+$GLOBALS['dpt_stub_options'] = array(
+	'jet_engine_meta_boxes' => array(
+		array(
+			'id'          => 'hebrew-live',
+			'args'        => array(
+				'object_type'       => 'post',
+				'allowed_post_type' => array( 'post' ),
+			),
+			'meta_fields' => array(
+				array( 'name' => 'מחיר', 'title' => 'מחיר', 'object_type' => 'field', 'type' => 'text' ),
+				array( 'name' => 'צבעים', 'title' => 'צבעים', 'object_type' => 'field', 'type' => 'checkbox' ),
+				// Core strips every byte outside printable ASCII and the
+				// Unicode letters before it looks for the underscore, and PCRE
+				// reads \p{L} a byte at a time in that pattern, so what is left
+				// of this name is "_price" and WordPress really does protect
+				// it. Refused - but for the reason it is really refused for.
+				array( 'name' => 'שדה_price', 'title' => 'Price', 'object_type' => 'field', 'type' => 'text' ),
+				// update_metadata() opens with `! $meta_key`, and PHP reads the
+				// string "0" as empty, so this key can never be written at all.
+				array( 'name' => '0', 'title' => 'Zero', 'object_type' => 'field', 'type' => 'text' ),
+				// The meta_key column is varchar(255); a longer key is a
+				// different key by the time it reaches storage.
+				array( 'name' => str_repeat( 'x', 256 ), 'title' => 'Long', 'object_type' => 'field', 'type' => 'text' ),
+				// And the other side of that limit, which is the one this
+				// plugin's own sites walk into: varchar counts characters on
+				// a utf8mb4 table, so 200 Hebrew characters is 400 bytes and
+				// fits. Measuring bytes here would refuse a field for a limit
+				// WordPress does not have - the same mistake in a new place.
+				array( 'name' => str_repeat( 'ש', 200 ), 'title' => 'Long Hebrew', 'object_type' => 'field', 'type' => 'text' ),
+			),
+		),
+	),
+);
+DPT_RB_Definitions::reset();
+$GLOBALS['dpt_stub_rest_fields'] = array();
+$GLOBALS['dpt_stub_post_meta']   = array();
+DPT_RB_Fields::register();
+
+dpt_test_ok( isset( $GLOBALS['dpt_stub_rest_fields']['post']['מחיר'] ), 'a Hebrew field is registered under the name the site gave it' );
+$hebrew_write = $GLOBALS['dpt_stub_rest_fields']['post']['מחיר']['update_callback'];
+$hebrew_read  = $GLOBALS['dpt_stub_rest_fields']['post']['מחיר']['get_callback'];
+dpt_test_ok( true === call_user_func( $hebrew_write, 'שלוש מאות', (object) array( 'ID' => 71 ) ), 'and a write through it succeeds' );
+dpt_test_eq( get_post_meta( 71, 'מחיר', true ), 'שלוש מאות', 'landing on the meta key JetEngine itself reads and writes' );
+dpt_test_eq( call_user_func( $hebrew_read, array( 'id' => 71 ) ), 'שלוש מאות', 'and the read hands the same value back' );
+
+// The checkbox beside it, whose option keys are the same free text one level
+// down: read, modify and write has to leave the options the site defined.
+$colours_write = $GLOBALS['dpt_stub_rest_fields']['post']['צבעים']['update_callback'];
+$colours_read  = $GLOBALS['dpt_stub_rest_fields']['post']['צבעים']['get_callback'];
+dpt_test_ok( true === call_user_func( $colours_write, array( 'כחול' => 'true', 'אדום' => 'false' ), (object) array( 'ID' => 71 ) ), 'a checkbox with Hebrew option keys writes' );
+dpt_test_eq( get_post_meta( 71, 'צבעים', true ), array( 'כחול' => 'true', 'אדום' => 'false' ), 'storing the options the site defined, spelled as it defined them' );
+$colours_back = call_user_func( $colours_read, array( 'id' => 71 ) );
+dpt_test_eq( wp_json_encode( $colours_back ), '{"כחול":"true","אדום":"false"}', 'and reads back as the same options' );
+dpt_test_ok( true === call_user_func( $colours_write, $colours_back, (object) array( 'ID' => 71 ) ), 'writing back what was just read is a success' );
+dpt_test_eq( get_post_meta( 71, 'צבעים', true ), array( 'כחול' => 'true', 'אדום' => 'false' ), 'and leaves storage holding exactly what it held' );
+
+// And the three that WordPress will not carry, each named with its own
+// reason rather than with a borrowed one.
+$joined = implode( ' | ', DPT_RB_Fields::skipped() );
+dpt_test_ok( ! isset( $GLOBALS['dpt_stub_rest_fields']['post']['שדה_price'] ), 'a key WordPress protects is not registered' );
+dpt_test_ok( false !== strpos( $joined, 'שדה_price' ), 'and is named in the diagnostics by the name the site gave it' );
+dpt_test_ok( false !== strpos( $joined, 'protected' ), 'with protection as the reason' );
+dpt_test_ok( ! isset( $GLOBALS['dpt_stub_rest_fields']['post']['0'] ), 'a key of "0" is not registered' );
+dpt_test_ok( false !== strpos( $joined, 'cannot store' ), 'and says WordPress cannot store it, not that it is protected' );
+dpt_test_ok( ! isset( $GLOBALS['dpt_stub_rest_fields']['post'][ str_repeat( 'x', 256 ) ] ), 'nor is a key longer than the column that would have to hold it' );
+dpt_test_ok( false !== strpos( $joined, '255' ), 'and the length is the reason given for that one' );
+dpt_test_ok( isset( $GLOBALS['dpt_stub_rest_fields']['post'][ str_repeat( 'ש', 200 ) ] ), 'while 200 Hebrew characters fit the column that counts characters, and are registered' );
 
 /* ================================================================== */
 /* DPT_RB_Elementor - the ported Elementor endpoints                  */

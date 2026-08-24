@@ -57,17 +57,32 @@ meta_fields: [ { name, title, object_type, type, repeater-fields[], ... } ] }`.
 ]
 ```
 
+A field's `meta_key` is the name JetEngine stored, **verbatim**. JetEngine
+uses it as the meta key with nothing in between — `cherry-x-post-meta`'s save
+loop is `update_post_meta( $post_id, $key, $value )` with `$key` taken
+straight off this definition — and it never touches a repeater column's name
+or a checkbox option's key on the server side at all, so any key this module
+derives rather than reads is a key nothing else on the site uses.
+`sanitize_key()`, which is what this ran, keeps only `[a-z0-9_-]`: a wholly
+Hebrew name reduced to `''` and was then reported as *"a field with no name"*,
+which was never true of it; `שדה_price` reduced to `_price` and was refused as
+protected, a second borrowed reason; and `précio` reduced to `prcio`, a valid
+but **wrong** key, so reads came back empty, writes created a row no template
+reads, and the API answered 200 over both. Which of JetEngine's keys
+WordPress will actually carry is a separate question, asked in
+`DPT_RB_Fields` — see "Metadata capabilities" below.
+
 Defensive parsing: a row or field missing `name`/`type`, or with an unknown
 `object_type`, is skipped and recorded in `skipped()` (reason strings surfaced
 by the info endpoint). A **name that is not a string** — a field's, a repeater
 sub-field's, or a member of the list of targets — is skipped and recorded on
-the same footing rather than handed to `sanitize_key()`: core passes its
-argument straight to `strtolower()`, which PHP 8 answers with a `TypeError`
-rather than a warning, and this parse runs on `rest_api_init`, so one
-malformed row aborted the module's registration for **every REST request the
-site served** instead of costing that one row. Every `(string)` cast over this
-option is guarded with `is_scalar()` for the same reason; `sanitize_key()` is
-simply the one that throws instead of warning. The option belongs to another
+the same footing rather than cast: this parse runs on `rest_api_init`, and a
+notice raised there corrupts the JSON of every REST response the site is
+building. The list of targets is the one place `sanitize_key()` is still
+right, because it is a post type or taxonomy name rather than a meta key and
+`register_post_type()` sanitize_keys its own; a member of it that is not a
+string would be a `TypeError` inside `strtolower()`, so the list is narrowed
+before core is handed any of it. The option belongs to another
 vendor's plugin across every version it has ever had, so nothing in it may be
 able to stop this module from registering everything else. Entries in `meta_fields` whose `object_type` is not
 `field` (tabs, accordions) are skipped silently - they are UI chrome, not data.
@@ -84,7 +99,7 @@ by WordPress.
 | wysiwyg | string | `wp_kses_post` |
 | number | number | `floatval` (int when step absent/integer) |
 | switcher | boolean | stored as `'true'`/`'false'`, read back as a boolean |
-| checkbox | object of option-key => `'true'`/`'false'` | keys `sanitize_key`, values normalized |
+| checkbox | object of option-key => `'true'`/`'false'` | keys verbatim, values normalized |
 | select (single) | string, or object for a list storage still holds | `sanitize_text_field`, per member for a list |
 | select (multiple) | array of strings; also string/object for what storage still holds | `sanitize_text_field` per option |
 | radio | string | `sanitize_text_field` |
@@ -344,17 +359,36 @@ collection request actually wants, cost nothing: they are not gated. This is
 accepted rather than optimized; a per-item capability call on cached objects
 is the price of not handing a restricted key to whoever asks.
 
-**Protected keys are refused at registration**, not merely at read and write:
-a key beginning with an underscore is one `map_meta_cap()` denies the per-key
-capability for to every user there is, administrators included, so a field on
-it could only ever read empty and refuse every write — noise in the schema and
-in every response. It is refused in `DPT_RB_Fields` rather than in discovery,
-because discovery describes what JetEngine defines (which the info endpoint
-reports) rather than what this module may expose, and because
-`is_protected_meta()` is filterable and takes the object type, which is known
-here and not there. The per-user half of the same question — the
-`auth_*_meta_*` filters — cannot be answered at registration at all and stays
-in the callbacks. The refusal is recorded in `skipped()`, naming the key.
+**Keys WordPress will not carry are refused at registration**, not merely at
+read and write, and each is refused with its own reason: a diagnostic naming
+the wrong one sends whoever reads it looking for a problem the site does not
+have. There are three, and there are only three, because a meta key is almost
+unconstrained — `update_metadata()` puts it in a text column with no character
+rule of any kind, which is why discovery hands the key over verbatim.
+
+- **Protected.** `map_meta_cap()` denies the per-key capability for one to
+  every user there is, administrators included, so a field on it could only
+  ever read empty and refuse every write. Asked of `is_protected_meta()`
+  rather than tested for a leading underscore: core strips everything outside
+  printable ASCII and the Unicode letters before it looks, so a name written
+  in Hebrew ahead of an underscore really is protected, and the answer is
+  filterable besides — Rank Math protects every `rank_math_*` key that way.
+- **The key `"0"`.** `update_metadata()` opens with `! $meta_key`, and PHP
+  reads that string as empty, so no write can ever land.
+- **Longer than 255 characters.** `meta_key` is `varchar(255)`, so a longer
+  key is a different key by the time it reaches storage — the same silent
+  substitution `sanitize_key()` was making. Counted in **characters**, which
+  is what that column counts on a utf8mb4 table: 200 Hebrew characters is 400
+  bytes and fits, and counting bytes would refuse a field for a limit
+  WordPress does not have.
+
+Refused in `DPT_RB_Fields` rather than in discovery, because discovery
+describes what JetEngine defines (which the info endpoint reports) rather than
+what this module may expose, and because `is_protected_meta()` takes the
+object type, which is known here and not there. The per-user half of the
+protection question — the `auth_*_meta_*` filters — cannot be answered at
+registration at all and stays in the callbacks. Every refusal is recorded in
+`skipped()`, naming the key.
 
 ### Names core already owns
 
@@ -597,7 +631,10 @@ options, no `user_can_toggle` override.
    box still arrives - which is the property that matters, one bad row not
    costing the rest. The harness's `sanitize_key` stub throws on an array or
    an object the way PHP 8's `strtolower()` does, so those assertions are not
-   vacuous.
+   vacuous. Plus a Hebrew meta box: a wholly Hebrew field name, an accented
+   one and a mixed one all arrive under the names JetEngine stored, a Hebrew
+   repeater column keeps its own name, and none of them is reported as a
+   field with no name.
 2. Schema: type map, repeater schema from sub-fields, sanitizers incl. kses
    pass-through stub, unknown keys preserved verbatim, "0" survives, empty array clears,
    failed delete reported. A media field is exercised in each of its three
@@ -628,7 +665,17 @@ options, no `user_can_toggle` override.
    `dpt_rb_field_context` still reads with no user, because the gate follows
    the registered context rather than a list. The harness models
    `map_meta_cap()`'s three steps and keeps a `WP_Error`'s data, so the
-   status codes are assertable at all.
+   status codes are assertable at all, and its `is_protected_meta` stub is
+   core's own regex rather than a leading-underscore test, so a Hebrew name
+   ahead of an underscore is protected in the harness for the reason it is
+   protected on a site.
+   Also: a Hebrew field registers under its own name and round-trips a write
+   and a read on the meta key JetEngine stored, a checkbox beside it keeps its
+   Hebrew option keys through read, modify and write, and the three keys
+   WordPress will not carry - a protected one, `"0"`, and one over 255
+   characters - are each refused with their own reason in the diagnostics,
+   while a 200-character Hebrew key, 400 bytes and well inside the column,
+   registers.
    Also: a name core's controller already owns is never registered over -
    core's own `title` and `excerpt` on posts and `description` on a taxonomy
    survive registration untouched, the harness modelling

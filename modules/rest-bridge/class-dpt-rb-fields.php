@@ -757,29 +757,18 @@ class DPT_RB_Fields {
 	private static function register_one( $descriptor, $name ) {
 		$count = 0;
 
-		// A protected key - anything beginning with an underscore - is one
-		// map_meta_cap() refuses the per-key meta capability for to every
-		// user there is, administrators included. Registered, it would be a
-		// field that always reads empty and refuses every write: noise in
-		// the schema and in every response, and an invitation to debug the
-		// capability check instead of reading this.
-		//
-		// Refused here rather than in discovery, which describes what
-		// JetEngine defines rather than what this module may expose, and
-		// which has no object type in hand to ask is_protected_meta() with.
-		// The per-user half of the same question - the auth_*_meta_* filters
-		// a site installs - cannot be answered at registration at all and
-		// stays where it belongs, in the callbacks.
-		$meta_type = ( isset( $descriptor['object'] ) && 'taxonomy' === $descriptor['object'] ) ? 'term' : 'post';
-		if ( is_protected_meta( $descriptor['meta_key'], $meta_type ) ) {
+		// Discovery hands over the meta key JetEngine stored, exactly as it
+		// stored it, because that is the key the site's own templates and
+		// JetEngine itself read. Which of those keys WordPress will actually
+		// carry is a different question, and it is asked here: discovery
+		// describes what JetEngine defines - which the info endpoint reports -
+		// rather than what this module may expose, and the object type the
+		// answer depends on is in hand here and not there.
+		$refusal = self::key_refusal( $descriptor );
+		if ( '' !== $refusal ) {
 			// English, untranslated, like every other line in this list -
 			// see register_qna_fallback() for why.
-			self::note_skip(
-				sprintf(
-					'The field %s was not registered because WordPress protects meta keys that begin with an underscore: no user at all, administrators included, may read or write one through the REST API.',
-					$descriptor['meta_key']
-				)
-			);
+			self::note_skip( $refusal );
 			return 0;
 		}
 
@@ -871,6 +860,78 @@ class DPT_RB_Fields {
 		}
 
 		return $count;
+	}
+
+	/**
+	 * Why WordPress will not carry this meta key, or an empty string when it
+	 * will.
+	 *
+	 * The key is JetEngine's, verbatim, and almost anything is a meta key as
+	 * far as WordPress is concerned: update_metadata() puts it in a text
+	 * column with no character rule of any kind, which is why this module
+	 * stopped deriving one of its own. Three things are genuinely refused,
+	 * and each is refused for its own reason - a diagnostic that names the
+	 * wrong one sends whoever reads it looking for a problem the site does
+	 * not have.
+	 *
+	 * - A key WordPress protects. map_meta_cap() refuses the per-key meta
+	 *   capability for one to every user there is, administrators included,
+	 *   so a field on it could only ever read empty and refuse every write.
+	 *   Asked of core rather than tested for a leading underscore, because
+	 *   core strips everything outside printable ASCII and the Unicode
+	 *   letters before it looks - so a name written in Hebrew ahead of an
+	 *   underscore really is protected - and because is_protected_meta() is
+	 *   filterable and a plugin may protect keys of its own.
+	 * - The key "0". update_metadata() opens with `! $meta_key`, and PHP
+	 *   reads that string as empty, so no write can ever land.
+	 * - A key longer than the column that has to hold it. meta_key is
+	 *   varchar(255), so a longer key is a different key by the time it
+	 *   reaches storage - the same silent substitution this module stopped
+	 *   making itself. Counted in characters, which is what that column
+	 *   counts on a utf8mb4 table, and not in bytes.
+	 *
+	 * The per-user half of the protection question - the auth_*_meta_*
+	 * filters a site installs - cannot be answered at registration at all and
+	 * stays where it belongs, in the callbacks.
+	 *
+	 * @param array $descriptor Field descriptor.
+	 * @return string Plain English, untranslated - see
+	 *                register_qna_fallback() for why. Empty when the key is
+	 *                usable.
+	 */
+	private static function key_refusal( $descriptor ) {
+		$key       = $descriptor['meta_key'];
+		$meta_type = ( isset( $descriptor['object'] ) && 'taxonomy' === $descriptor['object'] ) ? 'term' : 'post';
+
+		if ( is_protected_meta( $key, $meta_type ) ) {
+			return sprintf(
+				'The field %s was not registered because WordPress treats that meta key as protected: no user at all, administrators included, may read or write one through the REST API.',
+				$key
+			);
+		}
+
+		if ( '' === $key || '0' === $key ) {
+			return sprintf(
+				'The field %s was not registered because WordPress cannot store a meta key that PHP reads as empty: update_metadata() refuses one before it looks at anything else.',
+				'' === $key ? '(unnamed)' : $key
+			);
+		}
+
+		// Characters, not bytes. meta_key is varchar(255) in a utf8mb4 table,
+		// which counts characters - so a 200-character Hebrew key is 400
+		// bytes and fits perfectly well, and counting bytes here would refuse
+		// a field for a limit WordPress does not have. That is the same
+		// mistake in a different place, on the same sites.
+		$length = function_exists( 'mb_strlen' ) ? mb_strlen( $key, 'UTF-8' ) : strlen( $key );
+		if ( $length > 255 ) {
+			return sprintf(
+				'The field %1$s was not registered because its meta key is %2$d characters long and WordPress stores meta keys in a column of 255: a longer key is written and read as a different key.',
+				$key,
+				$length
+			);
+		}
+
+		return '';
 	}
 
 	/**

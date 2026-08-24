@@ -133,11 +133,14 @@ class DPT_RB_Definitions {
 				continue;
 			}
 
-			// A member of this list that is not a string would be a
-			// TypeError inside sanitize_key() - see descriptor() - so the
-			// list is narrowed to what core can be handed before it is
-			// handed any of it. A row left with nothing usable falls into
-			// the sentence below.
+			// A post type or taxonomy name, not a meta key: register_post_type()
+			// sanitize_keys its own name, so this agrees with the registry
+			// rather than deriving something new the way the field names
+			// below must not. A member of the list that is not a string would
+			// be a TypeError inside sanitize_key(), which hands its argument
+			// straight to strtolower(), so the list is narrowed to what core
+			// can be handed before it is handed any of it. A row left with
+			// nothing usable falls into the sentence below.
 			$targets = array_values( array_filter( array_map( 'sanitize_key', array_filter( $targets, 'is_scalar' ) ) ) );
 			if ( ! $targets ) {
 				self::$skipped[] = sprintf( 'meta box %s: attached to nothing', $id );
@@ -223,20 +226,31 @@ class DPT_RB_Definitions {
 			return null;
 		}
 
-		// sanitize_key() hands what it is given straight to strtolower(),
-		// which PHP 8 answers with a TypeError rather than a warning for an
-		// array or an object. This runs on rest_api_init, so one malformed
-		// row in an option that belongs to another vendor's plugin - across
-		// every version it has ever had - aborted this module's registration
-		// for every REST request the site served, rather than costing the
-		// one row. The shape is checked before core is handed it, and the
-		// row is recorded the way a field with no name at all already is.
+		// The shape is checked before the cast, not after: this runs on
+		// rest_api_init, over an option that belongs to another vendor's
+		// plugin across every version it has ever had, so a row holding an
+		// array where a name belongs must cost that one row rather than
+		// raise a notice - which would corrupt the JSON of every REST
+		// response the site was building - or worse. Recorded the way a
+		// field with no name at all already is.
 		if ( isset( $field['name'] ) && ! is_scalar( $field['name'] ) ) {
 			self::$skipped[] = sprintf( 'meta box %s: a field whose name is not a string', $box );
 			return null;
 		}
 
-		$name = isset( $field['name'] ) ? sanitize_key( (string) $field['name'] ) : '';
+		// Verbatim, deliberately. JetEngine uses the stored name as the meta
+		// key with nothing in between - cherry-x-post-meta's save loop is
+		// update_post_meta( $post_id, $key, $value ) with $key taken straight
+		// off this definition - so a key derived here is a key nothing else on
+		// the site uses. sanitize_key(), which is what this did, keeps only
+		// [a-z0-9_-]: on a Hebrew site it reduced a field's whole name to ''
+		// and then reported it as "a field with no name", which was never
+		// true of it; and it turned an accented name into a shorter one that
+		// is still a valid key, so reads came back empty, writes created a row
+		// no template reads, and the API answered 200 over both. What this
+		// module may expose out of what JetEngine defines is a separate
+		// question, asked in DPT_RB_Fields where the object type is in hand.
+		$name = isset( $field['name'] ) ? (string) $field['name'] : '';
 		if ( '' === $name ) {
 			self::$skipped[] = sprintf( 'meta box %s: a field with no name', $box );
 			return null;
@@ -274,12 +288,22 @@ class DPT_RB_Definitions {
 				if ( ! is_array( $sub ) ) {
 					continue;
 				}
-				// The same TypeError one level down, and the same answer.
+				// The same malformed shape one level down, and the same answer.
 				if ( isset( $sub['name'] ) && ! is_scalar( $sub['name'] ) ) {
 					self::$skipped[] = sprintf( 'field %s: a sub-field whose name is not a string', $name );
 					continue;
 				}
-				$sub_name = isset( $sub['name'] ) ? sanitize_key( (string) $sub['name'] ) : '';
+				// Verbatim for the reason the field's own name is, and with
+				// even less room for doubt: JetEngine's server side never
+				// touches a repeater column's name at all - the only
+				// normalisation there has ever been is in the admin's
+				// JavaScript, which lowercases, collapses whitespace and
+				// transliterates Cyrillic and nothing else. A column named in
+				// Hebrew is stored under that name and read out of the item
+				// array under that name, so a column this module renamed was
+				// a column it advertised, sanitized and read at an address
+				// nobody else uses.
+				$sub_name = isset( $sub['name'] ) ? (string) $sub['name'] : '';
 				$sub_type = isset( $sub['type'] ) && is_scalar( $sub['type'] ) ? (string) $sub['type'] : '';
 				// A repeater inside a repeater is more than this bridge
 				// promises, and an unknown type is a guess it will not make.

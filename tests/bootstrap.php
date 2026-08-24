@@ -320,12 +320,23 @@ function rest_authorization_required_code() {
 	return is_user_logged_in() ? 403 : 401;
 }
 /**
- * Core's own rule: a meta key beginning with an underscore is protected, and
- * map_meta_cap() denies the per-key meta capability for a protected key to
- * every user there is, administrators included.
+ * Core's own rule, character for character: a meta key is protected when the
+ * first character left after everything outside printable ASCII and the
+ * Unicode letters is stripped out is an underscore. map_meta_cap() then denies
+ * the per-key meta capability for it to every user there is, administrators
+ * included.
+ *
+ * The stripping is not decoration and a stub that only looked at the first
+ * byte would hide the answer core really gives: PCRE reads \p{L} a byte at a
+ * time here - there is no /u modifier in core's pattern - so every byte of a
+ * Hebrew name falls outside both classes and is removed, and a key like
+ * "field_price" written in Hebrew before the underscore is left as "_price"
+ * and really is protected. A module that has to explain why a field was
+ * refused cannot get that from a stub which answers differently.
  */
 function is_protected_meta( $key, $type = '' ) {
-	return '_' === substr( (string) $key, 0, 1 );
+	$sanitized = preg_replace( "/[^\x20-\x7E\p{L}]/", '', (string) $key );
+	return strlen( $sanitized ) > 0 && '_' === $sanitized[0];
 }
 function current_user_can( $cap, $id = null, $meta_key = null ) {
 	if ( $GLOBALS['dpt_stub_no_user'] ) {

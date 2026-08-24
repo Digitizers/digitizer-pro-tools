@@ -414,10 +414,17 @@ class DPT_RB_Schema {
 				$out = array();
 				if ( is_array( $value ) ) {
 					foreach ( $value as $key => $on ) {
-						$key = sanitize_key( $key );
-						if ( '' !== $key ) {
-							$out[ $key ] = self::truthy( $on ) ? 'true' : 'false';
-						}
+						// The key is the option JetEngine defined, kept
+						// exactly as it defined it. It is free text - the
+						// admin's "Add custom value" flow writes whatever an
+						// editor typed into the definition with nothing but
+						// esc_attr() over it - so sanitize_key(), which is
+						// what this ran, dropped a Hebrew option outright and
+						// quietly turned "Sky Blue" into a different option
+						// called skyblue. normalize_read() never reshaped
+						// these, so the write and the read disagreed about
+						// which options the field even had.
+						$out[ $key ] = self::truthy( $on ) ? 'true' : 'false';
 					}
 				}
 				return $out;
