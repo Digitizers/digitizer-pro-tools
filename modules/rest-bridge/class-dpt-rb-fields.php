@@ -109,6 +109,13 @@ class DPT_RB_Fields {
 			self::register_one( $descriptor, $descriptor['meta_key'] );
 		}
 
+		// What discovery landed, frozen before the compatibility layer adds
+		// anything of its own. The alias below asks this rather than the
+		// live registry so that "the site defines its own jet_qna here" and
+		// "an earlier pass already aliased jet_qna here" stay two different
+		// questions with two different answers.
+		$owned = self::$registered;
+
 		// The alias: one name the old plugin invented for a repeater whose
 		// real name is qna. It writes the same meta key, so both names are
 		// the same field seen twice rather than two fields to keep in step.
@@ -131,7 +138,16 @@ class DPT_RB_Fields {
 			// is aliased on the targets it really has, and note_compat()
 			// keeps the report a list of names rather than a tally, so a
 			// second definition of the key cannot say jet_qna twice.
-			if ( self::register_one( $descriptor, 'jet_qna' ) > 0 ) {
+			//
+			// Minus the targets where the site defines a field of its own
+			// under that name: compatibility fills a gap, it never takes a
+			// name that is already someone's.
+			$aliased            = $descriptor;
+			$aliased['targets'] = self::alias_targets( $descriptor, $owned );
+			if ( ! $aliased['targets'] ) {
+				continue;
+			}
+			if ( self::register_one( $aliased, 'jet_qna' ) > 0 ) {
 				self::note_compat( 'jet_qna' );
 			}
 		}
@@ -257,6 +273,50 @@ class DPT_RB_Fields {
 			'object'   => 'post',
 			'targets'  => array( 'post' ),
 		);
+	}
+
+	/**
+	 * Which of a qna repeater's targets may carry the jet_qna alias.
+	 *
+	 * A post type can define both a qna repeater and a field of its own
+	 * literally named jet_qna. Discovery registers the real jet_qna first,
+	 * and the alias used to be registered straight over it - callbacks and
+	 * schema replaced by ones pointing at the qna meta key, so reads and
+	 * writes under jet_qna operated on the wrong metadata and the site's own
+	 * field became unreachable through the API entirely. Same family as the
+	 * legacy list's collision check above, and the same answer: the site's
+	 * own definition wins.
+	 *
+	 * The skip is recorded rather than silent. An automation that expects
+	 * jet_qna to mean the FAQ has to be able to learn that on this site it
+	 * does not, and the info endpoint is where it looks.
+	 *
+	 * @param array $descriptor Discovered qna repeater.
+	 * @param array $owned      What discovery registered, as it stood before
+	 *                          the compatibility layer ran.
+	 * @return array
+	 */
+	private static function alias_targets( $descriptor, $owned ) {
+		$free = array();
+		foreach ( $descriptor['targets'] as $target ) {
+			$key = $descriptor['object'] . '/' . $target;
+			if ( isset( $owned[ $key ]['jet_qna'] ) ) {
+				// English, untranslated, like every other line in this list -
+				// see register_qna_fallback() for why.
+				$reason = sprintf(
+					'The jet_qna alias for the qna repeater was not registered on %s because the site defines its own jet_qna field there.',
+					$target
+				);
+				// Two qna definitions on one target would otherwise say the
+				// same sentence twice, which reads as two problems.
+				if ( ! in_array( $reason, self::$skipped, true ) ) {
+					self::$skipped[] = $reason;
+				}
+				continue;
+			}
+			$free[] = $target;
+		}
+		return $free;
 	}
 
 	/**

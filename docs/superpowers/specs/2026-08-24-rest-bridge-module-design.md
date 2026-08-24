@@ -289,6 +289,21 @@ discovery did not already expose the name:
   `compat()` is a list of names, not a tally: `jet_qna` is reported once
   however many passes registered it, and `registered()` carries the
   per-target detail.
+  The alias is withheld from any target where the site defines a field of its
+  own literally named `jet_qna`, decided per target the way the legacy list's
+  collision check is: a post type can define both a `qna` repeater and its own
+  `jet_qna`, and discovery registering the real one first meant the alias was
+  laid straight over it - callbacks and schema replaced by ones pointing at
+  the `qna` meta key, so reads and writes under `jet_qna` operated on the
+  wrong metadata and the site's own field was unreachable through the API
+  entirely. Same family as the URL-field collision above and the same answer:
+  the site's own definition wins, compatibility fills a gap and never takes a
+  name that is already someone's. The withheld target is recorded in
+  `skipped()`, because an automation that expects `jet_qna` to mean the FAQ
+  needs to be able to learn that on this site it does not. The check is made
+  against what discovery registered, frozen before the compatibility layer
+  runs, so "the site defines its own `jet_qna` here" stays a different
+  question from "an earlier pass already aliased `jet_qna` here".
 - `reading_time` (posts, text), `author_description` (authors taxonomy,
   wysiwyg), `author_image` (authors, url → `esc_url_raw`), `linkedin`
   (authors, url) — the old plugin's hard-coded set, kept because consumers use
@@ -409,7 +424,11 @@ options, no `user_can_toggle` override.
    against the schema `for_descriptor()` advertised.
 3. Fields: registration targets (REST-enabled only), read normalization
    (array / JSON string / serialized string / garbage), alias registered only
-   when missing, compat set skips discovered names. A value carrying literal
+   when missing - including the target-by-target case, where a post type
+   defining both `qna` and its own `jet_qna` keeps its own field bound to the
+   `jet_qna` meta key, with the alias absent, a reason recorded and nothing
+   claimed in `compat()`, while a sibling target with no such field is aliased
+   as usual - compat set skips discovered names. A value carrying literal
    backslashes round-trips through a write and a read unchanged - at the top
    level, on both meta stores, and inside a repeater item's unmapped column -
    and writing the same such value twice is still a success. The harness's

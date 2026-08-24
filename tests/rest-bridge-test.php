@@ -1793,6 +1793,113 @@ DPT_RB_Fields::register();
 dpt_test_ok( isset( $GLOBALS['dpt_stub_rest_fields']['post']['jet_qna'] ), 'a non-repeater qna on pages alone does not withhold the post gate' );
 dpt_test_eq( implode( ' | ', DPT_RB_Fields::skipped() ), '', 'and there is no gap to explain' );
 
+/* ---- jet_qna is not the alias's to take when the site defines one ---- */
+
+// A post type can define both a qna repeater and a field of its own literally
+// called jet_qna. Discovery registers the real jet_qna first, and the alias
+// used to be registered straight over it: callbacks and schema replaced by
+// ones pointing at the qna meta key. Reads and writes under jet_qna then
+// operated on the wrong metadata, and the site's own field was unreachable
+// through the API at all. The rule the legacy list has always followed
+// applies here too - the site's own definition wins, compatibility fills a
+// gap rather than taking a name that is already someone's.
+$GLOBALS['dpt_stub_options'] = array(
+	'jet_engine_meta_boxes' => array(
+		array(
+			'id'          => 'post-faq-and-notes',
+			'args'        => array( 'object_type' => 'post', 'allowed_post_type' => array( 'post' ) ),
+			'meta_fields' => array(
+				array(
+					'name'            => 'qna',
+					'title'           => 'FAQ',
+					'object_type'     => 'field',
+					'type'            => 'repeater',
+					'repeater-fields' => array(
+						array( 'name' => 'q', 'title' => 'Q', 'type' => 'text' ),
+						array( 'name' => 'a', 'title' => 'A', 'type' => 'wysiwyg' ),
+					),
+				),
+				array( 'name' => 'jet_qna', 'title' => 'JetEngine QnA note', 'object_type' => 'field', 'type' => 'text' ),
+			),
+		),
+	),
+);
+DPT_RB_Definitions::reset();
+$GLOBALS['dpt_stub_rest_fields'] = array();
+$GLOBALS['dpt_stub_post_meta']   = array();
+DPT_RB_Fields::register();
+dpt_test_eq( $GLOBALS['dpt_stub_rest_fields']['post']['jet_qna']['schema']['type'], 'string', 'the site\'s own jet_qna keeps the shape it defined, not the repeater\'s' );
+dpt_test_ok( isset( $GLOBALS['dpt_stub_rest_fields']['post']['qna'] ), 'while the repeater is still there under its real name' );
+dpt_test_ok( ! in_array( 'jet_qna', DPT_RB_Fields::compat(), true ), 'and compat() does not claim an alias it did not register' );
+dpt_test_ok( false !== strpos( implode( ' | ', DPT_RB_Fields::skipped() ), 'defines its own jet_qna field' ), 'the skip is recorded, so the info endpoint can tell an automation that jet_qna does not mean the FAQ here' );
+
+// The registration is what a write actually goes through, so the meta key it
+// lands on is the assertion that matters: an alias registered over this would
+// send the write to qna and overwrite the FAQ with a string.
+$own_write = isset( $GLOBALS['dpt_stub_rest_fields']['post']['jet_qna']['update_callback'] ) ? $GLOBALS['dpt_stub_rest_fields']['post']['jet_qna']['update_callback'] : null;
+$own_read  = isset( $GLOBALS['dpt_stub_rest_fields']['post']['jet_qna']['get_callback'] ) ? $GLOBALS['dpt_stub_rest_fields']['post']['jet_qna']['get_callback'] : null;
+update_post_meta( 41, 'qna', array( array( 'q' => 'Kept?', 'a' => 'Kept' ) ) );
+dpt_test_ok( is_callable( $own_write ) && true === call_user_func( $own_write, 'a note', (object) array( 'ID' => 41 ) ), 'a write under jet_qna is accepted' );
+dpt_test_eq( get_post_meta( 41, 'jet_qna', true ), 'a note', 'and lands on the jet_qna meta key, the one the site named' );
+dpt_test_eq( get_post_meta( 41, 'qna', true ), array( array( 'q' => 'Kept?', 'a' => 'Kept' ) ), 'leaving the FAQ under qna exactly as it was' );
+dpt_test_eq( is_callable( $own_read ) ? call_user_func( $own_read, array( 'id' => 41 ) ) : null, 'a note', 'and the read hands back the site\'s own field, not the FAQ' );
+
+// The contrast, unchanged: with no jet_qna of the site's own, the alias is
+// registered exactly as before.
+$GLOBALS['dpt_stub_options']['jet_engine_meta_boxes'][0]['meta_fields'] = array(
+	$GLOBALS['dpt_stub_options']['jet_engine_meta_boxes'][0]['meta_fields'][0],
+);
+DPT_RB_Definitions::reset();
+$GLOBALS['dpt_stub_rest_fields'] = array();
+DPT_RB_Fields::register();
+dpt_test_ok( isset( $GLOBALS['dpt_stub_rest_fields']['post']['jet_qna']['schema']['items']['properties']['q'] ), 'a post type defining only qna still gets the alias, in the repeater\'s shape' );
+dpt_test_ok( in_array( 'jet_qna', DPT_RB_Fields::compat(), true ), 'and it is reported as the compatibility field it is' );
+dpt_test_eq( implode( ' | ', DPT_RB_Fields::skipped() ), '', 'with nothing to explain away' );
+
+// The decision is per target, like the legacy list's: a name taken on one of
+// the repeater's targets must not withhold the alias from another that has no
+// collision at all.
+$GLOBALS['dpt_stub_options'] = array(
+	'jet_engine_meta_boxes' => array(
+		array(
+			'id'          => 'shared-faq',
+			'args'        => array( 'object_type' => 'post', 'allowed_post_type' => array( 'post', 'page' ) ),
+			'meta_fields' => array(
+				array(
+					'name'            => 'qna',
+					'title'           => 'FAQ',
+					'object_type'     => 'field',
+					'type'            => 'repeater',
+					'repeater-fields' => array( array( 'name' => 'q', 'title' => 'Q', 'type' => 'text' ) ),
+				),
+			),
+		),
+		array(
+			'id'          => 'post-only-note',
+			'args'        => array( 'object_type' => 'post', 'allowed_post_type' => array( 'post' ) ),
+			'meta_fields' => array(
+				array( 'name' => 'jet_qna', 'title' => 'JetEngine QnA note', 'object_type' => 'field', 'type' => 'text' ),
+			),
+		),
+	),
+);
+DPT_RB_Definitions::reset();
+$GLOBALS['dpt_stub_rest_fields'] = array();
+DPT_RB_Fields::register();
+dpt_test_eq( $GLOBALS['dpt_stub_rest_fields']['post']['jet_qna']['schema']['type'], 'string', 'on the target that defines its own jet_qna, the site keeps the name' );
+dpt_test_ok( isset( $GLOBALS['dpt_stub_rest_fields']['page']['jet_qna']['schema']['items']['properties']['q'] ), 'while the target with no collision is aliased as usual' );
+dpt_test_ok( in_array( 'jet_qna', DPT_RB_Fields::compat(), true ), 'so the name really was added somewhere, and compat() says so' );
+dpt_test_ok( false !== strpos( implode( ' | ', DPT_RB_Fields::skipped() ), 'not registered on post' ), 'and the target it was withheld from is named' );
+
+// And the oldest behaviour of all, untouched: a site with nothing called qna
+// anywhere still gets ContentEngine's gate in the legacy shape.
+$GLOBALS['dpt_stub_options'] = array();
+DPT_RB_Definitions::reset();
+$GLOBALS['dpt_stub_rest_fields'] = array();
+DPT_RB_Fields::register();
+dpt_test_ok( isset( $GLOBALS['dpt_stub_rest_fields']['post']['jet_qna']['schema']['items']['properties']['question'] ), 'no qna field at all, and the fallback still registers the legacy shape' );
+dpt_test_ok( in_array( 'jet_qna', DPT_RB_Fields::compat(), true ), 'reported as a compatibility field, as it always was' );
+
 /* ---- compat() reports only names that actually landed somewhere ---- */
 
 // A site where the authors taxonomy is not on the REST API at all must not
