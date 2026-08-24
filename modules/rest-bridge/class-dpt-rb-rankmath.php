@@ -137,25 +137,52 @@ class DPT_RB_Rankmath {
 	}
 
 	/**
-	 * The show_in_rest argument for a type. A scalar can be described with
-	 * just `true` - core fills in the schema from `type` - but an array
-	 * cannot: without an explicit item schema, WordPress refuses to expose
-	 * it at all rather than expose it wrong.
+	 * The show_in_rest argument for a type.
+	 *
+	 * Always a schema, and the schema always names the edit context. That is
+	 * the only mechanism there is for keeping a registered meta key off an
+	 * anonymous read, and without it these twelve were on one.
+	 *
+	 * The auth_callback below gates writes and nothing else:
+	 * WP_REST_Meta_Fields::get_value() performs no capability check of any
+	 * kind - unlike update_meta_value() and delete_meta_value(), which both
+	 * do - so a registered key is read by whoever asks. The `meta` container's
+	 * own schema is context view and edit, each key's schema carried no
+	 * context at all, and rest_filter_response_by_context() leaves a property
+	 * alone when its schema names none. So GET /wp/v2/posts returned the focus
+	 * keyword, the SEO score and the canonical URL of every post and page on
+	 * the site to callers with no authentication whatsoever. Rank Math has
+	 * said in its own code what it thinks of that: Common::hide_rank_math_meta()
+	 * filters is_protected_meta() to true for every rank_math_* key there is,
+	 * unconditionally, on REST requests as much as anywhere else.
+	 *
+	 * Edit only, which is where core's own gate is: a request asking for that
+	 * context has already had the post's update capability checked by the
+	 * posts controller before a field is assembled. It is also the answer this
+	 * module already gives for every field it discovers, on exactly the same
+	 * reasoning - a module cannot tell a site's public content from its
+	 * working notes, and SEO scoring is not rendered content by anyone's
+	 * reckoning.
+	 *
+	 * A scalar would otherwise be describable with just `true`, core filling
+	 * the schema in from `type`; an array never was, because without an
+	 * explicit item schema WordPress refuses to expose it at all rather than
+	 * expose it wrong. Both now carry a schema, and core merges it over the
+	 * defaults it builds from `type`, so naming the context is all either one
+	 * has to add.
 	 *
 	 * @param string $type REST schema type.
-	 * @return bool|array
+	 * @return array
 	 */
 	private static function show_in_rest( $type ) {
-		if ( 'array' !== $type ) {
-			return true;
+		$schema = array( 'context' => array( 'edit' ) );
+
+		if ( 'array' === $type ) {
+			$schema['type']  = 'array';
+			$schema['items'] = array( 'type' => 'string' );
 		}
 
-		return array(
-			'schema' => array(
-				'type'  => 'array',
-				'items' => array( 'type' => 'string' ),
-			),
-		);
+		return array( 'schema' => $schema );
 	}
 
 	/**

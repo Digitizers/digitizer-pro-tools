@@ -2991,6 +2991,48 @@ $GLOBALS['dpt_stub_denied_post_caps'] = array( 30 );
 dpt_test_ok( ! call_user_func( $auth, true, 'rank_math_title', 30 ), 'and with no prior denial a post this user may not edit is still refused' );
 $GLOBALS['dpt_stub_denied_post_caps'] = array();
 
+/* ---- and none of it reaches an anonymous reader ---- */
+
+// The auth_callback above gates writes and nothing else.
+// WP_REST_Meta_Fields::get_value() performs no capability check at all -
+// unlike update_meta_value() and delete_meta_value(), which both do - and
+// rest_filter_response_by_context() leaves a property alone when its schema
+// names no context. So registering these keys with show_in_rest => true put
+// the focus keyword and the SEO score of every post and page on an
+// unauthenticated GET /wp/v2/posts. Rank Math says what it thinks of that in
+// its own code: Common::hide_rank_math_meta() filters is_protected_meta() to
+// true for every rank_math_* key there is.
+//
+// This module already goes to some length to keep *discovered* fields out of
+// the view context for exactly this reason. Same exposure, different door.
+$GLOBALS['dpt_stub_post_meta'] = array();
+update_post_meta( 31, 'rank_math_focus_keyword', 'hebrew seo' );
+update_post_meta( 31, 'rank_math_seo_score', '81' );
+update_post_meta( 31, 'rank_math_title', 'A title' );
+
+$rm_view = dpt_stub_meta_response( 'post', 31, 'view' );
+dpt_test_ok( ! array_key_exists( 'rank_math_focus_keyword', $rm_view ), 'the focus keyword is not on an unauthenticated read' );
+dpt_test_ok( ! array_key_exists( 'rank_math_seo_score', $rm_view ), 'nor is the SEO score' );
+dpt_test_ok( ! array_key_exists( 'rank_math_title', $rm_view ), 'nor any other rank_math key' );
+dpt_test_eq( $rm_view, array(), 'none of the twelve survives the view context' );
+
+// And the other half, which is what makes the first half a fix rather than a
+// removal: a reader who asked for the edit context - which core gates on the
+// post's own update capability before a field callback runs - still gets
+// every one of them, with its value.
+$rm_edit = dpt_stub_meta_response( 'post', 31, 'edit' );
+dpt_test_eq( $rm_edit['rank_math_focus_keyword'], 'hebrew seo', 'while an authenticated edit-context read still returns the focus keyword' );
+dpt_test_eq( $rm_edit['rank_math_seo_score'], '81', 'and the score' );
+dpt_test_eq( count( $rm_edit ), 12, 'and all twelve keys are there' );
+
+// The array-typed key needs its item schema as much as it needs its context;
+// without the items core refuses to expose it at all, so the two have to
+// travel together.
+$robots = $GLOBALS['dpt_stub_registered_post_meta']['post']['rank_math_robots']['show_in_rest'];
+dpt_test_eq( $robots['schema']['items'], array( 'type' => 'string' ), 'robots keeps the item schema core requires of an array' );
+dpt_test_eq( $robots['schema']['context'], array( 'edit' ), 'beside the context that keeps it off an anonymous read' );
+$GLOBALS['dpt_stub_post_meta'] = array();
+
 /* ---- the info endpoint tells an agent what this site exposes ---- */
 
 $info = DPT_RB_Info::payload();

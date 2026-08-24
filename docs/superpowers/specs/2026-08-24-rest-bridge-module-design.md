@@ -598,8 +598,26 @@ the replaced plugin):
 
 When Rank Math is active (`class_exists( 'RankMath' )`): the same 12
 `rank_math_*` keys the old plugin registered, via `register_post_meta`, on
-`post` **and** `page`, `show_in_rest`, `auth_callback` = `edit_posts`.
+`post` **and** `page`, `show_in_rest`, `auth_callback` scoped to the post.
 When Rank Math is absent: nothing is registered.
+
+`show_in_rest` is always `array( 'schema' => array( 'context' =>
+array( 'edit' ), … ) )`, never a bare `true`. A per-key `context` is the only
+mechanism there is for keeping a registered meta key off an anonymous read,
+and without it these twelve were on one: the `auth_callback` gates writes and
+nothing else, because `WP_REST_Meta_Fields::get_value()` performs no
+capability check of any kind — unlike `update_meta_value()` and
+`delete_meta_value()`, which both do — the `meta` container's schema is
+`view, edit`, and `rest_filter_response_by_context()` leaves a property alone
+when its schema names no context. So `GET /wp/v2/posts` returned the focus
+keyword, the SEO score and the canonical URL of every post and page to
+callers with no authentication at all. Rank Math has said what it thinks of
+that in its own code: `Common::hide_rank_math_meta()` filters
+`is_protected_meta()` to `true` for every `rank_math_*` key, unconditionally.
+Edit is where core's own gate is — the posts controller checks the post's
+update capability before a field is assembled in that context — and it is the
+same answer this module already gives every field it discovers, on the same
+reasoning.
 
 ### DPT_RB_Info
 
@@ -756,8 +774,17 @@ options, no `user_can_toggle` override.
    dropping a `<script>` with its content, removing a disallowed element and
    keeping its text, and taking an `on*` handler off one that is allowed -
    and `map_deep` is core's own walk, so none of that is vacuous.
-5. Info: shape, skipped surfaced, rank_math flag.
-6. Stand-down: with the old plugin's function defined (declared in a guarded
+5. Rank Math: the twelve keys on posts and pages, their types checked against
+   Rank Math's own reads, the auth callback scoped to the post and honouring a
+   denial already in `$allowed` - and none of the twelve on an unauthenticated
+   read, while an edit-context read still returns every one with its value.
+   The harness assembles the `meta` object the way `WP_REST_Meta_Fields` does
+   (no capability check on the read, per-key schema merged over the defaults)
+   and filters it the way `rest_filter_response_by_context()` does (a property
+   with no context of its own survives), so the leak is reproducible in the
+   harness before it is fixed.
+6. Info: shape, skipped surfaced, rank_math flag.
+7. Stand-down: with the old plugin's function defined (declared in a guarded
    block), init registers nothing and the reason is non-empty.
 
 ## Global constraints

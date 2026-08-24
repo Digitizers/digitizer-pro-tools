@@ -576,6 +576,88 @@ function register_post_meta( $post_type, $key, $args = array() ) {
 	return true;
 }
 
+/**
+ * The schema WP_REST_Meta_Fields builds for the `meta` property of a post
+ * response, assembled the way core assembles it: a default schema per
+ * registered key from its `type`, `description` and `default`, with whatever
+ * `show_in_rest['schema']` says merged over the top - which is the only place
+ * a registered meta key can carry a `context` of its own.
+ *
+ * The container itself is `array( 'view', 'edit' )`, as get_field_schema()
+ * hard-codes it. That is not the same thing as each key being readable in
+ * both, and modelling only the container is how a leak like this one hides.
+ */
+function dpt_stub_meta_field_schema( $post_type ) {
+	$registered = isset( $GLOBALS['dpt_stub_registered_post_meta'][ $post_type ] )
+		? $GLOBALS['dpt_stub_registered_post_meta'][ $post_type ]
+		: array();
+
+	$properties = array();
+	foreach ( $registered as $key => $args ) {
+		if ( empty( $args['show_in_rest'] ) ) {
+			continue;
+		}
+		$schema = array(
+			'type'        => isset( $args['type'] ) ? $args['type'] : 'string',
+			'description' => isset( $args['description'] ) ? $args['description'] : '',
+		);
+		if ( is_array( $args['show_in_rest'] ) && isset( $args['show_in_rest']['schema'] ) ) {
+			$schema = array_merge( $schema, $args['show_in_rest']['schema'] );
+		}
+		$properties[ $key ] = $schema;
+	}
+
+	return array(
+		'type'       => 'object',
+		'context'    => array( 'view', 'edit' ),
+		'properties' => $properties,
+	);
+}
+
+/**
+ * rest_filter_response_by_context(), in the one shape these tests need: a
+ * property whose schema names no `context` at all is left alone, and one
+ * whose context does not include the request's is removed.
+ *
+ * The first half is the half that matters. It is why an `auth_callback` is no
+ * defence on a read - WP_REST_Meta_Fields::get_value() performs no capability
+ * check of any kind, unlike its update and delete siblings - and why a key
+ * registered without a context of its own reaches an anonymous GET however
+ * protected it is.
+ */
+function dpt_stub_filter_by_context( $data, $schema, $context ) {
+	if ( ! is_array( $data ) ) {
+		return $data;
+	}
+	$properties = isset( $schema['properties'] ) ? $schema['properties'] : array();
+	foreach ( $data as $key => $ignored ) {
+		if ( ! isset( $properties[ $key ]['context'] ) ) {
+			continue;
+		}
+		if ( ! in_array( $context, $properties[ $key ]['context'], true ) ) {
+			unset( $data[ $key ] );
+		}
+	}
+	return $data;
+}
+
+/**
+ * The `meta` object one post response really carries, in one context.
+ *
+ * Values are read with no capability check, exactly as get_value() reads
+ * them, and the assembled object is then filtered by context the way
+ * prepare_item_for_response() filters it. Those two together are the whole
+ * mechanism a registered meta key's read visibility rests on.
+ */
+function dpt_stub_meta_response( $post_type, $post_id, $context ) {
+	$schema = dpt_stub_meta_field_schema( $post_type );
+	$data   = array();
+	foreach ( $schema['properties'] as $key => $ignored ) {
+		$data[ $key ] = get_post_meta( $post_id, $key, true );
+	}
+	return dpt_stub_filter_by_context( $data, $schema, $context );
+}
+
 /** Which post types and taxonomies are visible to the REST API. */
 $GLOBALS['dpt_stub_rest_post_types'] = array( 'post', 'page' );
 $GLOBALS['dpt_stub_rest_taxonomies'] = array( 'category', 'post_tag', 'authors' );
