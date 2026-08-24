@@ -781,11 +781,56 @@ dpt_test_eq( DPT_RB_Schema::sanitize( $media_url, 'javascript:alert(1)' ), '', '
 dpt_test_eq( DPT_RB_Schema::sanitize( $media_url, 'data:text/html;base64,PHN2Zz4=' ), '', 'and a data: one' );
 dpt_test_eq( DPT_RB_Schema::sanitize( $media_both, true ), '', 'a boolean is neither an id nor a URL, and does not become http://1' );
 
+// What core really does to a string that names no protocol: it makes an
+// address of it. Pinned here because the assertion below is only worth
+// anything against a harness that models it - a lenient esc_url_raw() hid
+// the defect that assertion now guards, and would hide it again.
+dpt_test_eq( esc_url_raw( 'A hero' ), 'http://Ahero', 'the harness models what core does to a string that is not a URL' );
+
+// A media pair is cleaned by each member's key, not by each member's shape.
+// Shape said "not an id, so a URL", so esc_url_raw() ran over every member
+// the array had and an alt text of 'A hero' was really stored as
+// http://Ahero - the same silent rewrite absint() over a stored URL was, and
+// the assertion below used to claim the opposite because the stub was too
+// lenient to show it. Only id and url have a format this module knows.
 $pair = DPT_RB_Schema::sanitize( $media_both, array( 'id' => '12', 'url' => ' https://example.test/hero.jpg ', 'alt' => 'A hero', 'meta' => array( 'w' => 1 ) ) );
 dpt_test_eq( $pair['id'], 12, 'the id half of a pair is cleaned as an id' );
 dpt_test_eq( $pair['url'], 'https://example.test/hero.jpg', 'the URL half as a URL' );
-dpt_test_eq( $pair['alt'], 'A hero', 'a member this bridge has no format for is kept as it arrived' );
+dpt_test_eq( $pair['alt'], 'A hero', 'a member this bridge has no format for is kept as it arrived, not made an address of' );
 dpt_test_eq( $pair['meta'], array( 'w' => 1 ), 'whatever shape it is in' );
+dpt_test_eq( DPT_RB_Schema::sanitize( $media_both, array( 'caption' => 'Ben, 2026', 'size' => 'full' ) ), array( 'caption' => 'Ben, 2026', 'size' => 'full' ), 'and so is every other member JetEngine or a site puts in that array' );
+
+// The url member is still a URL whatever it arrives as, which is the half of
+// this that a theme's src depends on.
+dpt_test_eq( DPT_RB_Schema::sanitize( $media_both, array( 'id' => 12, 'url' => 'javascript:alert(1)' ) ), array( 'id' => 12, 'url' => '' ), 'the url member is still kept out of javascript:' );
+dpt_test_eq( DPT_RB_Schema::sanitize( $media_both, array( 'url' => true ) ), array( 'url' => '' ), 'and a boolean url does not become http://1' );
+
+// The id member does not always arrive as an integer. Meta storage keeps a
+// number as the string it wrote, a client sends whichever it read, and a
+// site can have left something else there entirely - and absint() answers 0
+// for all of the last kind, which is the "no attachment" value. A member
+// this module cannot read as an id is left alone, so the pair a client just
+// read still writes back as itself.
+dpt_test_eq( DPT_RB_Schema::sanitize( $media_both, array( 'id' => '12' ) ), array( 'id' => 12 ), 'an id stored as the string meta storage kept is read as the integer it is' );
+dpt_test_eq( DPT_RB_Schema::sanitize( $media_both, array( 'id' => 12 ) ), array( 'id' => 12 ), 'and one that arrives as an integer stays one' );
+dpt_test_eq( DPT_RB_Schema::sanitize( $media_both, array( 'id' => '' ) ), array( 'id' => '' ), 'an empty id - a pair with no attachment chosen - is not turned into 0' );
+dpt_test_eq( DPT_RB_Schema::sanitize( $media_both, array( 'id' => 'abc' ) ), array( 'id' => 'abc' ), 'nor is an id this module cannot read as one' );
+
+// The read side shapes the same members the same way, or the schema, the
+// write and the read stop agreeing one level inside the pair.
+$read_pair = DPT_RB_Schema::normalize_read( $media_both, array( 'id' => '12', 'url' => 'https://example.test/hero.jpg', 'alt' => 'A hero' ) );
+dpt_test_eq( $read_pair->id, 12, 'a stored id reads back as the integer it is' );
+dpt_test_eq( $read_pair->alt, 'A hero', 'and an unmapped member reads back exactly as stored' );
+
+// The property that matters is the round trip, not any single member: what
+// a client reads has to write back as itself, whole.
+$whole    = array( 'id' => '12', 'url' => 'https://example.test/hero.jpg', 'alt' => 'A hero', 'meta' => array( 'w' => 1 ) );
+$one_trip = DPT_RB_Schema::sanitize( $media_both, DPT_RB_Schema::normalize_read( $media_both, $whole ) );
+dpt_test_eq(
+	wp_json_encode( DPT_RB_Schema::normalize_read( $media_both, $one_trip ) ),
+	wp_json_encode( DPT_RB_Schema::normalize_read( $media_both, $whole ) ),
+	'a pair read and written straight back changes nothing, member for member'
+);
 dpt_test_eq(
 	DPT_RB_Schema::sanitize( $media_both, DPT_RB_Schema::normalize_read( $media_both, array( 'id' => 12, 'url' => 'https://example.test/hero.jpg' ) ) ),
 	array( 'id' => 12, 'url' => 'https://example.test/hero.jpg' ),
@@ -1339,6 +1384,17 @@ dpt_test_ok( true === DPT_RB_Fields::write( $photo_both, array( 'id' => 12, 'url
 dpt_test_eq( wp_json_encode( DPT_RB_Fields::read( $photo_both, array( 'id' => 11 ) ) ), wp_json_encode( (object) array( 'id' => 12, 'url' => 'https://example.test/hero.jpg' ) ), 'and hands back both halves' );
 dpt_test_ok( true === DPT_RB_Fields::write( $photo_both, DPT_RB_Fields::read( $photo_both, array( 'id' => 11 ) ), (object) array( 'ID' => 11 ) ), 'and the object it just handed out writes back as a success' );
 dpt_test_eq( wp_json_encode( DPT_RB_Fields::read( $photo_both, array( 'id' => 11 ) ) ), wp_json_encode( (object) array( 'id' => 12, 'url' => 'https://example.test/hero.jpg' ) ), 'still holding both halves' );
+
+// And the same through the meta store with the members a real pair carries
+// beside its two known ones. This is the finding stated as a round trip: an
+// alt text that came back as http://Ahero the first time a client wrote back
+// what it had just read was data destroyed by a 200.
+$rich_pair = array( 'id' => 12, 'url' => 'https://example.test/hero.jpg', 'alt' => 'A hero', 'meta' => array( 'w' => 1 ) );
+dpt_test_ok( true === DPT_RB_Fields::write( $photo_both, $rich_pair, (object) array( 'ID' => 13 ) ), 'a pair carrying members this bridge has no format for is written' );
+$rich_read = DPT_RB_Fields::read( $photo_both, array( 'id' => 13 ) );
+dpt_test_eq( $rich_read->alt, 'A hero', 'and the alt text reads back as itself, not as an address' );
+dpt_test_ok( true === DPT_RB_Fields::write( $photo_both, $rich_read, (object) array( 'ID' => 13 ) ), 'writing back exactly what was read is a success' );
+dpt_test_eq( wp_json_encode( DPT_RB_Fields::read( $photo_both, array( 'id' => 13 ) ) ), wp_json_encode( $rich_read ), 'and the whole pair survived the round trip unchanged' );
 
 /* ---- a multi-select through real meta storage ---- */
 

@@ -79,7 +79,7 @@ by WordPress.
 | select (multiple) | array of strings; also string/object for what storage still holds | `sanitize_text_field` per option |
 | radio | string | `sanitize_text_field` |
 | date / time / datetime-local | string | `sanitize_text_field` |
-| media | integer, string or object - id, URL, or `{id, url}` | by the shape received: `absint` / `esc_url_raw` / member by member |
+| media | integer, string or object - id, URL, or `{id, url}` | by the shape received: `absint` / `esc_url_raw`; an array member by member, **by the member's key** |
 | repeater | array of objects; properties from sub-fields | recurse per sub-field |
 
 A media field is advertised as **all three of the formats JetEngine can store
@@ -99,6 +99,20 @@ member and any member this bridge has no format for is kept verbatim), and
 thing only: what an *unset* field reads back as, where there is no value in
 hand to read a shape off - `0` for the id format, which consumers already
 rely on, and `''` for the other two, about which `0` would be a lie.
+
+Inside the array format the member's **key** decides its treatment, not the
+member's shape. `url` goes through `esc_url_raw()` because a template prints it
+into a `src`; an `id` this module can read as one becomes that integer, on the
+write and on the read alike, because meta storage hands a number back as the
+string it kept. Every other member - the `alt`, the caption, the size JetEngine
+or a site puts in that array - is kept exactly as found, the rule the repeater
+path follows for its unmapped columns. Cleaning by shape instead, which is what
+this did, meant "not an id, so a URL": `esc_url_raw()` ran over every member,
+and core makes an address of a string that names no protocol, so an alt text of
+`A hero` was stored as `http://Ahero` the first time a client wrote back what it
+had just read - a 200 that destroyed data, the same failure `absint()` over a
+stored URL was. The property this is held to is the round trip: what a read
+hands out has to write back as itself, whole.
 
 A union rather than a single narrowed type on purpose, and the member order is
 the order core resolves it in: `rest_get_best_type_for_value()` walks the
@@ -366,7 +380,12 @@ options, no `user_can_toggle` override.
    formats - discovery carrying `value_format`, every shape accepted by the
    schema, read back as itself and unchanged by a read, write, read round
    trip through the meta store, and a stored URL specifically not read back
-   as `0`. A select is exercised single and multiple, with discovery carrying
+   as `0`. The array format is exercised member by member: the `url` member
+   kept out of `javascript:` and out of `http://1`, an `id` read as an integer
+   from either spelling and left alone when it is not one this module can read,
+   and a pair carrying an `alt` and a nested `meta` written, read and written
+   back unchanged - through the meta store as well as through the schema
+   class. A select is exercised single and multiple, with discovery carrying
    `is_multiple` in each spelling JetEngine writes it, a list read back as a
    list rather than as `''`, a list still readable and writable on a field
    whose toggle this module did not see, and a plain value with a space in it
@@ -383,9 +402,12 @@ options, no `user_can_toggle` override.
    trips unchanged and the advertised schema still says `string`; a `linkedin`
    on another taxonomy is left as the text field the site defined, and a
    `media` field of the same name on `authors` keeps its own shape. The
-   harness's `esc_url_raw` stub reads the protocol off a copy with every
-   character a URL may not contain removed, the way core does, so that
-   obfuscated spelling cannot pass a check core would refuse.
+   harness's `esc_url_raw` stub models what core really does: it strips every
+   character a URL may not contain before reading the protocol, so an
+   obfuscated spelling cannot pass a check core would refuse, and it makes an
+   address of a string that names no protocol at all. The second half matters
+   as much as the first - a stub that left a non-URL string alone hid a real
+   defect in the media path through a whole round of review.
 4. Elementor: tree build, updates applied/not_found, per-post capability
    denial, cache clear called (the harness stubs `\Elementor\Plugin` so that
    call is really made), a refused write reported as an error with the cache

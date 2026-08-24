@@ -129,18 +129,27 @@ function esc_url_raw( $s ) {
 	if ( '' === $s ) {
 		return '';
 	}
-	// The protocol is read off a copy with every character a URL may not
-	// contain removed, because that is what core does before it decides:
-	// "java\tscript:alert(1)" is javascript:alert(1) by the time core's own
-	// protocol check sees it. Read off the string as typed instead, the stub
-	// would answer "safe" to a spelling core refuses, and a test claiming a
-	// javascript: URL cannot be stored would only be claiming it about the
-	// tidy spelling of one.
-	$probe = preg_replace( '#[^a-z0-9\-~+_.?\#=!&;,/:%@$|*\'()\[\]\x80-\xff]#i', '', $s );
-	if ( preg_match( '#^([a-z0-9+.\-]+):#i', $probe, $m ) && ! in_array( strtolower( $m[1] ), array( 'http', 'https', 'mailto', 'tel' ), true ) ) {
+	// Core drops every character a URL may not contain before it decides
+	// anything else, so "java\tscript:alert(1)" is javascript:alert(1) by the
+	// time the protocol check sees it. Stripped here for the same reason: a
+	// stub that read the protocol off the string as typed would answer "safe"
+	// to a spelling core refuses.
+	$s = preg_replace( '#[^a-z0-9\-~+_.?\#=!&;,/:%@$|*\'()\[\]\x80-\xff]#i', '', $s );
+	if ( '' === $s ) {
 		return '';
 	}
-	return $s;
+	if ( preg_match( '#^([a-z0-9+.\-]+):#i', $s, $m ) ) {
+		return in_array( strtolower( $m[1] ), array( 'http', 'https', 'mailto', 'tel' ), true ) ? $s : '';
+	}
+	// And what core does to a string that names no protocol at all: it makes
+	// an address of it. This is the half a lenient stub used to leave out,
+	// and leaving it out hid a real defect - sanitize_media() ran every
+	// member of a media pair through here, so an alt text of "A hero" really
+	// became http://Ahero on a live site while the suite saw it survive.
+	if ( '/' === $s[0] || '#' === $s[0] || '?' === $s[0] ) {
+		return $s;
+	}
+	return 'http://' . $s;
 }
 function sanitize_key( $s ) { return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( (string) $s ) ); }
 function wp_unslash( $s ) { return is_array( $s ) ? array_map( 'stripslashes', $s ) : stripslashes( (string) $s ); }

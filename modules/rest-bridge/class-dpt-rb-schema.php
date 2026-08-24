@@ -471,11 +471,20 @@ class DPT_RB_Schema {
 	 * the number 0 - a field this bridge could not shape being destroyed
 	 * rather than left alone.
 	 *
-	 * An array is cleaned member by member, each by its own shape, so the
-	 * id half of an id-and-URL pair stays an id and the URL half is still
-	 * kept out of javascript: and data:. A member that is neither - a
-	 * nested array some future format leaves there - is kept exactly as it
-	 * arrived, for the reason a repeater keeps its unknown columns.
+	 * An array is cleaned member by member and by the member's own **key**,
+	 * so the id half of an id-and-URL pair stays an id and the URL half is
+	 * still kept out of javascript: and data:. Every other member is kept
+	 * exactly as it arrived, for the reason a repeater keeps its unknown
+	 * columns: JetEngine and a site put an alt text, a caption and a size in
+	 * that array, and a value this module cannot shape is not a value it may
+	 * destroy.
+	 *
+	 * By the key rather than by each member's shape, which is what this ran
+	 * on before. Shape said "not an id, so a URL", so esc_url_raw() was run
+	 * over every member the pair had - and an alt text of "A hero" came back
+	 * from core as http://Ahero on the first write, the same class of silent
+	 * rewrite absint() over a stored URL was. Only two members of that array
+	 * have a format this module knows.
 	 *
 	 * @param mixed $value Raw value.
 	 * @return mixed
@@ -491,12 +500,47 @@ class DPT_RB_Schema {
 		if ( is_array( $value ) ) {
 			$out = array();
 			foreach ( $value as $key => $member ) {
-				$out[ $key ] = is_scalar( $member ) ? self::sanitize_media_scalar( $member ) : $member;
+				$out[ $key ] = self::sanitize_media_member( $key, $member );
 			}
 			return $out;
 		}
 
 		return self::sanitize_media_scalar( $value );
+	}
+
+	/**
+	 * Clean one member of a media array, by the name it goes under.
+	 *
+	 * Two names have a meaning this module knows. `url` is printed into a
+	 * src by every template that reads one, so it goes through
+	 * esc_url_raw(); `id` names an attachment, so an id-shaped value becomes
+	 * the integer it is.
+	 *
+	 * An `id` that is not id-shaped is left alone rather than run through
+	 * absint(), which would answer 0 - the "no attachment" value - for
+	 * whatever a site really had there, and would stop the pair a client
+	 * just read from writing back as itself. The round trip is the property
+	 * that matters here, not any single member.
+	 *
+	 * @param string|int $key    The member's key.
+	 * @param mixed      $member The member's value.
+	 * @return mixed
+	 */
+	private static function sanitize_media_member( $key, $member ) {
+		if ( ! is_scalar( $member ) ) {
+			// A nested array a future format leaves here has no scalar
+			// treatment to give it, whatever its key says.
+			return $member;
+		}
+		if ( 'url' === $key ) {
+			// A boolean is not an address, and esc_url_raw() would make one
+			// into http://1 rather than saying so.
+			return is_bool( $member ) ? '' : esc_url_raw( $member );
+		}
+		if ( 'id' === $key && self::is_attachment_id( $member ) ) {
+			return absint( $member );
+		}
+		return $member;
 	}
 
 	/**
@@ -764,10 +808,20 @@ class DPT_RB_Schema {
 			$stored = get_object_vars( $stored );
 		}
 		if ( is_array( $stored ) ) {
+			// Shaped member by member and by key, the way sanitize() cleans
+			// one, so what is advertised, what is written and what is read
+			// still say the same thing about every member of the pair: the
+			// id is the integer it is however storage kept it, and every
+			// member this module has no format for is handed back exactly as
+			// found.
+			$out = array();
+			foreach ( $stored as $key => $member ) {
+				$out[ $key ] = self::normalize_media_member_read( $key, $member );
+			}
 			// Cast for the reason a checkbox is cast: a PHP array whose keys
 			// happen to run 0, 1, 2 encodes as a JSON array, and the schema
 			// promised an object. Every key and value survives the cast.
-			return (object) $stored;
+			return (object) $out;
 		}
 		if ( self::is_attachment_id( $stored ) ) {
 			return absint( $stored );
@@ -783,5 +837,31 @@ class DPT_RB_Schema {
 		// about a field that has never held a number at all.
 		$format = isset( $descriptor['value_format'] ) ? $descriptor['value_format'] : 'id';
 		return 'id' === $format ? 0 : '';
+	}
+
+	/**
+	 * Present one member of a stored media array.
+	 *
+	 * The mirror of sanitize_media_member(), and paired with it on purpose:
+	 * the two are the only places that get to say what a member of that
+	 * array looks like from outside, and letting either drift from the other
+	 * is the failure this class exists to prevent. An id reads back as the
+	 * integer it is, because meta storage hands a number back as the string
+	 * it kept; a URL reads back as the string it is; everything else - an
+	 * alt text, a caption, a size a future JetEngine writes there - is
+	 * handed back exactly as found.
+	 *
+	 * @param string|int $key    The member's key.
+	 * @param mixed      $member Whatever storage held.
+	 * @return mixed
+	 */
+	private static function normalize_media_member_read( $key, $member ) {
+		if ( 'id' === $key && self::is_attachment_id( $member ) ) {
+			return absint( $member );
+		}
+		if ( 'url' === $key && is_scalar( $member ) && ! is_bool( $member ) ) {
+			return (string) $member;
+		}
+		return $member;
 	}
 }
