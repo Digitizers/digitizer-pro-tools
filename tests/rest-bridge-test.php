@@ -3174,6 +3174,67 @@ $GLOBALS['dpt_stub_denied_post_caps'] = array( 30 );
 dpt_test_ok( ! call_user_func( $auth, true, 'rank_math_title', 30 ), 'and with no prior denial a post this user may not edit is still refused' );
 $GLOBALS['dpt_stub_denied_post_caps'] = array();
 
+// Everything above is with nothing filtering is_protected_meta, which is not
+// the site this module runs on. Rank Math marks every rank_math_* key
+// protected from Common::__construct() - unconditionally, on REST requests
+// like any other - so map_meta_cap() seeds $allowed = ! is_protected_meta()
+// as **false** before it runs this callback at all. A bare AND therefore kept
+// it false for everybody, administrators included, and the Rank Math writes
+// this module exists to enable were dead on every site that has Rank Math.
+//
+// The seed is the one thing an auth_callback on register_post_meta() is there
+// to replace: a key registered with one is a key whose protected default the
+// registration means to override. A denial a *site* made is not, and both
+// arrive here as the same false. They are told apart by recomputing the seed
+// and comparing: equal means nothing intervened and the decision is ours,
+// different means somebody decided and that decision stands.
+add_filter(
+	'is_protected_meta',
+	function ( $protected, $key ) {
+		// Rank Math's own hide_rank_math_meta(), which is
+		// Str::starts_with( 'rank_math_', $meta_key ) ? true : $is_protected.
+		return 0 === strpos( (string) $key, 'rank_math_' ) ? true : $protected;
+	}
+);
+dpt_test_ok( is_protected_meta( 'rank_math_title', 'post' ), 'with Rank Math loaded its keys are protected, which is what seeds $allowed false' );
+dpt_test_ok( ! is_protected_meta( 'reading_time', 'post' ), 'while a key it does not own is untouched' );
+
+// 1. Protected by Rank Math, nothing else hooked, and the user may edit the
+//    post: allowed. This is the case that was refused to everybody.
+dpt_test_ok( call_user_func( $auth, false, 'rank_math_title', 30 ), 'a Rank Math key is writable by someone who may edit the post' );
+
+// 2. The same seed, a post they may not edit: still refused, because the
+//    capability check is what the callback is really for.
+$GLOBALS['dpt_stub_denied_post_caps'] = array( 30 );
+dpt_test_ok( ! call_user_func( $auth, false, 'rank_math_title', 30 ), 'and refused on a post they may not edit' );
+$GLOBALS['dpt_stub_denied_post_caps'] = array();
+
+// 4. A grant that differs from the seed came from somebody else, and stands -
+//    even against this callback's own capability check, which is what
+//    "respect what it decided" has to mean if it means anything. It grants
+//    nothing by itself: map_meta_cap() has already put edit_post's mapping in
+//    $caps at capabilities.php:472, and a true here only declines to add the
+//    blocking capability on top of it.
+$GLOBALS['dpt_stub_denied_post_caps'] = array( 30 );
+dpt_test_ok( call_user_func( $auth, true, 'rank_math_title', 30 ), 'a grant another filter made where the seed refused survives this callback' );
+$GLOBALS['dpt_stub_denied_post_caps'] = array();
+
+remove_filter( 'is_protected_meta' );
+
+// 3. A denial another filter made, which differs from the seed, is refused
+//    even for a user who may edit the post - the whole of what the AND was
+//    added to close, and it is still closed.
+dpt_test_ok( ! call_user_func( $auth, false, 'rank_math_title', 30 ), 'a denial another filter made is refused even for a user who may edit the post' );
+
+// Asserted with Rank Math's filter off, deliberately, because that is the
+// only configuration in which such a denial is *visible*: with the filter on
+// the seed is already false, so a site filter that also denies is
+// byte-identical to nothing having spoken, and no rule reading $allowed alone
+// can see it. The callback's docblock says so rather than implying a
+// certainty it does not have. A site that needs a denial to hold on a Rank
+// Math key hooks after this callback's priority 10, where its false is the
+// last word.
+
 /* ---- and none of it reaches an anonymous reader ---- */
 
 // The auth_callback above gates writes and nothing else.

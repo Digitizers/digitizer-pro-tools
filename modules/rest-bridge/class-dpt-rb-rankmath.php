@@ -196,18 +196,45 @@ class DPT_RB_Rankmath {
 	 * reopen the same hole for SEO metadata: any author-level account could
 	 * rewrite another author's page.
 	 *
-	 * This runs as an auth_{$object_type}_meta_{$meta_key} filter, not a
-	 * standalone check: map_meta_cap() seeds $allowed from is_protected_meta()
-	 * and then hands it through every callback hooked to that key in turn, so
-	 * $allowed can already be false by the time this one runs - a site's own
-	 * auth_post_meta_rank_math_* filter, added at the same or an earlier
-	 * priority, having refused the key outright. None of the rank_math_*
-	 * keys start with an underscore, so is_protected_meta() never seeds that
-	 * refusal itself; a site's own filter is the only way one lands here.
-	 * Returning current_user_can() on its own discards that refusal and
-	 * re-grants it to anyone who may edit the post, so the incoming value is
-	 * ANDed in instead: a denial already present survives regardless of what
-	 * this check would otherwise decide.
+	 * This runs as an auth_{$object_type}_meta_{$meta_key} filter rather than
+	 * as a standalone check, and $allowed arrives carrying two different
+	 * things that this has to tell apart.
+	 *
+	 * map_meta_cap() seeds it with ! is_protected_meta( $meta_key, 'post' )
+	 * and then hands it through every callback hooked to that key. Rank Math
+	 * marks **every** rank_math_* key protected - Common::hide_rank_math_meta()
+	 * on the is_protected_meta filter, from a constructor that runs
+	 * unconditionally - so on the only sites where these keys are registered
+	 * at all, the seed is false before this callback is reached. Returning
+	 * `$allowed && current_user_can( ... )` therefore refused every write to
+	 * every one of these keys, to every user there is, administrators
+	 * included: the Rank Math capability this module exists to provide was
+	 * dead on arrival. (The comment that used to stand here said none of these
+	 * keys is protected. It was wrong about the vendor, and being wrong in a
+	 * docblock is how it survived a review.)
+	 *
+	 * That seed is precisely what an auth_callback on register_post_meta() is
+	 * for. A key registered with one is a key whose protected default the
+	 * registration means to replace - core has no other mechanism for saying
+	 * so. But a refusal a *site* made, with an auth_post_meta_rank_math_*
+	 * filter of its own at this priority or an earlier one, is a decision that
+	 * must survive, and it arrives as the same false.
+	 *
+	 * They are told apart by recomputing what the seed would have been and
+	 * comparing it with what arrived. Equal means nothing has intervened and
+	 * the decision is this callback's, so it answers with its own capability
+	 * check. Different means somebody decided, and what they decided stands -
+	 * a denial refused, and a grant honoured. A grant honoured is not a grant
+	 * of anything on its own: map_meta_cap() has already put edit_post's own
+	 * mapping into $caps before any of this runs, and a true here only
+	 * declines to add the blocking capability on top of it.
+	 *
+	 * One case this cannot see, stated plainly rather than glossed: when the
+	 * seed is already false, a site filter that also denies is byte-identical
+	 * to nothing having spoken, and no rule reading $allowed alone can
+	 * distinguish them. A site that needs a denial to hold on a key Rank Math
+	 * has protected must hook after this callback's priority 10, where its
+	 * false is the last word.
 	 *
 	 * @param bool   $allowed  Whether the value may be seen or edited so far.
 	 * @param string $meta_key The meta key being checked.
@@ -215,6 +242,15 @@ class DPT_RB_Rankmath {
 	 * @return bool
 	 */
 	public static function may_edit_meta( $allowed, $meta_key, $post_id ) {
-		return $allowed && current_user_can( 'edit_post', (int) $post_id );
+		// 'post' is the metadata object type map_meta_cap() seeds with, not
+		// the post type - these keys are registered on post and page alike and
+		// the seed is the same for both.
+		$seed = ! is_protected_meta( $meta_key, 'post' );
+
+		if ( $seed !== (bool) $allowed ) {
+			return (bool) $allowed;
+		}
+
+		return current_user_can( 'edit_post', (int) $post_id );
 	}
 }

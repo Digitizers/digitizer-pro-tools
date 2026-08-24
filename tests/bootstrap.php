@@ -333,10 +333,17 @@ function rest_authorization_required_code() {
  * "field_price" written in Hebrew before the underscore is left as "_price"
  * and really is protected. A module that has to explain why a field was
  * refused cannot get that from a stub which answers differently.
+ *
+ * The filter is core's too, and it is not decoration either: it is the only
+ * way a plugin's protection reaches map_meta_cap(), and Rank Math uses it to
+ * mark every rank_math_* key protected from Common::__construct(). Without it
+ * here, an assertion about what a module's auth_callback is handed would be
+ * testing a seed the harness invented rather than the one a site produces.
  */
 function is_protected_meta( $key, $type = '' ) {
 	$sanitized = preg_replace( "/[^\x20-\x7E\p{L}]/", '', (string) $key );
-	return strlen( $sanitized ) > 0 && '_' === $sanitized[0];
+	$protected = strlen( $sanitized ) > 0 && '_' === $sanitized[0];
+	return (bool) apply_filters( 'is_protected_meta', $protected, $key, $type );
 }
 function current_user_can( $cap, $id = null, $meta_key = null ) {
 	if ( $GLOBALS['dpt_stub_no_user'] ) {

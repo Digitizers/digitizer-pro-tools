@@ -647,6 +647,35 @@ update capability before a field is assembled in that context — and it is the
 same answer this module already gives every field it discovers, on the same
 reasoning.
 
+**The `auth_callback` and the seed it is there to replace.** `map_meta_cap()`
+seeds `$allowed` with `! is_protected_meta( $meta_key, 'post' )` and then runs
+every callback hooked to the key. Rank Math's own filter makes that seed
+`false` for all twelve — so on the only sites where these keys are registered
+at all, a callback that simply ANDed `$allowed` refused every write to every
+one of them, to every user there is, administrators included, and the Rank
+Math capability was dead.
+
+That seed is exactly what an `auth_callback` on `register_post_meta()` exists
+to replace: a key registered with one is a key whose protected default the
+registration means to override, and core offers no other way of saying so. A
+refusal a **site** made — its own `auth_post_meta_rank_math_*` filter at this
+priority or earlier — is a decision that must survive, and it arrives as the
+same `false`.
+
+They are told apart by recomputing the seed and comparing it with what
+arrived. **Equal** means nothing intervened and the decision is this
+callback's, so it answers with its own per-post capability check. **Different**
+means somebody decided, and what they decided stands — a denial refused, a
+grant honoured. Honouring a grant grants nothing by itself: `map_meta_cap()`
+has already put `edit_post`'s mapping into `$caps` before any callback runs,
+and a `true` only declines to add the blocking capability on top of it.
+
+One case this cannot see, and the code says so rather than implying otherwise:
+where the seed is already `false`, a site filter that also denies is
+byte-identical to nothing having spoken, and no rule reading `$allowed` alone
+can distinguish them. A site needing a denial to hold on a key Rank Math has
+protected hooks **after** priority 10, where its `false` is the last word.
+
 ### DPT_RB_Info
 
 `GET /digitizer/v1/info`, `permission_callback` = `edit_posts`:
@@ -813,9 +842,14 @@ options, no `user_can_toggle` override.
    keeping its text, and taking an `on*` handler off one that is allowed -
    and `map_deep` is core's own walk, so none of that is vacuous.
 5. Rank Math: the twelve keys on posts and pages, their types checked against
-   Rank Math's own reads, the auth callback scoped to the post and honouring a
-   denial already in `$allowed` - and none of the twelve on an unauthenticated
-   read, while an edit-context read still returns every one with its value.
+   Rank Math's own reads, and none of the twelve on an unauthenticated read
+   while an edit-context read still returns every one with its value. The auth
+   callback in all four of its cases, with Rank Math's `is_protected_meta`
+   filter really hooked so the seed is the one a site produces: protected by
+   Rank Math and nothing else hooked, allowed for a user who may edit the post
+   and refused for one who may not; a denial another filter made refused even
+   for a user who may edit; and a grant another filter made where the seed
+   would have refused surviving intact.
    The harness assembles the `meta` object the way `WP_REST_Meta_Fields` does
    (no capability check on the read, per-key schema merged over the defaults)
    and filters it the way `rest_filter_response_by_context()` does (a property
