@@ -719,4 +719,47 @@ $GLOBALS['dpt_stub_rest_routes'] = array();
 DPT_RB_Elementor::register();
 dpt_test_ok( isset( $GLOBALS['dpt_stub_rest_routes']['digitizer/v1/elementor/(?P<post_id>\d+)'] ), 'the route is registered where the old plugin had it' );
 
+require_once dirname( __DIR__ ) . '/modules/rest-bridge/class-dpt-rb-rankmath.php';
+require_once dirname( __DIR__ ) . '/modules/rest-bridge/class-dpt-rb-info.php';
+
+/* ---- Rank Math fields, only when Rank Math is here ---- */
+
+$GLOBALS['dpt_stub_registered_post_meta'] = array();
+dpt_test_ok( ! DPT_RB_Rankmath::active(), 'without Rank Math the module knows it' );
+DPT_RB_Rankmath::register();
+dpt_test_eq( $GLOBALS['dpt_stub_registered_post_meta'], array(), 'and registers nothing for a plugin that is not installed' );
+
+// Declared inside a block so PHP does not hoist it above the assertion above.
+if ( ! class_exists( 'RankMath' ) ) {
+	class RankMath {}
+}
+dpt_test_ok( DPT_RB_Rankmath::active(), 'with Rank Math loaded it is seen' );
+DPT_RB_Rankmath::register();
+dpt_test_eq( count( $GLOBALS['dpt_stub_registered_post_meta']['post'] ), 12, 'all twelve fields land on posts' );
+dpt_test_eq( count( $GLOBALS['dpt_stub_registered_post_meta']['page'] ), 12, 'and on pages, which the old plugin forgot' );
+dpt_test_ok( isset( $GLOBALS['dpt_stub_registered_post_meta']['post']['rank_math_focus_keyword'] ), 'including the focus keyword' );
+dpt_test_ok( $GLOBALS['dpt_stub_registered_post_meta']['post']['rank_math_title']['show_in_rest'], 'each visible to REST' );
+
+/* ---- the info endpoint tells an agent what this site exposes ---- */
+
+$info = DPT_RB_Info::payload();
+dpt_test_eq( $info['version'], DPT_VERSION, 'the payload names the plugin version' );
+dpt_test_ok( isset( $info['fields']['post/post'] ), 'lists the fields per object' );
+dpt_test_ok( in_array( 'jet_qna', $info['compat'], true ), 'names the compatibility aliases' );
+dpt_test_ok( is_array( $info['skipped'] ), 'reports what discovery passed over' );
+dpt_test_ok( $info['rank_math'], 'and whether Rank Math is here' );
+dpt_test_ok( in_array( '/digitizer/v1/info', $info['routes'], true ), 'while naming its own route' );
+
+$GLOBALS['dpt_stub_rest_routes'] = array();
+DPT_RB_Info::register();
+dpt_test_ok( isset( $GLOBALS['dpt_stub_rest_routes']['digitizer/v1/info'] ), 'the info route is registered' );
+
+// The old plugin's info endpoint was public and advertised versions to
+// anyone who asked.
+$route = $GLOBALS['dpt_stub_rest_routes']['digitizer/v1/info'][0];
+$GLOBALS['dpt_stub_denied_caps'] = array( 'edit_posts' );
+dpt_test_ok( ! call_user_func( $route['permission_callback'] ), 'a visitor may not read it' );
+$GLOBALS['dpt_stub_denied_caps'] = array();
+dpt_test_ok( call_user_func( $route['permission_callback'] ), 'an editor may' );
+
 exit( dpt_test_summary() > 0 ? 1 : 0 );
