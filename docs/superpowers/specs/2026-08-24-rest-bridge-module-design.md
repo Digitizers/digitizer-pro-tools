@@ -401,7 +401,26 @@ On `rest_api_init`:
   target post type that is REST-enabled (`show_in_rest`), under the real meta
   key name — unless that name is one the target's controller already
   defines, in which case see "Names core already owns" below.
-- For `object === 'taxonomy'`: same on each REST-enabled taxonomy.
+- For `object === 'taxonomy'`: same on each REST-enabled taxonomy — but the
+  object type `register_rest_field()` is handed is **not always the target's
+  name**. It files a field in `$wp_rest_additional_fields` under the string it
+  is given, and a controller looks its own up by
+  `WP_REST_Controller::get_object_type()`, which is `$schema['title']`. So the
+  title a controller gives itself is the whole answer:
+  `WP_REST_Posts_Controller` titles itself `$this->post_type`, and
+  `WP_REST_Terms_Controller` titles itself
+  `'post_tag' === $this->taxonomy ? 'tag' : $this->taxonomy`. Core writes that
+  same rule out a second time, for exactly this purpose, in
+  `WP_REST_Term_Meta_Fields::get_rest_field_type()` — whose docblock points at
+  `register_rest_field()` — with `WP_REST_Post_Meta_Fields` returning the post
+  type unchanged beside it. `post_tag` is the only remapping core makes, so
+  `category` is `category`, **not** `categories`, which is its REST base and a
+  different thing. Registered under `post_tag`, a discovered field on the tag
+  taxonomy was never read and never written while `registered()` still
+  reported it — the info endpoint claiming a field that does not exist, which
+  is the one thing that endpoint exists not to do. The bookkeeping stays keyed
+  by the taxonomy's own name, because that is the target the site named and
+  the identity the report is read by; only the string core is handed changes.
 - A target of a **discovered** field that the site does not expose is
   recorded in `skipped()`, with the two answers told apart: no post type or
   taxonomy of that name is registered here, or one is and it was registered
@@ -928,6 +947,16 @@ options, no `user_can_toggle` override.
    and a `categories` field is renamed only where that taxonomy is really
    attached; the alias is withheld where the site defines it itself,
    and every one of those is explained in `skipped()`.
+   Also: a field discovered on `post_tag` reaches the controller that serves
+   post_tag terms - registered under `tag`, not under `post_tag` and not under
+   its REST base `tags` - and its callbacks really read and write from where
+   that controller finds them; one on `category` is registered under
+   `category` and not under `categories`; a custom taxonomy core does not
+   remap is its own name, as is a post type. The report still names
+   `taxonomy/post_tag`, because that is the target the meta box named. The
+   harness models the lookup from the **controller's** side, so a stub that
+   read back whatever key the module wrote could not agree with it by
+   construction.
    Also: a meta box attached to a taxonomy the site registered as `Authors`
    registers its field on `Authors` and on no lowercased name, and the two
    targets it names that this site does not expose - one absent from the

@@ -846,7 +846,7 @@ class DPT_RB_Fields {
 			$resolved['public_read'] = in_array( 'view', $schema['context'], true );
 
 			register_rest_field(
-				$target,
+				self::rest_field_type( $descriptor['object'], $target ),
 				$expose,
 				array(
 					'get_callback'    => function ( $object ) use ( $resolved ) {
@@ -878,6 +878,49 @@ class DPT_RB_Fields {
 		}
 
 		return $count;
+	}
+
+	/**
+	 * The object type register_rest_field() has to be handed for one target.
+	 *
+	 * It is not always the target's own name, and the difference is not
+	 * cosmetic: a field registered under a name no controller looks up is a
+	 * field that never fires. `register_rest_field()` files what it is given
+	 * in `$wp_rest_additional_fields` under that string, and a controller
+	 * looks its own fields up by `WP_REST_Controller::get_object_type()`,
+	 * which is `$schema['title']` - so the title a controller gives itself is
+	 * the whole of the answer.
+	 *
+	 * `WP_REST_Posts_Controller::get_item_schema()` titles itself
+	 * `$this->post_type`, so every post type is its own name.
+	 * `WP_REST_Terms_Controller::get_item_schema()` titles itself
+	 * `'post_tag' === $this->taxonomy ? 'tag' : $this->taxonomy`, so a
+	 * taxonomy is its own name too - except `post_tag`, which is `tag`. Core
+	 * writes that same rule out a second time, for this exact purpose, in
+	 * `WP_REST_Term_Meta_Fields::get_rest_field_type()`, whose docblock points
+	 * at `register_rest_field()`; `WP_REST_Post_Meta_Fields` returns the post
+	 * type unchanged beside it. There is only the one remapping in core, so
+	 * `category` is `category` - **not** `categories`, its REST base, which is
+	 * the tempting wrong answer for a name whose plural differs.
+	 *
+	 * Registered under `post_tag`, a discovered field on the tag taxonomy was
+	 * never read and never written, while registered() still reported it - the
+	 * info endpoint claiming a field that does not exist, which is the one
+	 * thing that endpoint exists not to do. The bookkeeping below stays keyed
+	 * by the taxonomy's own name, because that is the target the site named
+	 * and the identity an operator reads the report by; only the string core
+	 * is handed changes.
+	 *
+	 * @param string $object Object kind.
+	 * @param string $target Post type or taxonomy name.
+	 * @return string
+	 */
+	private static function rest_field_type( $object, $target ) {
+		if ( 'taxonomy' !== $object ) {
+			return $target;
+		}
+
+		return 'post_tag' === $target ? 'tag' : $target;
 	}
 
 	/**

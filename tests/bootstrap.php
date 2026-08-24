@@ -572,6 +572,32 @@ function register_rest_field( $object_type, $attribute, $args = array() ) {
 		$GLOBALS['dpt_stub_rest_fields'][ $type ][ $attribute ] = $args;
 	}
 }
+
+/**
+ * The additional fields a controller really finds for one target.
+ *
+ * register_rest_field() files what it is given under the string it is given,
+ * and a controller looks its own up by WP_REST_Controller::get_object_type(),
+ * which returns $schema['title']. WP_REST_Posts_Controller titles itself
+ * $this->post_type; WP_REST_Terms_Controller titles itself
+ * `'post_tag' === $this->taxonomy ? 'tag' : $this->taxonomy`, and core writes
+ * that same rule out again in WP_REST_Term_Meta_Fields::get_rest_field_type()
+ * for this exact purpose. `category` is not remapped - its REST *base* is
+ * `categories`, which is a different thing and not what the lookup uses.
+ *
+ * Modelled from the controller's side on purpose: a stub that simply read
+ * back whatever key the module wrote would agree with the module however
+ * wrong they both were, and the whole finding here is a field filed under a
+ * name nothing ever looks up.
+ *
+ * @param string $target     Post type or taxonomy name.
+ * @param bool   $is_taxonomy Which controller is asking.
+ * @return array Field name => registration args.
+ */
+function dpt_stub_controller_fields( $target, $is_taxonomy = false ) {
+	$type = ( $is_taxonomy && 'post_tag' === $target ) ? 'tag' : $target;
+	return isset( $GLOBALS['dpt_stub_rest_fields'][ $type ] ) ? $GLOBALS['dpt_stub_rest_fields'][ $type ] : array();
+}
 // Routes are keyed by namespace + route so a test can assert a specific
 // endpoint was registered without caring about registration order.
 function register_rest_route( $namespace, $route, $args = array() ) {
@@ -765,11 +791,13 @@ $GLOBALS['dpt_stub_core_rest_properties'] = array(
 	),
 );
 function dpt_stub_rest_item_schema( $object_type ) {
-	$kind       = get_post_type_object( $object_type ) ? 'post' : 'term';
+	$kind = get_post_type_object( $object_type ) ? 'post' : 'term';
+	// Through the controller's own lookup, not a bare read of whatever key
+	// the module wrote: on the tag taxonomy those two are different strings,
+	// and a schema assembled from the wrong one would show a field that never
+	// reaches a response.
 	$properties = $GLOBALS['dpt_stub_core_rest_properties'][ $kind ];
-	$extra      = isset( $GLOBALS['dpt_stub_rest_fields'][ $object_type ] )
-		? $GLOBALS['dpt_stub_rest_fields'][ $object_type ]
-		: array();
+	$extra      = dpt_stub_controller_fields( $object_type, 'term' === $kind );
 	foreach ( $extra as $name => $args ) {
 		$properties[ $name ] = isset( $args['schema'] ) ? $args['schema'] : array();
 	}

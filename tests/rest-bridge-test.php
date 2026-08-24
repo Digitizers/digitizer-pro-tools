@@ -2939,6 +2939,89 @@ $GLOBALS['dpt_stub_rest_post_types']    = $saved_post_types;
 $GLOBALS['dpt_stub_rest_taxonomies']    = $saved_taxonomies;
 $GLOBALS['dpt_stub_private_taxonomies'] = $saved_private_taxonomies;
 
+/* ---- the object type a controller looks a field up under ---- */
+
+// register_rest_field() files a field under the string it is handed, and a
+// controller looks its own up by WP_REST_Controller::get_object_type(), which
+// is $schema['title']. WP_REST_Terms_Controller titles itself
+// `'post_tag' === $this->taxonomy ? 'tag' : $this->taxonomy` - the same rule
+// core writes out a second time in
+// WP_REST_Term_Meta_Fields::get_rest_field_type(), whose docblock points at
+// register_rest_field(). So a field registered on post_tag was filed under a
+// name nothing ever looks up: never read, never written, and still reported
+// by registered() as a field this site has.
+//
+// The harness already gives category and post_tag the REST bases core gives
+// them - `categories` and `tags`, both different from their names - which is
+// the tempting wrong answer for this lookup, so the assertions below say what
+// the object type is *not* as well as what it is.
+$saved_taxonomies                    = $GLOBALS['dpt_stub_rest_taxonomies'];
+$GLOBALS['dpt_stub_rest_taxonomies'] = array( 'category', 'post_tag', 'client' );
+$GLOBALS['dpt_stub_options']         = array(
+	'jet_engine_meta_boxes' => array(
+		array(
+			'id'          => 'term-extras',
+			'args'        => array(
+				'object_type' => 'taxonomy',
+				'allowed_tax' => array( 'post_tag', 'category', 'client' ),
+			),
+			'meta_fields' => array(
+				array( 'name' => 'pinned', 'title' => 'Pinned', 'object_type' => 'field', 'type' => 'text' ),
+			),
+		),
+		array(
+			'id'          => 'post-extras-control',
+			'args'        => array(
+				'object_type'       => 'post',
+				'allowed_post_type' => array( 'post' ),
+			),
+			'meta_fields' => array(
+				array( 'name' => 'byline', 'title' => 'Byline', 'object_type' => 'field', 'type' => 'text' ),
+			),
+		),
+	),
+);
+DPT_RB_Definitions::reset();
+$GLOBALS['dpt_stub_rest_fields'] = array();
+DPT_RB_Fields::register();
+
+$tag_fields = dpt_stub_controller_fields( 'post_tag', true );
+dpt_test_ok( isset( $tag_fields['pinned'] ), 'a field on post_tag reaches the controller that serves post_tag terms' );
+dpt_test_ok( isset( $GLOBALS['dpt_stub_rest_fields']['tag']['pinned'] ), 'because it is registered under tag, the title that controller gives itself' );
+dpt_test_ok( ! isset( $GLOBALS['dpt_stub_rest_fields']['post_tag'] ), 'and not under post_tag, where nothing would ever look for it' );
+dpt_test_ok( ! isset( $GLOBALS['dpt_stub_rest_fields']['tags'] ), 'nor under its REST base' );
+
+$cat_fields = dpt_stub_controller_fields( 'category', true );
+dpt_test_ok( isset( $cat_fields['pinned'] ), 'a field on category reaches its controller too' );
+dpt_test_ok( isset( $GLOBALS['dpt_stub_rest_fields']['category']['pinned'] ), 'under category, its own name - core remaps post_tag and nothing else' );
+dpt_test_ok( ! isset( $GLOBALS['dpt_stub_rest_fields']['categories'] ), 'and not under categories, which is its REST base and a different thing entirely' );
+
+$client_fields = dpt_stub_controller_fields( 'client', true );
+dpt_test_ok( isset( $client_fields['pinned'] ), 'a custom taxonomy whose name core does not remap is registered as itself' );
+dpt_test_ok( isset( dpt_stub_controller_fields( 'post' )['byline'] ), 'and a post type is its own name, as WP_REST_Posts_Controller titles itself' );
+
+// The callbacks really are reachable from where the controller finds them,
+// which is the half of this that a bookkeeping assertion cannot show.
+// Read through isset() and short-circuited, the way the other callback
+// assertions here are: without the fix there is no callback at that address
+// at all, and a fatal would take the rest of the file down instead of
+// reporting the one thing that broke.
+$GLOBALS['dpt_stub_term_meta'] = array();
+$pinned_write                  = isset( $tag_fields['pinned']['update_callback'] ) ? $tag_fields['pinned']['update_callback'] : null;
+$pinned_read                   = isset( $tag_fields['pinned']['get_callback'] ) ? $tag_fields['pinned']['get_callback'] : null;
+dpt_test_ok( is_callable( $pinned_write ) && true === call_user_func( $pinned_write, 'yes', (object) array( 'term_id' => 8 ) ), 'a write through the callback the tag controller holds lands' );
+dpt_test_eq( get_term_meta( 8, 'pinned', true ), 'yes', 'on the term meta key JetEngine named' );
+dpt_test_eq( is_callable( $pinned_read ) ? call_user_func( $pinned_read, array( 'id' => 8 ) ) : null, 'yes', 'and reads back through the same one' );
+
+// What the info endpoint says about it stays the target the site named: an
+// operator reads that report by taxonomy, and `tag` is core's internal name
+// for a controller rather than anything the site ever wrote down.
+$term_registered = DPT_RB_Fields::registered();
+dpt_test_ok( isset( $term_registered['taxonomy/post_tag']['pinned'] ), 'the report names post_tag, which is the target the meta box named' );
+dpt_test_ok( ! isset( $term_registered['taxonomy/tag'] ), 'and does not invent a taxonomy called tag that this site does not have' );
+
+$GLOBALS['dpt_stub_rest_taxonomies'] = $saved_taxonomies;
+
 /* ---- a Hebrew field is a field, all the way through ---- */
 
 // The whole of the key fix, end to end and through the registered callbacks:
