@@ -317,6 +317,10 @@ $GLOBALS['dpt_stub_options'] = array(
 				array( 'name' => 'weird_title', 'title' => array( 'x' ), 'object_type' => 'field', 'type' => 'text' ),
 				array( 'name' => 'weird_type', 'title' => 'Weird Type', 'object_type' => 'field', 'type' => array( 'x' ) ),
 				array( 'name' => 'weird_kind', 'title' => 'Weird Kind', 'object_type' => array( 'x' ) ),
+				// The one that is not a warning but a TypeError:
+				// sanitize_key() hands this to strtolower(), so a name that
+				// is not a string ends the request rather than the row.
+				array( 'name' => array( 'x' ), 'title' => 'Weird Name', 'object_type' => 'field', 'type' => 'text' ),
 				array(
 					'name'            => 'weird_sub',
 					'title'           => 'Weird Sub',
@@ -324,8 +328,22 @@ $GLOBALS['dpt_stub_options'] = array(
 					'type'            => 'repeater',
 					'repeater-fields' => array(
 						array( 'name' => 'sub_bad_title', 'type' => 'text', 'title' => array( 'x' ) ),
+						array( 'name' => array( 'x' ), 'type' => 'text', 'title' => 'Weird sub name' ),
 					),
 				),
+			),
+		),
+		// And the same shape one level up, where the list of post types a
+		// meta box is attached to goes through sanitize_key() member by
+		// member.
+		array(
+			'id'          => 'weird-targets',
+			'args'        => array(
+				'object_type'       => 'post',
+				'allowed_post_type' => array( array( 'x' ), 'page' ),
+			),
+			'meta_fields' => array(
+				array( 'name' => 'weird_target_field', 'title' => 'Fine', 'object_type' => 'field', 'type' => 'text' ),
 			),
 		),
 	),
@@ -341,6 +359,25 @@ dpt_test_eq( $by_key['weird_title']['title'], 'weird_title', 'and falls back to 
 dpt_test_ok( ! isset( $by_key['weird_type'] ), 'an array type is treated as not exposed' );
 dpt_test_eq( $by_key['weird_sub']['fields'][0]['title'], 'sub_bad_title', 'a sub-field with an array title falls back to its own name' );
 dpt_test_ok( ! isset( $by_key['weird_kind'] ), 'a field row whose object_type is an array does not raise a notice, and is skipped' );
+
+// The name is the one that used to be fatal rather than merely wrong:
+// sanitize_key() hands what it is given to strtolower(), which is a TypeError
+// on PHP 8, and this runs on rest_api_init - so one malformed row in another
+// vendor's option aborted REST Bridge's registration for every REST request
+// the site served. The property that matters is the last of these: the rest
+// of the meta box still arrives.
+dpt_test_ok( ! isset( $by_key['weird_name'] ), 'a field whose name is not a string is skipped rather than fatal' );
+dpt_test_ok( isset( $by_key['weird_title'] ), 'and the well-formed field in the same meta box is still registered' );
+dpt_test_eq( count( $by_key['weird_sub']['fields'] ), 1, 'a repeater keeps the sub-field whose name is a name' );
+dpt_test_eq( $by_key['weird_sub']['fields'][0]['meta_key'], 'sub_bad_title', 'which is the one that was not an array' );
+dpt_test_ok( isset( $by_key['weird_target_field'] ), 'a meta box whose target list holds an array still exposes its fields' );
+dpt_test_eq( $by_key['weird_target_field']['targets'], array( 'page' ), 'on the targets that really are post type names' );
+
+// And every one of them is sayable, because a field that silently fails to
+// appear looks like a bug in the API rather than a row nobody can read.
+$joined = implode( ' | ', DPT_RB_Definitions::skipped() );
+dpt_test_ok( false !== strpos( $joined, 'a field whose name is not a string' ), 'the malformed field name is recorded with a reason' );
+dpt_test_ok( false !== strpos( $joined, 'a sub-field whose name is not a string' ), 'and so is the malformed sub-field name' );
 
 require_once dirname( __DIR__ ) . '/modules/rest-bridge/class-dpt-rb-schema.php';
 

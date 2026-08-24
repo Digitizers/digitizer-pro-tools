@@ -59,7 +59,17 @@ meta_fields: [ { name, title, object_type, type, repeater-fields[], ... } ] }`.
 
 Defensive parsing: a row or field missing `name`/`type`, or with an unknown
 `object_type`, is skipped and recorded in `skipped()` (reason strings surfaced
-by the info endpoint). Entries in `meta_fields` whose `object_type` is not
+by the info endpoint). A **name that is not a string** — a field's, a repeater
+sub-field's, or a member of the list of targets — is skipped and recorded on
+the same footing rather than handed to `sanitize_key()`: core passes its
+argument straight to `strtolower()`, which PHP 8 answers with a `TypeError`
+rather than a warning, and this parse runs on `rest_api_init`, so one
+malformed row aborted the module's registration for **every REST request the
+site served** instead of costing that one row. Every `(string)` cast over this
+option is guarded with `is_scalar()` for the same reason; `sanitize_key()` is
+simply the one that throws instead of warning. The option belongs to another
+vendor's plugin across every version it has ever had, so nothing in it may be
+able to stop this module from registering everything else. Entries in `meta_fields` whose `object_type` is not
 `field` (tabs, accordions) are skipped silently - they are UI chrome, not data.
 Fields of unknown `type` are skipped and recorded. The option is read once per
 request (memoized); there is no caching layer - `get_option` is already cached
@@ -580,7 +590,14 @@ options, no `user_can_toggle` override.
 ## Testing (stub harness, `tests/rest-bridge-test.php`)
 
 1. Definitions: real-shaped option fixture (post repeater, taxonomy fields,
-   tab chrome, unknown type, broken row) → descriptors + skipped list.
+   tab chrome, unknown type, broken row) → descriptors + skipped list. Plus a
+   fixture holding an array where a string belongs in a field's `name`, in a
+   repeater sub-field's `name` and in the list of targets: each is recorded
+   with a reason, nothing throws, and the well-formed field in the same meta
+   box still arrives - which is the property that matters, one bad row not
+   costing the rest. The harness's `sanitize_key` stub throws on an array or
+   an object the way PHP 8's `strtolower()` does, so those assertions are not
+   vacuous.
 2. Schema: type map, repeater schema from sub-fields, sanitizers incl. kses
    pass-through stub, unknown keys preserved verbatim, "0" survives, empty array clears,
    failed delete reported. A media field is exercised in each of its three

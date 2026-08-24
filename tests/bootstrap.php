@@ -160,7 +160,21 @@ function esc_url_raw( $s ) {
 	}
 	return 'http://' . $s;
 }
-function sanitize_key( $s ) { return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( (string) $s ) ); }
+/**
+ * sanitize_key(), including the half a lenient stub leaves out: core hands
+ * its argument straight to strtolower(), and PHP 8 makes that a TypeError for
+ * an array or an object rather than a warning. A stub that cast to string
+ * first would answer "array" to a malformed option row and hide the fatal
+ * that row really causes - and a fatal raised while REST fields are being
+ * registered takes the whole module down for every request on the site, not
+ * just the one row.
+ */
+function sanitize_key( $s ) {
+	if ( is_array( $s ) || is_object( $s ) ) {
+		throw new TypeError( 'strtolower(): Argument #1 ($string) must be of type string, ' . gettype( $s ) . ' given' );
+	}
+	return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( (string) $s ) );
+}
 /**
  * stripslashes_deep(), which is all core's wp_unslash() is: a string loses one
  * level of escaping, an array or an object is walked to the bottom, and

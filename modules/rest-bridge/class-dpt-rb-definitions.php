@@ -133,7 +133,12 @@ class DPT_RB_Definitions {
 				continue;
 			}
 
-			$targets = array_values( array_filter( array_map( 'sanitize_key', $targets ) ) );
+			// A member of this list that is not a string would be a
+			// TypeError inside sanitize_key() - see descriptor() - so the
+			// list is narrowed to what core can be handed before it is
+			// handed any of it. A row left with nothing usable falls into
+			// the sentence below.
+			$targets = array_values( array_filter( array_map( 'sanitize_key', array_filter( $targets, 'is_scalar' ) ) ) );
 			if ( ! $targets ) {
 				self::$skipped[] = sprintf( 'meta box %s: attached to nothing', $id );
 				continue;
@@ -218,7 +223,20 @@ class DPT_RB_Definitions {
 			return null;
 		}
 
-		$name = isset( $field['name'] ) ? sanitize_key( $field['name'] ) : '';
+		// sanitize_key() hands what it is given straight to strtolower(),
+		// which PHP 8 answers with a TypeError rather than a warning for an
+		// array or an object. This runs on rest_api_init, so one malformed
+		// row in an option that belongs to another vendor's plugin - across
+		// every version it has ever had - aborted this module's registration
+		// for every REST request the site served, rather than costing the
+		// one row. The shape is checked before core is handed it, and the
+		// row is recorded the way a field with no name at all already is.
+		if ( isset( $field['name'] ) && ! is_scalar( $field['name'] ) ) {
+			self::$skipped[] = sprintf( 'meta box %s: a field whose name is not a string', $box );
+			return null;
+		}
+
+		$name = isset( $field['name'] ) ? sanitize_key( (string) $field['name'] ) : '';
 		if ( '' === $name ) {
 			self::$skipped[] = sprintf( 'meta box %s: a field with no name', $box );
 			return null;
@@ -256,7 +274,12 @@ class DPT_RB_Definitions {
 				if ( ! is_array( $sub ) ) {
 					continue;
 				}
-				$sub_name = isset( $sub['name'] ) ? sanitize_key( $sub['name'] ) : '';
+				// The same TypeError one level down, and the same answer.
+				if ( isset( $sub['name'] ) && ! is_scalar( $sub['name'] ) ) {
+					self::$skipped[] = sprintf( 'field %s: a sub-field whose name is not a string', $name );
+					continue;
+				}
+				$sub_name = isset( $sub['name'] ) ? sanitize_key( (string) $sub['name'] ) : '';
 				$sub_type = isset( $sub['type'] ) && is_scalar( $sub['type'] ) ? (string) $sub['type'] : '';
 				// A repeater inside a repeater is more than this bridge
 				// promises, and an unknown type is a guess it will not make.
