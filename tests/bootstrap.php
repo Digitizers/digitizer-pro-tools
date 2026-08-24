@@ -506,10 +506,23 @@ function register_post_meta( $post_type, $key, $args = array() ) {
 $GLOBALS['dpt_stub_rest_post_types'] = array( 'post', 'page' );
 $GLOBALS['dpt_stub_rest_taxonomies'] = array( 'category', 'post_tag', 'authors' );
 
+// Which taxonomies are attached to which post type, and what each of them is
+// called on the REST API. This is not decoration: WP_REST_Posts_Controller
+// turns every REST-enabled taxonomy attached to a post type into a property
+// of the post response, named by that taxonomy's rest base - which is how a
+// site's own field can collide with a property no written list could predict.
+$GLOBALS['dpt_stub_object_taxonomies']  = array( 'post' => array( 'category', 'post_tag' ) );
+$GLOBALS['dpt_stub_taxonomy_rest_base'] = array( 'category' => 'categories', 'post_tag' => 'tags' );
+
 // Shared shape for the post-type and taxonomy objects below: both real
-// objects expose show_in_rest, and that is the only field a test needs.
-function dpt_stub_rest_object( $names ) {
-	return (object) array( 'show_in_rest' => true, 'name' => $names );
+// objects expose show_in_rest and rest_base, and those are the only fields a
+// test needs.
+function dpt_stub_rest_object( $name ) {
+	return (object) array(
+		'show_in_rest' => true,
+		'name'         => $name,
+		'rest_base'    => isset( $GLOBALS['dpt_stub_taxonomy_rest_base'][ $name ] ) ? $GLOBALS['dpt_stub_taxonomy_rest_base'][ $name ] : '',
+	);
 }
 function get_post_type_object( $name ) {
 	return in_array( $name, $GLOBALS['dpt_stub_rest_post_types'], true )
@@ -521,6 +534,67 @@ function taxonomy_exists( $name ) {
 }
 function get_taxonomy( $name ) {
 	return taxonomy_exists( $name ) ? dpt_stub_rest_object( $name ) : false;
+}
+function get_object_taxonomies( $object, $output = 'names' ) {
+	$names = isset( $GLOBALS['dpt_stub_object_taxonomies'][ $object ] )
+		? array_values( array_filter( $GLOBALS['dpt_stub_object_taxonomies'][ $object ], 'taxonomy_exists' ) )
+		: array();
+	if ( 'objects' !== $output ) {
+		return $names;
+	}
+	$objects = array();
+	foreach ( $names as $name ) {
+		$objects[ $name ] = get_taxonomy( $name );
+	}
+	return $objects;
+}
+
+/**
+ * The properties core's own controllers put on an item, and what a response
+ * really looks like once register_rest_field() has run over them.
+ *
+ * The distinction this models is the whole of the collision: register_rest_
+ * field() does not add a property beside an existing one, it *replaces* the
+ * schema and the value core had under that name. A stub that only recorded
+ * additional fields in a bucket of their own could never show that, so an
+ * assertion that a core property survived would pass whatever the module did.
+ *
+ * Only a handful of each controller's properties are listed - enough to model
+ * the failure. The module carries the complete list; it is not read from here.
+ */
+// Every entry carries dpt_stub_core, which no schema this plugin produces
+// has. Comparing types alone would be vacuous wherever a core property and a
+// discovered field are both, say, a string: the marker is how an assertion
+// says "this is still core's property" rather than "this happens to look
+// like it".
+$GLOBALS['dpt_stub_core_rest_properties'] = array(
+	'post' => array(
+		'id'      => array( 'type' => 'integer', 'dpt_stub_core' => true ),
+		'slug'    => array( 'type' => 'string', 'dpt_stub_core' => true ),
+		'status'  => array( 'type' => 'string', 'dpt_stub_core' => true ),
+		'title'   => array( 'type' => 'object', 'dpt_stub_core' => true ),
+		'content' => array( 'type' => 'object', 'dpt_stub_core' => true ),
+		'excerpt' => array( 'type' => 'object', 'dpt_stub_core' => true ),
+		'meta'    => array( 'type' => 'object', 'dpt_stub_core' => true ),
+	),
+	'term' => array(
+		'id'          => array( 'type' => 'integer', 'dpt_stub_core' => true ),
+		'name'        => array( 'type' => 'string', 'dpt_stub_core' => true ),
+		'description' => array( 'type' => 'string', 'dpt_stub_core' => true ),
+		'slug'        => array( 'type' => 'string', 'dpt_stub_core' => true ),
+		'meta'        => array( 'type' => 'object', 'dpt_stub_core' => true ),
+	),
+);
+function dpt_stub_rest_item_schema( $object_type ) {
+	$kind       = get_post_type_object( $object_type ) ? 'post' : 'term';
+	$properties = $GLOBALS['dpt_stub_core_rest_properties'][ $kind ];
+	$extra      = isset( $GLOBALS['dpt_stub_rest_fields'][ $object_type ] )
+		? $GLOBALS['dpt_stub_rest_fields'][ $object_type ]
+		: array();
+	foreach ( $extra as $name => $args ) {
+		$properties[ $name ] = isset( $args['schema'] ) ? $args['schema'] : array();
+	}
+	return $properties;
 }
 
 // Posts exist when the test says they do. An entry is either the post type on

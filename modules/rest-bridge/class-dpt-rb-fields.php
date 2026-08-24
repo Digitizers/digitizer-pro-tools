@@ -46,6 +46,140 @@ class DPT_RB_Fields {
 	private static $skipped = array();
 
 	/**
+	 * The property names core's own controllers already define on a REST
+	 * response, by object kind.
+	 *
+	 * register_rest_field() does not add a property beside an existing one.
+	 * For a name the target controller already defines it *replaces* that
+	 * property's schema and its response value, so a JetEngine field called
+	 * title would hand /wp/v2/posts/{id} a meta string where core's title
+	 * object belongs, let this module's edit-only context strip the real
+	 * title out of every view response, and land one write in two places at
+	 * once. That is not one field degraded - it is the site's REST API
+	 * broken for every consumer of that post type, the block editor
+	 * included. The plugin this module replaces knew it: it called the
+	 * `title` meta key jet_faq_title rather than title for exactly this
+	 * reason, which is also how we know a JetEngine field with that meta key
+	 * exists on the sites this is for.
+	 *
+	 * A written list rather than a question put to the controller, which is
+	 * the obvious alternative and is worse here on three counts. Core's
+	 * answer is not stable while rest_api_init runs: add_additional_fields_
+	 * schema() folds every field registered so far into the schema a
+	 * controller hands back, so what counts as "core's own" depends on how
+	 * far through the hook the question is asked - and this module's own
+	 * registrations would come back as core's. Asking costs a controller
+	 * instantiation and a full schema build per target, inside that hook,
+	 * running whatever third-party code has filtered rest_{$type}_item_
+	 * schema - re-entrancy nothing here can bound. And
+	 * WP_Post_Type::get_rest_controller() is WP 5.9 and later, and answers
+	 * null for a type whose rest_controller_class is not a
+	 * WP_REST_Controller at all. Against that, the list is core's published
+	 * API surface: renaming one of these would break /wp/v2 for everyone,
+	 * which is not a change core makes.
+	 *
+	 * The one part of the answer that genuinely differs per site is computed
+	 * rather than listed - see reserved_for().
+	 *
+	 * @var array
+	 */
+	private static $reserved = array(
+		// WP_REST_Posts_Controller, plus what
+		// WP_REST_Attachments_Controller adds for the attachment post type.
+		'post'     => array(
+			'id',
+			'date',
+			'date_gmt',
+			'guid',
+			'modified',
+			'modified_gmt',
+			'password',
+			'slug',
+			'status',
+			'type',
+			'link',
+			'title',
+			'content',
+			'author',
+			'excerpt',
+			'featured_media',
+			'comment_status',
+			'ping_status',
+			'menu_order',
+			'format',
+			'meta',
+			'sticky',
+			'template',
+			'parent',
+			'permalink_template',
+			'generated_slug',
+			'class_list',
+			// The rest bases of the two taxonomies core's own post type
+			// ships with. reserved_for() computes these from the taxonomy
+			// registry as well, but naming them keeps this list complete on
+			// its own for a target whose taxonomies cannot be read.
+			'categories',
+			'tags',
+			'alt_text',
+			'caption',
+			'description',
+			'media_type',
+			'mime_type',
+			'media_details',
+			'post',
+			'source_url',
+			'missing_image_sizes',
+		),
+		// WP_REST_Terms_Controller.
+		'taxonomy' => array(
+			'id',
+			'count',
+			'description',
+			'link',
+			'name',
+			'slug',
+			'taxonomy',
+			'parent',
+			'meta',
+		),
+	);
+
+	/**
+	 * The reserved set per object/target, worked out once per request.
+	 *
+	 * @var array
+	 */
+	private static $reserved_cache = array();
+
+	/**
+	 * object/target => meta key => true, for every field the site's own
+	 * JetEngine definitions claim.
+	 *
+	 * Frozen before anything is registered so that "the site defines this
+	 * name here" is an order-independent question. Asking the live registry
+	 * instead would answer differently depending on which of two definitions
+	 * discovery happened to reach first.
+	 *
+	 * @var array
+	 */
+	private static $site_names = array();
+
+	/**
+	 * The names a colliding meta key is exposed under when it has a legacy
+	 * one, rather than the general rule below.
+	 *
+	 * `title` on posts is the whole of it: the replaced plugin published
+	 * that meta key as jet_faq_title, automations written against it use
+	 * that name today, and an upgrade is not the moment to invent a second
+	 * one for the same field.
+	 *
+	 * @var array
+	 */
+	private static $legacy_alias = array(
+		'post/post/title' => 'jet_faq_title',
+	);
+
+	/**
 	 * The legacy fields the replaced plugin promised, kept because
 	 * automations use them and they may not be JetEngine fields at all.
 	 *
@@ -59,6 +193,23 @@ class DPT_RB_Fields {
 			array(
 				'meta_key' => 'reading_time',
 				'title'    => 'Estimated reading time',
+				'type'     => 'text',
+				'fields'   => array(),
+				'object'   => 'post',
+				'targets'  => array( 'post' ),
+			),
+			// The FAQ section title. Its meta key really is `title`, which
+			// is a property /wp/v2/posts already has, so it cannot be
+			// exposed under its own name at all - and the replaced plugin
+			// had already settled what it is called instead. Registering it
+			// here rather than leaving the collision to drop it is what
+			// stops a field the site defined from simply vanishing, and it
+			// keeps the name every automation written against that plugin
+			// already sends.
+			array(
+				'meta_key' => 'title',
+				'expose'   => 'jet_faq_title',
+				'title'    => 'JetEngine FAQ section title',
 				'type'     => 'text',
 				'fields'   => array(),
 				'object'   => 'post',
@@ -100,11 +251,25 @@ class DPT_RB_Fields {
 	 * Register everything. Called on rest_api_init.
 	 */
 	public static function register() {
-		self::$registered = array();
-		self::$compat     = array();
-		self::$skipped    = array();
+		self::$registered     = array();
+		self::$compat         = array();
+		self::$skipped        = array();
+		self::$reserved_cache = array();
+		self::$site_names     = array();
 
 		$discovered = DPT_RB_Definitions::all();
+
+		// What the site itself claims, before a single field is registered.
+		// A compatibility name - the jet_qna alias, a legacy field, the
+		// alias a collision falls back on - never takes a name a definition
+		// of the site's own already has, and asking the live registry for
+		// that would make the answer depend on registration order.
+		foreach ( $discovered as $descriptor ) {
+			foreach ( $descriptor['targets'] as $target ) {
+				self::$site_names[ $descriptor['object'] . '/' . $target ][ $descriptor['meta_key'] ] = true;
+			}
+		}
+
 		foreach ( $discovered as $descriptor ) {
 			self::register_one( $descriptor, $descriptor['meta_key'] );
 		}
@@ -157,12 +322,16 @@ class DPT_RB_Fields {
 		// field's targets must not withhold it from another target that has
 		// no collision at all.
 		foreach ( self::legacy() as $descriptor ) {
-			$descriptor['targets'] = self::free_targets( $descriptor );
+			// The name it is exposed under is not always its meta key: the
+			// FAQ title's key is one /wp/v2/posts already owns, so the
+			// replaced plugin's name for it is the only one it can have.
+			$name                  = self::legacy_name( $descriptor );
+			$descriptor['targets'] = self::free_targets( $descriptor, $name );
 			if ( ! $descriptor['targets'] ) {
 				continue;
 			}
-			if ( self::register_one( $descriptor, $descriptor['meta_key'] ) > 0 ) {
-				self::note_compat( $descriptor['meta_key'] );
+			if ( self::register_one( $descriptor, $name ) > 0 ) {
+				self::note_compat( $name );
 			}
 		}
 
@@ -309,9 +478,7 @@ class DPT_RB_Fields {
 				);
 				// Two qna definitions on one target would otherwise say the
 				// same sentence twice, which reads as two problems.
-				if ( ! in_array( $reason, self::$skipped, true ) ) {
-					self::$skipped[] = $reason;
-				}
+				self::note_skip( $reason );
 				continue;
 			}
 			$free[] = $target;
@@ -328,14 +495,173 @@ class DPT_RB_Fields {
 	 * @param array $descriptor Legacy descriptor.
 	 * @return array
 	 */
-	private static function free_targets( $descriptor ) {
+	private static function free_targets( $descriptor, $name ) {
 		$free = array();
 		foreach ( $descriptor['targets'] as $target ) {
-			if ( ! self::name_taken( $descriptor['object'], $target, $descriptor['meta_key'] ) ) {
+			if ( ! self::name_taken( $descriptor['object'], $target, $name ) ) {
 				$free[] = $target;
+				continue;
 			}
+			// Said out loud, the way the jet_qna alias says it. A consumer
+			// that has been reading a legacy name since the replaced plugin
+			// has to be able to learn that on this site the name is the
+			// site's own field rather than the one it remembers.
+			//
+			// English, untranslated, like every other line in this list -
+			// see register_qna_fallback() for why.
+			self::note_skip(
+				sprintf(
+					'The legacy field %1$s was not registered on %2$s because the site defines a field of its own under that name.',
+					$name,
+					$target
+				)
+			);
 		}
 		return $free;
+	}
+
+	/**
+	 * The name a legacy descriptor is exposed under.
+	 *
+	 * Usually its meta key, and deliberately not always: the FAQ title's key
+	 * is `title`, which /wp/v2/posts already owns, so the only name it can
+	 * have is the one the replaced plugin gave it.
+	 *
+	 * @param array $descriptor Legacy descriptor.
+	 * @return string
+	 */
+	private static function legacy_name( $descriptor ) {
+		return isset( $descriptor['expose'] ) ? $descriptor['expose'] : $descriptor['meta_key'];
+	}
+
+	/**
+	 * The property names already spoken for on one target: core's own, plus
+	 * whatever this site's taxonomy registry adds to them.
+	 *
+	 * A post type's controller turns every REST-enabled taxonomy attached to
+	 * it into a property of its own, named by that taxonomy's rest base -
+	 * categories and tags on core's post, and whatever a site has called its
+	 * own. No written list can know those, so they are asked for: it is one
+	 * read of the in-memory taxonomy registry per target, with no query
+	 * behind it, and the answer is kept for the rest of the request. Terms
+	 * have no equivalent - WP_REST_Terms_Controller's schema is the same
+	 * nine properties on every taxonomy.
+	 *
+	 * @param string $object Object kind.
+	 * @param string $target Post type or taxonomy name.
+	 * @return array Name => true.
+	 */
+	private static function reserved_for( $object, $target ) {
+		$key = $object . '/' . $target;
+		if ( isset( self::$reserved_cache[ $key ] ) ) {
+			return self::$reserved_cache[ $key ];
+		}
+
+		$names = isset( self::$reserved[ $object ] ) ? self::$reserved[ $object ] : array();
+
+		if ( 'post' === $object ) {
+			$taxonomies = get_object_taxonomies( $target, 'objects' );
+			if ( is_array( $taxonomies ) ) {
+				foreach ( $taxonomies as $taxonomy ) {
+					if ( empty( $taxonomy->show_in_rest ) ) {
+						continue;
+					}
+					$names[] = empty( $taxonomy->rest_base ) ? $taxonomy->name : $taxonomy->rest_base;
+				}
+			}
+		}
+
+		self::$reserved_cache[ $key ] = array_fill_keys( $names, true );
+		return self::$reserved_cache[ $key ];
+	}
+
+	/**
+	 * Whether the site's own JetEngine definitions claim a name on a target.
+	 *
+	 * @param string $object Object kind.
+	 * @param string $target Post type or taxonomy.
+	 * @param string $name   Field name.
+	 * @return bool
+	 */
+	private static function site_defines( $object, $target, $name ) {
+		return isset( self::$site_names[ $object . '/' . $target ][ $name ] );
+	}
+
+	/**
+	 * The name this field may actually be registered under on one target, or
+	 * an empty string when there is none.
+	 *
+	 * A name core's controller already defines is never taken: register_rest_
+	 * field() would replace that property's schema and its value rather than
+	 * sit beside it, which breaks the whole post type for every consumer
+	 * rather than one field for one caller. But a field the site defined is
+	 * not this module's to lose either, so a collision is renamed rather than
+	 * dropped, by a rule a consumer can predict:
+	 *
+	 * - a triple with a legacy name gets that name (`title` on posts is
+	 *   jet_faq_title, which is what the replaced plugin published);
+	 * - anything else gets its own name prefixed with `jet_`, the same
+	 *   prefix the legacy names use, and no core property begins with it.
+	 *
+	 * Either way the absence of the real name is recorded, because an
+	 * automation that asked for it and got nothing needs the info endpoint to
+	 * be able to say why. If the alias is not free either - reserved as well,
+	 * defined by the site, or already registered - the field is left off
+	 * entirely rather than laid over somebody else's name, and that is
+	 * recorded too.
+	 *
+	 * @param array  $descriptor Field descriptor.
+	 * @param string $target     Post type or taxonomy it lands on.
+	 * @param string $name       The name it asked for.
+	 * @return string
+	 */
+	private static function expose_name( $descriptor, $target, $name ) {
+		$object   = isset( $descriptor['object'] ) ? $descriptor['object'] : '';
+		$reserved = self::reserved_for( $object, $target );
+		if ( ! isset( $reserved[ $name ] ) ) {
+			return $name;
+		}
+
+		$triple = $object . '/' . $target . '/' . $name;
+		$alias  = isset( self::$legacy_alias[ $triple ] ) ? self::$legacy_alias[ $triple ] : 'jet_' . $name;
+
+		if ( isset( $reserved[ $alias ] ) || self::site_defines( $object, $target, $alias ) || self::name_taken( $object, $target, $alias ) ) {
+			self::note_skip(
+				sprintf(
+					'The field %1$s was not registered on %2$s: %1$s is a property the WordPress REST API already defines there, and the alias %3$s is not free either.',
+					$name,
+					$target,
+					$alias
+				)
+			);
+			return '';
+		}
+
+		self::note_skip(
+			sprintf(
+				'The field %1$s was not registered on %2$s under its own name because %1$s is a property the WordPress REST API already defines there; it is exposed as %3$s instead.',
+				$name,
+				$target,
+				$alias
+			)
+		);
+
+		return $alias;
+	}
+
+	/**
+	 * Record one diagnostic, once.
+	 *
+	 * Two definitions can produce the same sentence about the same target,
+	 * and saying it twice reads as two problems rather than one.
+	 *
+	 * @param string $reason Plain English, untranslated - see
+	 *                       register_qna_fallback() for why.
+	 */
+	private static function note_skip( $reason ) {
+		if ( ! in_array( $reason, self::$skipped, true ) ) {
+			self::$skipped[] = $reason;
+		}
 	}
 
 	/**
@@ -366,6 +692,15 @@ class DPT_RB_Fields {
 
 		foreach ( $descriptor['targets'] as $target ) {
 			if ( ! self::exposed( $descriptor['object'], $target ) ) {
+				continue;
+			}
+
+			// What this field may honestly be called here. Not always the
+			// name it asked for: core's own controller properties are not
+			// this module's to overwrite, and a field whose name is one of
+			// them is renamed rather than lost.
+			$expose = self::expose_name( $descriptor, $target, $name );
+			if ( '' === $expose ) {
 				continue;
 			}
 
@@ -400,7 +735,7 @@ class DPT_RB_Fields {
 
 			register_rest_field(
 				$target,
-				$name,
+				$expose,
 				array(
 					'get_callback'    => function ( $object ) use ( $resolved ) {
 						return DPT_RB_Fields::read( $resolved, $object );
@@ -419,7 +754,14 @@ class DPT_RB_Fields {
 			// Keyed by name and holding the schema, because the info endpoint
 			// promises an agent the schemas and must read them from what was
 			// really registered rather than deriving them a second time.
-			self::$registered[ $key ][ $name ] = $schema;
+			self::$registered[ $key ][ $expose ] = $schema;
+			if ( $expose !== $name ) {
+				// A renamed field answers to a name its own definition never
+				// gave it, so the name is owed to this module's aliasing
+				// rule rather than to the site - which is exactly what
+				// compat() lists.
+				self::note_compat( $expose );
+			}
 			$count++;
 		}
 
@@ -453,7 +795,9 @@ class DPT_RB_Fields {
 	}
 
 	/**
-	 * Names owed to the compatibility layer rather than to a definition.
+	 * Names owed to the compatibility layer rather than to a definition -
+	 * the aliases, the legacy fields, and any name a collision with a core
+	 * REST property made this module invent.
 	 *
 	 * @return array
 	 */

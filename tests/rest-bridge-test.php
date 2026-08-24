@@ -58,6 +58,26 @@ dpt_test_eq( get_term_meta( 3, 'bio', true ), 'hello', 'term meta round-trips' )
 $GLOBALS['dpt_stub_rest_fields'] = array();
 register_rest_field( 'post', 'thing', array( 'schema' => array( 'type' => 'string' ) ) );
 dpt_test_ok( isset( $GLOBALS['dpt_stub_rest_fields']['post']['thing'] ), 'a registered REST field is recorded' );
+dpt_test_ok( ! empty( dpt_stub_rest_item_schema( 'post' )['thing'] ), 'and appears in the response schema beside core\'s own properties' );
+
+// The behaviour the whole of the collision rests on, and the one a stub that
+// only kept additional fields in a bucket of their own could never show:
+// register_rest_field() does not add a property beside an existing one - for
+// a name the controller already defines it *replaces* that property's schema
+// and its value.
+dpt_test_ok( ! empty( dpt_stub_rest_item_schema( 'post' )['title']['dpt_stub_core'] ), 'the post response starts with core\'s own title' );
+register_rest_field( 'post', 'title', array( 'schema' => array( 'type' => 'string' ) ) );
+dpt_test_ok( empty( dpt_stub_rest_item_schema( 'post' )['title']['dpt_stub_core'] ), 'and a field registered under that name replaces it rather than sitting beside it' );
+dpt_test_eq( dpt_stub_rest_item_schema( 'post' )['title']['type'], 'string', 'leaving the meta field\'s schema where core\'s object was' );
+dpt_test_ok( ! empty( dpt_stub_rest_item_schema( 'authors' )['description']['dpt_stub_core'] ), 'a taxonomy response is modelled from the terms controller instead' );
+$GLOBALS['dpt_stub_rest_fields'] = array();
+
+// The taxonomy registry, which decides some of a post response's property
+// names: core's own post type carries category and post_tag, and the REST
+// API calls those properties categories and tags.
+dpt_test_eq( get_object_taxonomies( 'post' ), array( 'category', 'post_tag' ), 'the post type carries its taxonomies' );
+dpt_test_eq( get_object_taxonomies( 'post', 'objects' )['category']->rest_base, 'categories', 'each with a rest base of its own' );
+dpt_test_eq( get_object_taxonomies( 'page' ), array(), 'while a post type with none carries none' );
 
 $GLOBALS['dpt_stub_denied_post_caps'] = array( 9 );
 dpt_test_ok( current_user_can( 'edit_post', 8 ), 'a post the user may edit' );
@@ -1899,6 +1919,169 @@ $GLOBALS['dpt_stub_rest_fields'] = array();
 DPT_RB_Fields::register();
 dpt_test_ok( isset( $GLOBALS['dpt_stub_rest_fields']['post']['jet_qna']['schema']['items']['properties']['question'] ), 'no qna field at all, and the fallback still registers the legacy shape' );
 dpt_test_ok( in_array( 'jet_qna', DPT_RB_Fields::compat(), true ), 'reported as a compatibility field, as it always was' );
+
+/* ---- a field named after a core REST property never takes that name ---- */
+
+// This is not hypothetical for these sites. The plugin being replaced
+// registered jet_faq_title as a REST field whose callbacks read and write the
+// meta key `title` - it renamed the field precisely because exposing it as
+// `title` would collide with core. So a JetEngine field with the meta key
+// `title` exists, discovery finds it under its real name, and
+// register_rest_field() would put a plain meta string where /wp/v2/posts
+// keeps the post's own title object: not one field degraded, but the post
+// type's REST API broken for every consumer, the block editor included.
+$saved_post_types = $GLOBALS['dpt_stub_rest_post_types'];
+$saved_taxonomies = $GLOBALS['dpt_stub_rest_taxonomies'];
+$saved_object_tax = $GLOBALS['dpt_stub_object_taxonomies'];
+
+$GLOBALS['dpt_stub_options'] = array(
+	'jet_engine_meta_boxes' => array(
+		array(
+			'id'          => 'faq-box',
+			'args'        => array( 'object_type' => 'post', 'allowed_post_type' => array( 'post' ) ),
+			'meta_fields' => array(
+				array( 'name' => 'title', 'title' => 'FAQ title', 'object_type' => 'field', 'type' => 'text' ),
+				array( 'name' => 'excerpt', 'title' => 'Short blurb', 'object_type' => 'field', 'type' => 'textarea' ),
+			),
+		),
+		array(
+			'id'          => 'author-box',
+			'args'        => array( 'object_type' => 'taxonomy', 'allowed_tax' => array( 'authors' ) ),
+			'meta_fields' => array(
+				array( 'name' => 'description', 'title' => 'Bio', 'object_type' => 'field', 'type' => 'wysiwyg' ),
+			),
+		),
+	),
+);
+DPT_RB_Definitions::reset();
+$GLOBALS['dpt_stub_rest_fields'] = array();
+DPT_RB_Fields::register();
+
+dpt_test_ok( ! empty( dpt_stub_rest_item_schema( 'post' )['title']['dpt_stub_core'] ), 'core\'s title on /wp/v2/posts is left exactly as core defined it' );
+dpt_test_ok( ! empty( dpt_stub_rest_item_schema( 'post' )['excerpt']['dpt_stub_core'] ), 'and so is its excerpt' );
+dpt_test_ok( ! empty( dpt_stub_rest_item_schema( 'authors' )['description']['dpt_stub_core'] ), 'and a term\'s own description on the taxonomy it belongs to' );
+
+// A field the site defined is not this module's to lose, either. The meta key
+// `title` on posts has a name already: the one the replaced plugin published
+// and every automation written against it still sends.
+dpt_test_ok( isset( $GLOBALS['dpt_stub_rest_fields']['post']['jet_faq_title'] ), 'the FAQ title is exposed under the name the replaced plugin gave it' );
+dpt_test_ok( in_array( 'jet_faq_title', DPT_RB_Fields::compat(), true ), 'and is named as a compatibility name, because its own definition never called it that' );
+
+// And the name really does reach the meta key it stands for, or it is an
+// alias in name only.
+$GLOBALS['dpt_stub_post_meta'] = array();
+$faq_title_write               = $GLOBALS['dpt_stub_rest_fields']['post']['jet_faq_title']['update_callback'];
+$faq_title_read                = $GLOBALS['dpt_stub_rest_fields']['post']['jet_faq_title']['get_callback'];
+dpt_test_ok( true === call_user_func( $faq_title_write, 'Frequently asked', (object) array( 'ID' => 31 ) ), 'a write under the alias succeeds' );
+dpt_test_eq( get_post_meta( 31, 'title', true ), 'Frequently asked', 'and lands on the title meta key, which is what the field really is' );
+dpt_test_eq( call_user_func( $faq_title_read, array( 'id' => 31 ) ), 'Frequently asked', 'and reads back through the same name' );
+
+// A colliding field with no legacy name is not dropped silently either: the
+// rule is the jet_ prefix the legacy names already use, and no core property
+// begins with it.
+dpt_test_ok( isset( $GLOBALS['dpt_stub_rest_fields']['post']['jet_excerpt'] ), 'a colliding field with no legacy name is exposed under the documented jet_ prefix' );
+dpt_test_ok( isset( $GLOBALS['dpt_stub_rest_fields']['authors']['jet_description'] ), 'on a taxonomy as well as on a post type' );
+dpt_test_ok( in_array( 'jet_excerpt', DPT_RB_Fields::compat(), true ), 'and both are reported as names this module invented' );
+dpt_test_ok( in_array( 'jet_description', DPT_RB_Fields::compat(), true ), 'rather than as names the site chose' );
+
+$excerpt_write = $GLOBALS['dpt_stub_rest_fields']['post']['jet_excerpt']['update_callback'];
+call_user_func( $excerpt_write, 'A blurb', (object) array( 'ID' => 31 ) );
+dpt_test_eq( get_post_meta( 31, 'excerpt', true ), 'A blurb', 'a renamed field still writes the meta key its definition named' );
+
+// An automation that asked for the real name and got nothing has to be able
+// to find out why, and the info endpoint is where it looks.
+$collide_joined = implode( ' | ', DPT_RB_Fields::skipped() );
+dpt_test_ok( false !== strpos( $collide_joined, 'The field title was not registered on post' ), 'the absence of the real name is recorded, with the field and the target' );
+dpt_test_ok( false !== strpos( $collide_joined, 'exposed as jet_faq_title instead' ), 'along with the name it answers to instead' );
+dpt_test_ok( false !== strpos( $collide_joined, 'The field excerpt was not registered on post' ), 'and the same for a field with no legacy name' );
+
+// The FAQ title was public before this module existed and stays public; the
+// blurb is a field discovery found and nothing more, so it keeps the
+// edit-only default.
+dpt_test_eq( $GLOBALS['dpt_stub_rest_fields']['post']['jet_faq_title']['schema']['context'], array( 'view', 'edit' ), 'the FAQ title keeps the anonymous read the replaced plugin gave it' );
+dpt_test_eq( $GLOBALS['dpt_stub_rest_fields']['post']['jet_excerpt']['schema']['context'], array( 'edit' ), 'while a discovered field renamed by the same rule does not gain one' );
+
+// Discovery already took jet_faq_title for the site's own title field, so
+// the legacy entry for the same meta key stands down and says why - it would
+// otherwise register a second field over the first.
+dpt_test_ok( false !== strpos( $collide_joined, 'The legacy field jet_faq_title was not registered on post' ), 'the legacy entry for the same key declines when discovery has already claimed the name' );
+
+/* ---- a property no written list could know: the site's own taxonomies ---- */
+
+// A post type's controller turns every REST-enabled taxonomy attached to it
+// into a property named by that taxonomy's rest base. On these sites that
+// includes `authors`, which no hard-coded list of core properties could
+// contain, so it is read from the taxonomy registry instead.
+$GLOBALS['dpt_stub_object_taxonomies']['post'][] = 'authors';
+$GLOBALS['dpt_stub_options']                     = array(
+	'jet_engine_meta_boxes' => array(
+		array(
+			'id'          => 'byline-box',
+			'args'        => array( 'object_type' => 'post', 'allowed_post_type' => array( 'post' ) ),
+			'meta_fields' => array(
+				array( 'name' => 'authors', 'title' => 'Byline', 'object_type' => 'field', 'type' => 'text' ),
+			),
+		),
+	),
+);
+DPT_RB_Definitions::reset();
+$GLOBALS['dpt_stub_rest_fields'] = array();
+DPT_RB_Fields::register();
+dpt_test_ok( ! isset( $GLOBALS['dpt_stub_rest_fields']['post']['authors'] ), 'a field named after a taxonomy the site attached to posts does not take that property' );
+dpt_test_ok( isset( $GLOBALS['dpt_stub_rest_fields']['post']['jet_authors'] ), 'it is renamed by the same rule' );
+$GLOBALS['dpt_stub_object_taxonomies'] = $saved_object_tax;
+
+/* ---- and the alias is never laid over a name the site itself defined ---- */
+
+// A site can define both `title` and a field of its own literally called
+// jet_faq_title. Compatibility fills a gap; it never takes a name that is
+// already someone's, so here the collision has nowhere to go and is left off
+// rather than written over the site's own field.
+$GLOBALS['dpt_stub_options'] = array(
+	'jet_engine_meta_boxes' => array(
+		array(
+			'id'          => 'faq-box',
+			'args'        => array( 'object_type' => 'post', 'allowed_post_type' => array( 'post' ) ),
+			'meta_fields' => array(
+				array( 'name' => 'jet_faq_title', 'title' => 'Our own heading', 'object_type' => 'field', 'type' => 'text' ),
+				array( 'name' => 'title', 'title' => 'FAQ title', 'object_type' => 'field', 'type' => 'text' ),
+			),
+		),
+	),
+);
+DPT_RB_Definitions::reset();
+$GLOBALS['dpt_stub_rest_fields'] = array();
+DPT_RB_Fields::register();
+
+dpt_test_ok( ! empty( dpt_stub_rest_item_schema( 'post' )['title']['dpt_stub_core'] ), 'core\'s title is still core\'s' );
+dpt_test_ok( isset( $GLOBALS['dpt_stub_rest_fields']['post']['jet_faq_title'] ), 'the site\'s own jet_faq_title is registered' );
+$own_write = $GLOBALS['dpt_stub_rest_fields']['post']['jet_faq_title']['update_callback'];
+$GLOBALS['dpt_stub_post_meta'] = array();
+call_user_func( $own_write, 'Ours', (object) array( 'ID' => 32 ) );
+dpt_test_eq( get_post_meta( 32, 'jet_faq_title', true ), 'Ours', 'and still bound to its own meta key, not to title' );
+dpt_test_eq( get_post_meta( 32, 'title', true ), '', 'while the colliding field is left off rather than laid over it' );
+$taken_joined = implode( ' | ', DPT_RB_Fields::skipped() );
+dpt_test_ok( false !== strpos( $taken_joined, 'the alias jet_faq_title is not free either' ), 'and the info endpoint can say that the alias was not free' );
+
+/* ---- with no JetEngine at all, the legacy name is still there ---- */
+
+// The old plugin registered jet_faq_title unconditionally, and an automation
+// that has been writing it does not care whether this site's FAQ title is a
+// JetEngine field or plain meta.
+$GLOBALS['dpt_stub_options'] = array();
+DPT_RB_Definitions::reset();
+$GLOBALS['dpt_stub_rest_fields'] = array();
+DPT_RB_Fields::register();
+dpt_test_ok( isset( $GLOBALS['dpt_stub_rest_fields']['post']['jet_faq_title'] ), 'jet_faq_title is registered by the compatibility layer' );
+dpt_test_ok( in_array( 'jet_faq_title', DPT_RB_Fields::compat(), true ), 'and reported as one of its names' );
+$legacy_title_write = $GLOBALS['dpt_stub_rest_fields']['post']['jet_faq_title']['update_callback'];
+$GLOBALS['dpt_stub_post_meta'] = array();
+call_user_func( $legacy_title_write, 'Questions', (object) array( 'ID' => 33 ) );
+dpt_test_eq( get_post_meta( 33, 'title', true ), 'Questions', 'reading and writing the same meta key the replaced plugin did' );
+dpt_test_ok( ! empty( dpt_stub_rest_item_schema( 'post' )['title']['dpt_stub_core'] ), 'without ever touching core\'s own title' );
+
+$GLOBALS['dpt_stub_rest_post_types'] = $saved_post_types;
+$GLOBALS['dpt_stub_rest_taxonomies'] = $saved_taxonomies;
 
 /* ---- compat() reports only names that actually landed somewhere ---- */
 

@@ -21,7 +21,7 @@ class DPT_RB_Schema {
 	 * The object/target/meta-key triples the replaced plugin already
 	 * published to anonymous readers, and which are public display content
 	 * by nature: a reading time on posts, an author's bio and links on the
-	 * authors taxonomy, a published FAQ on posts.
+	 * authors taxonomy, a published FAQ and its heading on posts.
 	 *
 	 * Matched by meta key rather than by which descriptor produced them,
 	 * because it is the meta key that was public before. A site whose own
@@ -41,6 +41,11 @@ class DPT_RB_Schema {
 	private static $public_legacy = array(
 		'post/post/reading_time',
 		'post/post/qna',
+		// The FAQ section title, which the replaced plugin published on
+		// posts under the name jet_faq_title - the name it still answers to,
+		// its own being one /wp/v2/posts already owns. It is the heading
+		// printed above the FAQ it belongs to, so it is as public as the FAQ.
+		'post/post/title',
 		'taxonomy/authors/author_description',
 		'taxonomy/authors/author_image',
 		'taxonomy/authors/linkedin',

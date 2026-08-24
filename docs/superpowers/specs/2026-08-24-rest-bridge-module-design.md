@@ -181,8 +181,9 @@ publish a client's data by accident. Authenticated consumers read them with
 `context=edit`.
 
 The compatibility fields keep `view` and `edit`, **on the target the replaced
-plugin published them on and nowhere else**: `reading_time` and the
-`qna`/`jet_qna` FAQ on `post`, `author_description`, `author_image` and
+plugin published them on and nowhere else**: `reading_time`, the
+`qna`/`jet_qna` FAQ and the FAQ's own heading (meta key `title`, exposed as
+`jet_faq_title`) on `post`, `author_description`, `author_image` and
 `linkedin` on the `authors` taxonomy. The replaced plugin already published
 these, and each is public display content by nature, so keeping them public is
 what stops this from being a regression for anything already running.
@@ -248,7 +249,8 @@ instead of cleaning it.
 On `rest_api_init`:
 - For each descriptor with `object === 'post'`: `register_rest_field` on each
   target post type that is REST-enabled (`show_in_rest`), under the real meta
-  key name.
+  key name — unless that name is one the target's controller already
+  defines, in which case see "Names core already owns" below.
 - For `object === 'taxonomy'`: same on each REST-enabled taxonomy.
 - `get_callback` normalizes stored values: repeater values that arrive as a
   JSON string or a PHP-serialized string are decoded (the old plugin's
@@ -272,8 +274,81 @@ On `rest_api_init`:
   same mismatch, reads as the success it is. `DPT_RB_Elementor` already
   slashed its JSON for this reason.
 
+### Names core already owns
+
+`register_rest_field()` does not add a property beside an existing one. For a
+name the target controller already defines — `title`, `content`, `id`,
+`status`, `meta`, `slug`, `date`, `excerpt`, `author`, `link` and the rest —
+it **replaces** that property's schema and its response value. A JetEngine
+field called `title` on posts therefore makes `/wp/v2/posts/{id}` return the
+meta string where core's title object belongs, lets the edit-only context
+above strip the real title out of `view` responses entirely, and lands a
+write in two places at once. That is not one field degraded; it is the site's
+REST API broken for that post type, for every consumer, the block editor
+included.
+
+It is not hypothetical: the replaced plugin registered `jet_faq_title` as a
+REST field whose callbacks read and write the meta key **`title`**. It
+renamed the field precisely because exposing it as `title` would collide, so
+a JetEngine field with that meta key exists on the sites this module is for
+and discovery finds it under its real name.
+
+So a discovered name is checked against the reserved set for its target
+before registration, and **never registered over one**.
+
+**How the reserved set is decided.** A written list of core's own controller
+properties per object kind (`WP_REST_Posts_Controller` plus what
+`WP_REST_Attachments_Controller` adds; `WP_REST_Terms_Controller` for
+taxonomies), **plus** the one part that genuinely differs per site: a post
+type's controller turns every REST-enabled taxonomy attached to it into a
+property named by that taxonomy's `rest_base`, which is read from the
+taxonomy registry with `get_object_taxonomies( $target, 'objects' )` — an
+in-memory read with no query behind it, done once per target per request and
+kept.
+
+A written list rather than a question put to the controller, deliberately.
+`WP_REST_Controller::add_additional_fields_schema()` folds every field
+registered so far into the schema a controller hands back, so during
+`rest_api_init` "core's own properties" is an order-dependent answer that
+would include this module's own registrations. Asking also costs a controller
+instantiation and a full schema build per target, inside that hook, running
+whatever third-party code has filtered `rest_{$type}_item_schema` —
+re-entrancy this module cannot bound. And `WP_Post_Type::get_rest_controller()`
+is WP 5.9 and later and answers `null` for a type whose
+`rest_controller_class` is not a `WP_REST_Controller`. Against that, the list
+is core's published API surface: renaming one of these properties would break
+`/wp/v2` for everyone, which is not a change core makes. The residual gap is
+a custom controller that adds properties of its own, and fields another
+plugin registers later in the hook; both are recorded here as known and
+neither is reachable by any cheaper means.
+
+**The aliasing rule.** A field the site defined does not vanish because its
+name is taken. A colliding name is renamed, predictably:
+
+- a triple with a legacy name gets that name — `post/post/title` is
+  `jet_faq_title`, which is what the replaced plugin published and what
+  automations written against it send today;
+- **anything else gets its own name with a `jet_` prefix** — `excerpt` on
+  posts becomes `jet_excerpt`, `description` on a taxonomy becomes
+  `jet_description`. Same prefix the legacy names use, and no core property
+  begins with it.
+
+Either way the absence of the real name is recorded in `skipped()`, naming
+the field, the target and the name it answers to instead, so the info
+endpoint can explain a name an automation asked for and did not get. If the
+alias is not free either — reserved as well, defined by the site, or already
+registered — the field is left off entirely rather than laid over somebody
+else's name, and that is recorded too. A renamed field is reported in
+`compat()`: the name is owed to this rule, not to the definition.
+
+The check against "the site defines this name here" is made against the set
+of meta keys discovery found, frozen before anything is registered, so the
+answer does not depend on which of two definitions discovery reached first.
+
 **Compatibility layer**, registered after discovery, each item only when
-discovery did not already expose the name:
+discovery did not already expose the name (and a target it declines is
+recorded in `skipped()`, for a consumer that has been reading that name since
+the replaced plugin):
 - `jet_qna` on post types — an alias of every discovered `qna` repeater, on
   that descriptor's own targets. Whether the `post` post type also needs the
   hard-coded repeater of `{question, answer}` (old plugin behaviour) is
@@ -304,6 +379,13 @@ discovery did not already expose the name:
   against what discovery registered, frozen before the compatibility layer
   runs, so "the site defines its own `jet_qna` here" stays a different
   question from "an earlier pass already aliased `jet_qna` here".
+- `jet_faq_title` on `post` — the meta key `title`, under the only name it
+  can have. Its own name is a core property, so this entry is not "a legacy
+  name kept for old automations" but the sole route to a field the site
+  really has. Registered unconditionally, as the replaced plugin registered
+  it, because the FAQ title may be plain meta rather than a JetEngine field;
+  it stands down where the site defines its own `jet_faq_title`, and where
+  discovery has already renamed its `title` field into that name.
 - `reading_time` (posts, text), `author_description` (authors taxonomy,
   wysiwyg), `author_image` (authors, url → `esc_url_raw`), `linkedin`
   (authors, url) — the old plugin's hard-coded set, kept because consumers use
@@ -422,7 +504,18 @@ options, no `user_can_toggle` override.
    from the string form, through a model of the validation core runs before
    any of these sanitizers, and what `normalize_read()` gives back is checked
    against the schema `for_descriptor()` advertised.
-3. Fields: registration targets (REST-enabled only), read normalization
+3. Fields: a name core's controller already owns is never registered over -
+   core's own `title` and `excerpt` on posts and `description` on a taxonomy
+   survive registration untouched, the harness modelling
+   `add_additional_fields_schema()` so an additional field really does
+   replace a core property of the same name and the assertion is not vacuous.
+   The site's `title` field is reachable as `jet_faq_title` and writes the
+   `title` meta key; a colliding field with no legacy name is reachable under
+   the `jet_` prefix; a field named after a taxonomy the site attached to
+   posts is renamed too, which is the half of the reserved set no written
+   list could hold; the alias is withheld where the site defines it itself,
+   and every one of those is explained in `skipped()`.
+   Also: registration targets (REST-enabled only), read normalization
    (array / JSON string / serialized string / garbage), alias registered only
    when missing - including the target-by-target case, where a post type
    defining both `qna` and its own `jet_qna` keeps its own field bound to the
