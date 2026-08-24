@@ -77,8 +77,34 @@ by WordPress.
 | checkbox | object of option-key => `'true'`/`'false'` | keys `sanitize_key`, values normalized |
 | select / radio | string | `sanitize_text_field` |
 | date / time / datetime-local | string | `sanitize_text_field` |
-| media | integer (attachment id) | `absint` |
+| media | integer, string or object - id, URL, or `{id, url}` | by the shape received: `absint` / `esc_url_raw` / member by member |
 | repeater | array of objects; properties from sub-fields | recurse per sub-field |
+
+A media field is advertised as **all three of the formats JetEngine can store
+it in**, because the format is a per-field setting - `value_format`, written
+beside the type in the same option row, one of `id`, `url` or `both` (the
+array `{ id, url }`). Discovery carries it onto the descriptor, including for
+a media column inside a repeater, where JetEngine offers the same setting.
+But nothing depends on it being right: the setting belongs to JetEngine, so a
+field can predate it, an editor can change it between two requests, and a
+future version can spell it differently. Advertising the id alone - which is
+what this did - made a URL site's own data a `400` on write and `0` on read,
+`absint()` having destroyed the value on the way out. So the type is the union
+`[integer, string, object]`, `sanitize()` cleans the shape in hand (an id
+stays an id, a URL goes through `esc_url_raw()`, an array is cleaned member by
+member and any member this bridge has no format for is kept verbatim), and
+`normalize_read()` returns the shape storage holds. The setting decides one
+thing only: what an *unset* field reads back as, where there is no value in
+hand to read a shape off - `0` for the id format, which consumers already
+rely on, and `''` for the other two, about which `0` would be a lie.
+
+The type is a union rather than a single narrowed type on purpose, and the
+member order is the order core resolves it in: `rest_get_best_type_for_value()`
+tries `integer`, then `object`, and falls back to `string`. `array` is
+deliberately **not** among them - `rest_is_array()` accepts any scalar and
+`wp_parse_list()` then splits it on whitespace and commas, so naming `array`
+beside `string` would shred a plain string before the module's sanitizer ever
+saw it.
 
 A switcher is advertised as a **boolean**, not as the string JetEngine stores.
 Core validates a registered field against the advertised type *before* the
@@ -267,7 +293,11 @@ options, no `user_can_toggle` override.
    tab chrome, unknown type, broken row) → descriptors + skipped list.
 2. Schema: type map, repeater schema from sub-fields, sanitizers incl. kses
    pass-through stub, unknown keys preserved verbatim, "0" survives, empty array clears,
-   failed delete reported. A switcher round-trips from a JSON boolean *and*
+   failed delete reported. A media field is exercised in each of its three
+   formats - discovery carrying `value_format`, every shape accepted by the
+   schema, read back as itself and unchanged by a read, write, read round
+   trip through the meta store, and a stored URL specifically not read back
+   as `0`. A switcher round-trips from a JSON boolean *and*
    from the string form, through a model of the validation core runs before
    any of these sanitizers, and what `normalize_read()` gives back is checked
    against the schema `for_descriptor()` advertised.

@@ -305,7 +305,7 @@ $rep   = array(
 $schema = DPT_RB_Schema::for_descriptor( $text );
 dpt_test_eq( $schema['type'], 'string', 'a text field is a string' );
 dpt_test_eq( DPT_RB_Schema::for_descriptor( $num )['type'], 'number', 'a number is a number' );
-dpt_test_eq( DPT_RB_Schema::for_descriptor( $media )['type'], 'integer', 'media is an attachment id' );
+dpt_test_eq( DPT_RB_Schema::for_descriptor( $media )['type'], array( 'integer', 'string', 'object' ), 'media is an id, a URL or the array of both' );
 
 $rs = DPT_RB_Schema::for_descriptor( $rep );
 dpt_test_eq( $rs['type'], 'array', 'a repeater is an array' );
@@ -374,6 +374,18 @@ dpt_test_ok(
 function dpt_rb_test_core_accepts( $schema, $value ) {
 	$type = isset( $schema['type'] ) ? $schema['type'] : '';
 
+	if ( is_array( $type ) ) {
+		// rest_handle_multi_type_schema(): core picks one type out of the
+		// union and validates against that one alone, so a union refuses a
+		// value only when nothing in it matches at all.
+		$best = dpt_rb_test_core_best_type( $type, $value );
+		if ( '' === $best ) {
+			return false;
+		}
+		$schema['type'] = $best;
+		return dpt_rb_test_core_accepts( $schema, $value );
+	}
+
 	switch ( $type ) {
 		case 'boolean':
 			// rest_is_boolean(): a real boolean, the strings 'true', 'false',
@@ -420,6 +432,65 @@ function dpt_rb_test_core_accepts( $schema, $value ) {
 }
 
 /**
+ * Which member of a union type core resolves a value to.
+ *
+ * rest_get_best_type_for_value(): the empty string prefers string, then the
+ * union is walked in the order the schema names it, and string is the answer
+ * of last resort because it has no check of its own. Only array, object,
+ * integer, number and boolean do.
+ *
+ * That ordering is the reason the schemas here name 'object' for the
+ * container a scalar field can also hold: rest_is_array() answers yes to any
+ * scalar - wp_parse_list() will happily make a list out of one - so naming
+ * 'array' beside 'string' would split a plain select value on its spaces
+ * before the module's own sanitizer ever saw it. rest_is_object() answers no
+ * to a non-empty scalar, so a string stays a string.
+ *
+ * @param array $types The union the schema names.
+ * @param mixed $value What a client sent.
+ * @return string The type name, or '' when the union fits nothing.
+ */
+function dpt_rb_test_core_best_type( $types, $value ) {
+	if ( '' === $value && in_array( 'string', $types, true ) ) {
+		return 'string';
+	}
+
+	foreach ( $types as $type ) {
+		switch ( $type ) {
+			case 'array':
+				// rest_is_array().
+				if ( is_scalar( $value ) || is_array( $value ) ) {
+					return 'array';
+				}
+				break;
+			case 'object':
+				// rest_is_object().
+				if ( is_array( $value ) || $value instanceof stdClass ) {
+					return 'object';
+				}
+				break;
+			case 'integer':
+				if ( is_int( $value ) ) {
+					return 'integer';
+				}
+				break;
+			case 'number':
+				if ( is_numeric( $value ) ) {
+					return 'number';
+				}
+				break;
+			case 'boolean':
+				if ( dpt_rb_test_core_accepts( array( 'type' => 'boolean' ), $value ) ) {
+					return 'boolean';
+				}
+				break;
+		}
+	}
+
+	return in_array( 'string', $types, true ) ? 'string' : '';
+}
+
+/**
  * The other half of that gate: what core hands the update_callback once the
  * value has passed. A boolean property arrives as a real PHP boolean however
  * the client spelled it, which is why the module's own sanitizer sees one.
@@ -430,6 +501,45 @@ function dpt_rb_test_core_accepts( $schema, $value ) {
  */
 function dpt_rb_test_core_sanitize( $schema, $value ) {
 	$type = isset( $schema['type'] ) ? $schema['type'] : '';
+
+	if ( is_array( $type ) ) {
+		$best = dpt_rb_test_core_best_type( $type, $value );
+		if ( '' === $best ) {
+			return $value;
+		}
+		$schema['type'] = $best;
+		return dpt_rb_test_core_sanitize( $schema, $value );
+	}
+
+	if ( 'integer' === $type ) {
+		return (int) $value;
+	}
+
+	if ( 'object' === $type ) {
+		// rest_sanitize_object(): an object becomes an array and an array is
+		// left exactly as it is, keys and all.
+		if ( $value instanceof stdClass ) {
+			return get_object_vars( $value );
+		}
+		return is_array( $value ) ? $value : array();
+	}
+
+	if ( 'array' === $type && is_scalar( $value ) ) {
+		// rest_sanitize_array() runs a scalar through wp_parse_list(), which
+		// splits it on whitespace and commas.
+		$value = preg_split( '/[\s,]+/', (string) $value, -1, PREG_SPLIT_NO_EMPTY );
+	}
+
+	if ( 'array' === $type && is_array( $value ) && isset( $schema['items'] ) && ! isset( $schema['items']['properties'] ) ) {
+		foreach ( $value as $index => $item ) {
+			$value[ $index ] = dpt_rb_test_core_sanitize( $schema['items'], $item );
+		}
+		return $value;
+	}
+
+	if ( 'string' === $type ) {
+		return is_scalar( $value ) ? (string) $value : $value;
+	}
 
 	if ( 'boolean' === $type ) {
 		// rest_sanitize_boolean(): the strings 'false' and '0' are the two
@@ -522,6 +632,167 @@ $read_rows = DPT_RB_Schema::normalize_read( $rep_sw, $stored_rows );
 dpt_test_eq( $read_rows[0]['featured'], true, 'and read back as a boolean' );
 dpt_test_eq( $read_rows[1]['featured'], false, 'both ways round again' );
 dpt_test_ok( dpt_rb_test_core_accepts( $rep_sw_schema, $read_rows ), 'what the read hands back satisfies the schema the repeater advertises' );
+
+/* ---- a media field, in every format JetEngine can be told to store ---- */
+
+/**
+ * One value all the way round: out of storage through the read the API
+ * promises, back in through the gate core puts in front of the update
+ * callback, through the module's own sanitizer, and into storage again.
+ *
+ * The last step models what meta storage does to a scalar - it is a text
+ * column, so an id goes in as 12 and comes back out as "12" - because a round
+ * trip that skips it would not notice a read that only looks stable while the
+ * value stays in PHP.
+ *
+ * @param array $descriptor Field descriptor.
+ * @param mixed $stored     What storage holds to begin with.
+ * @return array accepted, read, stored again and read again.
+ */
+function dpt_rb_test_round_trip( $descriptor, $stored ) {
+	$schema = DPT_RB_Schema::for_descriptor( $descriptor );
+	$read   = DPT_RB_Schema::normalize_read( $descriptor, $stored );
+
+	if ( ! dpt_rb_test_core_accepts( $schema, $read ) ) {
+		return array( 'accepted' => false, 'read' => $read );
+	}
+
+	$clean  = DPT_RB_Schema::sanitize( $descriptor, dpt_rb_test_core_sanitize( $schema, $read ) );
+	$again  = is_scalar( $clean ) ? (string) $clean : $clean;
+
+	return array(
+		'accepted' => true,
+		'read'     => $read,
+		'stored'   => $again,
+		'again'    => DPT_RB_Schema::normalize_read( $descriptor, $again ),
+	);
+}
+
+// JetEngine settles a media field's storage format with a per-field setting,
+// value_format, sitting beside the type in the same option row: 'id' for an
+// attachment id, 'url' for the attachment's URL, 'both' for the array of the
+// two. Discovery carries it, and a field saved before the setting existed
+// reads as the id format JetEngine's own control defaults to.
+$GLOBALS['dpt_stub_options'] = array(
+	'jet_engine_meta_boxes' => array(
+		array(
+			'id'          => 'media-formats',
+			'args'        => array( 'object_type' => 'post', 'allowed_post_type' => array( 'post' ) ),
+			'meta_fields' => array(
+				array( 'name' => 'photo', 'title' => 'Photo', 'object_type' => 'field', 'type' => 'media' ),
+				array( 'name' => 'banner', 'title' => 'Banner', 'object_type' => 'field', 'type' => 'media', 'value_format' => 'url' ),
+				array( 'name' => 'hero', 'title' => 'Hero', 'object_type' => 'field', 'type' => 'media', 'value_format' => 'both' ),
+				array( 'name' => 'odd', 'title' => 'Odd', 'object_type' => 'field', 'type' => 'media', 'value_format' => array( 'nonsense' ) ),
+				array(
+					'name'             => 'slides',
+					'title'            => 'Slides',
+					'object_type'      => 'field',
+					'type'             => 'repeater',
+					'repeater-fields'  => array(
+						array( 'name' => 'shot', 'title' => 'Shot', 'type' => 'media', 'value_format' => 'url' ),
+					),
+				),
+			),
+		),
+	),
+);
+DPT_RB_Definitions::reset();
+$media_defs = array();
+foreach ( DPT_RB_Definitions::all() as $d ) {
+	$media_defs[ $d['meta_key'] ] = $d;
+}
+dpt_test_eq( $media_defs['photo']['value_format'], 'id', 'a media field with no setting is the id format JetEngine defaults to' );
+dpt_test_eq( $media_defs['banner']['value_format'], 'url', 'and one told to store a URL says so' );
+dpt_test_eq( $media_defs['hero']['value_format'], 'both', 'and one told to store both' );
+dpt_test_eq( $media_defs['odd']['value_format'], 'id', 'while a format JetEngine does not have falls back rather than being passed on' );
+dpt_test_eq( $media_defs['slides']['fields'][0]['value_format'], 'url', 'a media column inside a repeater carries its own format too' );
+
+$media_id   = $media_defs['photo'];
+$media_url  = $media_defs['banner'];
+$media_both = $media_defs['hero'];
+$union      = array( 'integer', 'string', 'object' );
+
+// The schema names all three formats whatever this field's setting says. The
+// setting belongs to JetEngine: a field can predate it, an editor can change
+// it between two requests, and a future version can spell it differently. A
+// schema that refuses the data a site really holds is the worse mistake, so
+// what is advertised is the union and the shape in hand decides the rest.
+dpt_test_eq( DPT_RB_Schema::for_descriptor( $media_id )['type'], $union, 'an id-format media field advertises all three shapes' );
+dpt_test_eq( DPT_RB_Schema::for_descriptor( $media_url )['type'], $union, 'so does a URL-format one' );
+dpt_test_eq( DPT_RB_Schema::for_descriptor( $media_both )['type'], $union, 'and so does one storing both' );
+dpt_test_eq(
+	DPT_RB_Schema::for_descriptor( $media_defs['slides'] )['items']['properties']['shot']['type'],
+	$union,
+	'and a media column inside a repeater is advertised the same way'
+);
+
+// The damage this replaces, stated as the test that would have caught it:
+// absint() on a stored URL is 0, so the read handed a site back a number
+// where its own picture had been.
+dpt_test_eq( absint( 'https://example.test/hero.jpg' ), 0, 'absint() on a URL is 0 - the read this fixes' );
+
+$media_shapes = array(
+	array( $media_id, '12', 12, '12 an attachment id' ),
+	array( $media_url, 'https://example.test/hero.jpg', 'https://example.test/hero.jpg', 'a URL' ),
+	array( $media_both, array( 'id' => 12, 'url' => 'https://example.test/hero.jpg' ), null, 'an id and URL array' ),
+);
+foreach ( $media_shapes as $shape ) {
+	$descriptor = $shape[0];
+	$stored     = $shape[1];
+	$label      = $shape[3];
+	$trip       = dpt_rb_test_round_trip( $descriptor, $stored );
+
+	dpt_test_ok( $trip['accepted'], "what a media field holding $label reads back is a value its own schema accepts" );
+	dpt_test_eq( wp_json_encode( $trip['again'] ), wp_json_encode( $trip['read'] ), "and reading $label, writing it back and reading again changes nothing" );
+	dpt_test_ok( dpt_rb_test_core_accepts( DPT_RB_Schema::for_descriptor( $descriptor ), $stored ), "a client can write $label to the field that holds it" );
+}
+
+// Each shape reads back as itself rather than as the shape the old integer
+// type assumed. This is the finding in one line: a URL must not read as 0.
+dpt_test_eq( DPT_RB_Schema::normalize_read( $media_url, 'https://example.test/hero.jpg' ), 'https://example.test/hero.jpg', 'a stored URL reads back as the URL, not as 0' );
+dpt_test_eq( wp_json_encode( DPT_RB_Schema::normalize_read( $media_id, '12' ) ), '12', 'a stored id still reads back as the integer it is' );
+dpt_test_eq(
+	wp_json_encode( DPT_RB_Schema::normalize_read( $media_both, array( 'id' => 12, 'url' => 'https://example.test/hero.jpg' ) ) ),
+	wp_json_encode( (object) array( 'id' => 12, 'url' => 'https://example.test/hero.jpg' ) ),
+	'and the pair reads back as the object the schema names, both halves intact'
+);
+
+// A field nobody has filled in. Only here does the site's own format get to
+// answer, because there is no value in hand to read the shape off: an id
+// field has always answered 0 and consumers rely on it, while 0 would be a
+// lie about a field that has never held a number.
+dpt_test_eq( wp_json_encode( DPT_RB_Schema::normalize_read( $media_id, '' ) ), '0', 'an unset attachment id is still 0' );
+dpt_test_eq( DPT_RB_Schema::normalize_read( $media_url, '' ), '', 'an unset URL is empty, not 0' );
+dpt_test_eq( DPT_RB_Schema::normalize_read( $media_both, '' ), '', 'and so is an unset pair' );
+
+// Writing. The shape that arrives decides the cleaning, so a URL is still
+// kept out of javascript: and data: and an id is still a positive integer.
+dpt_test_eq( DPT_RB_Schema::sanitize( $media_url, 12 ), 12, 'an integer written to a URL-format field stays the id it is' );
+dpt_test_eq( DPT_RB_Schema::sanitize( $media_id, 'https://example.test/hero.jpg' ), 'https://example.test/hero.jpg', 'and a URL written to an id-format field stays the URL it is' );
+dpt_test_eq( DPT_RB_Schema::sanitize( $media_url, 'javascript:alert(1)' ), '', 'a javascript: URL is still refused' );
+dpt_test_eq( DPT_RB_Schema::sanitize( $media_url, 'data:text/html;base64,PHN2Zz4=' ), '', 'and a data: one' );
+dpt_test_eq( DPT_RB_Schema::sanitize( $media_both, true ), '', 'a boolean is neither an id nor a URL, and does not become http://1' );
+
+$pair = DPT_RB_Schema::sanitize( $media_both, array( 'id' => '12', 'url' => ' https://example.test/hero.jpg ', 'alt' => 'A hero', 'meta' => array( 'w' => 1 ) ) );
+dpt_test_eq( $pair['id'], 12, 'the id half of a pair is cleaned as an id' );
+dpt_test_eq( $pair['url'], 'https://example.test/hero.jpg', 'the URL half as a URL' );
+dpt_test_eq( $pair['alt'], 'A hero', 'a member this bridge has no format for is kept as it arrived' );
+dpt_test_eq( $pair['meta'], array( 'w' => 1 ), 'whatever shape it is in' );
+dpt_test_eq(
+	DPT_RB_Schema::sanitize( $media_both, DPT_RB_Schema::normalize_read( $media_both, array( 'id' => 12, 'url' => 'https://example.test/hero.jpg' ) ) ),
+	array( 'id' => 12, 'url' => 'https://example.test/hero.jpg' ),
+	'and a pair composed straight from a read, with no JSON round trip to flatten the object, writes back unchanged'
+);
+
+// The pair a client sends as JSON is an object by the time core is done with
+// it, which is the only spelling that ever reaches a live update callback.
+$media_schema = DPT_RB_Schema::for_descriptor( $media_both );
+$sent_pair    = json_decode( '{"id":12,"url":"https://example.test/hero.jpg"}' );
+dpt_test_ok( dpt_rb_test_core_accepts( $media_schema, $sent_pair ), 'the pair a client sends passes validation' );
+dpt_test_eq(
+	DPT_RB_Schema::sanitize( $media_both, dpt_rb_test_core_sanitize( $media_schema, $sent_pair ) ),
+	array( 'id' => 12, 'url' => 'https://example.test/hero.jpg' ),
+	'and lands in storage as the array JetEngine reads' );
 
 // A url field is not a JetEngine type - discovery never produces one - but
 // the legacy descriptors have two, and a theme prints both straight into an
@@ -811,6 +1082,29 @@ dpt_test_ok( true === DPT_RB_Fields::write( $weight, 42, (object) array( 'ID' =>
 // values would find "42" !== 42 and wrongly report a failure; comparing
 // what each side reads back as must not.
 dpt_test_ok( true === DPT_RB_Fields::write( $weight, 42, (object) array( 'ID' => 11 ) ), 'writing the same value again still reports success, not a failure' );
+
+/* ---- a media field through real meta storage, in all three formats ---- */
+
+// The finding this answers was about a live read: a site whose media fields
+// store URLs had every one of them handed back as 0, because the read path
+// ran absint() over whatever storage held. Through the callbacks and the
+// meta store, not just the schema class, because that is where it happened.
+$photo_id   = array( 'meta_key' => 'photo', 'title' => 'Photo', 'type' => 'media', 'fields' => array(), 'object' => 'post', 'value_format' => 'id' );
+$photo_url  = array( 'meta_key' => 'banner', 'title' => 'Banner', 'type' => 'media', 'fields' => array(), 'object' => 'post', 'value_format' => 'url' );
+$photo_both = array( 'meta_key' => 'hero', 'title' => 'Hero', 'type' => 'media', 'fields' => array(), 'object' => 'post', 'value_format' => 'both' );
+
+dpt_test_ok( true === DPT_RB_Fields::write( $photo_url, 'https://example.test/banner.jpg', (object) array( 'ID' => 11 ) ), 'a URL-format media field takes a URL' );
+dpt_test_eq( DPT_RB_Fields::read( $photo_url, array( 'id' => 11 ) ), 'https://example.test/banner.jpg', 'and hands it back as the URL, not as 0' );
+dpt_test_ok( true === DPT_RB_Fields::write( $photo_url, DPT_RB_Fields::read( $photo_url, array( 'id' => 11 ) ), (object) array( 'ID' => 11 ) ), 'writing back exactly what was read is a success, not a failed comparison' );
+dpt_test_eq( DPT_RB_Fields::read( $photo_url, array( 'id' => 11 ) ), 'https://example.test/banner.jpg', 'and changes nothing' );
+
+dpt_test_ok( true === DPT_RB_Fields::write( $photo_id, 12, (object) array( 'ID' => 11 ) ), 'an id-format field takes an id' );
+dpt_test_eq( DPT_RB_Fields::read( $photo_id, array( 'id' => 11 ) ), 12, 'and hands back the integer, not the string meta storage kept' );
+
+dpt_test_ok( true === DPT_RB_Fields::write( $photo_both, array( 'id' => 12, 'url' => 'https://example.test/hero.jpg' ), (object) array( 'ID' => 11 ) ), 'a both-format field takes the pair' );
+dpt_test_eq( wp_json_encode( DPT_RB_Fields::read( $photo_both, array( 'id' => 11 ) ) ), wp_json_encode( (object) array( 'id' => 12, 'url' => 'https://example.test/hero.jpg' ) ), 'and hands back both halves' );
+dpt_test_ok( true === DPT_RB_Fields::write( $photo_both, DPT_RB_Fields::read( $photo_both, array( 'id' => 11 ) ), (object) array( 'ID' => 11 ) ), 'and the object it just handed out writes back as a success' );
+dpt_test_eq( wp_json_encode( DPT_RB_Fields::read( $photo_both, array( 'id' => 11 ) ) ), wp_json_encode( (object) array( 'id' => 12, 'url' => 'https://example.test/hero.jpg' ) ), 'still holding both halves' );
 
 /* ---- the id helper's other shapes ---- */
 

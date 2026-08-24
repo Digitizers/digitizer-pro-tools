@@ -152,6 +152,42 @@ class DPT_RB_Definitions {
 	}
 
 	/**
+	 * The per-field settings that change what a field's value *is*, carried
+	 * onto the descriptor beside the type.
+	 *
+	 * A JetEngine type is not always the whole story: the admin writes a
+	 * handful of per-field settings into the same option row, and some of
+	 * them decide the format of the stored value rather than how it is
+	 * edited. A media field's `value_format` is one - 'id', 'url' or 'both'
+	 * for the array of an attachment id and its URL. Reading only the type
+	 * left the schema, the sanitizer and the read path all assuming the
+	 * default, which is how a site storing URLs had its own data read back
+	 * as 0.
+	 *
+	 * Only settings this bridge acts on are carried, and only in the
+	 * spellings JetEngine's own admin writes - an unrecognized value falls
+	 * back to the format JetEngine itself defaults to rather than being
+	 * passed through to code that would then have to guess at it.
+	 *
+	 * @param array  $field The raw field row.
+	 * @param string $type  Its JetEngine type.
+	 * @return array
+	 */
+	private static function settings( $field, $type ) {
+		$settings = array();
+
+		if ( 'media' === $type ) {
+			$format = isset( $field['value_format'] ) && is_scalar( $field['value_format'] ) ? (string) $field['value_format'] : '';
+			// JetEngine's media control defaults to 'id' and the admin only
+			// writes the key once a format has been chosen, so a field that
+			// predates the setting holds an attachment id.
+			$settings['value_format'] = in_array( $format, array( 'id', 'url', 'both' ), true ) ? $format : 'id';
+		}
+
+		return $settings;
+	}
+
+	/**
 	 * One field row to a descriptor, or null when it is not one.
 	 *
 	 * @param mixed  $field The raw row.
@@ -182,11 +218,14 @@ class DPT_RB_Definitions {
 			return null;
 		}
 
-		$descriptor = array(
-			'meta_key' => $name,
-			'title'    => isset( $field['title'] ) && is_scalar( $field['title'] ) ? (string) $field['title'] : $name,
-			'type'     => $type,
-			'fields'   => array(),
+		$descriptor = array_merge(
+			array(
+				'meta_key' => $name,
+				'title'    => isset( $field['title'] ) && is_scalar( $field['title'] ) ? (string) $field['title'] : $name,
+				'type'     => $type,
+				'fields'   => array(),
+			),
+			self::settings( $field, $type )
 		);
 
 		if ( 'repeater' === $type ) {
@@ -213,11 +252,19 @@ class DPT_RB_Definitions {
 					self::$skipped[] = sprintf( 'field %1$s: sub-field %2$s is not exposed', $name, '' === $sub_name ? '(unnamed)' : $sub_name );
 					continue;
 				}
-				$descriptor['fields'][] = array(
-					'meta_key' => $sub_name,
-					'title'    => isset( $sub['title'] ) && is_scalar( $sub['title'] ) ? (string) $sub['title'] : $sub_name,
-					'type'     => $sub_type,
-					'fields'   => array(),
+				// A sub-field carries the same settings as a field of its own
+				// type: JetEngine's admin offers the value format on a media
+				// column inside a repeater exactly as it does at the top
+				// level, and a sub-field whose settings were left behind
+				// would be shaped by its base type alone.
+				$descriptor['fields'][] = array_merge(
+					array(
+						'meta_key' => $sub_name,
+						'title'    => isset( $sub['title'] ) && is_scalar( $sub['title'] ) ? (string) $sub['title'] : $sub_name,
+						'type'     => $sub_type,
+						'fields'   => array(),
+					),
+					self::settings( $sub, $sub_type )
 				);
 			}
 

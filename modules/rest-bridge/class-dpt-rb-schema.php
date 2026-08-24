@@ -67,9 +67,13 @@ class DPT_RB_Schema {
 		if ( 'repeater' === $descriptor['type'] ) {
 			$properties = array();
 			foreach ( $descriptor['fields'] as $sub ) {
-				$properties[ $sub['meta_key'] ] = array(
-					'description' => $sub['title'],
-					'type'        => self::json_type( $sub['type'] ),
+				// The sub-field's whole descriptor, not its type alone: a
+				// media column inside a repeater carries the same value
+				// format setting as one outside it, and the sub-schema has
+				// to say the same thing about it that the top level would.
+				$properties[ $sub['meta_key'] ] = array_merge(
+					array( 'description' => $sub['title'] ),
+					self::type_schema( $sub )
 				);
 			}
 			$schema['type']  = 'array';
@@ -80,8 +84,7 @@ class DPT_RB_Schema {
 			return $schema;
 		}
 
-		$schema['type'] = self::json_type( $descriptor['type'] );
-		return $schema;
+		return array_merge( $schema, self::type_schema( $descriptor ) );
 	}
 
 	/**
@@ -111,21 +114,48 @@ class DPT_RB_Schema {
 	}
 
 	/**
-	 * The JSON Schema type one JetEngine type presents as.
+	 * The schema fragment one field presents as: its type, and whatever else
+	 * that type needs said about it.
 	 *
-	 * @param string $type JetEngine type.
-	 * @return string
+	 * A fragment rather than a bare type name because a field's honest type
+	 * is not always one word. The whole descriptor rather than its type
+	 * alone for the same reason: JetEngine settles some formats with a
+	 * per-field setting sitting next to the type, and a schema written from
+	 * the type on its own describes a site that happens to use the default.
+	 *
+	 * @param array $descriptor Field descriptor.
+	 * @return array
 	 */
-	private static function json_type( $type ) {
+	private static function type_schema( $descriptor ) {
+		$type = isset( $descriptor['type'] ) ? $descriptor['type'] : '';
+
 		switch ( $type ) {
 			case 'number':
-				return 'number';
+				return array( 'type' => 'number' );
 			case 'media':
-				return 'integer';
+				// JetEngine stores a media field as one of three things,
+				// chosen per field: an attachment id, the attachment's URL,
+				// or an array carrying both. All three are named, whatever
+				// value_format says on this particular field, because the
+				// setting is JetEngine's and this module only reads it: an
+				// older field predates it, an editor can change it between
+				// two requests, and a future version can spell it
+				// differently. Advertising the id alone made a URL site's own
+				// data a 400 on write and a 0 on read - a schema that refuses
+				// what a site really holds is the worse of the two mistakes,
+				// so the type is the union of the three and sanitize() and
+				// normalize_read() answer the shape in hand rather than the
+				// shape the setting promised.
+				//
+				// The order is the order core resolves them in:
+				// rest_get_best_type_for_value() tries integer, then object,
+				// and falls back to string, so an id stays an integer, an
+				// array stays an array and a URL stays the string it is.
+				return array( 'type' => array( 'integer', 'string', 'object' ) );
 			case 'checkbox':
-				return 'object';
+				return array( 'type' => 'object' );
 			case 'repeater':
-				return 'array';
+				return array( 'type' => 'array' );
 			case 'switcher':
 				// A switch is a yes or a no, so it is advertised as the boolean
 				// it means rather than the string JetEngine happens to store it
@@ -141,10 +171,10 @@ class DPT_RB_Schema {
 				// Boolean is the type that takes both - core's own
 				// rest_is_boolean() accepts true, false, 'true', 'false', '1',
 				// '0', 1 and 0 - and it is the type the read really has.
-				return 'boolean';
+				return array( 'type' => 'boolean' );
 			default:
 				// text, textarea, wysiwyg, select, radio, dates, url.
-				return 'string';
+				return array( 'type' => 'string' );
 		}
 	}
 
@@ -157,7 +187,7 @@ class DPT_RB_Schema {
 	 */
 	public static function sanitize( $descriptor, $value ) {
 		if ( 'repeater' !== $descriptor['type'] ) {
-			return self::sanitize_scalar( $descriptor['type'], $value );
+			return self::sanitize_scalar( $descriptor, $value );
 		}
 
 		if ( ! is_array( $value ) ) {
@@ -172,9 +202,13 @@ class DPT_RB_Schema {
 			);
 		}
 
+		// Keyed by name and holding the whole sub-descriptor: a sub-field's
+		// type is not the only thing that decides how its value is shaped,
+		// and handing the shaping code less than the descriptor is how the
+		// settings beside the type got lost in the first place.
 		$known = array();
 		foreach ( $descriptor['fields'] as $sub ) {
-			$known[ $sub['meta_key'] ] = $sub['type'];
+			$known[ $sub['meta_key'] ] = $sub;
 		}
 
 		$clean    = array();
@@ -203,9 +237,9 @@ class DPT_RB_Schema {
 			// away here would delete a column of every row on the documented
 			// GET, modify, PUT round trip.
 			$row = $item;
-			foreach ( $known as $key => $type ) {
+			foreach ( $known as $key => $sub ) {
 				if ( array_key_exists( $key, $item ) ) {
-					$row[ $key ] = self::sanitize_scalar( $type, $item[ $key ] );
+					$row[ $key ] = self::sanitize_scalar( $sub, $item[ $key ] );
 				}
 			}
 			$clean[] = $row;
@@ -217,12 +251,12 @@ class DPT_RB_Schema {
 	/**
 	 * Clean one non-repeater value.
 	 *
-	 * @param string $type  JetEngine type.
-	 * @param mixed  $value Raw value.
+	 * @param array $descriptor Field descriptor.
+	 * @param mixed $value      Raw value.
 	 * @return mixed
 	 */
-	private static function sanitize_scalar( $type, $value ) {
-		switch ( $type ) {
+	private static function sanitize_scalar( $descriptor, $value ) {
+		switch ( $descriptor['type'] ) {
 			case 'wysiwyg':
 				// wp_kses_post() does not guard its input the way the other
 				// sanitizers here do; unlike sanitize_text_field(), an array
@@ -242,7 +276,7 @@ class DPT_RB_Schema {
 			case 'number':
 				return is_numeric( $value ) ? $value + 0 : 0;
 			case 'media':
-				return absint( $value );
+				return self::sanitize_media( $value );
 			case 'switcher':
 				// The field is advertised as a boolean and core hands one over
 				// after validating against that, but the string forms JetEngine
@@ -274,6 +308,85 @@ class DPT_RB_Schema {
 				// for all of them.
 				return sanitize_text_field( $value );
 		}
+	}
+
+	/**
+	 * Clean a media value by the shape it arrived in.
+	 *
+	 * A media field holds an attachment id, an attachment URL or the array
+	 * of both, and which one is a per-field JetEngine setting this module
+	 * only reads. So the value in hand decides how it is cleaned, not the
+	 * setting: absint() was applied to every media write, and on a site
+	 * storing URLs that turned the URL a client had just read back out into
+	 * the number 0 - a field this bridge could not shape being destroyed
+	 * rather than left alone.
+	 *
+	 * An array is cleaned member by member, each by its own shape, so the
+	 * id half of an id-and-URL pair stays an id and the URL half is still
+	 * kept out of javascript: and data:. A member that is neither - a
+	 * nested array some future format leaves there - is kept exactly as it
+	 * arrived, for the reason a repeater keeps its unknown columns.
+	 *
+	 * @param mixed $value Raw value.
+	 * @return mixed
+	 */
+	private static function sanitize_media( $value ) {
+		if ( is_object( $value ) ) {
+			// normalize_read() hands the array format back as an object, so
+			// composing the two in process - with no JSON round trip in
+			// between to flatten it - has to mean the same thing here.
+			$value = get_object_vars( $value );
+		}
+
+		if ( is_array( $value ) ) {
+			$out = array();
+			foreach ( $value as $key => $member ) {
+				$out[ $key ] = is_scalar( $member ) ? self::sanitize_media_scalar( $member ) : $member;
+			}
+			return $out;
+		}
+
+		return self::sanitize_media_scalar( $value );
+	}
+
+	/**
+	 * Clean one media value that is not a container: an id or a URL.
+	 *
+	 * @param mixed $value Raw value.
+	 * @return int|string
+	 */
+	private static function sanitize_media_scalar( $value ) {
+		if ( ! is_scalar( $value ) || is_bool( $value ) ) {
+			// A boolean is neither an id nor a URL, and esc_url_raw() would
+			// turn one into the address http://1 rather than saying so.
+			return '';
+		}
+		if ( self::is_attachment_id( $value ) ) {
+			return absint( $value );
+		}
+		// Anything else is treated as the URL it looks like. esc_url_raw()
+		// rather than the plain-text sanitizer because a media URL is
+		// printed straight into a src by every template that reads one.
+		return esc_url_raw( $value );
+	}
+
+	/**
+	 * Whether a media value is an attachment id rather than a URL.
+	 *
+	 * Digits are read as an id even when they arrive as a string, because
+	 * that is what storage hands back: meta keeps a scalar in a text column,
+	 * so the id 12 comes out of the database as "12" and a client that read
+	 * it as JSON may well send it back either way. Reading those as a URL
+	 * instead would let esc_url_raw() turn the id 12 into http://12.
+	 *
+	 * @param mixed $value Scalar value.
+	 * @return bool
+	 */
+	private static function is_attachment_id( $value ) {
+		if ( is_int( $value ) || is_float( $value ) ) {
+			return true;
+		}
+		return is_string( $value ) && '' !== $value && (string) (int) $value === $value;
 	}
 
 	/**
@@ -309,7 +422,7 @@ class DPT_RB_Schema {
 	 */
 	public static function normalize_read( $descriptor, $stored ) {
 		if ( 'repeater' !== $descriptor['type'] ) {
-			return self::normalize_scalar_read( $descriptor['type'], $stored );
+			return self::normalize_scalar_read( $descriptor, $stored );
 		}
 
 		if ( is_array( $stored ) ) {
@@ -346,7 +459,7 @@ class DPT_RB_Schema {
 	private static function normalize_items( $descriptor, $items ) {
 		$known = array();
 		foreach ( $descriptor['fields'] as $sub ) {
-			$known[ $sub['meta_key'] ] = $sub['type'];
+			$known[ $sub['meta_key'] ] = $sub;
 		}
 
 		$out = array();
@@ -357,9 +470,9 @@ class DPT_RB_Schema {
 				$out[] = $item;
 				continue;
 			}
-			foreach ( $known as $key => $type ) {
+			foreach ( $known as $key => $sub ) {
 				if ( array_key_exists( $key, $item ) ) {
-					$item[ $key ] = self::normalize_scalar_read( $type, $item[ $key ] );
+					$item[ $key ] = self::normalize_scalar_read( $sub, $item[ $key ] );
 				}
 			}
 			// Keys with no sub-field behind them are left exactly as they are,
@@ -374,17 +487,17 @@ class DPT_RB_Schema {
 	/**
 	 * Present one non-repeater stored value the way its own schema promises.
 	 *
-	 * Mirrors json_type() type for type, on purpose: json_type() and this are
-	 * the two places that get to say what a field's stored value looks like
-	 * from outside, and letting either one drift from the other is the exact
-	 * failure this class exists to prevent.
+	 * Mirrors type_schema() type for type, on purpose: type_schema() and this
+	 * are the two places that get to say what a field's stored value looks
+	 * like from outside, and letting either one drift from the other is the
+	 * exact failure this class exists to prevent.
 	 *
-	 * @param string $type   JetEngine type.
-	 * @param mixed  $stored Whatever the database held.
+	 * @param array $descriptor Field descriptor.
+	 * @param mixed $stored     Whatever the database held.
 	 * @return mixed
 	 */
-	private static function normalize_scalar_read( $type, $stored ) {
-		switch ( $type ) {
+	private static function normalize_scalar_read( $descriptor, $stored ) {
+		switch ( $descriptor['type'] ) {
 			case 'checkbox':
 				// The schema promises an object. A PHP array with no items,
 				// or with keys that happen to look sequential once
@@ -397,8 +510,7 @@ class DPT_RB_Schema {
 				// value" for a number, not the empty string a text field uses.
 				return is_numeric( $stored ) ? $stored + 0 : 0;
 			case 'media':
-				// Same reasoning as number: an unset attachment id is 0, not "".
-				return is_scalar( $stored ) ? absint( $stored ) : 0;
+				return self::normalize_media_read( $descriptor, $stored );
 			case 'switcher':
 				// The schema promises a boolean, so one comes back whatever
 				// storage holds - JetEngine's 'true'/'false' strings, an older
@@ -416,5 +528,45 @@ class DPT_RB_Schema {
 				// data - has no honest string form and reads back as empty.
 				return ( null === $stored || ! is_scalar( $stored ) ) ? '' : (string) $stored;
 		}
+	}
+
+	/**
+	 * Present a stored media value as the shape storage actually holds.
+	 *
+	 * The schema names all three formats, so all three can be handed back as
+	 * themselves: an id reads back as an integer, a URL as the URL it is, and
+	 * the id-and-URL pair as the object it is. Nothing is converted into
+	 * anything else on the way out - absint() on a stored URL was 0, which
+	 * both broke the promise the schema makes and told a client its own
+	 * picture had been lost.
+	 *
+	 * @param array $descriptor Field descriptor.
+	 * @param mixed $stored     Whatever the database held.
+	 * @return int|string|object
+	 */
+	private static function normalize_media_read( $descriptor, $stored ) {
+		if ( is_object( $stored ) ) {
+			$stored = get_object_vars( $stored );
+		}
+		if ( is_array( $stored ) ) {
+			// Cast for the reason a checkbox is cast: a PHP array whose keys
+			// happen to run 0, 1, 2 encodes as a JSON array, and the schema
+			// promised an object. Every key and value survives the cast.
+			return (object) $stored;
+		}
+		if ( self::is_attachment_id( $stored ) ) {
+			return absint( $stored );
+		}
+		if ( is_string( $stored ) && '' !== $stored ) {
+			return $stored;
+		}
+
+		// Nothing is stored. What "nothing" looks like is the one place the
+		// site's own value_format is allowed to decide, because there is no
+		// value in hand to read it off: a field that holds ids has always
+		// answered 0 here and consumers depend on it, while 0 would be a lie
+		// about a field that has never held a number at all.
+		$format = isset( $descriptor['value_format'] ) ? $descriptor['value_format'] : 'id';
+		return 'id' === $format ? 0 : '';
 	}
 }
