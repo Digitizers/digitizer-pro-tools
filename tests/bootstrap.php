@@ -327,10 +327,24 @@ function dpt_stub_meta_update( &$store, $id, $key, $value ) {
 		return false;
 	}
 	$id = (int) $id;
+	// Real meta storage is a text column: a scalar round-trips through a
+	// string on the way in and back out, which is why get_*_meta() never
+	// hands a number field its int back. Modelling that here is what makes
+	// "the value already stored" comparison below - and the one code under
+	// test has to make on a false return - a genuine round trip rather than
+	// a same-PHP-type comparison that would never catch a real mismatch.
+	$to_store = is_scalar( $value ) ? (string) $value : $value;
+	if ( isset( $store[ $id ] ) && array_key_exists( $key, $store[ $id ] ) && $store[ $id ][ $key ] === $to_store ) {
+		// update_metadata() answers false here too: the write asked for
+		// nothing new, so nothing happened - not the same thing as a site
+		// refusing the write above, but indistinguishable from the return
+		// value alone.
+		return false;
+	}
 	if ( ! isset( $store[ $id ] ) ) {
 		$store[ $id ] = array();
 	}
-	$store[ $id ][ $key ] = $value;
+	$store[ $id ][ $key ] = $to_store;
 	return true;
 }
 

@@ -36,6 +36,15 @@ class DPT_RB_Fields {
 	private static $compat = array();
 
 	/**
+	 * Diagnostics for the info endpoint: compatibility names that were not
+	 * added, and why. A field that silently fails to appear looks like a
+	 * bug in the API rather than a deliberate choice.
+	 *
+	 * @var array
+	 */
+	private static $skipped = array();
+
+	/**
 	 * The legacy fields the replaced plugin promised, kept because
 	 * automations use them and they may not be JetEngine fields at all.
 	 *
@@ -84,6 +93,7 @@ class DPT_RB_Fields {
 	public static function register() {
 		self::$registered = array();
 		self::$compat     = array();
+		self::$skipped    = array();
 
 		$discovered = DPT_RB_Definitions::all();
 		foreach ( $discovered as $descriptor ) {
@@ -93,28 +103,81 @@ class DPT_RB_Fields {
 		// The alias: one name the old plugin invented for a repeater whose
 		// real name is qna. It writes the same meta key, so both names are
 		// the same field seen twice rather than two fields to keep in step.
+		// register_one() reports how many targets it actually landed on, so
+		// compat() only hears about this when something really happened -
+		// a taxonomy or post type the site does not expose to REST must not
+		// be claimed as a compatibility field regardless.
 		foreach ( $discovered as $descriptor ) {
 			if ( 'qna' === $descriptor['meta_key'] && 'repeater' === $descriptor['type'] ) {
-				self::register_one( $descriptor, 'jet_qna' );
-				self::$compat[] = 'jet_qna';
+				if ( self::register_one( $descriptor, 'jet_qna' ) > 0 ) {
+					self::$compat[] = 'jet_qna';
+				}
 			}
 		}
 
-		// And the fields the old plugin hard-coded. Each is registered only
-		// where discovery did not already produce that name: a real
-		// definition knows more than this list does.
+		// And the fields the old plugin hard-coded. Each is decided per
+		// target, not per descriptor: a name taken on one of a legacy
+		// field's targets must not withhold it from another target that has
+		// no collision at all.
 		foreach ( self::legacy() as $descriptor ) {
-			if ( self::already( $descriptor ) ) {
+			$descriptor['targets'] = self::free_targets( $descriptor );
+			if ( ! $descriptor['targets'] ) {
 				continue;
 			}
-			self::register_one( $descriptor, $descriptor['meta_key'] );
-			self::$compat[] = $descriptor['meta_key'];
+			if ( self::register_one( $descriptor, $descriptor['meta_key'] ) > 0 ) {
+				self::$compat[] = $descriptor['meta_key'];
+			}
 		}
 
-		// If nothing was discovered there is no qna to alias, yet ContentEngine
-		// still writes jet_qna. Give it the shape the old plugin gave it.
-		if ( ! in_array( 'jet_qna', self::$compat, true ) && ! self::name_taken( 'post', 'post', 'jet_qna' ) ) {
-			self::register_one( self::fallback_qna(), 'jet_qna' );
+		// jet_qna is not a name collision to check for like the legacy list
+		// above - it is a meta key collision. Whatever already owns the qna
+		// meta key on posts, discovered or not, decides what jet_qna means
+		// or whether it should exist at all.
+		self::register_qna_fallback( $discovered );
+	}
+
+	/**
+	 * jet_qna exists only to keep ContentEngine's writes landing on the qna
+	 * meta key. That is safe when nothing else already gives that key a
+	 * shape: a discovered repeater was already aliased by the loop above,
+	 * and any other discovered type would have this fallback's repeater
+	 * sanitizer overwrite data a real field understands as something else -
+	 * scalar text turned into a list, or worse.
+	 *
+	 * @param array $discovered Descriptors from DPT_RB_Definitions::all().
+	 */
+	private static function register_qna_fallback( $discovered ) {
+		if ( self::name_taken( 'post', 'post', 'jet_qna' ) ) {
+			// Something discovered is already registered under this exact
+			// name; overriding it is not this fallback's business.
+			return;
+		}
+
+		$owner = null;
+		foreach ( $discovered as $descriptor ) {
+			if ( 'post' === $descriptor['object'] && 'qna' === $descriptor['meta_key'] ) {
+				$owner = $descriptor;
+				break;
+			}
+		}
+
+		if ( null !== $owner ) {
+			if ( 'repeater' !== $owner['type'] ) {
+				// The site's own qna field means something else. Recording
+				// why keeps an automation from finding the absence as a
+				// bare 404 with nothing to explain it.
+				self::$skipped[] = sprintf(
+					/* translators: %s: the JetEngine type of the site's own qna field */
+					__( 'jet_qna was not registered because the site\'s own qna field is a %s field, not a repeater.', 'digitizer-pro-tools' ),
+					$owner['type']
+				);
+			}
+			// A repeater owner was already aliased by the loop above; either
+			// way, the fallback has nothing left to add.
+			return;
+		}
+
+		if ( self::register_one( self::fallback_qna(), 'jet_qna' ) > 0 ) {
 			self::$compat[] = 'jet_qna';
 		}
 	}
@@ -140,18 +203,22 @@ class DPT_RB_Fields {
 	}
 
 	/**
-	 * Whether discovery already produced this name on any of its targets.
+	 * Which of a legacy descriptor's targets do not already have a
+	 * discovered field registered under that name. Decided per target
+	 * rather than per descriptor: a collision on one of a legacy field's
+	 * targets must not withhold it from another target that has none.
 	 *
 	 * @param array $descriptor Legacy descriptor.
-	 * @return bool
+	 * @return array
 	 */
-	private static function already( $descriptor ) {
+	private static function free_targets( $descriptor ) {
+		$free = array();
 		foreach ( $descriptor['targets'] as $target ) {
-			if ( self::name_taken( $descriptor['object'], $target, $descriptor['meta_key'] ) ) {
-				return true;
+			if ( ! self::name_taken( $descriptor['object'], $target, $descriptor['meta_key'] ) ) {
+				$free[] = $target;
 			}
 		}
-		return false;
+		return $free;
 	}
 
 	/**
@@ -173,9 +240,13 @@ class DPT_RB_Fields {
 	 *
 	 * @param array  $descriptor Field descriptor.
 	 * @param string $name       The name to expose it under.
+	 * @return int How many targets it actually landed on. A caller that
+	 *             reports this name as a compatibility field has to know
+	 *             this was not zero, or the report is a lie.
 	 */
 	private static function register_one( $descriptor, $name ) {
 		$schema = DPT_RB_Schema::for_descriptor( $descriptor );
+		$count  = 0;
 
 		foreach ( $descriptor['targets'] as $target ) {
 			if ( ! self::exposed( $descriptor['object'], $target ) ) {
@@ -201,7 +272,10 @@ class DPT_RB_Fields {
 				self::$registered[ $key ] = array();
 			}
 			self::$registered[ $key ][] = $name;
+			$count++;
 		}
+
+		return $count;
 	}
 
 	/**
@@ -237,6 +311,16 @@ class DPT_RB_Fields {
 	 */
 	public static function compat() {
 		return self::$compat;
+	}
+
+	/**
+	 * Why a compatibility name was not added, for a site where that would
+	 * otherwise look like an unexplained gap.
+	 *
+	 * @return array
+	 */
+	public static function skipped() {
+		return self::$skipped;
 	}
 
 	/**
@@ -334,10 +418,17 @@ class DPT_RB_Fields {
 
 		$updated = $is_tax ? update_term_meta( $id, $key, $clean ) : update_post_meta( $id, $key, $clean );
 		if ( false === $updated ) {
-			// update_*_meta returns false for an unchanged value as well as
-			// for a refusal; only a value that did not land is a failure.
+			// update_*_meta() returns false both for a refusal and for a
+			// write that landed the value already stored; telling those
+			// apart means reading storage back. Comparing the raw values
+			// read back is not trustworthy either - meta storage round-trips
+			// a scalar through a string, so a number field's sanitized int
+			// 42 can come back as the string "42", a different PHP value for
+			// the same field value. Running both sides through the same
+			// read-side shaping asks the question this check actually
+			// means: does storage now hold what was asked for.
 			$stored = $is_tax ? get_term_meta( $id, $key, true ) : get_post_meta( $id, $key, true );
-			if ( $stored !== $clean ) {
+			if ( DPT_RB_Schema::normalize_read( $descriptor, $stored ) !== DPT_RB_Schema::normalize_read( $descriptor, $clean ) ) {
 				return new WP_Error(
 					'dpt_rb_not_saved',
 					sprintf(

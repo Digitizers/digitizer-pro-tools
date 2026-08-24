@@ -402,6 +402,20 @@ $GLOBALS['dpt_stub_term_meta'] = array();
 DPT_RB_Fields::write( $linkedin, 'https://example.test/x', (object) array( 'term_id' => 4 ) );
 dpt_test_eq( DPT_RB_Fields::read( $linkedin, array( 'id' => 4 ) ), 'https://example.test/x', 'a taxonomy field round-trips through term meta' );
 
+/* ---- a write that lands the value already stored is not an error ---- */
+
+// update_*_meta() answers false both for a site refusing a write and for a
+// write that asked for nothing new - the value already matched. Only the
+// harness's write-fails list means the former; everything else must be told
+// apart by reading storage back, not by trusting a bare false.
+$weight = array( 'meta_key' => 'weight', 'title' => 'Weight', 'type' => 'number', 'fields' => array(), 'object' => 'post' );
+dpt_test_ok( true === DPT_RB_Fields::write( $weight, 42, (object) array( 'ID' => 11 ) ), 'a numeric field writes' );
+// Storage now holds "42" as a string, the way real meta storage would. The
+// second write's sanitizer hands back the int 42 again - comparing raw
+// values would find "42" !== 42 and wrongly report a failure; comparing
+// what each side reads back as must not.
+dpt_test_ok( true === DPT_RB_Fields::write( $weight, 42, (object) array( 'ID' => 11 ) ), 'writing the same value again still reports success, not a failure' );
+
 /* ---- the id helper's other shapes ---- */
 
 // Core always keys a read array as 'id', for posts and terms alike - the
@@ -415,11 +429,79 @@ dpt_test_eq( DPT_RB_Fields::read( $qna, array() ), array(), 'a read target with 
 dpt_test_eq( DPT_RB_Fields::read( $qna, null ), array(), 'and neither an array nor an object resolves to anything either' );
 dpt_test_ok( is_wp_error( DPT_RB_Fields::write( $qna, array(), (object) array() ) ), 'a write target with no id at all is refused, not written nowhere' );
 
+// An id of literal 0 names an id key, but not a usable one - the same
+// "cannot resolve" outcome as no id key at all, reached through the
+// isset() branch instead of falling past it, so it needs its own check.
+dpt_test_ok( is_wp_error( DPT_RB_Fields::write( $qna, array(), (object) array( 'ID' => 0 ) ) ), 'an id of literal 0 is unidentifiable, not post 0' );
+
+// A shape naming both id and term_id is not one core sends, but the helper
+// still has to pick one consistently. id/ID, the shape a post read or
+// write actually carries, wins wherever both are present.
+DPT_RB_Fields::write( $qna, array( array( 'question' => 'Which key wins?', 'answer' => 'id does' ) ), (object) array( 'ID' => 11 ) );
+dpt_test_eq( DPT_RB_Fields::read( $qna, array( 'id' => 11, 'term_id' => 999 ) )[0]['question'], 'Which key wins?', 'when a shape carries both id and term_id, id wins' );
+
 /* ---- what the site is told it exposes ---- */
 
 $registered = DPT_RB_Fields::registered();
 dpt_test_ok( isset( $registered['post/post'] ), 'the report knows about posts' );
 dpt_test_ok( in_array( 'qna', $registered['post/post'], true ), 'and lists the field there' );
 dpt_test_ok( isset( $registered['taxonomy/authors'] ), 'and about the taxonomy' );
+
+/* ---- the qna fallback defers to whatever already owns the meta key ---- */
+
+// A site whose own qna field is not a repeater must never have the legacy
+// repeater shape laid over its meta key - one meta key with two REST fields
+// promising different shapes is exactly the corruption this module exists
+// to prevent. The name jet_qna was free (nothing was ever registered under
+// that exact name), but the meta key qna was not, and the meta key is what
+// matters here.
+$GLOBALS['dpt_stub_options'] = array(
+	'jet_engine_meta_boxes' => array(
+		array(
+			'id'          => 'post-basics',
+			'args'        => array( 'object_type' => 'post', 'allowed_post_type' => array( 'post' ) ),
+			'meta_fields' => array(
+				array( 'name' => 'qna', 'title' => 'Not actually a repeater', 'object_type' => 'field', 'type' => 'text' ),
+			),
+		),
+	),
+);
+DPT_RB_Definitions::reset();
+$GLOBALS['dpt_stub_rest_fields'] = array();
+DPT_RB_Fields::register();
+
+dpt_test_ok( isset( $GLOBALS['dpt_stub_rest_fields']['post']['qna'] ), 'the real, non-repeater qna field is still registered' );
+dpt_test_ok( ! isset( $GLOBALS['dpt_stub_rest_fields']['post']['jet_qna'] ), 'jet_qna is not laid over a meta key a text field already owns' );
+dpt_test_ok( ! in_array( 'jet_qna', DPT_RB_Fields::compat(), true ), 'so it is not reported as a compatibility field either' );
+$joined = implode( ' | ', DPT_RB_Fields::skipped() );
+dpt_test_ok( false !== strpos( $joined, 'jet_qna' ), 'and the absence is explained rather than left for an automation to discover as a 404' );
+
+// A site with no JetEngine qna field at all still gets the fallback shape,
+// because ContentEngine's jet_qna writes have nowhere else to land.
+$GLOBALS['dpt_stub_options'] = array();
+DPT_RB_Definitions::reset();
+$GLOBALS['dpt_stub_rest_fields'] = array();
+DPT_RB_Fields::register();
+dpt_test_ok( isset( $GLOBALS['dpt_stub_rest_fields']['post']['jet_qna'] ), 'jet_qna falls back to the legacy shape when nothing owns the key' );
+dpt_test_ok( in_array( 'jet_qna', DPT_RB_Fields::compat(), true ), 'and is reported as a compatibility field' );
+
+/* ---- compat() reports only names that actually landed somewhere ---- */
+
+// A site where the authors taxonomy is not on the REST API at all must not
+// have its legacy author fields claimed as compatibility fields - nothing
+// was registered anywhere, so nothing should be reported as if it had been.
+// registered() and compat() back the info endpoint an agent is told to
+// trust, so this is the one place a lie cannot be tolerated.
+$GLOBALS['dpt_stub_options'] = array();
+DPT_RB_Definitions::reset();
+$GLOBALS['dpt_stub_rest_fields']     = array();
+$saved_taxonomies                    = $GLOBALS['dpt_stub_rest_taxonomies'];
+$GLOBALS['dpt_stub_rest_taxonomies'] = array( 'category', 'post_tag' );
+DPT_RB_Fields::register();
+dpt_test_ok( ! isset( $GLOBALS['dpt_stub_rest_fields']['authors'] ), 'nothing is registered for a taxonomy the site does not expose' );
+dpt_test_ok( ! in_array( 'author_description', DPT_RB_Fields::compat(), true ), 'so it is not claimed as a compatibility field either' );
+dpt_test_ok( ! in_array( 'author_image', DPT_RB_Fields::compat(), true ), 'nor is its sibling' );
+dpt_test_ok( ! in_array( 'linkedin', DPT_RB_Fields::compat(), true ), 'nor any other legacy field for that taxonomy' );
+$GLOBALS['dpt_stub_rest_taxonomies'] = $saved_taxonomies;
 
 exit( dpt_test_summary() > 0 ? 1 : 0 );
