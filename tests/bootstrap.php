@@ -83,12 +83,16 @@ function wp_unslash( $s ) { return is_array( $s ) ? array_map( 'stripslashes', $
 function trailingslashit( $s ) { return rtrim( (string) $s, '/\\' ) . '/'; }
 function untrailingslashit( $s ) { return rtrim( (string) $s, '/\\' ); }
 function apply_filters( $tag, $value ) { return $value; }
-function add_action() {}
 // Filters are recorded, not run: a test can ask whether something was hooked
 // without the harness pretending to be WordPress's hook system.
 $GLOBALS['dpt_stub_filters'] = array();
 function add_filter( $tag = '', $callback = null ) {
 	$GLOBALS['dpt_stub_filters'][ $tag ] = true;
+}
+// WordPress keeps actions and filters in one registry, so add_action shares
+// the filter store rather than getting its own.
+function add_action( $tag = '', $callback = null ) {
+	add_filter( $tag, $callback );
 }
 function remove_filter( $tag = '', $callback = null ) {
 	unset( $GLOBALS['dpt_stub_filters'][ $tag ] );
@@ -152,7 +156,18 @@ function get_plugins() { return $GLOBALS['dpt_stub_plugins']; }
 function is_plugin_active( $file ) { return in_array( $file, $GLOBALS['dpt_stub_active_plugins'], true ); }
 function get_stylesheet() { return $GLOBALS['dpt_stub_stylesheet']; }
 $GLOBALS['dpt_stub_denied_caps'] = array();
-function current_user_can( $cap ) { return ! in_array( $cap, $GLOBALS['dpt_stub_denied_caps'], true ); }
+/**
+ * Capabilities. A bare capability is granted unless denied; a post-specific
+ * one - edit_post, say - is granted unless that post id was denied, which is
+ * how a test reaches the "not your post" branch.
+ */
+$GLOBALS['dpt_stub_denied_post_caps'] = array();
+function current_user_can( $cap, $id = null ) {
+	if ( null !== $id ) {
+		return ! in_array( (int) $id, $GLOBALS['dpt_stub_denied_post_caps'], true );
+	}
+	return ! in_array( $cap, $GLOBALS['dpt_stub_denied_caps'], true );
+}
 $GLOBALS['dpt_stub_multisite'] = false;
 function is_multisite() { return (bool) $GLOBALS['dpt_stub_multisite']; }
 $GLOBALS['dpt_stub_main_site'] = true;
@@ -248,3 +263,138 @@ function wp_remote_get( $url, $args = array() ) {
 }
 function wp_remote_retrieve_response_code( $res ) { return is_array( $res ) ? (int) $res['code'] : 0; }
 function wp_remote_retrieve_body( $res ) { return is_array( $res ) ? (string) $res['body'] : ''; }
+
+/* ------------------------------------------------- REST, meta, post types */
+
+/**
+ * Post and term meta.
+ *
+ * A meta key listed in dpt_stub_meta_write_fails refuses writes and deletes,
+ * which is how a test reaches the branch where WordPress says no.
+ */
+$GLOBALS['dpt_stub_post_meta']        = array();
+$GLOBALS['dpt_stub_term_meta']        = array();
+$GLOBALS['dpt_stub_meta_write_fails'] = array();
+
+function dpt_stub_meta_get( &$store, $id, $key, $single ) {
+	$id = (int) $id;
+	if ( ! isset( $store[ $id ] ) || ! array_key_exists( $key, $store[ $id ] ) ) {
+		return $single ? '' : array();
+	}
+	return $single ? $store[ $id ][ $key ] : array( $store[ $id ][ $key ] );
+}
+
+function dpt_stub_meta_update( &$store, $id, $key, $value ) {
+	if ( in_array( $key, $GLOBALS['dpt_stub_meta_write_fails'], true ) ) {
+		return false;
+	}
+	$id = (int) $id;
+	if ( ! isset( $store[ $id ] ) ) {
+		$store[ $id ] = array();
+	}
+	$store[ $id ][ $key ] = $value;
+	return true;
+}
+
+function dpt_stub_meta_delete( &$store, $id, $key ) {
+	if ( in_array( $key, $GLOBALS['dpt_stub_meta_write_fails'], true ) ) {
+		return false;
+	}
+	$id = (int) $id;
+	if ( ! isset( $store[ $id ] ) || ! array_key_exists( $key, $store[ $id ] ) ) {
+		return false;
+	}
+	unset( $store[ $id ][ $key ] );
+	return true;
+}
+
+// Post meta, backed by the store above.
+function get_post_meta( $id, $key = '', $single = false ) {
+	return dpt_stub_meta_get( $GLOBALS['dpt_stub_post_meta'], $id, $key, $single );
+}
+function update_post_meta( $id, $key, $value ) {
+	return dpt_stub_meta_update( $GLOBALS['dpt_stub_post_meta'], $id, $key, $value );
+}
+function delete_post_meta( $id, $key ) {
+	return dpt_stub_meta_delete( $GLOBALS['dpt_stub_post_meta'], $id, $key );
+}
+// Term meta, backed by its own store, the way core keeps posts and terms apart.
+function get_term_meta( $id, $key = '', $single = false ) {
+	return dpt_stub_meta_get( $GLOBALS['dpt_stub_term_meta'], $id, $key, $single );
+}
+function update_term_meta( $id, $key, $value ) {
+	return dpt_stub_meta_update( $GLOBALS['dpt_stub_term_meta'], $id, $key, $value );
+}
+function delete_term_meta( $id, $key ) {
+	return dpt_stub_meta_delete( $GLOBALS['dpt_stub_term_meta'], $id, $key );
+}
+
+/** REST registration, recorded rather than performed. */
+$GLOBALS['dpt_stub_rest_fields']          = array();
+$GLOBALS['dpt_stub_rest_routes']          = array();
+$GLOBALS['dpt_stub_registered_post_meta'] = array();
+
+// A field registered against several object types at once lands under each of
+// them, the way register_rest_field() itself accepts an array of types.
+function register_rest_field( $object_type, $attribute, $args = array() ) {
+	foreach ( (array) $object_type as $type ) {
+		$GLOBALS['dpt_stub_rest_fields'][ $type ][ $attribute ] = $args;
+	}
+}
+// Routes are keyed by namespace + route so a test can assert a specific
+// endpoint was registered without caring about registration order.
+function register_rest_route( $namespace, $route, $args = array() ) {
+	$GLOBALS['dpt_stub_rest_routes'][ $namespace . $route ][] = $args;
+	return true;
+}
+function register_post_meta( $post_type, $key, $args = array() ) {
+	$GLOBALS['dpt_stub_registered_post_meta'][ $post_type ][ $key ] = $args;
+	return true;
+}
+
+/** Which post types and taxonomies are visible to the REST API. */
+$GLOBALS['dpt_stub_rest_post_types'] = array( 'post', 'page' );
+$GLOBALS['dpt_stub_rest_taxonomies'] = array( 'category', 'post_tag', 'authors' );
+
+// Shared shape for the post-type and taxonomy objects below: both real
+// objects expose show_in_rest, and that is the only field a test needs.
+function dpt_stub_rest_object( $names ) {
+	return (object) array( 'show_in_rest' => true, 'name' => $names );
+}
+function get_post_type_object( $name ) {
+	return in_array( $name, $GLOBALS['dpt_stub_rest_post_types'], true )
+		? dpt_stub_rest_object( $name )
+		: null;
+}
+function taxonomy_exists( $name ) {
+	return in_array( $name, $GLOBALS['dpt_stub_rest_taxonomies'], true );
+}
+function get_taxonomy( $name ) {
+	return taxonomy_exists( $name ) ? dpt_stub_rest_object( $name ) : false;
+}
+
+// Posts exist when the test says they do, each one carrying only the post
+// type a REST-field callback would need to decide what to do with it.
+$GLOBALS['dpt_stub_posts'] = array();
+function get_post( $id = 0 ) {
+	$id = (int) $id;
+	return isset( $GLOBALS['dpt_stub_posts'][ $id ] )
+		? (object) array( 'ID' => $id, 'post_type' => $GLOBALS['dpt_stub_posts'][ $id ] )
+		: null;
+}
+
+// A counter rather than a boolean, so a test can tell "cleared once" from
+// "cleared on every save", which is the kind of bug a cache-clearing hook invites.
+$GLOBALS['dpt_stub_elementor_cache_cleared'] = 0;
+
+// Sanitisers a REST callback runs input through before writing it, kept
+// close enough to the real ones that a test can feed them markup and tags.
+function sanitize_text_field( $s ) { return is_scalar( $s ) ? trim( strip_tags( (string) $s ) ) : ''; }
+function sanitize_textarea_field( $s ) { return is_scalar( $s ) ? trim( strip_tags( (string) $s ) ) : ''; }
+function wp_kses_post( $s ) { return is_scalar( $s ) ? (string) $s : ''; }
+function absint( $v ) { return abs( (int) $v ); }
+// wp_json_encode() already exists above, for the same purpose; not redeclared here.
+function wp_slash( $v ) { return $v; }
+// A REST callback's return value passes straight through: there is no
+// transport for it to be prepared for here.
+function rest_ensure_response( $v ) { return $v; }
