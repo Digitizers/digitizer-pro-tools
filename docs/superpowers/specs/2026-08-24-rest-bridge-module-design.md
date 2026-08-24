@@ -141,9 +141,21 @@ On `rest_api_init`:
 
 **Compatibility layer**, registered after discovery, each item only when
 discovery did not already expose the name:
-- `jet_qna` on posts — alias to the `qna` descriptor when one was discovered;
-  otherwise a hard-coded repeater of `{question, answer}` (old plugin
-  behaviour) writing to the `qna` meta key.
+- `jet_qna` on post types — an alias of every discovered `qna` repeater, on
+  that descriptor's own targets. Whether the `post` post type also needs the
+  hard-coded repeater of `{question, answer}` (old plugin behaviour) is
+  decided by the **`post` target**, never by the `post` object kind: a
+  descriptor carries `object === 'post'` for any post type at all, pages
+  included. So a `qna` repeater defined only on `page` is aliased on `page`,
+  and `post` still receives the fallback, because nothing owns the `qna` meta
+  key there. Only a `qna` descriptor whose targets include `post` counts as
+  the owner of the post FAQ - a non-repeater owner declines the fallback and
+  records why in `skipped()`. Reading ownership off the object kind instead
+  would leave `/wp/v2/posts/{id}` with no `jet_qna` at all, which is
+  ContentEngine's required workflow gate.
+  `compat()` is a list of names, not a tally: `jet_qna` is reported once
+  however many passes registered it, and `registered()` carries the
+  per-target detail.
 - `reading_time` (posts, text), `author_description` (authors taxonomy,
   wysiwyg), `author_image` (authors, url → `esc_url_raw`), `linkedin`
   (authors, url) — the old plugin's hard-coded set, kept because consumers use

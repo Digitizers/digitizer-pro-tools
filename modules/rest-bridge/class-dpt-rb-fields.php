@@ -117,20 +117,23 @@ class DPT_RB_Fields {
 		// a taxonomy or post type the site does not expose to REST must not
 		// be claimed as a compatibility field regardless.
 		foreach ( $discovered as $descriptor ) {
-			// jet_qna is a name on posts, where ContentEngine writes it. A
-			// site whose qna repeater sits on a taxonomy gets no alias: it
-			// would put the name somewhere no consumer looks for it, and
-			// leave the post-side fallback below free to claim it a second
-			// time.
+			// jet_qna is a name on post types, where ContentEngine writes
+			// it. A site whose qna repeater sits on a taxonomy gets no
+			// alias: it would put the name somewhere no consumer looks for
+			// it, and leave the post-side fallback below free to claim it a
+			// second time.
 			if ( 'post' !== $descriptor['object'] || 'qna' !== $descriptor['meta_key'] || 'repeater' !== $descriptor['type'] ) {
 				continue;
 			}
+			// The alias lands on this descriptor's own targets, which are
+			// not necessarily the post type called post - a site may have
+			// defined its FAQ repeater on pages alone. Every such definition
+			// is aliased on the targets it really has, and note_compat()
+			// keeps the report a list of names rather than a tally, so a
+			// second definition of the key cannot say jet_qna twice.
 			if ( self::register_one( $descriptor, 'jet_qna' ) > 0 ) {
-				self::$compat[] = 'jet_qna';
+				self::note_compat( 'jet_qna' );
 			}
-			// One meta key, one alias: a second definition of the same key
-			// would register nothing new and report the name twice.
-			break;
 		}
 
 		// And the fields the old plugin hard-coded. Each is decided per
@@ -143,7 +146,7 @@ class DPT_RB_Fields {
 				continue;
 			}
 			if ( self::register_one( $descriptor, $descriptor['meta_key'] ) > 0 ) {
-				self::$compat[] = $descriptor['meta_key'];
+				self::note_compat( $descriptor['meta_key'] );
 			}
 		}
 
@@ -156,24 +159,33 @@ class DPT_RB_Fields {
 
 	/**
 	 * jet_qna exists only to keep ContentEngine's writes landing on the qna
-	 * meta key. That is safe when nothing else already gives that key a
-	 * shape: a discovered repeater was already aliased by the loop above,
-	 * and any other discovered type would have this fallback's repeater
-	 * sanitizer overwrite data a real field understands as something else -
-	 * scalar text turned into a list, or worse.
+	 * meta key of /wp/v2/posts. That is safe when nothing else already gives
+	 * that key a shape *on posts*: a discovered repeater whose targets
+	 * include post was already aliased by the loop above, and any other
+	 * discovered type would have this fallback's repeater sanitizer
+	 * overwrite data a real field understands as something else - scalar
+	 * text turned into a list, or worse.
+	 *
+	 * The whole decision turns on the post *target*, never on the post
+	 * object kind. A descriptor carries object 'post' for any post type at
+	 * all, pages included, so a site whose FAQ repeater is defined only on
+	 * pages used to be read as the owner of the post FAQ: the alias landed
+	 * on page, this fallback stood down for an owner that was never on
+	 * posts, and /wp/v2/posts/{id} lost jet_qna altogether - the one field
+	 * ContentEngine's pipeline gates on.
 	 *
 	 * @param array $discovered Descriptors from DPT_RB_Definitions::all().
 	 */
 	private static function register_qna_fallback( $discovered ) {
 		if ( self::name_taken( 'post', 'post', 'jet_qna' ) ) {
 			// Something discovered is already registered under this exact
-			// name; overriding it is not this fallback's business.
+			// name on posts; overriding it is not this fallback's business.
 			return;
 		}
 
 		$owner = null;
 		foreach ( $discovered as $descriptor ) {
-			if ( 'post' === $descriptor['object'] && 'qna' === $descriptor['meta_key'] ) {
+			if ( 'post' === $descriptor['object'] && 'qna' === $descriptor['meta_key'] && in_array( 'post', $descriptor['targets'], true ) ) {
 				$owner = $descriptor;
 				break;
 			}
@@ -181,9 +193,9 @@ class DPT_RB_Fields {
 
 		if ( null !== $owner ) {
 			if ( 'repeater' !== $owner['type'] ) {
-				// The site's own qna field means something else. Recording
-				// why keeps an automation from finding the absence as a
-				// bare 404 with nothing to explain it.
+				// The site's own qna field on posts means something else.
+				// Recording why keeps an automation from finding the absence
+				// as a bare 404 with nothing to explain it.
 				//
 				// English, untranslated, like every other line in this list:
 				// they are merged into one payload the info endpoint hands
@@ -194,13 +206,36 @@ class DPT_RB_Fields {
 					$owner['type']
 				);
 			}
-			// A repeater owner was already aliased by the loop above; either
-			// way, the fallback has nothing left to add.
+			// A repeater owner on posts was already aliased by the loop
+			// above; either way, the fallback has nothing left to add.
 			return;
 		}
 
+		// Nothing owns the qna meta key on posts - whether because the site
+		// has no qna field at all, or because the one it has lives on other
+		// post types entirely. Either way ContentEngine's writes have
+		// nowhere else to land, so the legacy shape is registered on post.
 		if ( self::register_one( self::fallback_qna(), 'jet_qna' ) > 0 ) {
-			self::$compat[] = 'jet_qna';
+			self::note_compat( 'jet_qna' );
+		}
+	}
+
+	/**
+	 * Record a name the compatibility layer added, once.
+	 *
+	 * compat() is a list of names an agent reads out of the info endpoint,
+	 * not a tally: the per-target detail is in registered(), which says
+	 * exactly which post types and taxonomies each name landed on. A name
+	 * can legitimately be added by two passes - jet_qna aliased onto a
+	 * site's own page-only FAQ repeater, and the legacy shape registered on
+	 * post - and saying it twice there would read as a bug rather than as
+	 * the two places it really is.
+	 *
+	 * @param string $name The name that was registered.
+	 */
+	private static function note_compat( $name ) {
+		if ( ! in_array( $name, self::$compat, true ) ) {
+			self::$compat[] = $name;
 		}
 	}
 

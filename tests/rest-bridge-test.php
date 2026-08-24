@@ -814,6 +814,136 @@ DPT_RB_Fields::register();
 dpt_test_ok( isset( $GLOBALS['dpt_stub_rest_fields']['post']['jet_qna'] ), 'jet_qna falls back to the legacy shape when nothing owns the key' );
 dpt_test_ok( in_array( 'jet_qna', DPT_RB_Fields::compat(), true ), 'and is reported as a compatibility field' );
 
+/* ---- the post FAQ is owned by the post target, not the post kind ---- */
+
+// A descriptor's `object` is the broad kind - 'post' covers every post type
+// there is, pages included - while `targets` is the concrete list the meta
+// box is attached to. ContentEngine gates its pipeline on jet_qna being on
+// /wp/v2/posts/{id}, so the question "does something already own the post
+// FAQ" has to be asked of the post target. Asking it of the object kind is
+// what used to let a page-only repeater suppress the alias on posts and the
+// fallback both, leaving the gate with nothing at all.
+
+// 1. The ordinary site: the FAQ repeater is attached to posts (and pages).
+// The alias goes where the definition is, and the fallback stands down.
+$GLOBALS['dpt_stub_options'] = array(
+	'jet_engine_meta_boxes' => array(
+		array(
+			'id'          => 'post-faq',
+			'args'        => array( 'object_type' => 'post', 'allowed_post_type' => array( 'post', 'page' ) ),
+			'meta_fields' => array(
+				array(
+					'name'            => 'qna',
+					'title'           => 'FAQ',
+					'object_type'     => 'field',
+					'type'            => 'repeater',
+					'repeater-fields' => array(
+						array( 'name' => 'q', 'title' => 'Q', 'type' => 'text' ),
+						array( 'name' => 'a', 'title' => 'A', 'type' => 'wysiwyg' ),
+					),
+				),
+			),
+		),
+	),
+);
+DPT_RB_Definitions::reset();
+$GLOBALS['dpt_stub_rest_fields'] = array();
+DPT_RB_Fields::register();
+dpt_test_ok( isset( $GLOBALS['dpt_stub_rest_fields']['post']['jet_qna'] ), 'a qna repeater whose targets include post is aliased there' );
+dpt_test_ok( isset( $GLOBALS['dpt_stub_rest_fields']['post']['jet_qna']['schema']['items']['properties']['q'] ), 'under the site\'s own sub-fields, not the legacy shape' );
+dpt_test_ok( isset( $GLOBALS['dpt_stub_rest_fields']['page']['jet_qna'] ), 'and on the other post types the same definition names' );
+dpt_test_eq( count( array_keys( DPT_RB_Fields::compat(), 'jet_qna', true ) ), 1, 'reported to the info endpoint once' );
+
+// 2. The site this finding is about: the FAQ repeater exists, but only on
+// pages. It is still object 'post' - every post type is - so the alias
+// belongs on page, where the definition is, and the post FAQ is still
+// unowned. ContentEngine's gate must survive that.
+$GLOBALS['dpt_stub_options'] = array(
+	'jet_engine_meta_boxes' => array(
+		array(
+			'id'          => 'page-faq',
+			'args'        => array( 'object_type' => 'post', 'allowed_post_type' => array( 'page' ) ),
+			'meta_fields' => array(
+				array(
+					'name'            => 'qna',
+					'title'           => 'Page FAQ',
+					'object_type'     => 'field',
+					'type'            => 'repeater',
+					'repeater-fields' => array(
+						array( 'name' => 'q', 'title' => 'Q', 'type' => 'text' ),
+						array( 'name' => 'a', 'title' => 'A', 'type' => 'wysiwyg' ),
+					),
+				),
+			),
+		),
+	),
+);
+DPT_RB_Definitions::reset();
+$GLOBALS['dpt_stub_rest_fields'] = array();
+DPT_RB_Fields::register();
+dpt_test_ok( isset( $GLOBALS['dpt_stub_rest_fields']['page']['jet_qna'] ), 'a page-only qna repeater is aliased on page, where it lives' );
+dpt_test_ok( isset( $GLOBALS['dpt_stub_rest_fields']['page']['jet_qna']['schema']['items']['properties']['q'] ), 'with the sub-fields the site defined' );
+dpt_test_ok( isset( $GLOBALS['dpt_stub_rest_fields']['post']['jet_qna'] ), 'and posts still get a jet_qna - ContentEngine\'s gate is not a page-only site\'s to remove' );
+dpt_test_ok( isset( $GLOBALS['dpt_stub_rest_fields']['post']['jet_qna']['schema']['items']['properties']['question'] ), 'in the legacy shape, because nothing owns the qna key on posts' );
+dpt_test_ok( ! isset( $GLOBALS['dpt_stub_rest_fields']['page']['jet_qna']['schema']['items']['properties']['question'] ), 'while the page alias keeps its own shape rather than the legacy one' );
+dpt_test_eq( count( array_keys( DPT_RB_Fields::compat(), 'jet_qna', true ) ), 1, 'and the name is reported once, not once per pass that registered it' );
+dpt_test_eq( implode( ' | ', DPT_RB_Fields::skipped() ), '', 'nothing was skipped, so nothing is explained away' );
+
+// A write through each lands on the same meta key, on its own object.
+// Read through isset() and short-circuited: a regression here removes the
+// field entirely, and a fatal on a missing callback would take the rest of
+// the file's assertions down with it instead of reporting the one that broke.
+$GLOBALS['dpt_stub_post_meta'] = array();
+$page_write = isset( $GLOBALS['dpt_stub_rest_fields']['page']['jet_qna']['update_callback'] ) ? $GLOBALS['dpt_stub_rest_fields']['page']['jet_qna']['update_callback'] : null;
+$post_write = isset( $GLOBALS['dpt_stub_rest_fields']['post']['jet_qna']['update_callback'] ) ? $GLOBALS['dpt_stub_rest_fields']['post']['jet_qna']['update_callback'] : null;
+dpt_test_ok( is_callable( $page_write ) && true === call_user_func( $page_write, array( array( 'q' => 'Where?', 'a' => 'Here' ) ), (object) array( 'ID' => 31 ) ), 'the page alias writes' );
+dpt_test_ok( is_callable( $post_write ) && true === call_user_func( $post_write, array( array( 'question' => 'Why?', 'answer' => 'Because' ) ), (object) array( 'ID' => 32 ) ), 'and so does the post fallback' );
+$stored_faq  = get_post_meta( 32, 'qna', true );
+$stored_page = get_post_meta( 31, 'qna', true );
+dpt_test_ok( isset( $stored_faq[0]['question'] ) && 'Why?' === $stored_faq[0]['question'], 'both onto the qna meta key the old plugin used' );
+dpt_test_ok( isset( $stored_page[0]['q'] ) && 'Where?' === $stored_page[0]['q'], 'each on its own object, under its own sub-fields' );
+
+// 3. A qna on posts that is not a repeater still refuses the fallback, and
+// still says why: one meta key with two REST fields promising different
+// shapes is the corruption this module exists to prevent.
+$GLOBALS['dpt_stub_options'] = array(
+	'jet_engine_meta_boxes' => array(
+		array(
+			'id'          => 'post-basics',
+			'args'        => array( 'object_type' => 'post', 'allowed_post_type' => array( 'post' ) ),
+			'meta_fields' => array(
+				array( 'name' => 'qna', 'title' => 'Not a repeater', 'object_type' => 'field', 'type' => 'text' ),
+			),
+		),
+	),
+);
+DPT_RB_Definitions::reset();
+$GLOBALS['dpt_stub_rest_fields'] = array();
+DPT_RB_Fields::register();
+dpt_test_ok( ! isset( $GLOBALS['dpt_stub_rest_fields']['post']['jet_qna'] ), 'a non-repeater qna on posts still declines the fallback' );
+dpt_test_ok( false !== strpos( implode( ' | ', DPT_RB_Fields::skipped() ), 'not a repeater' ), 'with the diagnostic that explains the gap' );
+dpt_test_eq( count( array_keys( DPT_RB_Fields::compat(), 'jet_qna', true ) ), 0, 'and nothing claimed in compat' );
+
+// 4. The same non-repeater qna, but on pages only. It owns nothing on posts,
+// so it neither blocks the fallback nor earns a diagnostic - the gate is
+// registered and the info endpoint has nothing to apologise for.
+$GLOBALS['dpt_stub_options'] = array(
+	'jet_engine_meta_boxes' => array(
+		array(
+			'id'          => 'page-basics',
+			'args'        => array( 'object_type' => 'post', 'allowed_post_type' => array( 'page' ) ),
+			'meta_fields' => array(
+				array( 'name' => 'qna', 'title' => 'Not a repeater', 'object_type' => 'field', 'type' => 'text' ),
+			),
+		),
+	),
+);
+DPT_RB_Definitions::reset();
+$GLOBALS['dpt_stub_rest_fields'] = array();
+DPT_RB_Fields::register();
+dpt_test_ok( isset( $GLOBALS['dpt_stub_rest_fields']['post']['jet_qna'] ), 'a non-repeater qna on pages alone does not withhold the post gate' );
+dpt_test_eq( implode( ' | ', DPT_RB_Fields::skipped() ), '', 'and there is no gap to explain' );
+
 /* ---- compat() reports only names that actually landed somewhere ---- */
 
 // A site where the authors taxonomy is not on the REST API at all must not
