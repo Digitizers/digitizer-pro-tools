@@ -1905,6 +1905,12 @@ msgstr "מכבה את עורך הבלוקים לפוסטים ולעמודים, �
 msgid "The standalone Digitizer Update Hold plugin is active, so this module is standing down - its settings live under Settings > Digitizer Update Hold."
 msgstr "התוסף העצמאי Digitizer Update Hold פעיל, ולכן המודול הזה נסוג - ההגדרות שלו נמצאות תחת הגדרות > Digitizer Update Hold."
 
+msgid "The standalone Update Policy plugin is active, so this module is standing down - its settings live under Settings > Update Policy."
+msgstr "התוסף העצמאי Update Policy פעיל, ולכן המודול הזה נסוג - ההגדרות שלו נמצאות תחת הגדרות > Update Policy."
+
+msgid "The standalone Update Policy plugin is active, so this module is standing down - its settings live under Network Admin > Settings > Update Policy."
+msgstr "התוסף העצמאי Update Policy פעיל, ולכן המודול הזה נסוג - ההגדרות שלו נמצאות תחת ניהול רשת > הגדרות > Update Policy."
+
 msgid "The standalone Digitizer Update Hold plugin is active, so this module is standing down - its settings live under Network Admin > Settings > Digitizer Update Hold."
 msgstr "התוסף העצמאי Digitizer Update Hold פעיל, ולכן המודול הזה נסוג - ההגדרות שלו נמצאות תחת ניהול רשת > הגדרות > Digitizer Update Hold."
 

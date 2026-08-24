@@ -94,9 +94,18 @@ class DPT_Update_Policy_Module extends DPT_Module {
 		if ( ! self::standalone_active() ) {
 			return '';
 		}
-		// The standalone keeps its screen where core updates are administered:
-		// under Network Admin on a network, under Settings on a single site.
-		// Point at the one that exists here.
+		// Two things vary, and a sentence naming either wrongly sends someone
+		// hunting for a menu that is not there. The standalone keeps its
+		// screen where core updates are administered - under Network Admin on
+		// a network, under Settings on a single site - and it is called
+		// whatever the installed build calls itself, which for anyone who
+		// adopted it before the rename is still Update Policy.
+		if ( ! class_exists( 'Digitizer_Update_Hold_Core' ) ) {
+			if ( is_multisite() ) {
+				return __( 'The standalone Update Policy plugin is active, so this module is standing down - its settings live under Network Admin > Settings > Update Policy.', 'digitizer-pro-tools' );
+			}
+			return __( 'The standalone Update Policy plugin is active, so this module is standing down - its settings live under Settings > Update Policy.', 'digitizer-pro-tools' );
+		}
 		if ( is_multisite() ) {
 			return __( 'The standalone Digitizer Update Hold plugin is active, so this module is standing down - its settings live under Network Admin > Settings > Digitizer Update Hold.', 'digitizer-pro-tools' );
 		}
