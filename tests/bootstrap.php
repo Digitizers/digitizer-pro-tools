@@ -755,7 +755,52 @@ class_alias( 'DPT_Stub_Elementor_Plugin', 'Elementor\Plugin' );
 // close enough to the real ones that a test can feed them markup and tags.
 function sanitize_text_field( $s ) { return is_scalar( $s ) ? trim( strip_tags( (string) $s ) ) : ''; }
 function sanitize_textarea_field( $s ) { return is_scalar( $s ) ? trim( strip_tags( (string) $s ) ) : ''; }
-function wp_kses_post( $s ) { return is_scalar( $s ) ? (string) $s : ''; }
+/**
+ * wp_kses_post(), close enough to the real one that an assertion about it
+ * means something. A stub that only cast to string would let "a user without
+ * unfiltered_html cannot store a script tag" pass whether or not the code
+ * under test filtered anything at all - and Elementor prints widget settings
+ * raw (Html::render() calls print_unescaped_setting, Text_Editor echoes its
+ * content), so that assertion is the whole of the difference between this
+ * endpoint and stored XSS.
+ *
+ * Three of the things core really does: an element whose content kses drops
+ * takes the content with it, an element the post context does not allow is
+ * removed and its text kept, and an event handler is stripped off an element
+ * that is allowed.
+ */
+function wp_kses_post( $s ) {
+	if ( ! is_scalar( $s ) ) {
+		return '';
+	}
+	$s       = (string) $s;
+	$s       = preg_replace( '#<(script|style|iframe|object|embed)\b[^>]*>.*?</\1\s*>#is', '', $s );
+	$allowed = 'a|abbr|b|blockquote|br|code|div|em|h1|h2|h3|h4|h5|h6|i|img|li|ol|p|pre|small|span|strong|sub|sup|table|tbody|td|th|thead|tr|u|ul';
+	$s       = preg_replace( '#</?(?!(?:' . $allowed . ')\b)[a-z0-9:_-]+\b[^>]*/?>#i', '', $s );
+	$s       = preg_replace( '#\son[a-z]+\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]*)#i', '', $s );
+	return $s;
+}
+/**
+ * map_deep(), core's own: arrays and objects are walked to the bottom and
+ * every leaf is handed to the callback. Elementor's save runs exactly this
+ * over everything it is about to store, so a module claiming to match that
+ * behaviour has to be measured against the same walk.
+ */
+function map_deep( $value, $callback ) {
+	if ( is_array( $value ) ) {
+		foreach ( $value as $index => $item ) {
+			$value[ $index ] = map_deep( $item, $callback );
+		}
+		return $value;
+	}
+	if ( is_object( $value ) ) {
+		foreach ( get_object_vars( $value ) as $property => $property_value ) {
+			$value->$property = map_deep( $property_value, $callback );
+		}
+		return $value;
+	}
+	return call_user_func( $callback, $value );
+}
 function absint( $v ) { return abs( (int) $v ); }
 // wp_json_encode() already exists above, for the same purpose; not redeclared here.
 /**

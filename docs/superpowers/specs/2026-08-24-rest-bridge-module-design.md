@@ -557,6 +557,27 @@ the replaced plugin):
   write another, so resolving would mean a `GET` for a revision quietly
   handing back the live page's layout instead - a different page than the
   caller asked for. A 400 that names the parent lets the caller choose.
+- The caller's settings go through **the rule Elementor applies to its own**:
+  `map_deep( $settings, 'wp_kses_post' )` — booleans and nulls handed through
+  — whenever `! current_user_can( 'unfiltered_html' )`, which is
+  `Document::save()` copied rather than paraphrased. Elementor prints widget
+  settings raw (the HTML widget through `print_unescaped_setting()`, the text
+  editor by echoing its content), so without this the endpoint was a weaker
+  door into the same data than the editor beside it: a Contributor, an Author,
+  or an Editor on multisite or under `DISALLOW_UNFILTERED_HTML` could `POST` a
+  script tag that Elementor's own editor would have stripped and have it
+  printed on the front end. A numeric setting comes back a string, on this
+  endpoint as in Elementor's save; that is what matching means.
+  Applied to the caller's map and **not** to the stored layout: Elementor
+  kses's the whole document because the editor posts the whole document, and
+  running it over settings nobody wrote to would rewrite years-old content on
+  the strength of one unrelated widget edit — the same rule the field side is
+  held to. `get_elements_raw_data()` is deliberately not copied: passing every
+  setting through its widget's registered controls is right for a document the
+  editor composed and wrong for a settings merge, needing Elementor loaded and
+  every widget's plugin active, throwing on data it cannot instantiate, and
+  silently deleting settings another plugin put on a widget. The escaping is
+  the half that has to match; the shape is not.
 - The save is checked before anything is reported. `update_post_meta()`
   returns `false` both for a refused write - a database error, a metadata
   filter that says no - and for a write that asked for the value already
@@ -726,6 +747,15 @@ options, no `user_can_toggle` override.
    rendered CSS and Elementor's cache all untouched - the harness models
    `update_post_meta()`'s redirect to the parent, so it can reproduce the
    republish this refusal prevents.
+   Also: a caller without `unfiltered_html` cannot store a script tag or an
+   event handler, at the top level of a setting or nested inside one, while a
+   boolean and a null are handed through and the markup kses allows is kept;
+   a caller with the capability stores exactly what Elementor would let them
+   store; and a stored setting nobody wrote to comes out of an unrelated
+   widget edit byte for byte. The harness's `wp_kses_post` really strips -
+   dropping a `<script>` with its content, removing a disallowed element and
+   keeping its text, and taking an `on*` handler off one that is allowed -
+   and `map_deep` is core's own walk, so none of that is vacuous.
 5. Info: shape, skipped surfaced, rank_math flag.
 6. Stand-down: with the old plugin's function defined (declared in a guarded
    block), init registers nothing and the reason is non-empty.

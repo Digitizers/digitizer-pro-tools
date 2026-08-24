@@ -2719,6 +2719,89 @@ dpt_test_ok( is_wp_error( DPT_RB_Elementor::update( new DPT_Stub_Request( array(
 	),
 ) ) ) ), 'a widget_id that is not a scalar is refused, not silently stringified' );
 
+/* ---- and settings arrive under the rule Elementor's own save applies ---- */
+
+// Elementor prints widget settings raw - Html::render() calls
+// print_unescaped_setting( 'html' ), Text_Editor echoes its content - so its
+// own Document::save() runs map_deep( $data, 'wp_kses_post' ) over everything
+// it is about to store whenever the current user lacks unfiltered_html. This
+// endpoint writes the same meta key with the same caller-supplied values, so
+// it was a weaker door into the same data: a Contributor, an Author or an
+// Editor on multisite could POST a script tag Elementor's own editor would
+// have stripped and have it printed on the front end.
+$GLOBALS['dpt_stub_posts'][26] = 'page';
+$kses_layout                   = array(
+	array(
+		'id'         => 'k1',
+		'elType'     => 'widget',
+		'widgetType' => 'html',
+		'settings'   => array( 'html' => '<p>before</p>' ),
+	),
+);
+update_post_meta( 26, '_elementor_data', wp_json_encode( $kses_layout ) );
+
+$GLOBALS['dpt_stub_denied_caps'] = array( 'unfiltered_html' );
+$kses_result                     = DPT_RB_Elementor::update( new DPT_Stub_Request( array(
+	'post_id' => 26,
+	'updates' => array(
+		array(
+			'widget_id' => 'k1',
+			'settings'  => array(
+				'html'    => '<p>hello</p><script>alert(1)</script>',
+				'nested'  => array( 'deep' => '<img src=x onerror=alert(1)>' ),
+				'enabled' => true,
+				'absent'  => null,
+			),
+		),
+	),
+) ) );
+dpt_test_ok( ! is_wp_error( $kses_result ), 'a filtered write still succeeds' );
+$kses_saved = json_decode( get_post_meta( 26, '_elementor_data', true ), true );
+dpt_test_ok( false === strpos( $kses_saved[0]['settings']['html'], '<script' ), 'a user without unfiltered_html cannot store a script tag' );
+dpt_test_ok( false !== strpos( $kses_saved[0]['settings']['html'], '<p>hello</p>' ), 'while the markup kses does allow is kept' );
+dpt_test_ok( false === strpos( $kses_saved[0]['settings']['nested']['deep'], 'onerror' ), 'the walk reaches a setting nested inside another' );
+dpt_test_ok( true === $kses_saved[0]['settings']['enabled'], 'a boolean is handed through untouched, as Elementor hands it through' );
+dpt_test_ok( array_key_exists( 'absent', $kses_saved[0]['settings'] ) && null === $kses_saved[0]['settings']['absent'], 'and so is a null' );
+
+// And the other side of the same gate: the capability is what decides, so a
+// user who has it can store what Elementor would let them store. Anything
+// stricter would be this endpoint refusing what the editor beside it allows.
+$GLOBALS['dpt_stub_denied_caps'] = array();
+$unfiltered_result               = DPT_RB_Elementor::update( new DPT_Stub_Request( array(
+	'post_id' => 26,
+	'updates' => array(
+		array( 'widget_id' => 'k1', 'settings' => array( 'html' => '<script>ok()</script>' ) ),
+	),
+) ) );
+dpt_test_ok( ! is_wp_error( $unfiltered_result ), 'a user with unfiltered_html writes' );
+$unfiltered_saved = json_decode( get_post_meta( 26, '_elementor_data', true ), true );
+dpt_test_eq( $unfiltered_saved[0]['settings']['html'], '<script>ok()</script>', 'and their markup is stored exactly as Elementor would store it' );
+
+// A setting the caller did not send is not the caller's value and is not
+// filtered: kses over the whole stored layout would rewrite content that has
+// been on the page for years on the strength of one unrelated widget edit.
+$GLOBALS['dpt_stub_denied_caps'] = array( 'unfiltered_html' );
+update_post_meta(
+	26,
+	'_elementor_data',
+	wp_json_encode(
+		array(
+			array( 'id' => 'k1', 'elType' => 'widget', 'widgetType' => 'html', 'settings' => array( 'html' => '<script>old()</script>' ) ),
+			array( 'id' => 'k2', 'elType' => 'widget', 'widgetType' => 'heading', 'settings' => array( 'title' => 'Heading' ) ),
+		)
+	)
+);
+DPT_RB_Elementor::update( new DPT_Stub_Request( array(
+	'post_id' => 26,
+	'updates' => array(
+		array( 'widget_id' => 'k2', 'settings' => array( 'title' => 'New heading' ) ),
+	),
+) ) );
+$untouched_saved = json_decode( get_post_meta( 26, '_elementor_data', true ), true );
+dpt_test_eq( $untouched_saved[0]['settings']['html'], '<script>old()</script>', 'a stored setting nobody wrote to is left exactly as it was' );
+dpt_test_eq( $untouched_saved[1]['settings']['title'], 'New heading', 'while the one that was written is the one that changed' );
+$GLOBALS['dpt_stub_denied_caps'] = array();
+
 /* ---- a write that cannot round-trip through JSON must not blank the page ---- */
 
 // wp_json_encode() (json_encode() under the hood) returns false rather than

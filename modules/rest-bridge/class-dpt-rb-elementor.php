@@ -222,6 +222,8 @@ class DPT_RB_Elementor {
 			$map[ (string) $update['widget_id'] ] = $update['settings'];
 		}
 
+		$map = self::filter_settings( $map );
+
 		$applied = 0;
 		$data    = self::apply( $data, $map, $applied );
 
@@ -273,6 +275,61 @@ class DPT_RB_Elementor {
 				'updates_applied'   => $applied,
 				'not_found'         => array_values( array_keys( array_diff_key( $map, array_flip( self::collect_ids( $data ) ) ) ) ),
 			)
+		);
+	}
+
+	/**
+	 * The caller's settings, under the rule Elementor applies to its own.
+	 *
+	 * Elementor prints widget settings raw - the HTML widget renders through
+	 * print_unescaped_setting() and the text editor echoes its content with
+	 * the escaping sniff switched off - so Document::save() runs
+	 * map_deep( $data, 'wp_kses_post' ) over everything it is about to store
+	 * whenever the current user lacks unfiltered_html. This endpoint writes
+	 * the same meta key with the same caller-supplied values, so without the
+	 * same rule it was a weaker door into the same data: a Contributor, an
+	 * Author, or an Editor on multisite or under DISALLOW_UNFILTERED_HTML
+	 * could POST a script tag that Elementor's own editor would have stripped
+	 * and have it printed on the front end.
+	 *
+	 * Elementor's callback copied rather than paraphrased, booleans and nulls
+	 * included: those are handed through because wp_kses_post() would make a
+	 * boolean into '1' or '', and a widget reading a switch back as a string
+	 * is a different bug. A numeric setting really does come out of this as a
+	 * string, on this endpoint as in Elementor's own save, which is the point
+	 * of matching it rather than inventing a filter of our own.
+	 *
+	 * Applied to the caller's map and not to the stored layout. Elementor
+	 * kses's the whole document because the editor posts the whole document;
+	 * here only the named settings came from the request, and running kses
+	 * over the rest would rewrite content that has been on the page for years
+	 * on the strength of one unrelated widget edit - the same "a value this
+	 * module cannot shape is not a value it may destroy" rule the field side
+	 * is held to.
+	 *
+	 * What is deliberately not copied is get_elements_raw_data(), which
+	 * Elementor runs on the way to storage and which passes every setting
+	 * through its widget's registered controls, dropping the keys that widget
+	 * does not define. That is right for a document the editor composed and
+	 * wrong for a settings merge: it needs Elementor loaded and every widget's
+	 * plugin active at that moment, throws on data it cannot instantiate, and
+	 * would silently delete settings another plugin put on a widget - which
+	 * is exactly the deletion this module refuses to make elsewhere. The
+	 * escaping is the half that has to match; the shape is not.
+	 *
+	 * @param array $map widget id => settings to merge.
+	 * @return array
+	 */
+	private static function filter_settings( $map ) {
+		if ( current_user_can( 'unfiltered_html' ) ) {
+			return $map;
+		}
+
+		return map_deep(
+			$map,
+			function ( $value ) {
+				return is_bool( $value ) || is_null( $value ) ? $value : wp_kses_post( $value );
+			}
 		);
 	}
 
