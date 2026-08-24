@@ -231,16 +231,34 @@ class DPT_RB_Definitions {
 	 * A JetEngine type is not always the whole story: the admin writes a
 	 * handful of per-field settings into the same option row, and some of
 	 * them decide the format of the stored value rather than how it is
-	 * edited. A media field's `value_format` is one - 'id', 'url' or 'both'
-	 * for the array of an attachment id and its URL - a select field's
-	 * `is_multiple` is another, a select with it on storing and submitting an
-	 * array where a plain one stores a string, and a checkbox's `is_array` is
-	 * the third: with it on JetEngine keeps a plain list of the checked option
-	 * keys instead of a map of every option to 'true' or 'false'. Reading only
-	 * the type left the schema, the sanitizer and the read path all assuming
-	 * the default, which is how a site storing URLs had its own data read back
-	 * as 0, a multi-select had its list read back as an empty string, and a
-	 * checkbox lost every selection it had to a read, modify and write.
+	 * edited. There are exactly four of them, and all four are carried: a
+	 * media field's `value_format` - 'id', 'url' or 'both' for the array of
+	 * an attachment id and its URL; a select's `is_multiple`, which makes it
+	 * store and submit an array where a plain one stores a string; a
+	 * checkbox's `is_array`, which makes JetEngine keep a plain list of the
+	 * checked option keys instead of a map of every option to 'true' or
+	 * 'false'; and a date field's `is_timestamp`, which makes it store a Unix
+	 * **integer** where a plain date field stores the string the input
+	 * posted. Reading only the type left the schema, the sanitizer and the
+	 * read path all assuming the default, which is how a site storing URLs
+	 * had its own data read back as 0, a multi-select had its list read back
+	 * as an empty string, a checkbox lost every selection it had to a read,
+	 * modify and write, and a timestamp field was advertised as a string and
+	 * then written over with one.
+	 *
+	 * Four, and the list is closed rather than merely the four found so far.
+	 * The storage layer acts on exactly what it reads off a prepared control,
+	 * and `cherry-x-post-meta.php` reads eleven keys of which three are
+	 * settings: `is_array` in `sanitize_meta()`, `is_timestamp` (through
+	 * `to_timestamp()`) in `save_meta_option()`, and the `sanitize_callback`
+	 * the builder derives from `value_format => 'both'`. `is_multiple` is
+	 * settled one level up, in the control builder. Everything else the
+	 * builder reads off a field row - `options`, `options_callback`,
+	 * `allow_custom`, `max_length`, `min_value`, `max_value`, `step_value`,
+	 * `check_radio_layout`, `default_val`, `placeholder`, `width`,
+	 * `is_required`, `conditional_logic`, `quick_editable`, `search_post_type`,
+	 * and the repeater's `title_field` and `collapsed` - shapes the editing
+	 * screen and not the value.
 	 *
 	 * Only settings this bridge acts on are carried, and only in the
 	 * spellings JetEngine's own admin writes - an unrecognized value falls
@@ -249,9 +267,13 @@ class DPT_RB_Definitions {
 	 *
 	 * @param array  $field The raw field row.
 	 * @param string $type  Its JetEngine type.
+	 * @param bool   $top   Whether this is a field of its own rather than a
+	 *                      column inside a repeater. Only is_timestamp cares,
+	 *                      and it cares for a reason JetEngine's own code
+	 *                      gives - see below.
 	 * @return array
 	 */
-	private static function settings( $field, $type ) {
+	private static function settings( $field, $type, $top = true ) {
 		$settings = array();
 
 		if ( 'media' === $type ) {
@@ -284,6 +306,34 @@ class DPT_RB_Definitions {
 			$raw = isset( $field['is_multiple'] ) && is_scalar( $field['is_multiple'] ) ? $field['is_multiple'] : false;
 
 			$settings['multiple'] = (bool) filter_var( $raw, FILTER_VALIDATE_BOOLEAN );
+		}
+
+		if ( 'date' === $type || 'datetime-local' === $type ) {
+			// The fourth setting of the family, and the narrowest. With it on,
+			// cherry-x-post-meta's save_meta_option() stores
+			// strtotime( $_POST[ $key ] ) - a Unix integer - and its get_meta()
+			// turns that integer back into 'Y-m-d' or 'Y-m-d\TH:i' for the
+			// admin screen. Nothing else on the site sees a date string at all.
+			//
+			// Two narrowings, both JetEngine's rather than this module's.
+			//
+			// Only date and datetime-local: to_timestamp() refuses anything
+			// whose input_type is not one of those two, and the control
+			// builder sets input_type from the field type, so a `time` field
+			// with the toggle on still stores the string it posted. Carrying
+			// the setting there would advertise an integer for a field
+			// JetEngine keeps as a string.
+			//
+			// And only at the top level: prepare_repeater_fields() does not
+			// put is_timestamp on a repeater column at all, and the repeater's
+			// own value goes through sanitize_meta(), which has no timestamp
+			// branch in it. A date column inside a repeater is a string
+			// whatever its row says, so the setting is read as false there
+			// rather than left absent - the descriptor says what this module
+			// concluded, not merely what it failed to find.
+			$raw = isset( $field['is_timestamp'] ) && is_scalar( $field['is_timestamp'] ) ? $field['is_timestamp'] : false;
+
+			$settings['is_timestamp'] = $top && (bool) filter_var( $raw, FILTER_VALIDATE_BOOLEAN );
 		}
 
 		return $settings;
@@ -397,7 +447,10 @@ class DPT_RB_Definitions {
 				// type: JetEngine's admin offers the value format on a media
 				// column inside a repeater exactly as it does at the top
 				// level, and a sub-field whose settings were left behind
-				// would be shaped by its base type alone.
+				// would be shaped by its base type alone. The one exception
+				// is is_timestamp, which JetEngine itself does not carry into
+				// a repeater - settings() is told which level it is on so it
+				// can say so.
 				$descriptor['fields'][] = array_merge(
 					array(
 						'meta_key' => $sub_name,
@@ -405,7 +458,7 @@ class DPT_RB_Definitions {
 						'type'     => $sub_type,
 						'fields'   => array(),
 					),
-					self::settings( $sub, $sub_type )
+					self::settings( $sub, $sub_type, false )
 				);
 			}
 

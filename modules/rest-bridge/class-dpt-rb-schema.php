@@ -321,8 +321,35 @@ class DPT_RB_Schema {
 				// rest_is_boolean() accepts true, false, 'true', 'false', '1',
 				// '0', 1 and 0 - and it is the type the read really has.
 				return array( 'type' => 'boolean' );
+			case 'date':
+			case 'datetime-local':
+				// A JetEngine date field with its Timestamp toggle on does not
+				// store a date at all: save_meta_option() stores
+				// strtotime( $posted ), a Unix integer, and the admin screen
+				// turns it back into 'Y-m-d' for display. Advertised as a
+				// string - which is what every date type did - a read handed
+				// back "1767225600" where the schema promised a date, and a
+				// write of "2026-01-01" put that literal string over a value
+				// JetEngine, the admin and every date_i18n() template read as
+				// a number.
+				//
+				// The plain form keeps the bare string it always had, and the
+				// asymmetry is deliberate. A checkbox's two forms are a list
+				// and a map, which are different shapes and can be told apart
+				// by looking; a date's two forms are both scalars, and "looks
+				// numeric" is not a reliable way to tell them apart - a site
+				// that writes its dates as 20260101 would have its own strings
+				// turned into JSON numbers by a union that named integer here.
+				// So the field's own setting decides which form this field is,
+				// and only the timestamp form names the other shape, for a
+				// value left behind by the toggle being turned over between
+				// two requests.
+				if ( ! empty( $descriptor['is_timestamp'] ) ) {
+					return array( 'type' => array( 'integer', 'string' ) );
+				}
+				return array( 'type' => 'string' );
 			default:
-				// text, textarea, wysiwyg, radio, dates, url.
+				// text, textarea, wysiwyg, radio, time, url.
 				return array( 'type' => 'string' );
 		}
 	}
@@ -437,12 +464,84 @@ class DPT_RB_Schema {
 				return self::truthy( $value ) ? 'true' : 'false';
 			case 'checkbox':
 				return self::sanitize_checkbox( $descriptor, $value );
+			case 'date':
+			case 'datetime-local':
+				return self::sanitize_date( $descriptor, $value );
 			default:
-				// text, radio, date, time, datetime-local: none of these
-				// carry markup, so the plain-text sanitizer is right for all
-				// of them.
+				// text, radio, time: none of these carry markup, so the
+				// plain-text sanitizer is right for all of them.
 				return sanitize_text_field( $value );
 		}
+	}
+
+	/**
+	 * Clean a date value, in whichever of its two forms this field is.
+	 *
+	 * A plain date field stores the string its input posted and is cleaned as
+	 * one. A field with JetEngine's Timestamp toggle on stores a Unix integer
+	 * instead, and JetEngine's own save is what says how a date string becomes
+	 * one: save_meta_option() writes strtotime( $posted ) rather than the text.
+	 * Writing the text over it - which is what the plain-text sanitizer did on
+	 * every date field alike - left a value the admin screen, JetEngine's own
+	 * reader and every date_i18n() template read as a number holding a string
+	 * instead, over a 200.
+	 *
+	 * Three answers, in order:
+	 *
+	 * - already a timestamp: kept as the integer it is, so the value a read
+	 *   just handed out writes back as itself;
+	 * - a date this bridge can read: converted the way JetEngine converts it;
+	 * - anything else: kept exactly as it arrived. JetEngine's own save stores
+	 *   a false here and blanks the field; this module does not, because a
+	 *   value it cannot shape is not a value it may destroy - the same rule
+	 *   the unmapped repeater column and the unknown media member follow.
+	 *
+	 * @param array $descriptor Field descriptor.
+	 * @param mixed $value      Raw value.
+	 * @return int|string
+	 */
+	private static function sanitize_date( $descriptor, $value ) {
+		if ( empty( $descriptor['is_timestamp'] ) ) {
+			return sanitize_text_field( $value );
+		}
+
+		if ( self::is_timestamp_value( $value ) ) {
+			return (int) $value;
+		}
+
+		if ( ! is_scalar( $value ) || is_bool( $value ) ) {
+			// Neither a date nor a number, and nothing here can make one of
+			// it. A boolean is called out because strtotime( true ) is
+			// strtotime( '1' ), which is a real time of day.
+			return sanitize_text_field( $value );
+		}
+
+		$stamp = strtotime( (string) $value );
+
+		return false === $stamp ? sanitize_text_field( $value ) : $stamp;
+	}
+
+	/**
+	 * Whether a value is already the Unix integer a timestamp field stores.
+	 *
+	 * Digits are read as one even when they arrive as a string, for the reason
+	 * an attachment id is: meta keeps a scalar in a text column, so the
+	 * timestamp 1767225600 comes out of the database as "1767225600" and a
+	 * client that read it as JSON may send back either. Negative values count
+	 * - a date before 1970 is a date - and a boolean does not, PHP reading
+	 * true as 1.
+	 *
+	 * @param mixed $value Whatever is in hand.
+	 * @return bool
+	 */
+	private static function is_timestamp_value( $value ) {
+		if ( is_bool( $value ) ) {
+			return false;
+		}
+		if ( is_int( $value ) ) {
+			return true;
+		}
+		return is_string( $value ) && '' !== $value && (string) (int) $value === $value;
 	}
 
 	/**
@@ -847,8 +946,22 @@ class DPT_RB_Schema {
 				// the raw string would only move the disagreement from the
 				// write side to the read side.
 				return self::truthy( $stored );
+			case 'date':
+			case 'datetime-local':
+				// The mirror of sanitize_date(), and paired with it for the
+				// reason every other pair here is: a field whose Timestamp
+				// toggle is on holds a Unix integer, and the schema now says
+				// so, so the integer goes out as one rather than as the string
+				// meta storage kept it in. A date string still sitting in
+				// storage from before the toggle was turned over is the other
+				// shape the union names, and goes out as itself - which is
+				// what keeps it writable rather than lost.
+				if ( ! empty( $descriptor['is_timestamp'] ) && self::is_timestamp_value( $stored ) ) {
+					return (int) $stored;
+				}
+				return ( null === $stored || ! is_scalar( $stored ) ) ? '' : (string) $stored;
 			default:
-				// text, textarea, wysiwyg, radio, dates,
+				// text, textarea, wysiwyg, radio, time,
 				// url: all are advertised as a string by type_schema(), so a
 				// scalar cast is honest for all of them; anything that is
 				// not a scalar - an array or object left behind by corrupt

@@ -126,7 +126,8 @@ by WordPress.
 | select (single) | string, or object for a list storage still holds | `sanitize_text_field`, per member for a list |
 | select (multiple) | array of strings; also string/object for what storage still holds | `sanitize_text_field` per option |
 | radio | string | `sanitize_text_field` |
-| date / time / datetime-local | string | `sanitize_text_field` |
+| time | string | `sanitize_text_field` |
+| date / datetime-local | string, or `[integer, string]` when `is_timestamp` is on | `sanitize_text_field`, or the Unix integer JetEngine's own save stores |
 | media | integer, string or object - id, URL, or `{id, url}` | by the shape received: `absint` / `esc_url_raw`; an array member by member, **by the member's key** |
 | repeater | array of objects; properties from sub-fields | recurse per sub-field |
 
@@ -216,6 +217,59 @@ distinguishes it from a list of options literally called `true` and `false`.
 There, and only there, the field's own `is_array` breaks the tie. That is the
 right use for a setting this module can only read: not to overrule a shape,
 but to choose between two readings of the same one.
+
+A date field is advertised by the fourth and last of those settings,
+`is_timestamp`. With it on, JetEngine does not store a date at all:
+`save_meta_option()` stores `strtotime( $posted )` — a Unix integer — and the
+admin screen turns that integer back into `Y-m-d` or `Y-m-d\TH:i` for display,
+so nothing on the site sees a date string. Advertised as a string, which is
+what every date type was, a read handed back `"1767225600"` where the schema
+promised a date and a write of `"2026-01-01"` put that literal string over a
+value JetEngine, the admin and every `date_i18n()` template read as a number.
+So the timestamp form is `[integer, string]` and `sanitize()` writes the
+integer JetEngine's own save would have written: a value already timestamp-
+shaped is kept as the integer it is, a date string is converted the way
+`save_meta_option()` converts it, and a value nothing can make a date of is
+kept exactly as it arrived rather than blanked — JetEngine's own save stores
+the `false` `strtotime()` returned and empties the field, and this module does
+not destroy what it cannot shape.
+
+Two narrowings, both JetEngine's own. `to_timestamp()` refuses any
+`input_type` outside `date` and `datetime-local`, so a **`time`** field with
+the toggle on still stores the string it posted and carries no such setting
+here. And `prepare_repeater_fields()` never puts `is_timestamp` on a repeater
+column, whose value goes through `sanitize_meta()` — which has no timestamp
+branch at all — so a date column **inside a repeater** is a string whatever
+its row says. Discovery reads the setting as `false` there rather than leaving
+it absent, so the descriptor records what this module concluded rather than
+what it failed to find.
+
+The plain form keeps the bare `string` it always had, and that asymmetry is
+deliberate: it is the one place a two-form field here does **not** name the
+other shape. A checkbox's two forms are a list and a map — different shapes,
+told apart by looking. A date's two forms are both scalars, and "looks
+numeric" is not a reliable way to tell a timestamp from a date; a site that
+writes its dates as `20260101` would have its own strings turned into JSON
+numbers by a union that named `integer` on the plain form. So the field's own
+setting decides which form it is, and only the timestamp form names the other
+shape, for a value left behind by the toggle being turned over between two
+requests. The member order is the one core resolves in:
+`rest_is_integer()` says yes to a canonical integer string, which is the only
+form meta storage can hand back, so `integer` has to come first for a stored
+timestamp to resolve to it.
+
+`is_timestamp` is the last of these settings, and the list is closed rather
+than merely "the four found so far". The storage layer acts on exactly what it
+reads off a prepared control, and `cherry-x-post-meta.php` reads three
+settings: `is_array` in `sanitize_meta()`, `is_timestamp` through
+`to_timestamp()` in `save_meta_option()`, and the `sanitize_callback` the
+control builder derives from `value_format => 'both'`. `is_multiple` is
+settled one level up, in the builder. Everything else the builder reads off a
+field row — `options`, `options_callback`, `allow_custom`, `max_length`,
+`min_value`, `max_value`, `step_value`, `check_radio_layout`, `default_val`,
+`placeholder`, `width`, `is_required`, `conditional_logic`, `quick_editable`,
+`search_post_type`, and a repeater's `title_field` and `collapsed` — shapes
+the editing screen and not the value.
 
 A switcher is advertised as a **boolean**, not as the string JetEngine stores.
 Core validates a registered field against the advertised type *before* the
@@ -796,7 +850,22 @@ options, no `user_can_toggle` override.
    outside it. The harness's model of core's own gate ends `array` at
    `wp_is_numeric_array()`, the way `rest_is_array()` does, so a union naming
    both shapes cannot resolve a map to its list member and the assertions
-   about the two are not vacuous.
+   about the two are not vacuous. A date field is exercised in both of its
+   forms, with discovery carrying `is_timestamp` in each spelling JetEngine
+   writes it: a `time` field with the toggle on carries no such setting and a
+   date column inside a repeater reads it as `false`, because JetEngine acts
+   on it in neither place; the timestamp form is advertised as
+   `[integer, string]` and the plain form as the bare string; a stored
+   timestamp reads back as an integer and writes back as itself, from the
+   number and from the string meta storage hands back; a date string sent to
+   a timestamp field is converted the way JetEngine's own save converts it,
+   while a value nothing can make a date of is kept rather than blanked; and a
+   plain date field whose value happens to look like a number keeps it a
+   string, which is why only the timestamp form names `integer`. The harness's
+   model of core's union resolution ends `integer` at `rest_is_integer()`
+   rather than at `is_int()`, so a stored timestamp resolves to the integer
+   member the way it really does and those assertions are not measuring the
+   stub.
 3. Fields: the per-key metadata capability is enforced on both sides - a key
    an auth filter refuses reads back as its own type's empty (`0` for a
    number, not `''`) and refuses a write with a 403, on posts and on terms,

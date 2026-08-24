@@ -721,7 +721,20 @@ function dpt_rb_test_core_best_type( $types, $value ) {
 				}
 				break;
 			case 'integer':
+				// rest_is_integer(): a real integer, a canonical integer
+				// string of any magnitude, or any other numeric value with no
+				// fractional part. `is_int()` alone - which is what this
+				// modelled - said no to "1767225600", so a union naming
+				// integer beside string resolved a stored timestamp to string
+				// and the assertions about the two would have been measuring
+				// the stub rather than core.
 				if ( is_int( $value ) ) {
+					return 'integer';
+				}
+				if ( is_string( $value ) && preg_match( '/^\s*[+-]?[0-9]+\s*$/', $value ) ) {
+					return 'integer';
+				}
+				if ( is_numeric( $value ) && floor( (float) $value ) === (float) $value ) {
 					return 'integer';
 				}
 				break;
@@ -1513,6 +1526,113 @@ dpt_test_eq( $typed_ser[0]['qty'], 42, 'and so is a serialized one' );
 // sub-field to shape it by and no notice may be raised trying.
 dpt_test_eq( DPT_RB_Schema::normalize_read( $rep_typed, array( 'not-an-item' ) ), array( 'not-an-item' ), 'an item that is not an object is handed back as found' );
 
+/* ---- a date field with the Timestamp toggle stores a number, not a date ---- */
+
+// The fourth of JetEngine's shape-changing settings, and the last one:
+// cherry-x-post-meta's save_meta_option() stores strtotime( $posted ) rather
+// than the text whenever to_timestamp() says so, and its get_meta() turns that
+// integer back into 'Y-m-d' for the admin screen. Advertised as a string -
+// which every date type was - a read handed back "1767225600" where the schema
+// promised a date, and a write of "2026-01-01" put that literal string over a
+// value JetEngine and every date_i18n() template read as a number.
+//
+// to_timestamp() narrows it twice, and both narrowings are asserted: it
+// refuses an input_type that is not date or datetime-local, so a `time` field
+// with the toggle on still stores its string; and
+// prepare_repeater_fields() never puts is_timestamp on a repeater column at
+// all, whose value goes through sanitize_meta() - which has no timestamp
+// branch - so a date column inside a repeater is a string whatever its row
+// says.
+$GLOBALS['dpt_stub_options'] = array(
+	'jet_engine_meta_boxes' => array(
+		array(
+			'id'          => 'date-shapes',
+			'args'        => array( 'object_type' => 'post', 'allowed_post_type' => array( 'post' ) ),
+			'meta_fields' => array(
+				array( 'name' => 'deadline', 'title' => 'Deadline', 'object_type' => 'field', 'type' => 'date' ),
+				array( 'name' => 'starts', 'title' => 'Starts', 'object_type' => 'field', 'type' => 'date', 'is_timestamp' => true ),
+				array( 'name' => 'ends', 'title' => 'Ends', 'object_type' => 'field', 'type' => 'datetime-local', 'is_timestamp' => 'true' ),
+				array( 'name' => 'paused', 'title' => 'Paused', 'object_type' => 'field', 'type' => 'date', 'is_timestamp' => 'false' ),
+				array( 'name' => 'alarm', 'title' => 'Alarm', 'object_type' => 'field', 'type' => 'time', 'is_timestamp' => true ),
+				array(
+					'name'            => 'slots',
+					'title'           => 'Slots',
+					'object_type'     => 'field',
+					'type'            => 'repeater',
+					'repeater-fields' => array(
+						array( 'name' => 'on', 'title' => 'On', 'type' => 'date', 'is_timestamp' => true ),
+					),
+				),
+			),
+		),
+	),
+);
+DPT_RB_Definitions::reset();
+$date_defs = array();
+foreach ( DPT_RB_Definitions::all() as $d ) {
+	$date_defs[ $d['meta_key'] ] = $d;
+}
+dpt_test_eq( $date_defs['deadline']['is_timestamp'], false, 'a date field with no Timestamp toggle stores the string it posted' );
+dpt_test_eq( $date_defs['starts']['is_timestamp'], true, 'and one with it on stores a Unix integer' );
+dpt_test_eq( $date_defs['ends']['is_timestamp'], true, "including when the toggle was stored as the string 'true', on a datetime-local" );
+dpt_test_eq( $date_defs['paused']['is_timestamp'], false, "and 'false' is off, not a non-empty string" );
+dpt_test_ok( ! isset( $date_defs['alarm']['is_timestamp'] ), 'a time field carries no such setting, because to_timestamp() refuses its input_type' );
+dpt_test_eq( $date_defs['slots']['fields'][0]['is_timestamp'], false, 'and a date column inside a repeater is a string however its row is spelled - JetEngine never carries the setting there' );
+
+$stamp_field = $date_defs['starts'];
+$plain_field = $date_defs['deadline'];
+$stamp_s     = DPT_RB_Schema::for_descriptor( $stamp_field );
+$plain_s     = DPT_RB_Schema::for_descriptor( $plain_field );
+
+dpt_test_eq( $stamp_s['type'], array( 'integer', 'string' ), 'a timestamp field is advertised as the number it stores, with the date string it may still hold named beside it' );
+dpt_test_eq( $plain_s['type'], 'string', 'while a plain date field keeps the bare string it always was' );
+
+// The order in that union is what makes it work at all, and it is core's rule
+// that decides: rest_get_best_type_for_value() walks the union as the schema
+// names it, and rest_is_integer() answers yes to a canonical integer string -
+// which is the only form meta storage can hand back.
+dpt_test_eq( dpt_rb_test_core_best_type( array( 'integer', 'string' ), '1767225600' ), 'integer', 'core resolves a stored timestamp to the integer member' );
+dpt_test_eq( dpt_rb_test_core_best_type( array( 'integer', 'string' ), '2026-01-01' ), 'string', 'and a date string to the string member' );
+dpt_test_eq( dpt_rb_test_core_best_type( array( 'integer', 'string' ), '' ), 'string', 'and the empty string to string, as core does before it walks anything' );
+
+// The read: the number comes out as a number rather than as the string meta
+// storage kept it in, and each value is one the field's own schema accepts.
+$stamp_read = DPT_RB_Schema::normalize_read( $stamp_field, '1767225600' );
+dpt_test_ok( 1767225600 === $stamp_read, 'a stored timestamp reads back as the integer the schema now promises' );
+dpt_test_ok( dpt_rb_test_core_accepts( $stamp_s, $stamp_read ), 'and the schema accepts it' );
+dpt_test_eq( DPT_RB_Schema::normalize_read( $stamp_field, '2026-01-01' ), '2026-01-01', 'a date string left behind by the toggle being turned over still reads out whole' );
+dpt_test_ok( dpt_rb_test_core_accepts( $stamp_s, '2026-01-01' ), 'which is the other shape the union names' );
+dpt_test_ok( '1767225600' === DPT_RB_Schema::normalize_read( $plain_field, '1767225600' ), 'while a plain date field hands back the string its own schema promises, whatever is in the row' );
+dpt_test_eq( DPT_RB_Schema::normalize_read( $stamp_field, '' ), '', 'and a field nobody has filled in is empty on both' );
+
+// The write, through core's gate and the module's sanitizer both.
+dpt_test_ok(
+	1767225600 === DPT_RB_Schema::sanitize( $stamp_field, dpt_rb_test_core_sanitize( $stamp_s, $stamp_read ) ),
+	'the number a read handed out writes back as itself'
+);
+dpt_test_ok(
+	1767225600 === DPT_RB_Schema::sanitize( $stamp_field, dpt_rb_test_core_sanitize( $stamp_s, '1767225600' ) ),
+	'and so does the string form of it meta storage hands back'
+);
+dpt_test_ok(
+	strtotime( '2026-01-01' ) === DPT_RB_Schema::sanitize( $stamp_field, dpt_rb_test_core_sanitize( $stamp_s, '2026-01-01' ) ),
+	'a client sending the date instead gets JetEngine\'s own conversion, not the literal string over the number'
+);
+dpt_test_eq(
+	DPT_RB_Schema::sanitize( $stamp_field, dpt_rb_test_core_sanitize( $stamp_s, 'sometime next spring' ) ),
+	'sometime next spring',
+	'while a value nothing can make a date of is kept as it arrived rather than blanked, which is what JetEngine\'s own save would do to it'
+);
+dpt_test_eq(
+	DPT_RB_Schema::sanitize( $plain_field, dpt_rb_test_core_sanitize( $plain_s, '2026-01-01' ) ),
+	'2026-01-01',
+	'a plain date field is untouched by any of this'
+);
+dpt_test_ok(
+	'20260101' === DPT_RB_Schema::sanitize( $plain_field, dpt_rb_test_core_sanitize( $plain_s, '20260101' ) ),
+	'including a site whose plain dates happen to look like numbers, which is why only the timestamp form names integer'
+);
+
 require_once dirname( __DIR__ ) . '/modules/rest-bridge/class-dpt-rb-fields.php';
 
 /* ---- discovered fields become REST fields under their own names ---- */
@@ -1868,6 +1988,27 @@ dpt_test_eq( DPT_RB_Fields::read( $topics, array( 'id' => 999 ) ), '', 'a post t
 
 dpt_test_ok( true === DPT_RB_Fields::write( $colour, 'New York', (object) array( 'ID' => 11 ) ), 'a single select takes a string' );
 dpt_test_eq( DPT_RB_Fields::read( $colour, array( 'id' => 11 ) ), 'New York', 'and hands it back whole, spaces and all' );
+
+/* ---- a timestamp date field through real meta storage ---- */
+
+// The same finding for the fourth setting, and through the meta store because
+// that is where the shape is really at stake: metadata keeps a scalar in a
+// text column, so an integer written here comes back out as "1767225600" and
+// a read that did not know the field's form handed that string to a client the
+// schema had promised a date.
+$when     = array( 'meta_key' => 'starts', 'title' => 'Starts', 'type' => 'date', 'fields' => array(), 'object' => 'post', 'is_timestamp' => true );
+$when_str = array( 'meta_key' => 'deadline', 'title' => 'Deadline', 'type' => 'date', 'fields' => array(), 'object' => 'post', 'is_timestamp' => false );
+
+dpt_test_ok( true === DPT_RB_Fields::write( $when, 1767225600, (object) array( 'ID' => 11 ) ), 'a timestamp date field takes a number' );
+dpt_test_ok( 1767225600 === DPT_RB_Fields::read( $when, array( 'id' => 11 ) ), 'and hands back the integer, not the string meta storage kept' );
+dpt_test_ok( true === DPT_RB_Fields::write( $when, DPT_RB_Fields::read( $when, array( 'id' => 11 ) ), (object) array( 'ID' => 11 ) ), 'writing back exactly what was read is a success' );
+dpt_test_ok( 1767225600 === DPT_RB_Fields::read( $when, array( 'id' => 11 ) ), 'and changes nothing' );
+
+dpt_test_ok( true === DPT_RB_Fields::write( $when, '2026-01-01', (object) array( 'ID' => 12 ) ), 'a client sending the date instead is accepted' );
+dpt_test_ok( strtotime( '2026-01-01' ) === DPT_RB_Fields::read( $when, array( 'id' => 12 ) ), 'and what lands in storage is the number JetEngine would have stored, not the text over it' );
+
+dpt_test_ok( true === DPT_RB_Fields::write( $when_str, '2026-01-01', (object) array( 'ID' => 13 ) ), 'a plain date field takes the date' );
+dpt_test_ok( '2026-01-01' === DPT_RB_Fields::read( $when_str, array( 'id' => 13 ) ), 'and keeps it exactly as a date' );
 
 /* ---- the id helper's other shapes ---- */
 
