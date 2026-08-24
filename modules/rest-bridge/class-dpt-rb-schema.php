@@ -270,7 +270,39 @@ class DPT_RB_Schema {
 				}
 				return array( 'type' => array( 'string', 'object' ) );
 			case 'checkbox':
-				return array( 'type' => 'object' );
+				// A JetEngine checkbox stores one of two things, chosen by its
+				// own is_array toggle: the map of every option to 'true' or
+				// 'false', or a plain list of the option keys that are
+				// checked. Modelled as the map alone, a stored list read back
+				// as {"0":"red","1":"blue"} and writing that object back
+				// stored {"0":"true","1":"true"}, which JetEngine then reads
+				// as the two options "0" and "1" - every selection destroyed
+				// by the read, modify and write this module documents as its
+				// contract, over a 200.
+				//
+				// Each variant names the other's shape, for the reason a
+				// select does: the toggle is JetEngine's and this module only
+				// reads it, so a field that has just had it turned over still
+				// has the other form in storage, and that form has to stay
+				// readable and writable.
+				//
+				// Both members are containers, so the order decides only which
+				// one core resolves an ambiguous value to, and each variant
+				// names its own form first. Naming 'array' costs nothing here
+				// that it costs a string-typed field: rest_is_array() ends at
+				// wp_is_numeric_array(), so a map resolves to 'object'
+				// whichever order the two are in, and there is no string in
+				// the union for wp_parse_list() to shred.
+				if ( ! empty( $descriptor['is_array'] ) ) {
+					return array(
+						'type'  => array( 'array', 'object' ),
+						'items' => array( 'type' => 'string' ),
+					);
+				}
+				return array(
+					'type'  => array( 'object', 'array' ),
+					'items' => array( 'type' => 'string' ),
+				);
 			case 'repeater':
 				return array( 'type' => 'array' );
 			case 'switcher':
@@ -404,36 +436,128 @@ class DPT_RB_Schema {
 				// string JetEngine's own admin reads back.
 				return self::truthy( $value ) ? 'true' : 'false';
 			case 'checkbox':
-				// normalize_read() hands a checkbox back as an object, so this
-				// has to accept one too - otherwise composing the two in
-				// process, with no JSON round trip in between to flatten it
-				// back to an array, silently wipes the field.
-				if ( is_object( $value ) ) {
-					$value = get_object_vars( $value );
-				}
-				$out = array();
-				if ( is_array( $value ) ) {
-					foreach ( $value as $key => $on ) {
-						// The key is the option JetEngine defined, kept
-						// exactly as it defined it. It is free text - the
-						// admin's "Add custom value" flow writes whatever an
-						// editor typed into the definition with nothing but
-						// esc_attr() over it - so sanitize_key(), which is
-						// what this ran, dropped a Hebrew option outright and
-						// quietly turned "Sky Blue" into a different option
-						// called skyblue. normalize_read() never reshaped
-						// these, so the write and the read disagreed about
-						// which options the field even had.
-						$out[ $key ] = self::truthy( $on ) ? 'true' : 'false';
-					}
-				}
-				return $out;
+				return self::sanitize_checkbox( $descriptor, $value );
 			default:
 				// text, radio, date, time, datetime-local: none of these
 				// carry markup, so the plain-text sanitizer is right for all
 				// of them.
 				return sanitize_text_field( $value );
 		}
+	}
+
+	/**
+	 * Clean a checkbox value by the shape it arrived in.
+	 *
+	 * Two shapes, and which one a given field means is JetEngine's is_array
+	 * toggle - a setting that can be turned over between two requests and one
+	 * this module can only read. So the value in hand decides, the way it
+	 * decides for a select and for a media field: a list of option keys is
+	 * stored as the list it is and a map of option to switch value as the map
+	 * it is. Converting either into the other is the whole of the bug this
+	 * replaced - a list read back as an object of indices, and that object
+	 * written back as a map of those indices, so JetEngine handed the site's
+	 * templates two options called "0" and "1" where the editor's real
+	 * selections had been.
+	 *
+	 * An option key is kept exactly as it arrived, in both shapes - as a key
+	 * in the map and as a member in the list, because it is the same piece of
+	 * JetEngine's data in two positions and reshaping it in one and not the
+	 * other is how the write and the read came to disagree in the first place.
+	 *
+	 * @param array $descriptor Field descriptor.
+	 * @param mixed $value      Raw value.
+	 * @return array
+	 */
+	private static function sanitize_checkbox( $descriptor, $value ) {
+		if ( is_object( $value ) ) {
+			// normalize_read() hands the map form back as an object, so
+			// composing the two in process - with no JSON round trip in
+			// between to flatten it back to an array - has to mean the same
+			// thing here.
+			$value = get_object_vars( $value );
+		}
+
+		if ( ! is_array( $value ) ) {
+			// Nothing that names an option: the empty either form stores, and
+			// what an untouched checkbox already holds. normalize_read()
+			// decides which of [] and {} that is on the way back out.
+			return array();
+		}
+
+		if ( self::checkbox_is_list( $descriptor, $value ) ) {
+			$out = array();
+			foreach ( $value as $member ) {
+				// A member that is not a scalar is a shape this bridge has no
+				// option key to make of it, and is handed on as found rather
+				// than flattened into one.
+				$out[] = is_scalar( $member ) ? (string) $member : $member;
+			}
+			return $out;
+		}
+
+		$out = array();
+		foreach ( $value as $key => $on ) {
+			$out[ $key ] = self::truthy( $on ) ? 'true' : 'false';
+		}
+		return $out;
+	}
+
+	/**
+	 * Whether a checkbox value in hand is the list form rather than the map.
+	 *
+	 * The shape answers it nearly always: a map has keys that are option
+	 * names, so anything that is not a plain list is a map, and a plain list
+	 * whose members are option keys is a list.
+	 *
+	 * There is exactly one value the shape cannot tell apart, and it is worth
+	 * naming rather than pretending away: a map whose option keys happen to be
+	 * 0, 1, 2 ... is a plain list once JSON has been decoded - PHP has no
+	 * other way to hold {"0":"true"} - and its values are the switch strings a
+	 * map holds. Nothing about it distinguishes it from a list of options
+	 * literally called "true" and "false". That, and only that, is where the
+	 * field's own is_array toggle breaks the tie, which is the right use for a
+	 * setting this module can only read: not to overrule a shape, but to
+	 * choose between two readings of the same one.
+	 *
+	 * @param array $descriptor Field descriptor.
+	 * @param array $value      The value in hand.
+	 * @return bool
+	 */
+	private static function checkbox_is_list( $descriptor, $value ) {
+		if ( ! $value || ! self::is_list( $value ) ) {
+			return false;
+		}
+
+		foreach ( $value as $member ) {
+			if ( ! self::is_switch_value( $member ) ) {
+				// An option key that no map would ever have as a value. This
+				// is a list.
+				return true;
+			}
+		}
+
+		return ! empty( $descriptor['is_array'] );
+	}
+
+	/**
+	 * Whether a value is one of the spellings a checkbox map holds for "on"
+	 * or "off", as opposed to an option key that means something.
+	 *
+	 * The map's values are JetEngine's 'true' and 'false', plus the booleans
+	 * and the 1 and 0 a client or an older row can leave in their place. Only
+	 * used to recognise a map whose keys are indistinguishable from a list's.
+	 *
+	 * @param mixed $value One member of a checkbox value.
+	 * @return bool
+	 */
+	private static function is_switch_value( $value ) {
+		if ( is_bool( $value ) ) {
+			return true;
+		}
+		if ( is_int( $value ) ) {
+			return 0 === $value || 1 === $value;
+		}
+		return is_string( $value ) && in_array( $value, array( 'true', 'false', '1', '0' ), true );
 	}
 
 	/**
@@ -705,12 +829,7 @@ class DPT_RB_Schema {
 	private static function normalize_scalar_read( $descriptor, $stored ) {
 		switch ( $descriptor['type'] ) {
 			case 'checkbox':
-				// The schema promises an object. A PHP array with no items,
-				// or with keys that happen to look sequential once
-				// sanitize() has run them through sanitize_key(), still
-				// encodes as a JSON array - casting to stdClass is what
-				// forces {} and {"0":...} instead of [] and [...].
-				return is_array( $stored ) ? (object) $stored : (object) array();
+				return self::normalize_checkbox_read( $descriptor, $stored );
 			case 'number':
 				// A field never saved reads back as 0, the schema-honest "no
 				// value" for a number, not the empty string a text field uses.
@@ -736,6 +855,51 @@ class DPT_RB_Schema {
 				// data - has no honest string form and reads back as empty.
 				return ( null === $stored || ! is_scalar( $stored ) ) ? '' : (string) $stored;
 		}
+	}
+
+	/**
+	 * Present a stored checkbox value as the shape storage actually holds.
+	 *
+	 * The mirror of sanitize_checkbox(), decided by the same rule and paired
+	 * with it on purpose: a stored list of checked option keys goes out as the
+	 * list it is and a stored map of option to switch value as the map it is,
+	 * so what a read hands out writes back as itself. Casting a list into an
+	 * object of indices - which is what this did - is what let a client's own
+	 * write turn every selection into an array index.
+	 *
+	 * The map is cast to stdClass for the reason it always was: a PHP array
+	 * with no items, or with option keys that happen to run 0, 1, 2, encodes
+	 * as a JSON array, and the schema calls that half of the field an object.
+	 *
+	 * @param array $descriptor Field descriptor.
+	 * @param mixed $stored     Whatever the database held.
+	 * @return array|object
+	 */
+	private static function normalize_checkbox_read( $descriptor, $stored ) {
+		if ( is_object( $stored ) ) {
+			$stored = get_object_vars( $stored );
+		}
+
+		if ( ! is_array( $stored ) || ! $stored ) {
+			// Nothing is selected, or nothing was ever stored - a checkbox
+			// JetEngine has cleared holds the empty string. There is no shape
+			// in hand to read, so the field's own toggle says which empty its
+			// schema promised.
+			return empty( $descriptor['is_array'] ) ? (object) array() : array();
+		}
+
+		if ( self::checkbox_is_list( $descriptor, $stored ) ) {
+			$out = array();
+			foreach ( $stored as $member ) {
+				// Corrupt storage can hold anything here, and there is no
+				// option key to make of it; handed back as found, the way a
+				// repeater hands back an item it cannot shape.
+				$out[] = is_scalar( $member ) ? (string) $member : $member;
+			}
+			return $out;
+		}
+
+		return (object) $stored;
 	}
 
 	/**

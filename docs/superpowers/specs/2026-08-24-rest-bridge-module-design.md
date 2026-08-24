@@ -99,7 +99,7 @@ by WordPress.
 | wysiwyg | string | `wp_kses_post` |
 | number | number | `floatval` (int when step absent/integer) |
 | switcher | boolean | stored as `'true'`/`'false'`, read back as a boolean |
-| checkbox | object of option-key => `'true'`/`'false'` | keys verbatim, values normalized |
+| checkbox | object of option-key => `'true'`/`'false'`, or list of the checked keys, by `is_array` | keys verbatim, values normalized; a list member by member |
 | select (single) | string, or object for a list storage still holds | `sanitize_text_field`, per member for a list |
 | select (multiple) | array of strings; also string/object for what storage still holds | `sanitize_text_field` per option |
 | radio | string | `sanitize_text_field` |
@@ -165,6 +165,34 @@ One shape does not round-trip byte for byte: a single string still in storage
 from before the toggle was turned on comes back in as a one-item list, because
 core makes a list of a scalar written to an array-typed field before this
 module sees it. The option itself is not lost, and the test says so out loud.
+
+A checkbox is advertised by the third such setting, `is_array`: with it on
+JetEngine stores a **plain list of the checked option keys** where a plain
+checkbox stores a map of every option to `'true'` or `'false'`. Modelled as
+the map alone, `["red","blue"]` read back as `{"0":"red","1":"blue"}`, and
+writing that object back stored `{"0":"true","1":"true"}`, which JetEngine
+then reads as the two options `0` and `1` — every selection destroyed by the
+read, modify and write this module documents as its contract, over a `200`.
+So the list form is `[array, object]` with `items: string` and the map form is
+`[object, array]`, each naming the other's shape for the reason a select does,
+and `sanitize()` and `normalize_read()` both answer **the shape in hand**: a
+stored list goes out as a list and writes back as a list, a stored map as a
+map, and neither is ever converted into the other. Naming `array` beside
+`object` is free where naming it beside `string` was not: `rest_is_array()`
+ends at `wp_is_numeric_array()`, so a map resolves to `object` whichever order
+they are in, and there is no string in the union for `wp_parse_list()` to
+split. An option key is kept **verbatim** in both forms — as a key in the map
+and as a member in the list, because it is the same piece of JetEngine's data
+in two positions.
+
+One value the shape genuinely cannot decide, and the code says so rather than
+pretending otherwise: a map whose option keys happen to be `0, 1, 2 …` is a
+plain list once JSON has been decoded — PHP has no other way to hold
+`{"0":"true"}` — and its values are the switch strings a map holds, so nothing
+distinguishes it from a list of options literally called `true` and `false`.
+There, and only there, the field's own `is_array` breaks the tie. That is the
+right use for a setting this module can only read: not to overrule a shape,
+but to choose between two readings of the same one.
 
 A switcher is advertised as a **boolean**, not as the string JetEngine stores.
 Core validates a registered field against the advertised type *before* the
@@ -692,7 +720,17 @@ options, no `user_can_toggle` override.
    surviving core's gate whole. A switcher round-trips from a JSON boolean *and*
    from the string form, through a model of the validation core runs before
    any of these sanitizers, and what `normalize_read()` gives back is checked
-   against the schema `for_descriptor()` advertised.
+   against the schema `for_descriptor()` advertised. A checkbox is exercised
+   in both of its forms, with discovery carrying `is_array` in each spelling
+   JetEngine writes it: each form reads back as the shape storage holds and
+   writes back as itself, a value in the form its toggle does not name is
+   neither converted nor lost, the ambiguous map of numeric option keys stays
+   a map and a list of options called `true` and `false` stays a list, and a
+   checkbox column inside a repeater says the same thing about itself as one
+   outside it. The harness's model of core's own gate ends `array` at
+   `wp_is_numeric_array()`, the way `rest_is_array()` does, so a union naming
+   both shapes cannot resolve a map to its list member and the assertions
+   about the two are not vacuous.
 3. Fields: the per-key metadata capability is enforced on both sides - a key
    an auth filter refuses reads back as its own type's empty (`0` for a
    number, not `''`) and refuses a write with a 403, on posts and on terms,

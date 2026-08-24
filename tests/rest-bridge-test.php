@@ -514,6 +514,25 @@ dpt_test_ok(
  * @param mixed $value  What a client sent.
  * @return bool
  */
+/**
+ * wp_is_numeric_array(), which is where rest_is_array() ends up: every key an
+ * integer, in any order, and an empty array counts.
+ *
+ * @param mixed $value Whatever is being tested.
+ * @return bool
+ */
+function dpt_rb_test_is_numeric_array( $value ) {
+	if ( ! is_array( $value ) ) {
+		return false;
+	}
+	foreach ( array_keys( $value ) as $key ) {
+		if ( ! is_int( $key ) ) {
+			return false;
+		}
+	}
+	return true;
+}
+
 function dpt_rb_test_core_accepts( $schema, $value ) {
 	$type = isset( $schema['type'] ) ? $schema['type'] : '';
 
@@ -560,7 +579,12 @@ function dpt_rb_test_core_accepts( $schema, $value ) {
 				// below are checked against.
 				$value = preg_split( '/[\s,]+/', (string) $value, -1, PREG_SPLIT_NO_EMPTY );
 			}
-			if ( ! is_array( $value ) ) {
+			if ( ! dpt_rb_test_is_numeric_array( $value ) ) {
+				// rest_is_array() ends at wp_is_numeric_array(), so a map is
+				// not an array however array-shaped PHP thinks it is. A stub
+				// that stopped at is_array() would let a union resolve a
+				// checkbox's option map to its list member and hide the very
+				// confusion the two shapes cause.
 				return false;
 			}
 			foreach ( $value as $item ) {
@@ -609,8 +633,13 @@ function dpt_rb_test_core_best_type( $types, $value ) {
 	foreach ( $types as $type ) {
 		switch ( $type ) {
 			case 'array':
-				// rest_is_array().
-				if ( is_scalar( $value ) || is_array( $value ) ) {
+				// rest_is_array(): a scalar is split by wp_parse_list() first,
+				// and then - either way - the answer is wp_is_numeric_array().
+				// A map is not an array to core however array-shaped PHP
+				// thinks it is, which is what lets one union name both shapes
+				// a checkbox or a select can be in without either one
+				// swallowing the other.
+				if ( is_scalar( $value ) || dpt_rb_test_is_numeric_array( $value ) ) {
 					return 'array';
 				}
 				break;
@@ -1182,13 +1211,13 @@ dpt_test_eq( DPT_RB_Schema::normalize_read( $rep, '' ), array(), 'as does nothin
 dpt_test_eq( DPT_RB_Schema::normalize_read( $text, null ), '', 'a scalar field with nothing stored reads as an empty string' );
 dpt_test_eq( DPT_RB_Schema::normalize_read( $text, '0' ), '0', 'and "0" reads back as "0"' );
 
-// A checkbox's schema promises an object, so its wire format has to be one -
-// wp_json_encode( array() ) is '[]', not '{}', and PHP itself turns option
-// keys that look like "0" and "1" into integer array keys, so even a
+// A plain checkbox's schema names the map first, so its wire format has to be
+// one - wp_json_encode( array() ) is '[]', not '{}', and PHP itself turns
+// option keys that look like "0" and "1" into integer array keys, so even a
 // populated checkbox can encode as a JSON array unless the read path forces
 // the point.
 $checkbox = array( 'meta_key' => 'perks', 'title' => 'Perks', 'type' => 'checkbox', 'fields' => array() );
-dpt_test_eq( DPT_RB_Schema::for_descriptor( $checkbox )['type'], 'object', 'a checkbox is advertised as an object' );
+dpt_test_eq( DPT_RB_Schema::for_descriptor( $checkbox )['type'][0], 'object', 'a checkbox is advertised as an object first' );
 dpt_test_eq( wp_json_encode( DPT_RB_Schema::normalize_read( $checkbox, array() ) ), '{}', 'an empty checkbox encodes as an object, not a list' );
 dpt_test_eq( wp_json_encode( DPT_RB_Schema::normalize_read( $checkbox, array( '0' => 'true', '1' => 'false' ) ) ), '{"0":"true","1":"false"}', 'and numeric-looking keys still encode as an object' );
 
@@ -1229,6 +1258,146 @@ dpt_test_eq(
 	DPT_RB_Schema::sanitize( $checkbox, DPT_RB_Schema::normalize_read( $checkbox, array( 'כחול' => 'true', 'Sky Blue' => 'false' ) ) ),
 	array( 'כחול' => 'true', 'Sky Blue' => 'false' ),
 	'and a read of those keys composes back into itself rather than into a different set of options'
+);
+
+/* ---- a checkbox stores two different shapes, and JetEngine says which ---- */
+
+// JetEngine's checkbox carries an is_array toggle beside its type, read the
+// way is_multiple is read - filter_var( ..., FILTER_VALIDATE_BOOLEAN ) - and
+// with it on, cherry-x-post-meta's sanitize_meta() stores a plain list of the
+// checked keys instead of the key => 'true'|'false' map. Modelled as the map
+// alone, ["red","blue"] read back as {"0":"red","1":"blue"} and writing that
+// object back stored {"0":"true","1":"true"}, which JetEngine then reads as
+// ["0","1"] - every selection replaced by an array index, over a 200.
+$GLOBALS['dpt_stub_options'] = array(
+	'jet_engine_meta_boxes' => array(
+		array(
+			'id'          => 'checkbox-shapes',
+			'args'        => array( 'object_type' => 'post', 'allowed_post_type' => array( 'post' ) ),
+			'meta_fields' => array(
+				array( 'name' => 'perks', 'title' => 'Perks', 'object_type' => 'field', 'type' => 'checkbox' ),
+				array( 'name' => 'colours', 'title' => 'Colours', 'object_type' => 'field', 'type' => 'checkbox', 'is_array' => true ),
+				array( 'name' => 'sizes', 'title' => 'Sizes', 'object_type' => 'field', 'type' => 'checkbox', 'is_array' => 'true' ),
+				array( 'name' => 'flags', 'title' => 'Flags', 'object_type' => 'field', 'type' => 'checkbox', 'is_array' => 'false' ),
+				array(
+					'name'            => 'rows',
+					'title'           => 'Rows',
+					'object_type'     => 'field',
+					'type'            => 'repeater',
+					'repeater-fields' => array(
+						array( 'name' => 'tags', 'title' => 'Tags', 'type' => 'checkbox', 'is_array' => true ),
+					),
+				),
+			),
+		),
+	),
+);
+DPT_RB_Definitions::reset();
+$check_defs = array();
+foreach ( DPT_RB_Definitions::all() as $d ) {
+	$check_defs[ $d['meta_key'] ] = $d;
+}
+dpt_test_eq( $check_defs['perks']['is_array'], false, 'a checkbox with no is_array toggle stores the map' );
+dpt_test_eq( $check_defs['colours']['is_array'], true, 'and one with it on stores a list' );
+dpt_test_eq( $check_defs['sizes']['is_array'], true, "including when the toggle was stored as the string 'true'" );
+dpt_test_eq( $check_defs['flags']['is_array'], false, "and 'false' is off, not a non-empty string" );
+dpt_test_eq( $check_defs['rows']['fields'][0]['is_array'], true, 'a checkbox column inside a repeater carries its own toggle' );
+
+$cb_map    = $check_defs['perks'];
+$cb_list   = $check_defs['colours'];
+$cb_map_s  = DPT_RB_Schema::for_descriptor( $cb_map );
+$cb_list_s = DPT_RB_Schema::for_descriptor( $cb_list );
+
+// Each names the other's shape, for the reason a select does: the toggle is
+// JetEngine's and can be turned over between two requests, so a value already
+// in storage in the other form has to stay readable and writable.
+dpt_test_eq( $cb_list_s['type'], array( 'array', 'object' ), 'an is_array checkbox is advertised as the list it stores' );
+dpt_test_eq( $cb_list_s['items']['type'], 'string', 'of the option keys it holds' );
+dpt_test_eq( $cb_map_s['type'], array( 'object', 'array' ), 'and a plain one as the map it stores' );
+
+// The read: each form comes back as the shape storage really holds, and each
+// one is a shape its own schema names.
+$list_read = DPT_RB_Schema::normalize_read( $cb_list, array( 'red', 'blue' ) );
+dpt_test_eq( wp_json_encode( $list_read ), '["red","blue"]', 'a stored list reads back as a list, not as an object of indices' );
+dpt_test_ok( dpt_rb_test_core_accepts( $cb_list_s, $list_read ), 'and the schema the field advertises accepts it' );
+$map_read = DPT_RB_Schema::normalize_read( $cb_map, array( 'wifi' => 'true', 'parking' => 'false' ) );
+dpt_test_eq( wp_json_encode( $map_read ), '{"wifi":"true","parking":"false"}', 'a stored map reads back as a map' );
+dpt_test_ok( dpt_rb_test_core_accepts( $cb_map_s, $map_read ), 'and its own schema accepts that' );
+
+// The write: what a read handed out has to write back as itself, through
+// core's gate and the module's sanitizer both.
+dpt_test_eq(
+	DPT_RB_Schema::sanitize( $cb_list, dpt_rb_test_core_sanitize( $cb_list_s, $list_read ) ),
+	array( 'red', 'blue' ),
+	'a stored list survives a write of the value that was read'
+);
+dpt_test_eq(
+	DPT_RB_Schema::sanitize( $cb_map, dpt_rb_test_core_sanitize( $cb_map_s, $map_read ) ),
+	array( 'wifi' => 'true', 'parking' => 'false' ),
+	'and so does a stored map'
+);
+
+// The shape decides, not the toggle - a value in the form the toggle does not
+// name is one this module did not expect, and a shape it did not expect is
+// not a shape it may convert into the other one.
+dpt_test_eq(
+	wp_json_encode( DPT_RB_Schema::normalize_read( $cb_list, array( 'wifi' => 'true' ) ) ),
+	'{"wifi":"true"}',
+	'a map still in storage on a field whose toggle has just been turned on reads back as the map it is'
+);
+dpt_test_eq(
+	wp_json_encode( DPT_RB_Schema::normalize_read( $cb_map, array( 'red', 'blue' ) ) ),
+	'["red","blue"]',
+	'and a list still in storage on a field whose toggle has just been turned off keeps every option'
+);
+dpt_test_eq(
+	DPT_RB_Schema::sanitize( $cb_map, array( 'red', 'blue' ) ),
+	array( 'red', 'blue' ),
+	'a list written to a map field is stored as the list it is rather than as two options called 0 and 1'
+);
+dpt_test_eq(
+	DPT_RB_Schema::sanitize( $cb_list, array( 'wifi' => 'true' ) ),
+	array( 'wifi' => 'true' ),
+	'and a map written to a list field is stored as the map it is'
+);
+
+// The one shape the two forms genuinely share: a map whose option keys are
+// 0 and 1 is a PHP list once JSON has been decoded, and its values are the
+// switch strings, so nothing about the value tells the two apart. That is
+// where - and only where - the field's own toggle breaks the tie.
+dpt_test_eq(
+	wp_json_encode( DPT_RB_Schema::normalize_read( $cb_map, array( '0' => 'true', '1' => 'false' ) ) ),
+	'{"0":"true","1":"false"}',
+	'a map with numeric option keys still reads back as a map on a field that stores maps'
+);
+dpt_test_eq(
+	DPT_RB_Schema::sanitize( $cb_map, array( '0' => 'true', '1' => 'false' ) ),
+	array( '0' => 'true', '1' => 'false' ),
+	'and writes back as one'
+);
+dpt_test_eq(
+	wp_json_encode( DPT_RB_Schema::normalize_read( $cb_list, array( 'true', 'false' ) ) ),
+	'["true","false"]',
+	'while a list of options literally called true and false stays a list on a field that stores lists'
+);
+
+// An empty checkbox: each form's own empty, so the JSON matches the schema.
+dpt_test_eq( wp_json_encode( DPT_RB_Schema::normalize_read( $cb_list, '' ) ), '[]', 'an untouched is_array checkbox reads back as an empty list' );
+dpt_test_eq( wp_json_encode( DPT_RB_Schema::normalize_read( $cb_map, '' ) ), '{}', 'and an untouched plain one as an empty object' );
+
+// A checkbox column inside a repeater says the same thing about itself as
+// one outside it, or the sub-schema and the sub-read disagree.
+dpt_test_eq(
+	DPT_RB_Schema::for_descriptor( $check_defs['rows'] )['items']['properties']['tags']['type'],
+	array( 'array', 'object' ),
+	'an is_array checkbox inside a repeater is advertised the same way as one outside it'
+);
+$rep_cb_read = DPT_RB_Schema::normalize_read( $check_defs['rows'], array( array( 'tags' => array( 'red', 'blue' ) ) ) );
+dpt_test_eq( wp_json_encode( $rep_cb_read[0]['tags'] ), '["red","blue"]', 'and reads its list back as a list' );
+dpt_test_eq(
+	DPT_RB_Schema::sanitize( $check_defs['rows'], $rep_cb_read )[0]['tags'],
+	array( 'red', 'blue' ),
+	'and writes it back unchanged'
 );
 
 // A number is advertised as 'number' by type_schema(), and a media field
@@ -1537,6 +1706,20 @@ dpt_test_eq( DPT_RB_Fields::read( $qna, array( 'id' => 14 ) ), $slashed_row, 'un
 $perks = array( 'meta_key' => 'perks', 'title' => 'Perks', 'type' => 'checkbox', 'fields' => array(), 'object' => 'post' );
 dpt_test_ok( true === DPT_RB_Fields::write( $perks, array( 'wifi' => 'true' ), (object) array( 'ID' => 12 ) ), 'a checkbox writes' );
 dpt_test_ok( true === DPT_RB_Fields::write( $perks, array( 'wifi' => 'true' ), (object) array( 'ID' => 12 ) ), 'and writing the same map again is still a success' );
+
+// The list form through the same path and the real meta store, which is where
+// the loss actually happened: a GET, a change and a PUT is the round trip
+// this module documents as its contract, and every selection used to come out
+// of it replaced by an array index over a 200.
+$colours = array( 'meta_key' => 'colours', 'title' => 'Colours', 'type' => 'checkbox', 'is_array' => true, 'fields' => array(), 'object' => 'post' );
+$GLOBALS['dpt_stub_post_meta'][13] = array( 'colours' => array( 'red', 'blue' ) );
+$colours_read = DPT_RB_Fields::read( $colours, array( 'id' => 13 ) );
+dpt_test_eq( wp_json_encode( $colours_read ), '["red","blue"]', 'a stored list reads out of the meta store as a list' );
+dpt_test_ok( true === DPT_RB_Fields::write( $colours, $colours_read, (object) array( 'ID' => 13 ) ), 'writing back what was just read is a success' );
+dpt_test_eq( get_post_meta( 13, 'colours', true ), array( 'red', 'blue' ), 'and leaves storage holding the options JetEngine put there' );
+$colours_changed = array_merge( (array) $colours_read, array( 'green' ) );
+dpt_test_ok( true === DPT_RB_Fields::write( $colours, $colours_changed, (object) array( 'ID' => 13 ) ), 'a modified list writes' );
+dpt_test_eq( get_post_meta( 13, 'colours', true ), array( 'red', 'blue', 'green' ), 'adding the option asked for and keeping the ones already chosen' );
 
 // Taxonomy fields live in term meta, and the callbacks are handed terms
 // rather than posts.

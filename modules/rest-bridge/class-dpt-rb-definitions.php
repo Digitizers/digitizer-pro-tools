@@ -167,12 +167,15 @@ class DPT_RB_Definitions {
 	 * handful of per-field settings into the same option row, and some of
 	 * them decide the format of the stored value rather than how it is
 	 * edited. A media field's `value_format` is one - 'id', 'url' or 'both'
-	 * for the array of an attachment id and its URL - and a select field's
-	 * `is_multiple` is another: a select with it on stores and submits an
-	 * array where a plain one stores a string. Reading only the type left
-	 * the schema, the sanitizer and the read path all assuming the default,
-	 * which is how a site storing URLs had its own data read back as 0 and a
-	 * multi-select had its list read back as an empty string.
+	 * for the array of an attachment id and its URL - a select field's
+	 * `is_multiple` is another, a select with it on storing and submitting an
+	 * array where a plain one stores a string, and a checkbox's `is_array` is
+	 * the third: with it on JetEngine keeps a plain list of the checked option
+	 * keys instead of a map of every option to 'true' or 'false'. Reading only
+	 * the type left the schema, the sanitizer and the read path all assuming
+	 * the default, which is how a site storing URLs had its own data read back
+	 * as 0, a multi-select had its list read back as an empty string, and a
+	 * checkbox lost every selection it had to a read, modify and write.
 	 *
 	 * Only settings this bridge acts on are carried, and only in the
 	 * spellings JetEngine's own admin writes - an unrecognized value falls
@@ -192,6 +195,20 @@ class DPT_RB_Definitions {
 			// writes the key once a format has been chosen, so a field that
 			// predates the setting holds an attachment id.
 			$settings['value_format'] = in_array( $format, array( 'id', 'url', 'both' ), true ) ? $format : 'id';
+		}
+
+		if ( 'checkbox' === $type ) {
+			// JetEngine's checkbox has a toggle of its own that changes what
+			// is stored, not how it is edited: with is_array on,
+			// cherry-x-post-meta's sanitize_meta() keeps a plain list of the
+			// checked option keys where a plain checkbox keeps the
+			// key => 'true'|'false' map. Read the way JetEngine reads it, for
+			// the reason is_multiple is read that way - the admin's switcher
+			// writes a real boolean and the same key has held the strings
+			// over the plugin's life.
+			$raw = isset( $field['is_array'] ) && is_scalar( $field['is_array'] ) ? $field['is_array'] : false;
+
+			$settings['is_array'] = (bool) filter_var( $raw, FILTER_VALIDATE_BOOLEAN );
 		}
 
 		if ( 'select' === $type ) {
