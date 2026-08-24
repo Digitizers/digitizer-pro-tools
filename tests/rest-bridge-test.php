@@ -3435,6 +3435,63 @@ dpt_test_ok( ! DPT_RB_Elementor::may_edit( new DPT_Stub_Request( array( 'post_id
 $GLOBALS['dpt_stub_denied_post_caps'] = array();
 dpt_test_ok( DPT_RB_Elementor::may_edit( new DPT_Stub_Request( array( 'post_id' => 20 ) ) ), 'and one they may is allowed' );
 
+/* ---- with no Elementor at all, that capability is the whole of the gate ---- */
+
+// This module supports a site whose Elementor is not installed or not active,
+// where these routes still answer for a page whose layout is in the database.
+// Asserted before the class exists, because class_alias() is a one-way door
+// and a flag on a stub could not honestly reproduce an absent class.
+dpt_test_ok( ! class_exists( 'Elementor\User', false ), 'this run has no Elementor User class yet' );
+$GLOBALS['dpt_stub_posts'][21]                = array( 'post_type' => 'sheet_music', 'post_status' => 'publish' );
+$GLOBALS['dpt_stub_elementor_excluded_roles'] = array( 'editor' );
+$GLOBALS['dpt_stub_current_user_roles']       = array( 'editor' );
+dpt_test_ok( DPT_RB_Elementor::may_edit( new DPT_Stub_Request( array( 'post_id' => 20 ) ) ), 'a post the user may edit is allowed with no Elementor to ask' );
+dpt_test_ok( DPT_RB_Elementor::may_edit( new DPT_Stub_Request( array( 'post_id' => 21 ) ) ), 'and so is a post type Elementor would not have supported, since none of those settings exist here' );
+$GLOBALS['dpt_stub_denied_post_caps'] = array( 20 );
+dpt_test_ok( ! DPT_RB_Elementor::may_edit( new DPT_Stub_Request( array( 'post_id' => 20 ) ) ), 'while the module\'s own capability check still refuses' );
+$GLOBALS['dpt_stub_denied_post_caps']   = array();
+$GLOBALS['dpt_stub_current_user_roles'] = array( 'administrator' );
+
+/* ---- and with Elementor here, its own gate is the one that answers ---- */
+
+// Document::is_editable_by_current_user() defers to
+// User::is_current_user_can_edit(), which refuses four things beyond the
+// post's edit capability. These endpoints write the meta key that gate
+// protects, so without them this was a weaker door into the same data than
+// the editor beside it.
+class_alias( 'DPT_Stub_Elementor_User', 'Elementor\User' );
+
+dpt_test_ok( DPT_RB_Elementor::may_edit( new DPT_Stub_Request( array( 'post_id' => 20 ) ) ), 'an ordinary page an allowed user may edit still passes' );
+
+// 1. a role the site has excluded from editing with Elementor.
+$GLOBALS['dpt_stub_current_user_roles'] = array( 'editor' );
+dpt_test_ok( ! DPT_RB_Elementor::may_edit( new DPT_Stub_Request( array( 'post_id' => 20 ) ) ), 'a role listed in elementor_exclude_user_roles is refused, as Elementor\'s own editor refuses it' );
+$GLOBALS['dpt_stub_current_user_roles'] = array( 'administrator' );
+dpt_test_ok( DPT_RB_Elementor::may_edit( new DPT_Stub_Request( array( 'post_id' => 20 ) ) ), 'and a role that is not listed is not' );
+$GLOBALS['dpt_stub_elementor_excluded_roles'] = array();
+
+// 2. a trashed post.
+$GLOBALS['dpt_stub_posts'][20] = array( 'post_type' => 'page', 'post_status' => 'trash' );
+dpt_test_ok( ! DPT_RB_Elementor::may_edit( new DPT_Stub_Request( array( 'post_id' => 20 ) ) ), 'a trashed page cannot be rewritten through this endpoint either' );
+$GLOBALS['dpt_stub_posts'][20] = array( 'post_type' => 'page', 'post_status' => 'publish' );
+
+// 3. a post type Elementor does not support.
+dpt_test_ok( ! DPT_RB_Elementor::may_edit( new DPT_Stub_Request( array( 'post_id' => 21 ) ) ), 'a post type Elementor was not switched on for is refused' );
+$GLOBALS['dpt_stub_elementor_cpt_support'][] = 'sheet_music';
+dpt_test_ok( DPT_RB_Elementor::may_edit( new DPT_Stub_Request( array( 'post_id' => 21 ) ) ), 'and allowed once the site switches it on, which is the setting Elementor reads' );
+
+// 4. the posts page, which Elementor refuses by id.
+$GLOBALS['dpt_stub_page_for_posts'] = 21;
+dpt_test_ok( ! DPT_RB_Elementor::may_edit( new DPT_Stub_Request( array( 'post_id' => 21 ) ) ), 'and the site\'s posts page is refused by id, as it is in the editor' );
+$GLOBALS['dpt_stub_page_for_posts'] = 0;
+
+// And the module's own check still comes first, so a post the user may not
+// edit is refused whatever Elementor would have said about it.
+$GLOBALS['dpt_stub_denied_post_caps'] = array( 21 );
+dpt_test_ok( ! DPT_RB_Elementor::may_edit( new DPT_Stub_Request( array( 'post_id' => 21 ) ) ), 'a post this user may not edit is still refused with Elementor here' );
+$GLOBALS['dpt_stub_denied_post_caps'] = array();
+unset( $GLOBALS['dpt_stub_posts'][21] );
+
 /* ---- a revision id is refused, and refused the same way on both routes ---- */
 
 // update_post_meta() redirects a revision id to its parent and get_post_meta()

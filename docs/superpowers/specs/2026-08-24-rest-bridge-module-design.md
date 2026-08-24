@@ -692,7 +692,31 @@ the replaced plugin):
   `widget_count` (same response shape as the old plugin).
 - `POST /digitizer/v1/elementor/{post_id}` — `{updates: [{widget_id,
   settings}]}` merge, same response shape (`updates_applied`, `not_found`).
-- Both: `permission_callback` = `current_user_can( 'edit_post', $post_id )`.
+- Both: `permission_callback` = `current_user_can( 'edit_post', $post_id )`
+  **and then Elementor's own editing gate**. That capability alone is a weaker
+  door than the editor beside it: `Document::is_editable_by_current_user()`
+  defers to `User::is_current_user_can_edit()`, which additionally refuses a
+  **trashed** post, a post type Elementor was not switched on for
+  (`elementor_cpt_support`), the site's **posts page** by id, and any user
+  whose role a site has listed in **`elementor_exclude_user_roles`**. These
+  endpoints write the same meta key that gate protects, so a site that had
+  deliberately excluded a role from editing with Elementor was bypassed here,
+  and a trashed page could be rewritten through it. Elementor's own static is
+  called rather than its four rules reimplemented — they are Elementor's to
+  change, and a copy would go stale the first time it did.
+  The module's `edit_post` check is asked **first** and kept: it is the check
+  this module owes on its own account, and it is the whole of the gate on a
+  site with no Elementor at all, which this module supports and where these
+  routes still answer for a layout already in the database. Absent Elementor
+  the extra gate answers yes, which is not a hole — the caller has already
+  passed `edit_post` on that exact post, and the four extra rules are settings
+  a site without Elementor has not got.
+  A **revision** is deliberately let past this check, because `target_post()`
+  refuses it a moment later with a 400 that names the parent. Elementor's gate
+  would refuse it half a step earlier for an unrelated reason — `revision` is
+  not a supported post type — turning a diagnostic an automation can act on
+  into a bare 403. Nothing is read or written either way, so letting it past
+  costs nothing.
 - Both refuse a **revision id** with a 400 `revision_not_supported`, carrying
   the parent id in the error data. One check, on the path both routes take, so
   the read and the write can never disagree about which post they mean.
@@ -992,7 +1016,15 @@ options, no `user_can_toggle` override.
    as much as the first - a stub that left a non-URL string alone hid a real
    defect in the media path through a whole round of review.
 4. Elementor: tree build, updates applied/not_found, per-post capability
-   denial, cache clear called (the harness stubs `\Elementor\Plugin` so that
+   denial, each of the four things Elementor's own gate refuses beyond it - an
+   excluded role, a trashed post, an unsupported post type, the posts page -
+   and, asserted **before** the harness aliases `\Elementor\User` into
+   existence, that a site with no Elementor at all is gated by the per-post
+   capability alone. The order is the point: `class_alias()` is a one-way
+   door, so the absent case cannot be reproduced by a flag on a stub, and the
+   stub itself is `is_current_user_can_edit()` copied in its own order rather
+   than summarised - inverted black-list method included.
+   Also: cache clear called (the harness stubs `\Elementor\Plugin` so that
    call is really made), a refused write reported as an error with the cache
    left alone, and an unchanged re-write reported as a success. A revision id
    refused identically on both routes, with the parent's stored layout, its

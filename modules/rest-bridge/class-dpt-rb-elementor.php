@@ -76,11 +76,75 @@ class DPT_RB_Elementor {
 	 * the site. Passing the post id makes WordPress check that post's own
 	 * edit capability instead.
 	 *
+	 * That capability alone is still a weaker door than the editor beside it.
+	 * Elementor's own gate - Document::is_editable_by_current_user(), which
+	 * defers to User::is_current_user_can_edit() - refuses four more things:
+	 * a trashed post, a post type Elementor does not support, the posts page,
+	 * and any user whose role a site has listed in elementor_exclude_user_roles.
+	 * These endpoints write the same meta key that gate protects, so a site
+	 * that has deliberately excluded a role from editing with Elementor was
+	 * bypassed here, and a trashed page could be rewritten through it.
+	 *
+	 * Elementor's own check is called rather than its rules reimplemented.
+	 * is_current_user_can_edit() is a public static, the four rules are
+	 * Elementor's to change, and a copy of them here would go stale the first
+	 * time it did.
+	 *
 	 * @param WP_REST_Request $request The request.
 	 * @return bool
 	 */
 	public static function may_edit( $request ) {
-		return current_user_can( 'edit_post', (int) $request['post_id'] );
+		$post_id = (int) $request['post_id'];
+
+		// Asked first, and kept even though Elementor's gate asks it too: it
+		// is the check this module owes on its own account, and it is the
+		// whole of the gate on a site with no Elementor at all - which this
+		// module supports, and where these routes still answer for a page
+		// whose layout is already in the database.
+		if ( ! current_user_can( 'edit_post', $post_id ) ) {
+			return false;
+		}
+
+		// A revision is refused by target_post(), with a 400 that names the
+		// post to retry against. Elementor's gate would refuse it half a step
+		// earlier and for an unrelated reason - `revision` is not a post type
+		// Elementor supports - turning a diagnostic an automation can act on
+		// into a bare 403. Nothing is read or written either way, because
+		// both routes go through target_post() before they touch anything, so
+		// letting it past here costs nothing and keeps the better answer.
+		$post = get_post( $post_id );
+		if ( $post && 'revision' === $post->post_type ) {
+			return true;
+		}
+
+		return self::elementor_allows_editing( $post_id );
+	}
+
+	/**
+	 * Elementor's own answer to "may this user edit this post with Elementor",
+	 * or true where there is no Elementor to ask.
+	 *
+	 * is_callable() rather than class_exists(), and for the reason
+	 * clear_cache() checks the same way: this runs against whatever Elementor
+	 * version is installed, and a static this module leans on is not this
+	 * plugin's to guarantee across all of them.
+	 *
+	 * Absent Elementor the answer is yes, which is not a hole: the caller has
+	 * already passed edit_post on this exact post, and the four extra rules
+	 * are all Elementor's own settings, which a site without Elementor has
+	 * not got. Refusing instead would break the module's own promise that
+	 * these routes work on a site whose Elementor was deactivated but whose
+	 * layouts are still in the database.
+	 *
+	 * @param int $post_id Post id.
+	 * @return bool
+	 */
+	private static function elementor_allows_editing( $post_id ) {
+		if ( ! is_callable( array( '\Elementor\User', 'is_current_user_can_edit' ) ) ) {
+			return true;
+		}
+
+		return (bool) \Elementor\User::is_current_user_can_edit( $post_id );
 	}
 
 	/**

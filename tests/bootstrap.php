@@ -823,6 +823,9 @@ function dpt_stub_post_row( $id ) {
 		'ID'          => $id,
 		'post_type'   => isset( $row['post_type'] ) ? $row['post_type'] : 'post',
 		'post_parent' => isset( $row['post_parent'] ) ? (int) $row['post_parent'] : 0,
+		// Elementor's own editing gate refuses a trashed post before it looks
+		// at any capability, so the status has to be a thing a test can set.
+		'post_status' => isset( $row['post_status'] ) ? $row['post_status'] : 'publish',
 	);
 }
 function get_post( $id = 0 ) {
@@ -883,6 +886,70 @@ class DPT_Stub_Elementor_Plugin {
 	}
 }
 class_alias( 'DPT_Stub_Elementor_Plugin', 'Elementor\Plugin' );
+
+// The four things Elementor's own editing gate refuses beyond the post's edit
+// capability, each switchable so the module can be measured against every one
+// of them.
+$GLOBALS['dpt_stub_elementor_cpt_support']   = array( 'post', 'page' );
+$GLOBALS['dpt_stub_elementor_excluded_roles'] = array();
+$GLOBALS['dpt_stub_current_user_roles']       = array( 'administrator' );
+$GLOBALS['dpt_stub_page_for_posts']           = 0;
+
+/**
+ * \Elementor\User::is_current_user_can_edit(), copied from
+ * elementor/includes/user.php rather than summarised, in its own order:
+ *
+ *   - no such post -> no;
+ *   - the post is in the trash -> no;
+ *   - the post type is one Elementor does not support, or the current user's
+ *     role is in elementor_exclude_user_roles, or they cannot edit_posts at
+ *     all -> no (that is is_current_user_can_edit_post_type(), whose first
+ *     call is to the black-list check);
+ *   - they fail the post type's own edit_post capability -> no;
+ *   - the post is the site's posts page -> no.
+ *
+ * Elementor's is_current_user_in_editing_black_list() returns **false** when
+ * the user *is* in the list, which reads backwards and is copied that way on
+ * purpose: a stub that quietly corrected it would be measuring something
+ * Elementor does not do.
+ *
+ * NOT aliased to \Elementor\User here. The test file does that at the point
+ * where it says "and now Elementor is installed", so the assertions before
+ * that line really run against a site with no Elementor - which is a
+ * configuration this module supports and which no flag on a stub could
+ * honestly reproduce, class_alias() being a one-way door.
+ */
+class DPT_Stub_Elementor_User {
+	public static function is_current_user_in_editing_black_list() {
+		$shared = array_intersect( $GLOBALS['dpt_stub_current_user_roles'], $GLOBALS['dpt_stub_elementor_excluded_roles'] );
+		return empty( $shared );
+	}
+	public static function is_current_user_can_edit_post_type( $post_type ) {
+		if ( ! self::is_current_user_in_editing_black_list() ) {
+			return false;
+		}
+		if ( ! in_array( $post_type, $GLOBALS['dpt_stub_elementor_cpt_support'], true ) ) {
+			return false;
+		}
+		return (bool) current_user_can( 'edit_posts' );
+	}
+	public static function is_current_user_can_edit( $post_id = 0 ) {
+		$post = get_post( $post_id );
+		if ( ! $post ) {
+			return false;
+		}
+		if ( 'trash' === $post->post_status ) {
+			return false;
+		}
+		if ( ! self::is_current_user_can_edit_post_type( $post->post_type ) ) {
+			return false;
+		}
+		if ( ! current_user_can( 'edit_post', $post->ID ) ) {
+			return false;
+		}
+		return (int) $GLOBALS['dpt_stub_page_for_posts'] !== (int) $post->ID;
+	}
+}
 
 // Sanitisers a REST callback runs input through before writing it, kept
 // close enough to the real ones that a test can feed them markup and tags.
