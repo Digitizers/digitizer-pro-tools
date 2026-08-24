@@ -504,4 +504,143 @@ dpt_test_ok( ! in_array( 'author_image', DPT_RB_Fields::compat(), true ), 'nor i
 dpt_test_ok( ! in_array( 'linkedin', DPT_RB_Fields::compat(), true ), 'nor any other legacy field for that taxonomy' );
 $GLOBALS['dpt_stub_rest_taxonomies'] = $saved_taxonomies;
 
+/* ================================================================== */
+/* DPT_RB_Elementor - the ported Elementor endpoints                  */
+/* ================================================================== */
+
+require_once dirname( __DIR__ ) . '/modules/rest-bridge/class-dpt-rb-elementor.php';
+
+/**
+ * The slice of WP_REST_Request these endpoints touch: array access for the
+ * URL parameter and get_param for the body.
+ */
+class DPT_Stub_Request implements ArrayAccess {
+	private $params;
+	public function __construct( $params ) { $this->params = $params; }
+	public function get_param( $key ) { return isset( $this->params[ $key ] ) ? $this->params[ $key ] : null; }
+	#[\ReturnTypeWillChange]
+	public function offsetExists( $key ) { return isset( $this->params[ $key ] ); }
+	#[\ReturnTypeWillChange]
+	public function offsetGet( $key ) { return $this->get_param( $key ); }
+	#[\ReturnTypeWillChange]
+	public function offsetSet( $key, $value ) { $this->params[ $key ] = $value; }
+	#[\ReturnTypeWillChange]
+	public function offsetUnset( $key ) { unset( $this->params[ $key ] ); }
+}
+
+/* ---- reading an Elementor page ---- */
+
+$GLOBALS['dpt_stub_posts']     = array( 20 => 'page' );
+$GLOBALS['dpt_stub_post_meta'] = array();
+$layout                        = array(
+	array(
+		'id'       => 'sec1',
+		'elType'   => 'section',
+		'elements' => array(
+			array(
+				'id'         => 'w1',
+				'elType'     => 'widget',
+				'widgetType' => 'heading',
+				'settings'   => array( 'title' => 'Old title', 'align' => 'center' ),
+			),
+			array(
+				'id'         => 'w2',
+				'elType'     => 'widget',
+				'widgetType' => 'text-editor',
+				'settings'   => array( 'editor' => str_repeat( 'x', 250 ) ),
+			),
+		),
+	),
+);
+update_post_meta( 20, '_elementor_data', wp_json_encode( $layout ) );
+
+$response = DPT_RB_Elementor::get_tree( new DPT_Stub_Request( array( 'post_id' => 20 ) ) );
+dpt_test_eq( $response['widget_count'], 2, 'both widgets are counted' );
+dpt_test_eq( $response['tree'][0]['type'], 'section', 'the section is the root' );
+dpt_test_eq( $response['tree'][0]['children'][0]['widget'], 'heading', 'with the widget under it' );
+dpt_test_eq( $response['tree'][0]['children'][0]['title'], 'Old title', 'and its text pulled out' );
+dpt_test_eq( strlen( $response['tree'][0]['children'][1]['editor'] ), 203, 'long content is truncated for readability' );
+
+dpt_test_ok( is_wp_error( DPT_RB_Elementor::get_tree( new DPT_Stub_Request( array( 'post_id' => 99 ) ) ) ), 'a post that does not exist is a 404' );
+
+$GLOBALS['dpt_stub_posts'][21] = 'page';
+dpt_test_ok( is_wp_error( DPT_RB_Elementor::get_tree( new DPT_Stub_Request( array( 'post_id' => 21 ) ) ) ), 'a post with no Elementor data is a 404 too' );
+
+/* ---- malformed / hand-edited Elementor JSON must not fatal a walk ---- */
+
+// Every recursive walk (tree, count, apply, collect_ids) has to survive an
+// element that is a bare scalar, an "elements" key that is not itself an
+// array, and settings that are not an array - because the stored data is
+// JSON written by another plugin across many versions, or hand-edited.
+$GLOBALS['dpt_stub_posts'][22]     = 'page';
+$malformed                         = array(
+	'not an element at all',
+	array(
+		'id'       => 'sec2',
+		'elType'   => 'section',
+		'elements' => 'not-an-array',
+	),
+	array(
+		'id'         => 'w3',
+		'elType'     => 'widget',
+		'widgetType' => 'heading',
+		'settings'   => 'not-an-array-either',
+	),
+);
+update_post_meta( 22, '_elementor_data', wp_json_encode( $malformed ) );
+$malformed_response = DPT_RB_Elementor::get_tree( new DPT_Stub_Request( array( 'post_id' => 22 ) ) );
+dpt_test_ok( ! is_wp_error( $malformed_response ), 'a tree with scalar elements, a non-array "elements", and non-array settings does not fatal' );
+dpt_test_eq( $malformed_response['widget_count'], 1, 'the one real widget is still counted past the malformed siblings' );
+
+/* ---- updating one widget without disturbing the rest ---- */
+
+$GLOBALS['dpt_stub_elementor_cache_cleared'] = 0;
+$result = DPT_RB_Elementor::update( new DPT_Stub_Request( array(
+	'post_id' => 20,
+	'updates' => array(
+		array( 'widget_id' => 'w1', 'settings' => array( 'title' => 'New title' ) ),
+		array( 'widget_id' => 'nope', 'settings' => array( 'title' => 'x' ) ),
+	),
+) ) );
+
+dpt_test_eq( $result['updates_applied'], 1, 'the widget that exists was updated' );
+dpt_test_eq( $result['not_found'], array( 'nope' ), 'and the one that does not is reported' );
+
+$saved = json_decode( get_post_meta( 20, '_elementor_data', true ), true );
+dpt_test_eq( $saved[0]['elements'][0]['settings']['title'], 'New title', 'the setting changed' );
+dpt_test_eq( $saved[0]['elements'][0]['settings']['align'], 'center', 'and the settings around it did not' );
+dpt_test_eq( get_post_meta( 20, '_elementor_css', true ), '', 'the stale CSS is gone' );
+
+dpt_test_ok( is_wp_error( DPT_RB_Elementor::update( new DPT_Stub_Request( array( 'post_id' => 20, 'updates' => array() ) ) ) ), 'an empty update list is refused' );
+dpt_test_ok( is_wp_error( DPT_RB_Elementor::update( new DPT_Stub_Request( array( 'post_id' => 20, 'updates' => array( array( 'widget_id' => 'w1' ) ) ) ) ) ), 'an update with no settings is refused' );
+
+/* ---- a write that cannot round-trip through JSON must not blank the page ---- */
+
+// wp_json_encode() (json_encode() under the hood) returns false rather than
+// a string when the payload contains bytes that are not valid UTF-8. If the
+// endpoint wrote that straight to _elementor_data, the page would go blank.
+// The pre-update data must survive untouched and the caller must see an error.
+$before_bad_encode = get_post_meta( 20, '_elementor_data', true );
+$bad_encode_result  = DPT_RB_Elementor::update( new DPT_Stub_Request( array(
+	'post_id' => 20,
+	'updates' => array(
+		array( 'widget_id' => 'w1', 'settings' => array( 'title' => "Bad \xB1\x31 bytes" ) ),
+	),
+) ) );
+dpt_test_ok( is_wp_error( $bad_encode_result ), 'invalid UTF-8 that cannot be encoded back to JSON is refused, not silently dropped' );
+dpt_test_eq( get_post_meta( 20, '_elementor_data', true ), $before_bad_encode, 'and the previously saved layout is untouched' );
+
+/* ---- and only for someone allowed to edit that post ---- */
+
+// The plugin this replaces asked only whether the user could edit something,
+// which let anyone with an author's rights rewrite every page on the site.
+$GLOBALS['dpt_stub_denied_post_caps'] = array( 20 );
+dpt_test_ok( ! DPT_RB_Elementor::may_edit( new DPT_Stub_Request( array( 'post_id' => 20 ) ) ), 'a post this user may not edit is refused' );
+$GLOBALS['dpt_stub_denied_post_caps'] = array();
+dpt_test_ok( DPT_RB_Elementor::may_edit( new DPT_Stub_Request( array( 'post_id' => 20 ) ) ), 'and one they may is allowed' );
+
+$GLOBALS['dpt_stub_rest_routes'] = array();
+DPT_RB_Elementor::register();
+dpt_test_ok( isset( $GLOBALS['dpt_stub_rest_routes']['digitizer/v1/elementor/(?P<post_id>\d+)'] ), 'the route is registered where the old plugin had it' );
+
 exit( dpt_test_summary() > 0 ? 1 : 0 );
