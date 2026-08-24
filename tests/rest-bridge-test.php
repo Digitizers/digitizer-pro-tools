@@ -2711,6 +2711,53 @@ dpt_test_ok( ! in_array( 'author_image', DPT_RB_Fields::compat(), true ), 'nor i
 dpt_test_ok( ! in_array( 'linkedin', DPT_RB_Fields::compat(), true ), 'nor any other legacy field for that taxonomy' );
 $GLOBALS['dpt_stub_rest_taxonomies'] = $saved_taxonomies;
 
+/* ---- a target's name is the site's own, not one this module derived ---- */
+
+// register_post_type() sanitize_keys the name it stores, so a post type and
+// sanitize_key() agree. register_taxonomy() does not: it checks the length
+// and keys $wp_taxonomies by exactly the name it was handed. So a taxonomy
+// registered as `Authors` was reduced here to `authors`, matched nothing in
+// the registry, and took its whole meta box down without a word - the meta
+// key bug one level up, on the target rather than on the key.
+$saved_post_types                       = $GLOBALS['dpt_stub_rest_post_types'];
+$saved_taxonomies                       = $GLOBALS['dpt_stub_rest_taxonomies'];
+$saved_private_taxonomies               = $GLOBALS['dpt_stub_private_taxonomies'];
+$GLOBALS['dpt_stub_rest_post_types']    = array( 'post' );
+$GLOBALS['dpt_stub_rest_taxonomies']    = array( 'Authors' );
+$GLOBALS['dpt_stub_private_taxonomies'] = array( 'internal_notes' );
+$GLOBALS['dpt_stub_options']            = array(
+	'jet_engine_meta_boxes' => array(
+		array(
+			'id'          => 'mixed-case-taxonomy',
+			'args'        => array(
+				'object_type' => 'taxonomy',
+				'allowed_tax' => array( 'Authors', 'internal_notes', 'no_such_tax' ),
+			),
+			'meta_fields' => array(
+				array( 'name' => 'bio_link', 'title' => 'Bio link', 'object_type' => 'field', 'type' => 'text' ),
+			),
+		),
+	),
+);
+DPT_RB_Definitions::reset();
+$mixed = DPT_RB_Definitions::all();
+dpt_test_eq( count( $mixed ), 1, 'the meta box on an uppercase taxonomy is found' );
+dpt_test_eq( $mixed[0]['targets'], array( 'Authors', 'internal_notes', 'no_such_tax' ), 'and its targets are the names the meta box stored, letter for letter' );
+
+$GLOBALS['dpt_stub_rest_fields'] = array();
+DPT_RB_Fields::register();
+dpt_test_ok( isset( $GLOBALS['dpt_stub_rest_fields']['Authors']['bio_link'] ), 'the field really registers on the taxonomy the site registered' );
+dpt_test_ok( ! isset( $GLOBALS['dpt_stub_rest_fields']['authors'] ), 'and not on a lowercased name nothing on this site answers to' );
+$mixed_joined = implode( ' | ', DPT_RB_Fields::skipped() );
+dpt_test_ok( false !== strpos( $mixed_joined, 'no_such_tax' ), 'a target that is not registered at all is named' );
+dpt_test_ok( false !== strpos( $mixed_joined, 'no taxonomy of that name is registered on this site' ), 'with the reason it is really missing for' );
+dpt_test_ok( false !== strpos( $mixed_joined, 'internal_notes' ), 'and so is one that exists but is off the REST API' );
+dpt_test_ok( false !== strpos( $mixed_joined, 'show_in_rest off' ), 'with the different reason that one has' );
+dpt_test_ok( false === strpos( $mixed_joined, 'author_description' ), 'while the compatibility layer stays quiet about an authors taxonomy this site simply does not have' );
+$GLOBALS['dpt_stub_rest_post_types']    = $saved_post_types;
+$GLOBALS['dpt_stub_rest_taxonomies']    = $saved_taxonomies;
+$GLOBALS['dpt_stub_private_taxonomies'] = $saved_private_taxonomies;
+
 /* ---- a Hebrew field is a field, all the way through ---- */
 
 // The whole of the key fix, end to end and through the registered callbacks:

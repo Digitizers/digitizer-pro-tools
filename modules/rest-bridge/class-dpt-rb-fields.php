@@ -329,7 +329,11 @@ class DPT_RB_Fields {
 		}
 
 		foreach ( $discovered as $descriptor ) {
-			self::register_one( $descriptor, $descriptor['meta_key'] );
+			// Explaining a target this site does not expose, because these
+			// are the fields the site itself defined: one of its own meta
+			// boxes producing nothing at an endpoint is exactly the gap the
+			// info report exists to fill.
+			self::register_one( $descriptor, $descriptor['meta_key'], true );
 		}
 
 		// What discovery landed, frozen before the compatibility layer adds
@@ -750,11 +754,20 @@ class DPT_RB_Fields {
 	 *
 	 * @param array  $descriptor Field descriptor.
 	 * @param string $name       The name to expose it under.
+	 * @param bool   $explain    Whether a target this site does not expose
+	 *                           to REST is worth a diagnostic. True for the
+	 *                           fields the site itself defined, where an
+	 *                           absence is a surprise; false for the
+	 *                           compatibility layer, which offers names on
+	 *                           targets most sites simply do not have and
+	 *                           would otherwise fill the report with the
+	 *                           absence of an `authors` taxonomy nobody
+	 *                           asked for.
 	 * @return int How many targets it actually landed on. A caller that
 	 *             reports this name as a compatibility field has to know
 	 *             this was not zero, or the report is a lie.
 	 */
-	private static function register_one( $descriptor, $name ) {
+	private static function register_one( $descriptor, $name, $explain = false ) {
 		$count = 0;
 
 		// Discovery hands over the meta key JetEngine stored, exactly as it
@@ -774,6 +787,11 @@ class DPT_RB_Fields {
 
 		foreach ( $descriptor['targets'] as $target ) {
 			if ( ! self::exposed( $descriptor['object'], $target ) ) {
+				if ( $explain ) {
+					// English, untranslated, like every other line in this
+					// list - see register_qna_fallback() for why.
+					self::note_skip( self::exposure_refusal( $descriptor['object'], $target, $name ) );
+				}
 				continue;
 			}
 
@@ -949,6 +967,47 @@ class DPT_RB_Fields {
 		}
 		$type = get_post_type_object( $target );
 		return $type && ! empty( $type->show_in_rest );
+	}
+
+	/**
+	 * Why a field the site defined did not land on one of the targets its
+	 * meta box names.
+	 *
+	 * Two different answers, and telling them apart is the point. A target
+	 * that is not in the registry at all is usually a plugin that is not
+	 * active on this site, or a name that no longer matches - which is what
+	 * running sanitize_key() over a taxonomy name used to cause here, since
+	 * register_taxonomy() keys the registry by the name it was given and
+	 * never lowercases it. A target that is registered but has show_in_rest
+	 * off has made a deliberate choice this module is not going to argue
+	 * with. Either way the field vanishes from the API, and until this the
+	 * loop above simply moved on: a site looking for its own field found
+	 * nothing at the endpoint and nothing in the diagnostics either.
+	 *
+	 * @param string $object Object kind.
+	 * @param string $target Post type or taxonomy name.
+	 * @param string $name   The name the field asked for.
+	 * @return string Plain English, untranslated.
+	 */
+	private static function exposure_refusal( $object, $target, $name ) {
+		$kind   = 'taxonomy' === $object ? 'taxonomy' : 'post type';
+		$exists = 'taxonomy' === $object ? (bool) get_taxonomy( $target ) : (bool) get_post_type_object( $target );
+
+		if ( ! $exists ) {
+			return sprintf(
+				'The field %1$s was not registered on the %2$s %3$s because no %2$s of that name is registered on this site.',
+				$name,
+				$kind,
+				$target
+			);
+		}
+
+		return sprintf(
+			'The field %1$s was not registered on the %2$s %3$s because that %2$s is not on the REST API: it was registered with show_in_rest off.',
+			$name,
+			$kind,
+			$target
+		);
 	}
 
 	/**

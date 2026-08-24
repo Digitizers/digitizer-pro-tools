@@ -668,6 +668,13 @@ function dpt_stub_meta_response( $post_type, $post_id, $context ) {
 /** Which post types and taxonomies are visible to the REST API. */
 $GLOBALS['dpt_stub_rest_post_types'] = array( 'post', 'page' );
 $GLOBALS['dpt_stub_rest_taxonomies'] = array( 'category', 'post_tag', 'authors' );
+// Registered on the site but deliberately kept off the REST API. Without
+// these two lists a post type or taxonomy either exists and is on the API or
+// does not exist at all, so "no taxonomy of that name is registered here" and
+// "that taxonomy was registered with show_in_rest off" are one state in the
+// harness - and a diagnostic that tells them apart could not be asserted.
+$GLOBALS['dpt_stub_private_post_types'] = array();
+$GLOBALS['dpt_stub_private_taxonomies'] = array();
 
 // Which taxonomies are attached to which post type, and what each of them is
 // called on the REST API. This is not decoration: WP_REST_Posts_Controller
@@ -680,23 +687,32 @@ $GLOBALS['dpt_stub_taxonomy_rest_base'] = array( 'category' => 'categories', 'po
 // Shared shape for the post-type and taxonomy objects below: both real
 // objects expose show_in_rest and rest_base, and those are the only fields a
 // test needs.
-function dpt_stub_rest_object( $name ) {
+function dpt_stub_rest_object( $name, $show_in_rest = true ) {
 	return (object) array(
-		'show_in_rest' => true,
+		'show_in_rest' => $show_in_rest,
 		'name'         => $name,
 		'rest_base'    => isset( $GLOBALS['dpt_stub_taxonomy_rest_base'][ $name ] ) ? $GLOBALS['dpt_stub_taxonomy_rest_base'][ $name ] : '',
 	);
 }
 function get_post_type_object( $name ) {
-	return in_array( $name, $GLOBALS['dpt_stub_rest_post_types'], true )
-		? dpt_stub_rest_object( $name )
+	if ( in_array( $name, $GLOBALS['dpt_stub_rest_post_types'], true ) ) {
+		return dpt_stub_rest_object( $name );
+	}
+	return in_array( $name, $GLOBALS['dpt_stub_private_post_types'], true )
+		? dpt_stub_rest_object( $name, false )
 		: null;
 }
 function taxonomy_exists( $name ) {
-	return in_array( $name, $GLOBALS['dpt_stub_rest_taxonomies'], true );
+	return in_array( $name, $GLOBALS['dpt_stub_rest_taxonomies'], true )
+		|| in_array( $name, $GLOBALS['dpt_stub_private_taxonomies'], true );
 }
 function get_taxonomy( $name ) {
-	return taxonomy_exists( $name ) ? dpt_stub_rest_object( $name ) : false;
+	if ( in_array( $name, $GLOBALS['dpt_stub_rest_taxonomies'], true ) ) {
+		return dpt_stub_rest_object( $name );
+	}
+	return in_array( $name, $GLOBALS['dpt_stub_private_taxonomies'], true )
+		? dpt_stub_rest_object( $name, false )
+		: false;
 }
 function get_object_taxonomies( $object, $output = 'names' ) {
 	$names = isset( $GLOBALS['dpt_stub_object_taxonomies'][ $object ] )

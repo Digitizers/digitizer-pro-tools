@@ -94,11 +94,18 @@ by the info endpoint). A **name that is not a string** — a field's, a repeater
 sub-field's, or a member of the list of targets — is skipped and recorded on
 the same footing rather than cast: this parse runs on `rest_api_init`, and a
 notice raised there corrupts the JSON of every REST response the site is
-building. The list of targets is the one place `sanitize_key()` is still
-right, because it is a post type or taxonomy name rather than a meta key and
-`register_post_type()` sanitize_keys its own; a member of it that is not a
-string would be a `TypeError` inside `strtolower()`, so the list is narrowed
-before core is handed any of it. The option belongs to another
+building. The list of **targets** is kept verbatim for the same reason the
+keys are, and `sanitize_key()` is gone from it too. `register_post_type()`
+does sanitize_key its own name, so sanitizing a post type agreed with the
+registry — but `register_taxonomy()` does not: it checks the length and keys
+`$wp_taxonomies` by exactly the name it was handed. A taxonomy registered as
+`Authors` was therefore reduced to `authors`, matched nothing in the registry,
+and took every field of its meta box with it — with no diagnostic at all,
+because a dropped target was not a refusal anything recorded. That is the
+meta-key defect one level up, on the target rather than on the key, and it
+gets the same answer: use the name that was stored, and ask the registry in
+`DPT_RB_Fields` what the site really has under it. A member of the list that
+is not a string is still dropped before anything is done with it. The option belongs to another
 vendor's plugin across every version it has ever had, so nothing in it may be
 able to stop this module from registering everything else. Entries in `meta_fields` whose `object_type` is not
 `field` (tabs, accordions) are skipped silently - they are UI chrome, not data.
@@ -324,6 +331,15 @@ On `rest_api_init`:
   key name — unless that name is one the target's controller already
   defines, in which case see "Names core already owns" below.
 - For `object === 'taxonomy'`: same on each REST-enabled taxonomy.
+- A target of a **discovered** field that the site does not expose is
+  recorded in `skipped()`, with the two answers told apart: no post type or
+  taxonomy of that name is registered here, or one is and it was registered
+  with `show_in_rest` off. Until this the loop simply moved on, so a site
+  whose own meta box produced nothing at the endpoint found nothing in the
+  diagnostics either. The **compatibility** layer stays quiet about the same
+  thing on purpose: it offers names on targets most sites simply do not have,
+  and the absence of an `authors` taxonomy nobody asked for is not a gap
+  worth reporting.
 - `get_callback` normalizes stored values: repeater values that arrive as a
   JSON string or a PHP-serialized string are decoded (the old plugin's
   behaviour); non-arrays return `[]` for repeaters, `''` for scalars.
@@ -819,6 +835,14 @@ options, no `user_can_toggle` override.
    and a `categories` field is renamed only where that taxonomy is really
    attached; the alias is withheld where the site defines it itself,
    and every one of those is explained in `skipped()`.
+   Also: a meta box attached to a taxonomy the site registered as `Authors`
+   registers its field on `Authors` and on no lowercased name, and the two
+   targets it names that this site does not expose - one absent from the
+   registry, one registered with `show_in_rest` off - are each explained with
+   their own reason, while the compatibility layer says nothing about an
+   `authors` taxonomy the site does not have. The harness keeps "registered
+   but off the REST API" as a state of its own, so those two reasons are
+   distinguishable at all.
    Also: registration targets (REST-enabled only), read normalization
    (array / JSON string / serialized string / garbage), alias registered only
    when missing - including the target-by-target case, where a post type

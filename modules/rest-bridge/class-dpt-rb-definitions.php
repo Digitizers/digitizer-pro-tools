@@ -136,15 +136,35 @@ class DPT_RB_Definitions {
 				continue;
 			}
 
-			// A post type or taxonomy name, not a meta key: register_post_type()
-			// sanitize_keys its own name, so this agrees with the registry
-			// rather than deriving something new the way the field names
-			// below must not. A member of the list that is not a string would
-			// be a TypeError inside sanitize_key(), which hands its argument
-			// straight to strtolower(), so the list is narrowed to what core
-			// can be handed before it is handed any of it. A row left with
-			// nothing usable falls into the sentence below.
-			$targets = array_values( array_filter( array_map( 'sanitize_key', array_filter( $targets, 'is_scalar' ) ) ) );
+			// Verbatim, for the reason the meta keys below are. A post type
+			// or taxonomy name is not this module's to derive either:
+			// register_post_type() does sanitize_key its own name, so
+			// sanitize_key() over a post type agreed with the registry - but
+			// register_taxonomy() does not. It checks the length and nothing
+			// else, and keys $wp_taxonomies by exactly the name it was given.
+			// So a taxonomy registered as `Authors` was reduced here to
+			// `authors`, matched nothing in the registry, and took every
+			// field of its meta box with it - and, being a target rather
+			// than a key, without so much as a sentence saying so. One rule
+			// for both kinds, and it is the rule the rest of this parse
+			// follows: use the name that was stored, and let
+			// DPT_RB_Fields ask the registry what the site really has under
+			// it, which is where a target that is not there is now said out
+			// loud.
+			//
+			// A member of the list that is not a string is dropped before
+			// anything is done with it: this parse runs on rest_api_init,
+			// where a notice corrupts the JSON of every REST response the
+			// site is building. A row left with nothing usable falls into
+			// the sentence below.
+			$names = array();
+			foreach ( $targets as $target ) {
+				if ( ! is_scalar( $target ) || '' === (string) $target ) {
+					continue;
+				}
+				$names[] = (string) $target;
+			}
+			$targets = $names;
 			if ( ! $targets ) {
 				self::$skipped[] = sprintf( 'meta box %s: attached to nothing', $id );
 				continue;
