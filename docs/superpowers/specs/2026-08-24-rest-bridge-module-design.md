@@ -164,20 +164,32 @@ stored URL was. The property this is held to is the round trip: what a read
 hands out has to write back as itself, whole.
 
 A union rather than a single narrowed type on purpose, and the member order is
-the order core resolves it in: `rest_get_best_type_for_value()` walks the
-union and falls back to `string`, which has no check of its own. `array` is
-deliberately not named beside `string` anywhere - `rest_is_array()` accepts
-any scalar and `wp_parse_list()` then splits it on whitespace and commas, so a
-URL or a select value with a space in it would be shredded before this class
-saw it. `object` is the container type core passes through untouched, which is
-why it is the one a string-first field names.
+load-bearing. `rest_get_best_type_for_value()` walks the union **in the order
+the schema writes it** — there is no fixed precedence and no fallback: it
+takes the first member whose check says yes, and answers with the empty string
+when none does. (The one exception is the empty string itself, which prefers
+`string` before the walk begins.) `string` is last of the checks only in the
+sense that `is_string()` is the one test that is not a coercion; it wins
+wherever it is named first.
+
+So **`string` is always named before `array`**. `rest_is_array()` says yes to
+any scalar — it runs one through `wp_parse_list()` first, which is
+`preg_split( '/[\s,]+/', … )` — and `rest_sanitize_array()` then returns that
+split list, all of it done from the schema by
+`rest_sanitize_request_arg()` before the update callback is reached. A union
+that named `array` first therefore turned the option `New York` into
+`["New","York"]`, and `Tel Aviv,Jaffa` into three, before this class saw
+anything. Naming `string` first costs the list nothing: a real JSON array is
+not a string and still resolves to `array`. Where a field has no `array`
+member at all — a media field, a single select — `object` is the container it
+names instead, because `rest_is_object()` says no to a non-empty scalar.
 
 A select is advertised by the same rule, from the second setting discovery
 carries: `is_multiple`, JetEngine's Multiple toggle, which makes a select
 store and submit an **array** where a plain one stores a string. Modelled as a
 string, a multi-select read its list back as `''` and had a client's real list
 refused by validation before the sanitizer ran. So a multiple select is
-`[array, string, object]` with `items: string` and a single one is
+`[string, array, object]` with `items: string` and a single one is
 `[string, object]` - each naming the other's shape, because the toggle can be
 turned on between two requests and a list already in storage must still read
 back with every option in it. `sanitize()` cleans the shape in hand, option by
@@ -185,10 +197,15 @@ option for a list; `normalize_read()` hands a list back as a list on a
 multiple field and as an object elsewhere, so the options survive whatever the
 toggle says.
 
-One shape does not round-trip byte for byte: a single string still in storage
-from before the toggle was turned on comes back in as a one-item list, because
-core makes a list of a scalar written to an array-typed field before this
-module sees it. The option itself is not lost, and the test says so out loud.
+`string` ahead of `array` on the multiple variant for the reason above, and it
+is the shape that variant exists for that it protects: a field whose toggle
+has just been turned on while yesterday's plain string is still in storage.
+With `array` named first, that string was the one shape here that did not
+round-trip — `New York` read back whole and wrote back as `["New","York"]`,
+a value with a comma in it split too, and both landed in storage before
+`sanitize_select()` was reached. It reads back as itself and writes back as
+itself now, and the list a multi-select really holds is unaffected, because a
+JSON array is not a string.
 
 A checkbox is advertised by the third such setting, `is_array`: with it on
 JetEngine stores a **plain list of the checked option keys** where a plain
@@ -837,7 +854,14 @@ options, no `user_can_toggle` override.
    `is_multiple` in each spelling JetEngine writes it, a list read back as a
    list rather than as `''`, a list still readable and writable on a field
    whose toggle this module did not see, and a plain value with a space in it
-   surviving core's gate whole. A switcher round-trips from a JSON boolean *and*
+   surviving core's gate whole — on the **multiple** variant as well as the
+   single one, with a comma-bearing value beside it, and with the shredding a
+   union naming `array` first really does asserted directly so the order is
+   known to be what protects them. The harness's model of core's union walk
+   answers `string` **in its place in the union** rather than only as a
+   fallback, the way core's own `$checks` map does; without that, every union
+   naming both resolved a plain string to `array` whatever order it was
+   written in and no assertion about the order could have failed. A switcher round-trips from a JSON boolean *and*
    from the string form, through a model of the validation core runs before
    any of these sanitizers, and what `normalize_read()` gives back is checked
    against the schema `for_descriptor()` advertised. A checkbox is exercised

@@ -235,10 +235,16 @@ class DPT_RB_Schema {
 				// normalize_read() answer the shape in hand rather than the
 				// shape the setting promised.
 				//
-				// The order is the order core resolves them in:
-				// rest_get_best_type_for_value() tries integer, then object,
-				// and falls back to string, so an id stays an integer, an
-				// array stays an array and a URL stays the string it is.
+				// The order is the order core resolves them in, and it is the
+				// schema's own order that decides:
+				// rest_get_best_type_for_value() walks the union exactly as
+				// it is written here and takes the first member whose test
+				// says yes, with 'string' answering last because is_string()
+				// is the only test that is not a coercion. So an id stays an
+				// integer, an array stays an array and a URL stays the string
+				// it is - and 'array' is deliberately absent, because
+				// rest_is_array() runs a scalar through wp_parse_list() and
+				// would split a URL on its own whitespace.
 				return array( 'type' => array( 'integer', 'string', 'object' ) );
 			case 'select':
 				// A JetEngine select with its Multiple toggle on stores and
@@ -255,16 +261,30 @@ class DPT_RB_Schema {
 				// named is what a read may hand back; which one it hands back
 				// is decided by what storage holds.
 				//
-				// 'object', not 'array', is how the string-first variant
-				// names a container: rest_is_array() accepts any scalar and
-				// wp_parse_list() then splits it on whitespace and commas, so
-				// naming 'array' beside 'string' would turn the plain select
-				// value "New York" into two values before this class saw it.
-				// rest_is_object() says no to a non-empty scalar, so a string
-				// stays whole.
+				// Both variants name 'string' before 'array', and that order
+				// is load-bearing rather than cosmetic.
+				// rest_get_best_type_for_value() walks the union in the order
+				// the schema writes it and takes the first member whose test
+				// says yes; rest_is_array() says yes to *any* scalar, because
+				// it runs one through wp_parse_list() first, and
+				// rest_sanitize_array() then returns that split list - all of
+				// which core does from the schema before the update callback
+				// is reached. So a multi-select that named 'array' first had
+				// the plain option "New York" turned into ["New","York"], and
+				// a value with a comma in it split too, on exactly the field
+				// the union exists for: one whose Multiple toggle has just
+				// been turned on while yesterday's plain string is still in
+				// storage. Naming 'string' first costs nothing, because a
+				// real JSON list is not a string and still resolves to
+				// 'array'.
+				//
+				// The single variant names 'object' rather than 'array' for
+				// the container it may also hold, for the same reason read
+				// the other way: rest_is_object() says no to a non-empty
+				// scalar, so a string stays whole beside it.
 				if ( ! empty( $descriptor['multiple'] ) ) {
 					return array(
-						'type'  => array( 'array', 'string', 'object' ),
+						'type'  => array( 'string', 'array', 'object' ),
 						'items' => array( 'type' => 'string' ),
 					);
 				}

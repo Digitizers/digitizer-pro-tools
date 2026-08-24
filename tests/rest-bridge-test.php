@@ -748,10 +748,36 @@ function dpt_rb_test_core_best_type( $types, $value ) {
 					return 'boolean';
 				}
 				break;
+			case 'string':
+				// is_string(), and answered *in its place in the union* -
+				// core's $checks map has an entry for 'string' like every
+				// other type, so a union naming string before array resolves
+				// a string to string and never reaches rest_is_array(). This
+				// case was missing, and its absence was not neutral: 'string'
+				// fell out of the switch and the walk carried on to 'array',
+				// which says yes to any scalar. Every union here that names
+				// both would have resolved a plain string to 'array' in the
+				// harness whatever order it was written in, so the assertion
+				// that the order protects a value with a space in it could
+				// not have failed.
+				if ( is_string( $value ) ) {
+					return 'string';
+				}
+				break;
+			case 'null':
+				if ( null === $value ) {
+					return 'null';
+				}
+				break;
 		}
 	}
 
-	return in_array( 'string', $types, true ) ? 'string' : '';
+	// rest_get_best_type_for_value() has no fallback: a union that fits
+	// nothing answers with the empty string, and rest_handle_multi_type_schema()
+	// then refuses the value. Falling back to 'string' - which is what this
+	// did - would have called a float a string on the media union and made
+	// a refusal look like an acceptance.
+	return '';
 }
 
 /**
@@ -1147,14 +1173,28 @@ $many  = $select_defs['tags'];
 $one_s = DPT_RB_Schema::for_descriptor( $one );
 $many_s = DPT_RB_Schema::for_descriptor( $many );
 
-dpt_test_eq( $many_s['type'], array( 'array', 'string', 'object' ), 'a multi-select is advertised as the list it stores' );
+// String before array on both variants, and that order is load-bearing:
+// rest_is_array() says yes to any scalar because wp_parse_list() will make a
+// list of one, so a union that named array first shredded a plain option
+// before the module's own sanitizer ever saw it. A real JSON list is not a
+// string, so naming string first costs the list nothing.
+dpt_test_eq( $many_s['type'], array( 'string', 'array', 'object' ), 'a multi-select names the list it stores, behind the string it may still hold' );
 dpt_test_eq( $many_s['items']['type'], 'string', 'of the option strings it holds' );
 dpt_test_eq( $one_s['type'], array( 'string', 'object' ), 'and a single select as the string it stores' );
 dpt_test_eq(
 	DPT_RB_Schema::for_descriptor( $select_defs['rows'] )['items']['properties']['topics']['type'],
-	array( 'array', 'string', 'object' ),
+	array( 'string', 'array', 'object' ),
 	'and a multi-select inside a repeater the same way as one outside it'
 );
+
+// The shredding itself, on the field the union exists for: one whose Multiple
+// toggle has just been turned on while yesterday's plain string is still in
+// storage. Both of wp_parse_list()'s separators, through the model of the
+// gate core runs before any sanitizer here.
+dpt_test_eq( dpt_rb_test_core_best_type( $many_s['type'], 'New York' ), 'string', 'a plain option with a space in it resolves as the string it is' );
+dpt_test_eq( DPT_RB_Schema::sanitize( $many, dpt_rb_test_core_sanitize( $many_s, 'New York' ) ), 'New York', 'and reaches storage whole, rather than as two options' );
+dpt_test_eq( DPT_RB_Schema::sanitize( $many, dpt_rb_test_core_sanitize( $many_s, 'Tel Aviv,Jaffa' ) ), 'Tel Aviv,Jaffa', 'and so does one with a comma in it' );
+dpt_test_eq( DPT_RB_Schema::sanitize( $many, dpt_rb_test_core_sanitize( $many_s, array( 'red', 'blue' ) ) ), array( 'red', 'blue' ), 'while a real list still resolves to the array member and arrives as the list it is' );
 
 // The bug this replaces, run against the model of core's gate so the model is
 // known to be able to see it: a plain string type refused the list the field
@@ -1164,15 +1204,13 @@ dpt_test_eq( DPT_RB_Schema::normalize_read( array( 'meta_key' => 'tags', 'title'
 
 // Every shape, both ways round.
 // The last column is whether a read, write, read of that shape is expected to
-// leave storage exactly as it was. Every shape but one is: the exception is a
-// field whose toggle has just been turned on while a single string is still
-// in storage, where core's own array handling makes a one-item list of it on
-// the way back in. Nothing is lost - the option is still there, in the shape
-// the field now means - and it is asserted below rather than left implied.
+// leave storage exactly as it was. Every one of them is now, the string still
+// in storage from before the toggle included: naming string ahead of array
+// closed the last shape that did not survive its own round trip.
 $select_trips = array(
 	array( $many, array( 'red', 'blue' ), 'a multi-select holding a list', true ),
 	array( $many, '', 'a multi-select nobody has chosen from', true ),
-	array( $many, 'red', 'a multi-select still holding the string it held before the toggle', false ),
+	array( $many, 'red', 'a multi-select still holding the string it held before the toggle', true ),
 	array( $one, 'New York', 'a single select holding a string', true ),
 	array( $one, '', 'a single select nobody has chosen from', true ),
 	array( $one, array( 'red', 'blue' ), 'a single select whose storage holds a list anyway', true ),
@@ -1190,14 +1228,14 @@ foreach ( $select_trips as $trip_case ) {
 	}
 }
 
-// The one shape that does not survive unchanged, said out loud: a string left
-// in storage from before the Multiple toggle was turned on becomes the
-// one-item list the field now means, because core makes a list of a scalar
-// written to an array-typed field before this module sees it. The option
-// itself is not lost, which is the part that matters.
+// The shape that used to be the exception, and no longer is. A string left in
+// storage from before the Multiple toggle was turned on was made into a
+// one-item list by core on the way back in, because the union named array
+// ahead of string and rest_is_array() will make a list of any scalar. It
+// reads back as itself and writes back as itself now.
 $carried = dpt_rb_test_round_trip( $many, 'red' );
 dpt_test_eq( $carried['read'], 'red', 'the string still in storage reads back as itself' );
-dpt_test_eq( $carried['again'], array( 'red' ), 'and writing it back leaves the same option, now as the list the field means' );
+dpt_test_eq( $carried['again'], 'red', 'and writing it back leaves it the string it was' );
 
 // The list reads back as the list, which is the finding in one line.
 dpt_test_eq( DPT_RB_Schema::normalize_read( $many, array( 'red', 'blue' ) ), array( 'red', 'blue' ), 'a multi-select reads its list back, not an empty string' );
@@ -1222,7 +1260,9 @@ dpt_test_eq( DPT_RB_Schema::sanitize( $one, dpt_rb_test_core_sanitize( $one_s, a
 // any scalar, and wp_parse_list() then splits it on whitespace and commas.
 dpt_test_eq( dpt_rb_test_core_best_type( array( 'string', 'object' ), 'New York' ), 'string', 'a plain select value resolves as the string it is' );
 dpt_test_eq( dpt_rb_test_core_sanitize( $one_s, 'New York' ), 'New York', 'and survives the gate whole' );
-dpt_test_eq( dpt_rb_test_core_sanitize( array( 'type' => array( 'string', 'array' ) ), 'New York' ), array( 'New', 'York' ), 'while naming array beside string would have split it in two' );
+dpt_test_eq( dpt_rb_test_core_sanitize( array( 'type' => array( 'array', 'string' ) ), 'New York' ), array( 'New', 'York' ), 'while a union that named array *first* would have split it in two' );
+dpt_test_eq( dpt_rb_test_core_sanitize( array( 'type' => array( 'array', 'string' ) ), 'Tel Aviv,Jaffa' ), array( 'Tel', 'Aviv', 'Jaffa' ), 'and split a comma too, because wp_parse_list() splits on both' );
+dpt_test_eq( dpt_rb_test_core_best_type( array( 'string', 'array' ), 'New York' ), 'string', 'while naming string first stops the walk before rest_is_array() is ever asked' );
 
 // Writing. A list is cleaned option by option and a single value as itself.
 dpt_test_eq( DPT_RB_Schema::sanitize( $many, array( ' red ', '<b>blue</b>' ) ), array( 'red', 'blue' ), 'each option of a list is sanitized on its own' );
