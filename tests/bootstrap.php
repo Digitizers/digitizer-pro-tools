@@ -138,12 +138,32 @@ function sanitize_key( $s ) { return preg_replace( '/[^a-z0-9_\-]/', '', strtolo
 function wp_unslash( $s ) { return is_array( $s ) ? array_map( 'stripslashes', $s ) : stripslashes( (string) $s ); }
 function trailingslashit( $s ) { return rtrim( (string) $s, '/\\' ) . '/'; }
 function untrailingslashit( $s ) { return rtrim( (string) $s, '/\\' ); }
-function apply_filters( $tag, $value ) { return $value; }
-// Filters are recorded, not run: a test can ask whether something was hooked
-// without the harness pretending to be WordPress's hook system.
+/**
+ * Filters are recorded and run: a test can ask whether something was hooked,
+ * and - since a module that offers a filter is offering behaviour a site can
+ * change - can hook one itself and see the change. Priorities and argument
+ * counts are not modelled; callbacks run in the order they were added, each
+ * receiving every argument apply_filters() was given.
+ */
 $GLOBALS['dpt_stub_filters'] = array();
+function apply_filters( $tag, $value ) {
+	$args = func_get_args();
+	array_shift( $args );
+	if ( empty( $GLOBALS['dpt_stub_filters'][ $tag ] ) ) {
+		return $value;
+	}
+	foreach ( $GLOBALS['dpt_stub_filters'][ $tag ] as $callback ) {
+		if ( is_callable( $callback ) ) {
+			$args[0] = call_user_func_array( $callback, $args );
+		}
+	}
+	return $args[0];
+}
 function add_filter( $tag = '', $callback = null ) {
-	$GLOBALS['dpt_stub_filters'][ $tag ] = true;
+	if ( ! isset( $GLOBALS['dpt_stub_filters'][ $tag ] ) ) {
+		$GLOBALS['dpt_stub_filters'][ $tag ] = array();
+	}
+	$GLOBALS['dpt_stub_filters'][ $tag ][] = $callback;
 }
 // WordPress keeps actions and filters in one registry, so add_action shares
 // the filter store rather than getting its own.

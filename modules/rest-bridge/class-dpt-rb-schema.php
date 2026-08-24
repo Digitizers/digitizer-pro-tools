@@ -18,6 +18,27 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 class DPT_RB_Schema {
 
 	/**
+	 * The object/meta-key pairs the replaced plugin already published to
+	 * anonymous readers, and which are public display content by nature: a
+	 * reading time, an author's bio and links, a published FAQ.
+	 *
+	 * Matched by meta key rather than by which descriptor produced them,
+	 * because it is the meta key that was public before. A site whose own
+	 * JetEngine definition owns one of these names takes the legacy field's
+	 * place in the API, and it would be a regression for everything already
+	 * reading it if that swap made it private.
+	 *
+	 * @var array
+	 */
+	private static $public_legacy = array(
+		'post/reading_time',
+		'post/qna',
+		'taxonomy/author_description',
+		'taxonomy/author_image',
+		'taxonomy/linkedin',
+	);
+
+	/**
 	 * The schema for one descriptor.
 	 *
 	 * @param array $descriptor Field descriptor from DPT_RB_Definitions.
@@ -26,7 +47,7 @@ class DPT_RB_Schema {
 	public static function for_descriptor( $descriptor ) {
 		$schema = array(
 			'description' => $descriptor['title'],
-			'context'     => array( 'view', 'edit' ),
+			'context'     => self::context( $descriptor ),
 		);
 
 		if ( 'repeater' === $descriptor['type'] ) {
@@ -47,6 +68,29 @@ class DPT_RB_Schema {
 
 		$schema['type'] = self::json_type( $descriptor['type'] );
 		return $schema;
+	}
+
+	/**
+	 * Which REST contexts a field may be read in.
+	 *
+	 * Discovery finds every JetEngine field on the site, and this module
+	 * cannot know which of them a site meant for the public - internal
+	 * notes, pricing, a client's details all look the same from here. So a
+	 * discovered field is readable with context=edit, which any
+	 * authenticated consumer asks for, and is not handed to anonymous
+	 * callers of /wp/v2/posts. The legacy names above are the exception:
+	 * they were already public before this module existed.
+	 *
+	 * @param array $descriptor Field descriptor.
+	 * @return array
+	 */
+	private static function context( $descriptor ) {
+		$object = isset( $descriptor['object'] ) ? $descriptor['object'] : '';
+		$pair   = $object . '/' . $descriptor['meta_key'];
+
+		return in_array( $pair, self::$public_legacy, true )
+			? array( 'view', 'edit' )
+			: array( 'edit' );
 	}
 
 	/**

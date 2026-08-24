@@ -342,6 +342,21 @@ dpt_test_eq( DPT_RB_Schema::sanitize( $url, 'data:text/html;base64,PHN2Zz4=' ), 
 dpt_test_eq( DPT_RB_Schema::sanitize( $url, array( 'x' ) ), '', 'and an array is not a URL at all' );
 dpt_test_ok( ! DPT_RB_Definitions::known_type( 'url' ), 'while url stays out of the types discovery maps - JetEngine has none' );
 
+// Discovery finds every field a site has, and this module cannot tell an
+// internal one from a public one. The safe default is the one that cannot
+// hand a client's data to an anonymous GET /wp/v2/posts.
+$discovered_note = array( 'meta_key' => 'internal_note', 'title' => 'Note', 'type' => 'text', 'fields' => array(), 'object' => 'post' );
+dpt_test_eq( DPT_RB_Schema::for_descriptor( $discovered_note )['context'], array( 'edit' ), 'a discovered field is readable only in the edit context' );
+
+// The names the replaced plugin already published stay public, or upgrading
+// to this module would break a theme reading them anonymously.
+$legacy_reading = array( 'meta_key' => 'reading_time', 'title' => 'Reading time', 'type' => 'text', 'fields' => array(), 'object' => 'post' );
+$legacy_faq     = array( 'meta_key' => 'qna', 'title' => 'FAQ', 'type' => 'repeater', 'fields' => array(), 'object' => 'post' );
+$legacy_avatar  = array( 'meta_key' => 'author_image', 'title' => 'Avatar', 'type' => 'url', 'fields' => array(), 'object' => 'taxonomy' );
+dpt_test_eq( DPT_RB_Schema::for_descriptor( $legacy_reading )['context'], array( 'view', 'edit' ), 'a legacy field keeps its public read' );
+dpt_test_eq( DPT_RB_Schema::for_descriptor( $legacy_faq )['context'], array( 'view', 'edit' ), 'so does the FAQ, whichever name it is read under' );
+dpt_test_eq( DPT_RB_Schema::for_descriptor( $legacy_avatar )['context'], array( 'view', 'edit' ), 'and the author fields on their taxonomy' );
+
 // Reading. JetEngine has stored repeaters as arrays, as JSON and as PHP
 // serialization over the years; all three have to come back as an array.
 dpt_test_eq( DPT_RB_Schema::normalize_read( $rep, array( array( 'question' => 'q', 'answer' => 'a' ) ) )[0]['question'], 'q', 'an array reads back' );
@@ -614,8 +629,57 @@ dpt_test_eq( DPT_RB_Fields::read( $qna, array( 'id' => 11, 'term_id' => 999 ) )[
 
 $registered = DPT_RB_Fields::registered();
 dpt_test_ok( isset( $registered['post/post'] ), 'the report knows about posts' );
-dpt_test_ok( in_array( 'qna', $registered['post/post'], true ), 'and lists the field there' );
+dpt_test_ok( isset( $registered['post/post']['qna'] ), 'and lists the field there' );
+dpt_test_eq( $registered['post/post']['qna']['type'], 'array', 'with the schema it was really registered with, not a bare name' );
 dpt_test_ok( isset( $registered['taxonomy/authors'] ), 'and about the taxonomy' );
+
+/* ---- what a field is readable by, and to whom ---- */
+
+// Discovery exposes every JetEngine field on the site, and this module has
+// no way to know which of them the site meant for the public - internal
+// notes, pricing, a client's own details all look the same from here. So a
+// discovered field is readable in the edit context, which both live
+// consumers already authenticate for, and never on an anonymous
+// GET /wp/v2/posts.
+// The site's own note field is one nothing outside the editor should see.
+$GLOBALS['dpt_stub_options']['jet_engine_meta_boxes'][] = array(
+	'id'          => 'internal',
+	'args'        => array( 'object_type' => 'post', 'allowed_post_type' => array( 'post' ) ),
+	'meta_fields' => array(
+		array( 'name' => 'internal_note', 'title' => 'Internal note', 'object_type' => 'field', 'type' => 'textarea' ),
+	),
+);
+DPT_RB_Definitions::reset();
+$GLOBALS['dpt_stub_rest_fields'] = array();
+DPT_RB_Fields::register();
+dpt_test_eq( $GLOBALS['dpt_stub_rest_fields']['post']['internal_note']['schema']['context'], array( 'edit' ), 'a discovered field is not readable anonymously' );
+
+// linkedin is discovered here and still public, because the meta key was
+// public before this module existed - it is the key that was published, not
+// the definition that happens to produce it.
+dpt_test_eq( $GLOBALS['dpt_stub_rest_fields']['authors']['linkedin']['schema']['context'], array( 'view', 'edit' ), 'a legacy name discovered as a JetEngine field stays as public as it was' );
+
+// The names the replaced plugin already published stay published: each is
+// public display content by nature, and taking them away would break a theme
+// or a front end reading them today.
+dpt_test_eq( $GLOBALS['dpt_stub_rest_fields']['post']['reading_time']['schema']['context'], array( 'view', 'edit' ), 'a legacy field keeps its public read' );
+dpt_test_eq( $GLOBALS['dpt_stub_rest_fields']['authors']['author_image']['schema']['context'], array( 'view', 'edit' ), 'including the author fields' );
+dpt_test_eq( $GLOBALS['dpt_stub_rest_fields']['post']['qna']['schema']['context'], array( 'view', 'edit' ), 'and the FAQ, under its real name' );
+dpt_test_eq( $GLOBALS['dpt_stub_rest_fields']['post']['jet_qna']['schema']['context'], array( 'view', 'edit' ), 'as well as under the old plugin\'s name for it' );
+
+// A site that knows one of its own fields is public says so with a filter -
+// this module stores nothing, and a settings screen would change that.
+add_filter(
+	'dpt_rb_field_context',
+	function ( $context, $descriptor, $target ) {
+		return ( 'internal_note' === $descriptor['meta_key'] && 'post' === $target ) ? array( 'view', 'edit' ) : $context;
+	}
+);
+$GLOBALS['dpt_stub_rest_fields'] = array();
+DPT_RB_Fields::register();
+dpt_test_eq( $GLOBALS['dpt_stub_rest_fields']['post']['internal_note']['schema']['context'], array( 'view', 'edit' ), 'a site can opt one discovered field back into public read' );
+dpt_test_eq( $GLOBALS['dpt_stub_rest_fields']['post']['qna']['schema']['context'], array( 'view', 'edit' ), 'without disturbing the fields it did not name' );
+remove_filter( 'dpt_rb_field_context' );
 
 /* ---- the qna fallback defers to whatever already owns the meta key ---- */
 

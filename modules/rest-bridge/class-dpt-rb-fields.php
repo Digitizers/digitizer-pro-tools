@@ -22,7 +22,8 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 class DPT_RB_Fields {
 
 	/**
-	 * object/target => list of field names, for the info endpoint.
+	 * object/target => field name => the schema it was registered with, for
+	 * the info endpoint.
 	 *
 	 * @var array
 	 */
@@ -236,7 +237,7 @@ class DPT_RB_Fields {
 	 */
 	private static function name_taken( $object, $target, $name ) {
 		$key = $object . '/' . $target;
-		return isset( self::$registered[ $key ] ) && in_array( $name, self::$registered[ $key ], true );
+		return isset( self::$registered[ $key ][ $name ] );
 	}
 
 	/**
@@ -250,13 +251,29 @@ class DPT_RB_Fields {
 	 *             this was not zero, or the report is a lie.
 	 */
 	private static function register_one( $descriptor, $name ) {
-		$schema = DPT_RB_Schema::for_descriptor( $descriptor );
-		$count  = 0;
+		$base  = DPT_RB_Schema::for_descriptor( $descriptor );
+		$count = 0;
 
 		foreach ( $descriptor['targets'] as $target ) {
 			if ( ! self::exposed( $descriptor['object'], $target ) ) {
 				continue;
 			}
+
+			$schema = $base;
+			/**
+			 * Filters the REST contexts one field may be read in.
+			 *
+			 * Discovered fields default to edit only, because this module
+			 * cannot tell a public field from an internal one and the safe
+			 * default is the one that cannot leak a site's data. A site that
+			 * knows better - a field it wants on an anonymous GET - adds
+			 * 'view' here.
+			 *
+			 * @param array  $context    Context names, e.g. array( 'edit' ).
+			 * @param array  $descriptor The field descriptor being registered.
+			 * @param string $target     Post type or taxonomy it lands on.
+			 */
+			$schema['context'] = array_values( (array) apply_filters( 'dpt_rb_field_context', $schema['context'], $descriptor, $target ) );
 
 			register_rest_field(
 				$target,
@@ -276,7 +293,10 @@ class DPT_RB_Fields {
 			if ( ! isset( self::$registered[ $key ] ) ) {
 				self::$registered[ $key ] = array();
 			}
-			self::$registered[ $key ][] = $name;
+			// Keyed by name and holding the schema, because the info endpoint
+			// promises an agent the schemas and must read them from what was
+			// really registered rather than deriving them a second time.
+			self::$registered[ $key ][ $name ] = $schema;
 			$count++;
 		}
 
@@ -301,7 +321,7 @@ class DPT_RB_Fields {
 	}
 
 	/**
-	 * What was registered where.
+	 * What was registered where: object/target => name => schema.
 	 *
 	 * @return array
 	 */
