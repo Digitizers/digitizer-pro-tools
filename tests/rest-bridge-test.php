@@ -787,4 +787,45 @@ dpt_test_ok( ! call_user_func( $route['permission_callback'] ), 'a visitor may n
 $GLOBALS['dpt_stub_denied_caps'] = array();
 dpt_test_ok( call_user_func( $route['permission_callback'] ), 'an editor may' );
 
+require_once dirname( __DIR__ ) . '/includes/class-dpt-module.php';
+require_once dirname( __DIR__ ) . '/modules/rest-bridge/class-dpt-rb-module.php';
+
+/* ---- the module itself ---- */
+
+$module = new DPT_Rest_Bridge_Module();
+dpt_test_eq( $module->id(), 'rest_bridge', 'the module has the id the registry uses' );
+dpt_test_ok( '' !== $module->title(), 'and a title' );
+dpt_test_ok( '' !== $module->description(), 'and a description' );
+
+$GLOBALS['dpt_stub_filters']     = array();
+$GLOBALS['dpt_stub_rest_routes'] = array();
+$GLOBALS['dpt_stub_rest_fields'] = array();
+
+dpt_test_ok( ! DPT_Rest_Bridge_Module::legacy_plugin_active(), 'without the old plugin the module is in charge' );
+dpt_test_eq( $module->standing_down_reason(), '', 'and has nothing to explain' );
+
+$module->init();
+dpt_test_ok( dpt_stub_has_filter( 'rest_api_init' ), 'so it hooks the REST API' );
+
+// Booting registers the whole surface at once.
+DPT_RB_Definitions::reset();
+DPT_Rest_Bridge_Module::boot();
+dpt_test_ok( isset( $GLOBALS['dpt_stub_rest_routes']['digitizer/v1/info'] ), 'the info route is up' );
+dpt_test_ok( isset( $GLOBALS['dpt_stub_rest_routes']['digitizer/v1/elementor/(?P<post_id>\d+)'] ), 'so are the Elementor routes' );
+dpt_test_ok( isset( $GLOBALS['dpt_stub_rest_fields']['post']['jet_qna'] ), 'and the fields' );
+
+/* ---- but not while the plugin it replaces is running ---- */
+
+// Two registrations of the same field name on the same post type is a race
+// nobody can debug from the outside, so the module steps back and says so.
+if ( ! function_exists( 'digitizer_elementor_build_tree' ) ) {
+	function digitizer_elementor_build_tree( $elements ) { return $elements; }
+}
+dpt_test_ok( DPT_Rest_Bridge_Module::legacy_plugin_active(), 'the old plugin is recognised' );
+dpt_test_ok( '' !== $module->standing_down_reason(), 'and the Modules screen is told why nothing happens' );
+
+$GLOBALS['dpt_stub_filters'] = array();
+$module->init();
+dpt_test_ok( ! dpt_stub_has_filter( 'rest_api_init' ), 'the module registers nothing at all' );
+
 exit( dpt_test_summary() > 0 ? 1 : 0 );

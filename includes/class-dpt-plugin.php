@@ -38,6 +38,11 @@ class DPT_Plugin {
 				'class'   => 'DPT_Update_Policy_Module',
 				'default' => '0',
 			),
+			'rest_bridge' => array(
+				'file'    => DPT_PATH . 'modules/rest-bridge/class-dpt-rb-module.php',
+				'class'   => 'DPT_Rest_Bridge_Module',
+				'default' => '0',
+			),
 			'cookie_banner' => array(
 				'file'    => DPT_PATH . 'modules/cookie-banner/class-dpt-cb-module.php',
 				'class'   => 'DPT_Cookie_Banner_Module',
