@@ -16,6 +16,26 @@ $GLOBALS['dpt_stub_meta_write_fails'] = array( 'stubborn' );
 dpt_test_ok( ! update_post_meta( 7, 'stubborn', 'x' ), 'a write the site refuses reports failure' );
 $GLOBALS['dpt_stub_meta_write_fails'] = array();
 
+// The one asymmetry in core's post-meta functions that a stub could not leave
+// out without hiding a bug: both writers send a revision id on to the post it
+// revises, and the reader does not. Checked here, before anything depends on
+// it, because a harness that cannot reproduce "read the revision, write the
+// parent" cannot prove that an endpoint has stopped doing it.
+$GLOBALS['dpt_stub_posts'] = array(
+	5 => 'page',
+	6 => array( 'post_type' => 'revision', 'post_parent' => 5 ),
+);
+dpt_test_eq( wp_is_post_revision( 6 ), 5, 'a revision knows the post it revises' );
+dpt_test_ok( ! wp_is_post_revision( 5 ), 'and an ordinary post is not one' );
+$GLOBALS['dpt_stub_post_meta'][6] = array( 'sample' => 'the revision\'s own value' );
+update_post_meta( 6, 'sample', 'written at the revision' );
+dpt_test_eq( get_post_meta( 5, 'sample', true ), 'written at the revision', 'a write aimed at a revision lands on the parent, as core does it' );
+dpt_test_eq( get_post_meta( 6, 'sample', true ), 'the revision\'s own value', 'while a read aimed at it still sees the revision - the asymmetry itself' );
+delete_post_meta( 6, 'sample' );
+dpt_test_eq( get_post_meta( 5, 'sample', true ), '', 'a delete follows the write to the parent' );
+$GLOBALS['dpt_stub_posts']     = array();
+$GLOBALS['dpt_stub_post_meta'] = array();
+
 $GLOBALS['dpt_stub_term_meta'] = array();
 update_term_meta( 3, 'bio', 'hello' );
 dpt_test_eq( get_term_meta( 3, 'bio', true ), 'hello', 'term meta round-trips' );
@@ -1388,6 +1408,65 @@ $GLOBALS['dpt_stub_denied_post_caps'] = array( 20 );
 dpt_test_ok( ! DPT_RB_Elementor::may_edit( new DPT_Stub_Request( array( 'post_id' => 20 ) ) ), 'a post this user may not edit is refused' );
 $GLOBALS['dpt_stub_denied_post_caps'] = array();
 dpt_test_ok( DPT_RB_Elementor::may_edit( new DPT_Stub_Request( array( 'post_id' => 20 ) ) ), 'and one they may is allowed' );
+
+/* ---- a revision id is refused, and refused the same way on both routes ---- */
+
+// update_post_meta() redirects a revision id to its parent and get_post_meta()
+// does not, so a POST naming a revision used to read the revision's layout,
+// merge the caller's changes into it and write the result over the live parent
+// page - while reporting the revision id as the thing it had updated. The
+// permission check cannot catch that: WordPress maps edit_post on a revision
+// to the parent's capability, so everyone who may edit the page passes it.
+$GLOBALS['dpt_stub_posts'][40] = array( 'post_type' => 'revision', 'post_parent' => 20 );
+
+// Written straight into the store, because update_post_meta() would send it to
+// post 20 - which is the redirect this whole section is about.
+$GLOBALS['dpt_stub_post_meta'][40] = array(
+	'_elementor_data' => wp_json_encode(
+		array(
+			array(
+				'id'         => 'w1',
+				'elType'     => 'widget',
+				'widgetType' => 'heading',
+				'settings'   => array( 'title' => 'The title this revision was taken with' ),
+			),
+		)
+	),
+);
+
+$live_before = get_post_meta( 20, '_elementor_data', true );
+update_post_meta( 20, '_elementor_css', 'body{}' );
+$GLOBALS['dpt_stub_elementor_cache_cleared'] = 0;
+
+$revision_read = DPT_RB_Elementor::get_tree( new DPT_Stub_Request( array( 'post_id' => 40 ) ) );
+dpt_test_ok( is_wp_error( $revision_read ), 'a GET naming a revision is refused' );
+dpt_test_eq( is_wp_error( $revision_read ) ? $revision_read->get_error_code() : '', 'revision_not_supported', 'and named as the reason it is' );
+
+$revision_write = DPT_RB_Elementor::update( new DPT_Stub_Request( array(
+	'post_id' => 40,
+	'updates' => array(
+		array( 'widget_id' => 'w1', 'settings' => array( 'title' => 'Republished by accident' ) ),
+	),
+) ) );
+dpt_test_ok( is_wp_error( $revision_write ), 'and so is a POST naming the same revision' );
+dpt_test_eq(
+	is_wp_error( $revision_write ) ? $revision_write->get_error_code() : '',
+	is_wp_error( $revision_read ) ? $revision_read->get_error_code() : '',
+	'with the answer the GET gave - the two routes cannot disagree about a revision'
+);
+
+$live_after = get_post_meta( 20, '_elementor_data', true );
+dpt_test_eq( $live_after, $live_before, 'the live page keeps the layout it had' );
+dpt_test_ok( false === strpos( $live_after, 'Republished by accident' ), 'nothing the caller sent reached it' );
+dpt_test_ok( false === strpos( $live_after, 'The title this revision was taken with' ), 'and the revision was not republished over it either' );
+dpt_test_eq( get_post_meta( 20, '_elementor_css', true ), 'body{}', 'its rendered CSS still describes it and is not deleted' );
+dpt_test_eq( $GLOBALS['dpt_stub_elementor_cache_cleared'], 0, 'and Elementor is not told to forget a change that never happened' );
+
+// An orphaned revision - one whose parent has already gone - is refused on the
+// same terms, with no parent id to offer and no notice for the missing one.
+$GLOBALS['dpt_stub_posts'][41] = array( 'post_type' => 'revision', 'post_parent' => 0 );
+$orphan_read = DPT_RB_Elementor::get_tree( new DPT_Stub_Request( array( 'post_id' => 41 ) ) );
+dpt_test_eq( is_wp_error( $orphan_read ) ? $orphan_read->get_error_code() : '', 'revision_not_supported', 'an orphaned revision is refused the same way' );
 
 $GLOBALS['dpt_stub_rest_routes'] = array();
 DPT_RB_Elementor::register();

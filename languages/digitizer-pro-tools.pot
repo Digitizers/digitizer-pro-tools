@@ -1988,3 +1988,6 @@ msgstr ""
 
 msgid "Twitter card description"
 msgstr ""
+
+msgid "That id is a revision. Elementor layouts are read and written on the post itself, so use the id of the post this revision belongs to."
+msgstr ""

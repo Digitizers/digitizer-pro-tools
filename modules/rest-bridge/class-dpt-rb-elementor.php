@@ -84,14 +84,68 @@ class DPT_RB_Elementor {
 	}
 
 	/**
+	 * The post these routes may work on, or the reason they may not.
+	 *
+	 * Both routes come through here, which is the point: a revision is refused
+	 * once, for reading and for writing alike, and the two can no longer end up
+	 * disagreeing about which post they are touching.
+	 *
+	 * A revision has to be refused rather than quietly redirected, because
+	 * update_post_meta() redirects it *for* us - core opens with "make sure
+	 * meta is added to the post, not a revision" and swaps in the parent id -
+	 * while get_post_meta() does no such thing. So POST /elementor/{revision}
+	 * used to read the revision's own layout, merge the caller's changes into
+	 * it and write the result over the live parent page, reporting the revision
+	 * id as the thing it had updated: someone inspecting or amending an old
+	 * revision republished it without being told. The permission check cannot
+	 * catch it either - WordPress maps edit_post on a revision to the parent's
+	 * capability, so anyone who may edit the page passes.
+	 *
+	 * Refusing is the honest answer of the two available. Resolving to the
+	 * parent instead would mean a GET for a revision handing back the live
+	 * page's layout - not the revision's, since a coherent pair cannot read one
+	 * post and write another - which is a different page than the caller asked
+	 * for, returned without complaint. A 400 naming the parent in its data lets
+	 * the caller decide, and can never republish anything by accident.
+	 *
+	 * @param int $post_id Post id.
+	 * @return WP_Post|WP_Error
+	 */
+	private static function target_post( $post_id ) {
+		$post = get_post( $post_id );
+		if ( ! $post ) {
+			return new WP_Error( 'not_found', __( 'Post not found.', 'digitizer-pro-tools' ), array( 'status' => 404 ) );
+		}
+
+		if ( 'revision' === $post->post_type ) {
+			return new WP_Error(
+				'revision_not_supported',
+				__( 'That id is a revision. Elementor layouts are read and written on the post itself, so use the id of the post this revision belongs to.', 'digitizer-pro-tools' ),
+				array(
+					'status' => 400,
+					// The parent id is handed over as data rather than built
+					// into the sentence: it is what an automation needs in
+					// order to retry against the right post, and it is not
+					// always there to name - an orphaned revision left behind
+					// by a half-finished delete has no parent at all.
+					'parent' => isset( $post->post_parent ) ? (int) $post->post_parent : 0,
+				)
+			);
+		}
+
+		return $post;
+	}
+
+	/**
 	 * The Elementor layout of one post, decoded.
 	 *
 	 * @param int $post_id Post id.
 	 * @return array|WP_Error
 	 */
 	private static function layout( $post_id ) {
-		if ( ! get_post( $post_id ) ) {
-			return new WP_Error( 'not_found', __( 'Post not found.', 'digitizer-pro-tools' ), array( 'status' => 404 ) );
+		$post = self::target_post( $post_id );
+		if ( is_wp_error( $post ) ) {
+			return $post;
 		}
 
 		$data = get_post_meta( $post_id, '_elementor_data', true );

@@ -183,6 +183,20 @@ discovery did not already expose the name:
 - `POST /digitizer/v1/elementor/{post_id}` — `{updates: [{widget_id,
   settings}]}` merge, same response shape (`updates_applied`, `not_found`).
 - Both: `permission_callback` = `current_user_can( 'edit_post', $post_id )`.
+- Both refuse a **revision id** with a 400 `revision_not_supported`, carrying
+  the parent id in the error data. One check, on the path both routes take, so
+  the read and the write can never disagree about which post they mean.
+  `update_post_meta()` redirects a revision id to its parent and
+  `get_post_meta()` does not, so a `POST` naming a revision would otherwise
+  read the revision's layout, merge the caller's changes into it and write the
+  result over the **live parent page**, while reporting the revision id as the
+  object it had updated - someone amending an old revision republishing it
+  without being told. The permission check cannot catch this: WordPress maps
+  `edit_post` on a revision to the parent's capability. Refusing rather than
+  resolving to the parent, because a coherent pair cannot read one post and
+  write another, so resolving would mean a `GET` for a revision quietly
+  handing back the live page's layout instead - a different page than the
+  caller asked for. A 400 that names the parent lets the caller choose.
 - The save is checked before anything is reported. `update_post_meta()`
   returns `false` both for a refused write - a database error, a metadata
   filter that says no - and for a write that asked for the value already
@@ -263,7 +277,11 @@ options, no `user_can_toggle` override.
 4. Elementor: tree build, updates applied/not_found, per-post capability
    denial, cache clear called (the harness stubs `\Elementor\Plugin` so that
    call is really made), a refused write reported as an error with the cache
-   left alone, and an unchanged re-write reported as a success.
+   left alone, and an unchanged re-write reported as a success. A revision id
+   refused identically on both routes, with the parent's stored layout, its
+   rendered CSS and Elementor's cache all untouched - the harness models
+   `update_post_meta()`'s redirect to the parent, so it can reproduce the
+   republish this refusal prevents.
 5. Info: shape, skipped surfaced, rank_math flag.
 6. Stand-down: with the old plugin's function defined (declared in a guarded
    block), init registers nothing and the reason is non-empty.

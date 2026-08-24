@@ -664,5 +664,6 @@ return array (
     'Open Graph image URL' => 'כתובת תמונת Open Graph',
     'Twitter card title' => 'כותרת כרטיס Twitter',
     'Twitter card description' => 'תיאור כרטיס Twitter',
+    'That id is a revision. Elementor layouts are read and written on the post itself, so use the id of the post this revision belongs to.' => 'המזהה הזה שייך לגרסה קודמת. פריסות אלמנטור נקראות ונכתבות על הפוסט עצמו, ולכן יש להשתמש במזהה של הפוסט שהגרסה הזו שייכת לו.',
   ),
 );

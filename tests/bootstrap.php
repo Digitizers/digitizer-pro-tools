@@ -398,15 +398,26 @@ function dpt_stub_meta_delete( &$store, $id, $key ) {
 	return true;
 }
 
-// Post meta, backed by the store above.
+// Post meta, backed by the store above. Only the two writers send a revision
+// id on to its parent, exactly as core's own post-meta functions do - see
+// wp_is_post_revision() below for why the reader deliberately does not.
 function get_post_meta( $id, $key = '', $single = false ) {
 	return dpt_stub_meta_get( $GLOBALS['dpt_stub_post_meta'], $id, $key, $single );
 }
 function update_post_meta( $id, $key, $value ) {
-	return dpt_stub_meta_update( $GLOBALS['dpt_stub_post_meta'], $id, $key, $value );
+	return dpt_stub_meta_update( $GLOBALS['dpt_stub_post_meta'], dpt_stub_meta_target( $id ), $key, $value );
 }
 function delete_post_meta( $id, $key ) {
-	return dpt_stub_meta_delete( $GLOBALS['dpt_stub_post_meta'], $id, $key );
+	return dpt_stub_meta_delete( $GLOBALS['dpt_stub_post_meta'], dpt_stub_meta_target( $id ), $key );
+}
+/**
+ * Which post a write to post meta really lands on. Core opens both
+ * update_post_meta() and delete_post_meta() with "make sure meta is added to
+ * the post, not a revision" and swaps the id for the parent's.
+ */
+function dpt_stub_meta_target( $id ) {
+	$parent = wp_is_post_revision( $id );
+	return $parent ? $parent : $id;
 }
 // Term meta, backed by its own store, the way core keeps posts and terms apart.
 function get_term_meta( $id, $key = '', $single = false ) {
@@ -463,14 +474,48 @@ function get_taxonomy( $name ) {
 	return taxonomy_exists( $name ) ? dpt_stub_rest_object( $name ) : false;
 }
 
-// Posts exist when the test says they do, each one carrying only the post
-// type a REST-field callback would need to decide what to do with it.
+// Posts exist when the test says they do. An entry is either the post type on
+// its own - all a REST-field callback needs to decide what to do with a post -
+// or array( 'post_type' => ..., 'post_parent' => ... ) for a post that hangs
+// off another one. A revision is the only reason this stub needs a parent, and
+// modelling it is what lets a test reach the redirect below.
 $GLOBALS['dpt_stub_posts'] = array();
-function get_post( $id = 0 ) {
+function dpt_stub_post_row( $id ) {
 	$id = (int) $id;
-	return isset( $GLOBALS['dpt_stub_posts'][ $id ] )
-		? (object) array( 'ID' => $id, 'post_type' => $GLOBALS['dpt_stub_posts'][ $id ] )
-		: null;
+	if ( ! isset( $GLOBALS['dpt_stub_posts'][ $id ] ) ) {
+		return null;
+	}
+	$row = $GLOBALS['dpt_stub_posts'][ $id ];
+	if ( ! is_array( $row ) ) {
+		$row = array( 'post_type' => $row );
+	}
+	return array(
+		'ID'          => $id,
+		'post_type'   => isset( $row['post_type'] ) ? $row['post_type'] : 'post',
+		'post_parent' => isset( $row['post_parent'] ) ? (int) $row['post_parent'] : 0,
+	);
+}
+function get_post( $id = 0 ) {
+	$row = dpt_stub_post_row( $id );
+	return null === $row ? null : (object) $row;
+}
+/**
+ * Core's answer to "is this id a revision": the id of the post it revises, or
+ * false. update_post_meta() and delete_post_meta() ask it before they touch
+ * anything and quietly work on the parent when it says yes, while
+ * get_post_meta() does not and reads the revision's own row.
+ *
+ * That asymmetry is not a detail worth skipping in a stub: it is the whole
+ * mechanism by which a request naming a revision could read one post and write
+ * another. A harness that treated a revision as an ordinary post would report
+ * a clean run over exactly that bug.
+ */
+function wp_is_post_revision( $id ) {
+	$row = dpt_stub_post_row( $id );
+	if ( null === $row || 'revision' !== $row['post_type'] || ! $row['post_parent'] ) {
+		return false;
+	}
+	return $row['post_parent'];
 }
 
 // A counter rather than a boolean, so a test can tell "cleared once" from
