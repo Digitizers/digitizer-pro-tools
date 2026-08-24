@@ -2749,6 +2749,18 @@ dpt_test_ok( ! call_user_func( $auth, true, 'rank_math_title', 30 ), 'a post thi
 $GLOBALS['dpt_stub_denied_post_caps'] = array();
 dpt_test_ok( call_user_func( $auth, true, 'rank_math_title', 30 ), 'and one they may edit is allowed' );
 
+// WordPress calls this as an auth_{$type}_meta_{$key} filter, not a
+// standalone check: $allowed can already be false by the time it runs, when
+// the site has its own auth_post_meta_rank_math_* filter hooked at the same
+// or an earlier priority. A callback that returns current_user_can() alone
+// discards that and re-grants what the site explicitly denied to anyone who
+// may edit the post - the denial must survive regardless.
+dpt_test_ok( ! call_user_func( $auth, false, 'rank_math_title', 30 ), 'a denial already in $allowed survives even when the user may edit the post' );
+dpt_test_ok( call_user_func( $auth, true, 'rank_math_title', 30 ), 'while with no prior denial an editable post is still allowed' );
+$GLOBALS['dpt_stub_denied_post_caps'] = array( 30 );
+dpt_test_ok( ! call_user_func( $auth, true, 'rank_math_title', 30 ), 'and with no prior denial a post this user may not edit is still refused' );
+$GLOBALS['dpt_stub_denied_post_caps'] = array();
+
 /* ---- the info endpoint tells an agent what this site exposes ---- */
 
 $info = DPT_RB_Info::payload();

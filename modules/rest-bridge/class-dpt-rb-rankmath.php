@@ -169,12 +169,25 @@ class DPT_RB_Rankmath {
 	 * reopen the same hole for SEO metadata: any author-level account could
 	 * rewrite another author's page.
 	 *
+	 * This runs as an auth_{$object_type}_meta_{$meta_key} filter, not a
+	 * standalone check: map_meta_cap() seeds $allowed from is_protected_meta()
+	 * and then hands it through every callback hooked to that key in turn, so
+	 * $allowed can already be false by the time this one runs - a site's own
+	 * auth_post_meta_rank_math_* filter, added at the same or an earlier
+	 * priority, having refused the key outright. None of the rank_math_*
+	 * keys start with an underscore, so is_protected_meta() never seeds that
+	 * refusal itself; a site's own filter is the only way one lands here.
+	 * Returning current_user_can() on its own discards that refusal and
+	 * re-grants it to anyone who may edit the post, so the incoming value is
+	 * ANDed in instead: a denial already present survives regardless of what
+	 * this check would otherwise decide.
+	 *
 	 * @param bool   $allowed  Whether the value may be seen or edited so far.
 	 * @param string $meta_key The meta key being checked.
 	 * @param int    $post_id  The post this meta value belongs to.
 	 * @return bool
 	 */
 	public static function may_edit_meta( $allowed, $meta_key, $post_id ) {
-		return current_user_can( 'edit_post', (int) $post_id );
+		return $allowed && current_user_can( 'edit_post', (int) $post_id );
 	}
 }
