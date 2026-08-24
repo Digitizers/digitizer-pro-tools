@@ -1902,10 +1902,10 @@ msgstr ""
 msgid "Turns the block editor off for posts and pages, so a site built in Elementor has one way to edit content rather than two. Existing block content is kept and is shown as blocks in the classic editor."
 msgstr ""
 
-msgid "The standalone Update Policy plugin is active, so this module is standing down - its settings live under Settings > Update Policy."
+msgid "The standalone Digitizer Update Hold plugin is active, so this module is standing down - its settings live under Settings > Digitizer Update Hold."
 msgstr ""
 
-msgid "The standalone Update Policy plugin is active, so this module is standing down - its settings live under Network Admin > Settings > Update Policy."
+msgid "The standalone Digitizer Update Hold plugin is active, so this module is standing down - its settings live under Network Admin > Settings > Digitizer Update Hold."
 msgstr ""
 
 msgid "REST Bridge"

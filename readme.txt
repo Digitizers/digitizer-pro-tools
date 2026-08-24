@@ -45,7 +45,7 @@ Decides when this site takes a major WordPress release:
 * The window is counted from the day this site first saw the release, not from the day it was published: nothing is asked of any external service, and a site checks for updates twice a day
 * Nothing is ever installed automatically. When the window passes the release is simply offered again, and updating stays a deliberate act
 * On a multisite network the policy is the main site's, since the WordPress it governs belongs to the network
-* Also available as a standalone plugin, Update Policy, for sites that do not run Digitizer Pro Tools. When that plugin is active this module stands down and says so
+* Also available as a standalone plugin, Digitizer Update Hold, for sites that do not run Digitizer Pro Tools. When that plugin is active this module stands down and says so
 
 = Module: REST Bridge =
 

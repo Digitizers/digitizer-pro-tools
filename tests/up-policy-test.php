@@ -296,18 +296,27 @@ dpt_test_ok( dpt_stub_has_filter( 'site_transient_update_core' ), 'so it registe
 
 // The standalone's presence is its core class being loaded. Declared inside a
 // block so PHP does not hoist it above the assertions before this line.
-if ( ! class_exists( 'Update_Policy_Core' ) ) {
-	class Update_Policy_Core {}
+if ( ! class_exists( 'Digitizer_Update_Hold_Core' ) ) {
+	class Digitizer_Update_Hold_Core {}
 }
 $GLOBALS['dpt_stub_filters'] = array();
 dpt_test_ok( DPT_Update_Policy_Module::standalone_active(), 'with the standalone plugin loaded the module sees it' );
 $module->init();
 dpt_test_ok( ! dpt_stub_has_filter( 'site_transient_update_core' ), 'and registers nothing - one filter on the transient, not two' );
 dpt_test_ok( '' !== $module->standing_down_reason(), 'while telling the Modules screen why' );
-dpt_test_ok( false !== strpos( $module->standing_down_reason(), 'Settings > Update Policy' ), 'pointing a single site at Settings' );
+
+// The standalone was renamed after a WordPress.org review. A site that
+// installed the earlier build still carries the old class, and must keep
+// standing down - otherwise the rename quietly puts two filters back on one
+// transient for exactly the people who adopted it first.
+if ( ! class_exists( 'Update_Policy_Core' ) ) {
+	class Update_Policy_Core {}
+}
+dpt_test_ok( DPT_Update_Policy_Module::standalone_active(), 'the pre-rename class still counts as the standalone being present' );
+dpt_test_ok( false !== strpos( $module->standing_down_reason(), 'Settings > Digitizer Update Hold' ), 'pointing a single site at Settings' );
 dpt_test_ok( false === strpos( $module->standing_down_reason(), 'Network Admin' ), 'and not at a network screen it does not have' );
 $GLOBALS['dpt_stub_multisite'] = true;
-dpt_test_ok( false !== strpos( $module->standing_down_reason(), 'Network Admin > Settings > Update Policy' ), 'and a network at Network Admin, where the standalone actually keeps its screen' );
+dpt_test_ok( false !== strpos( $module->standing_down_reason(), 'Network Admin > Settings > Digitizer Update Hold' ), 'and a network at Network Admin, where the standalone actually keeps its screen' );
 $GLOBALS['dpt_stub_multisite'] = false;
 
 exit( dpt_test_summary() > 0 ? 1 : 0 );
