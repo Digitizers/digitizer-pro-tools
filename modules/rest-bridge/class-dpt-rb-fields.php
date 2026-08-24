@@ -267,7 +267,6 @@ class DPT_RB_Fields {
 	 *             this was not zero, or the report is a lie.
 	 */
 	private static function register_one( $descriptor, $name ) {
-		$base  = DPT_RB_Schema::for_descriptor( $descriptor );
 		$count = 0;
 
 		foreach ( $descriptor['targets'] as $target ) {
@@ -275,7 +274,10 @@ class DPT_RB_Fields {
 				continue;
 			}
 
-			$schema = $base;
+			// Built per target rather than once for the descriptor: the read
+			// context is a per-target answer, because a legacy name is only
+			// public on the target the replaced plugin published it on.
+			$schema = DPT_RB_Schema::for_descriptor( $descriptor, $target );
 			/**
 			 * Filters the REST contexts one field may be read in.
 			 *

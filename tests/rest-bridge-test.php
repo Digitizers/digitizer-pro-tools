@@ -346,16 +346,35 @@ dpt_test_ok( ! DPT_RB_Definitions::known_type( 'url' ), 'while url stays out of 
 // internal one from a public one. The safe default is the one that cannot
 // hand a client's data to an anonymous GET /wp/v2/posts.
 $discovered_note = array( 'meta_key' => 'internal_note', 'title' => 'Note', 'type' => 'text', 'fields' => array(), 'object' => 'post' );
-dpt_test_eq( DPT_RB_Schema::for_descriptor( $discovered_note )['context'], array( 'edit' ), 'a discovered field is readable only in the edit context' );
+dpt_test_eq( DPT_RB_Schema::for_descriptor( $discovered_note, 'post' )['context'], array( 'edit' ), 'a discovered field is readable only in the edit context' );
 
 // The names the replaced plugin already published stay public, or upgrading
 // to this module would break a theme reading them anonymously.
 $legacy_reading = array( 'meta_key' => 'reading_time', 'title' => 'Reading time', 'type' => 'text', 'fields' => array(), 'object' => 'post' );
 $legacy_faq     = array( 'meta_key' => 'qna', 'title' => 'FAQ', 'type' => 'repeater', 'fields' => array(), 'object' => 'post' );
 $legacy_avatar  = array( 'meta_key' => 'author_image', 'title' => 'Avatar', 'type' => 'url', 'fields' => array(), 'object' => 'taxonomy' );
-dpt_test_eq( DPT_RB_Schema::for_descriptor( $legacy_reading )['context'], array( 'view', 'edit' ), 'a legacy field keeps its public read' );
-dpt_test_eq( DPT_RB_Schema::for_descriptor( $legacy_faq )['context'], array( 'view', 'edit' ), 'so does the FAQ, whichever name it is read under' );
-dpt_test_eq( DPT_RB_Schema::for_descriptor( $legacy_avatar )['context'], array( 'view', 'edit' ), 'and the author fields on their taxonomy' );
+dpt_test_eq( DPT_RB_Schema::for_descriptor( $legacy_reading, 'post' )['context'], array( 'view', 'edit' ), 'a legacy field keeps its public read' );
+dpt_test_eq( DPT_RB_Schema::for_descriptor( $legacy_faq, 'post' )['context'], array( 'view', 'edit' ), 'so does the FAQ, whichever name it is read under' );
+dpt_test_eq( DPT_RB_Schema::for_descriptor( $legacy_avatar, 'authors' )['context'], array( 'view', 'edit' ), 'and the author fields on their taxonomy' );
+
+// But only on the target the old plugin published them on. It put
+// reading_time on post and the author fields on the authors taxonomy and
+// nowhere else, so a site that happens to name its own field the same thing
+// somewhere else is not thereby publishing it: the exemption is a statement
+// about what was already public, not a licence for the name anywhere.
+$reading_elsewhere = array( 'meta_key' => 'reading_time', 'title' => 'Reading time', 'type' => 'text', 'fields' => array(), 'object' => 'post' );
+$bio_elsewhere     = array( 'meta_key' => 'author_description', 'title' => 'Bio', 'type' => 'wysiwyg', 'fields' => array(), 'object' => 'taxonomy' );
+$faq_elsewhere     = array( 'meta_key' => 'qna', 'title' => 'FAQ', 'type' => 'repeater', 'fields' => array(), 'object' => 'post' );
+dpt_test_eq( DPT_RB_Schema::for_descriptor( $reading_elsewhere, 'client_brief' )['context'], array( 'edit' ), 'a legacy key on another post type is not published by the name alone' );
+dpt_test_eq( DPT_RB_Schema::for_descriptor( $bio_elsewhere, 'client' )['context'], array( 'edit' ), 'nor on another taxonomy' );
+dpt_test_eq( DPT_RB_Schema::for_descriptor( $faq_elsewhere, 'page' )['context'], array( 'edit' ), 'nor a FAQ on a post type the old plugin never touched' );
+dpt_test_eq( DPT_RB_Schema::for_descriptor( $reading_elsewhere, 'post' )['context'], array( 'view', 'edit' ), 'while the same key on its original target keeps its public read' );
+dpt_test_eq( DPT_RB_Schema::for_descriptor( $bio_elsewhere, 'authors' )['context'], array( 'view', 'edit' ), 'and so does the author bio on the authors taxonomy' );
+
+// A caller with no target to name gets the private answer: there is no
+// target for the exemption to be true of, and the safe default is the one
+// that cannot publish a site's data by accident.
+dpt_test_eq( DPT_RB_Schema::for_descriptor( $legacy_reading )['context'], array( 'edit' ), 'a schema asked for with no target at all is private' );
 
 // Reading. JetEngine has stored repeaters as arrays, as JSON and as PHP
 // serialization over the years; all three have to come back as an array.
@@ -680,6 +699,47 @@ DPT_RB_Fields::register();
 dpt_test_eq( $GLOBALS['dpt_stub_rest_fields']['post']['internal_note']['schema']['context'], array( 'view', 'edit' ), 'a site can opt one discovered field back into public read' );
 dpt_test_eq( $GLOBALS['dpt_stub_rest_fields']['post']['qna']['schema']['context'], array( 'view', 'edit' ), 'without disturbing the fields it did not name' );
 remove_filter( 'dpt_rb_field_context' );
+
+/* ---- a legacy name is public on its own target and nowhere else ---- */
+
+// The five legacy keys keep view context because the replaced plugin already
+// published them - on post and on the authors taxonomy, and nowhere else. A
+// site that defines its own reading_time on a private custom post type, or
+// its own author_description on some unrelated taxonomy, was never publishing
+// those to anonymous callers, and a name collision is not a reason to start.
+$saved_post_types                    = $GLOBALS['dpt_stub_rest_post_types'];
+$saved_taxonomies                    = $GLOBALS['dpt_stub_rest_taxonomies'];
+$GLOBALS['dpt_stub_rest_post_types'] = array( 'post', 'page', 'client_brief' );
+$GLOBALS['dpt_stub_rest_taxonomies'] = array( 'category', 'post_tag', 'authors', 'client' );
+$GLOBALS['dpt_stub_options']         = array(
+	'jet_engine_meta_boxes' => array(
+		array(
+			'id'          => 'brief-extras',
+			'args'        => array( 'object_type' => 'post', 'allowed_post_type' => array( 'client_brief', 'post' ) ),
+			'meta_fields' => array(
+				array( 'name' => 'reading_time', 'title' => 'Reading time', 'object_type' => 'field', 'type' => 'text' ),
+			),
+		),
+		array(
+			'id'          => 'client-extras',
+			'args'        => array( 'object_type' => 'taxonomy', 'allowed_tax' => array( 'client', 'authors' ) ),
+			'meta_fields' => array(
+				array( 'name' => 'author_description', 'title' => 'Description', 'object_type' => 'field', 'type' => 'wysiwyg' ),
+			),
+		),
+	),
+);
+DPT_RB_Definitions::reset();
+$GLOBALS['dpt_stub_rest_fields'] = array();
+DPT_RB_Fields::register();
+
+dpt_test_eq( $GLOBALS['dpt_stub_rest_fields']['client_brief']['reading_time']['schema']['context'], array( 'edit' ), 'a legacy key on a post type of the site\'s own is not readable anonymously' );
+dpt_test_eq( $GLOBALS['dpt_stub_rest_fields']['post']['reading_time']['schema']['context'], array( 'view', 'edit' ), 'while the same key on post - where it was published - still is' );
+dpt_test_eq( $GLOBALS['dpt_stub_rest_fields']['client']['author_description']['schema']['context'], array( 'edit' ), 'and a legacy key on an unrelated taxonomy stays private' );
+dpt_test_eq( $GLOBALS['dpt_stub_rest_fields']['authors']['author_description']['schema']['context'], array( 'view', 'edit' ), 'while the authors taxonomy keeps the read it always had' );
+
+$GLOBALS['dpt_stub_rest_post_types'] = $saved_post_types;
+$GLOBALS['dpt_stub_rest_taxonomies'] = $saved_taxonomies;
 
 /* ---- jet_qna is a name on posts, and only on posts ---- */
 

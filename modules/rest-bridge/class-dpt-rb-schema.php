@@ -18,9 +18,10 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 class DPT_RB_Schema {
 
 	/**
-	 * The object/meta-key pairs the replaced plugin already published to
-	 * anonymous readers, and which are public display content by nature: a
-	 * reading time, an author's bio and links, a published FAQ.
+	 * The object/target/meta-key triples the replaced plugin already
+	 * published to anonymous readers, and which are public display content
+	 * by nature: a reading time on posts, an author's bio and links on the
+	 * authors taxonomy, a published FAQ on posts.
 	 *
 	 * Matched by meta key rather than by which descriptor produced them,
 	 * because it is the meta key that was public before. A site whose own
@@ -28,26 +29,39 @@ class DPT_RB_Schema {
 	 * place in the API, and it would be a regression for everything already
 	 * reading it if that swap made it private.
 	 *
+	 * The target is part of the match, not just the object kind. The old
+	 * plugin published reading_time on `post` and the author fields on
+	 * `authors`, and nowhere else; a site that happens to define its own
+	 * reading_time on a private custom post type, or author_description on
+	 * an unrelated taxonomy, never had that field on an anonymous GET and
+	 * must not gain one from a name collision.
+	 *
 	 * @var array
 	 */
 	private static $public_legacy = array(
-		'post/reading_time',
-		'post/qna',
-		'taxonomy/author_description',
-		'taxonomy/author_image',
-		'taxonomy/linkedin',
+		'post/post/reading_time',
+		'post/post/qna',
+		'taxonomy/authors/author_description',
+		'taxonomy/authors/author_image',
+		'taxonomy/authors/linkedin',
 	);
 
 	/**
-	 * The schema for one descriptor.
+	 * The schema for one descriptor, as it lands on one target.
 	 *
-	 * @param array $descriptor Field descriptor from DPT_RB_Definitions.
+	 * The target is asked for because the read context depends on it: the
+	 * same meta key is public on the one target the replaced plugin
+	 * published it on and private everywhere else. A caller with no target
+	 * in hand gets the private answer, which is the safe one.
+	 *
+	 * @param array  $descriptor Field descriptor from DPT_RB_Definitions.
+	 * @param string $target     Post type or taxonomy it is being registered on.
 	 * @return array
 	 */
-	public static function for_descriptor( $descriptor ) {
+	public static function for_descriptor( $descriptor, $target = '' ) {
 		$schema = array(
 			'description' => $descriptor['title'],
-			'context'     => self::context( $descriptor ),
+			'context'     => self::context( $descriptor, $target ),
 		);
 
 		if ( 'repeater' === $descriptor['type'] ) {
@@ -79,16 +93,19 @@ class DPT_RB_Schema {
 	 * discovered field is readable with context=edit, which any
 	 * authenticated consumer asks for, and is not handed to anonymous
 	 * callers of /wp/v2/posts. The legacy names above are the exception:
-	 * they were already public before this module existed.
+	 * they were already public before this module existed - and only on the
+	 * targets they were public on, which is why the target is part of the
+	 * question rather than the object kind on its own.
 	 *
-	 * @param array $descriptor Field descriptor.
+	 * @param array  $descriptor Field descriptor.
+	 * @param string $target     Post type or taxonomy it is being registered on.
 	 * @return array
 	 */
-	private static function context( $descriptor ) {
+	private static function context( $descriptor, $target ) {
 		$object = isset( $descriptor['object'] ) ? $descriptor['object'] : '';
-		$pair   = $object . '/' . $descriptor['meta_key'];
+		$triple = $object . '/' . $target . '/' . $descriptor['meta_key'];
 
-		return in_array( $pair, self::$public_legacy, true )
+		return in_array( $triple, self::$public_legacy, true )
 			? array( 'view', 'edit' )
 			: array( 'edit' );
 	}

@@ -105,11 +105,20 @@ exposes every field a site has, so the safe default is the one that cannot
 publish a client's data by accident. Authenticated consumers read them with
 `context=edit`.
 
-The compatibility fields keep `view` and `edit`: `reading_time`,
-`author_description`, `author_image`, `linkedin`, and the `qna`/`jet_qna` FAQ.
-The replaced plugin already published these, and each is public display content
-by nature, so keeping them public is what stops this from being a regression
-for anything already running.
+The compatibility fields keep `view` and `edit`, **on the target the replaced
+plugin published them on and nowhere else**: `reading_time` and the
+`qna`/`jet_qna` FAQ on `post`, `author_description`, `author_image` and
+`linkedin` on the `authors` taxonomy. The replaced plugin already published
+these, and each is public display content by nature, so keeping them public is
+what stops this from being a regression for anything already running.
+
+The match is on object *and target* and meta key, not on the object kind
+alone: `object` is the broad kind (`post`, `taxonomy`) that every post-type
+meta box carries, so matching on it would publish a site's own `reading_time`
+on a private custom post type, or its own `author_description` on an unrelated
+taxonomy, to anonymous `GET` requests. Those were never public, and a name
+collision is not a reason to make them so. A schema asked for with no target
+gets `edit` only, the safe answer.
 
 A site can opt a discovered field back into public read with the
 `dpt_rb_field_context` filter, which receives the context array, the descriptor
