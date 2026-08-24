@@ -200,4 +200,66 @@ dpt_test_ok( ! isset( $by_key['weird_type'] ), 'an array type is treated as not 
 dpt_test_eq( $by_key['weird_sub']['fields'][0]['title'], 'sub_bad_title', 'a sub-field with an array title falls back to its own name' );
 dpt_test_ok( ! isset( $by_key['weird_kind'] ), 'a field row whose object_type is an array does not raise a notice, and is skipped' );
 
+require_once dirname( __DIR__ ) . '/modules/rest-bridge/class-dpt-rb-schema.php';
+
+/* ---- one field's type decides its schema and its sanitizer ---- */
+
+$text  = array( 'meta_key' => 'reading_time', 'title' => 'Reading time', 'type' => 'text', 'fields' => array() );
+$rich  = array( 'meta_key' => 'bio', 'title' => 'Bio', 'type' => 'wysiwyg', 'fields' => array() );
+$num   = array( 'meta_key' => 'weight', 'title' => 'Weight', 'type' => 'number', 'fields' => array() );
+$media = array( 'meta_key' => 'photo', 'title' => 'Photo', 'type' => 'media', 'fields' => array() );
+$sw    = array( 'meta_key' => 'featured', 'title' => 'Featured', 'type' => 'switcher', 'fields' => array() );
+$rep   = array(
+	'meta_key' => 'qna',
+	'title'    => 'FAQ',
+	'type'     => 'repeater',
+	'fields'   => array(
+		array( 'meta_key' => 'question', 'title' => 'Question', 'type' => 'text', 'fields' => array() ),
+		array( 'meta_key' => 'answer', 'title' => 'Answer', 'type' => 'wysiwyg', 'fields' => array() ),
+	),
+);
+
+$schema = DPT_RB_Schema::for_descriptor( $text );
+dpt_test_eq( $schema['type'], 'string', 'a text field is a string' );
+dpt_test_eq( DPT_RB_Schema::for_descriptor( $num )['type'], 'number', 'a number is a number' );
+dpt_test_eq( DPT_RB_Schema::for_descriptor( $media )['type'], 'integer', 'media is an attachment id' );
+
+$rs = DPT_RB_Schema::for_descriptor( $rep );
+dpt_test_eq( $rs['type'], 'array', 'a repeater is an array' );
+dpt_test_eq( $rs['items']['type'], 'object', 'of objects' );
+dpt_test_ok( isset( $rs['items']['properties']['question'] ), 'whose properties are the sub-fields' );
+dpt_test_eq( $rs['items']['properties']['answer']['type'], 'string', 'each typed from its own definition' );
+
+// Sanitizing. Markup survives a wysiwyg and does not survive a text field:
+// that difference is the whole reason the type is carried this far.
+dpt_test_eq( DPT_RB_Schema::sanitize( $text, '<b>ten</b> minutes' ), 'ten minutes', 'text is stripped' );
+dpt_test_eq( DPT_RB_Schema::sanitize( $rich, '<b>hello</b>' ), '<b>hello</b>', 'a wysiwyg keeps its markup' );
+dpt_test_eq( DPT_RB_Schema::sanitize( $media, '-42' ), 42, 'media is a positive integer' );
+dpt_test_eq( DPT_RB_Schema::sanitize( $sw, true ), 'true', 'a switcher stores a string' );
+dpt_test_eq( DPT_RB_Schema::sanitize( $sw, false ), 'false', 'either way' );
+dpt_test_eq( DPT_RB_Schema::sanitize( $text, '0' ), '0', 'a value of "0" is content, not emptiness' );
+
+// A repeater accepts a list of objects, keeps only the keys it knows, and
+// says no to anything else.
+$clean = DPT_RB_Schema::sanitize( $rep, array(
+	array( 'question' => ' Why? ', 'answer' => '<b>Because</b>', 'sneaky' => 'x' ),
+) );
+dpt_test_eq( $clean[0]['question'], 'Why?', 'sub-values are sanitized by their own type' );
+dpt_test_eq( $clean[0]['answer'], '<b>Because</b>', 'including the rich one' );
+dpt_test_ok( ! isset( $clean[0]['sneaky'] ), 'a key the definition does not have is dropped' );
+dpt_test_eq( DPT_RB_Schema::sanitize( $rep, array() ), array(), 'an empty list stays empty - that is how a field is cleared' );
+dpt_test_ok( is_wp_error( DPT_RB_Schema::sanitize( $rep, 'nope' ) ), 'a scalar is not a repeater' );
+dpt_test_ok( is_wp_error( DPT_RB_Schema::sanitize( $rep, array( 'nope' ) ) ), 'nor is a list of scalars' );
+dpt_test_ok( is_wp_error( DPT_RB_Schema::sanitize( $rep, false ) ), 'and false is not an empty list' );
+
+// Reading. JetEngine has stored repeaters as arrays, as JSON and as PHP
+// serialization over the years; all three have to come back as an array.
+dpt_test_eq( DPT_RB_Schema::normalize_read( $rep, array( array( 'question' => 'q', 'answer' => 'a' ) ) )[0]['question'], 'q', 'an array reads back' );
+dpt_test_eq( DPT_RB_Schema::normalize_read( $rep, '[{"question":"q","answer":"a"}]' )[0]['question'], 'q', 'so does JSON' );
+dpt_test_eq( DPT_RB_Schema::normalize_read( $rep, serialize( array( array( 'question' => 'q', 'answer' => 'a' ) ) ) )[0]['question'], 'q', 'so does serialized data' );
+dpt_test_eq( DPT_RB_Schema::normalize_read( $rep, 'garbage' ), array(), 'and garbage reads as empty' );
+dpt_test_eq( DPT_RB_Schema::normalize_read( $rep, '' ), array(), 'as does nothing at all' );
+dpt_test_eq( DPT_RB_Schema::normalize_read( $text, null ), '', 'a scalar field with nothing stored reads as an empty string' );
+dpt_test_eq( DPT_RB_Schema::normalize_read( $text, '0' ), '0', 'and "0" reads back as "0"' );
+
 exit( dpt_test_summary() > 0 ? 1 : 0 );
