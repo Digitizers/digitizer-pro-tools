@@ -257,6 +257,20 @@ On `rest_api_init`:
   `WP_Error` (400) on shape violations. Capability enforcement is core's:
   `/wp/v2/*` update requests already require `edit_post`/`manage_terms` on the
   target before field callbacks run.
+- The write itself goes through `wp_slash()`. `update_metadata()` unslashes
+  whatever it is handed before storing it, so a sanitized value passed
+  straight in reached the database with its literal backslashes removed - a
+  Windows path, a regular expression, an unknown repeater column carrying
+  either - and the endpoint answered 200 over a value it had quietly changed,
+  because a successful write returns before the read-back comparison ever
+  runs. Same rule as the unmapped repeater column and the media member: a
+  value this module cannot shape is not a value it may destroy, and a write
+  that changed the caller's data is not a success. The read-back comparison
+  keeps comparing storage against the *unslashed* `$clean`, which is the side
+  storage now holds, so the two still describe the same value - and a repeat
+  write of a backslashed value, which used to be reported as a 500 by that
+  same mismatch, reads as the success it is. `DPT_RB_Elementor` already
+  slashed its JSON for this reason.
 
 **Compatibility layer**, registered after discovery, each item only when
 discovery did not already expose the name:
@@ -395,7 +409,14 @@ options, no `user_can_toggle` override.
    against the schema `for_descriptor()` advertised.
 3. Fields: registration targets (REST-enabled only), read normalization
    (array / JSON string / serialized string / garbage), alias registered only
-   when missing, compat set skips discovered names. `linkedin` and
+   when missing, compat set skips discovered names. A value carrying literal
+   backslashes round-trips through a write and a read unchanged - at the top
+   level, on both meta stores, and inside a repeater item's unmapped column -
+   and writing the same such value twice is still a success. The harness's
+   `update_post_meta`/`update_term_meta` stubs unslash what they are handed
+   the way `update_metadata()` does, and `wp_slash`/`wp_unslash` are a real
+   recursive pair, so that assertion fails when the write is not slashed
+   rather than passing either way. `linkedin` and
    `author_image` discovered as JetEngine **text** fields on `authors` still
    refuse `javascript:alert(1)` through the registered update callback - in
    the obfuscated spelling as well as the plain one - while a real URL round

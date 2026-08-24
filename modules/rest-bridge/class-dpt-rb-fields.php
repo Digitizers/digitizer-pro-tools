@@ -504,7 +504,19 @@ class DPT_RB_Fields {
 			);
 		}
 
-		$updated = $is_tax ? update_term_meta( $id, $key, $clean ) : update_post_meta( $id, $key, $clean );
+		// Slashed, because update_metadata() unslashes whatever it is handed
+		// before it stores it. Handed $clean directly, a value with a literal
+		// backslash in it - a Windows path, a regular expression, an unknown
+		// repeater column carrying either - reached storage with the
+		// backslashes stripped out, and because a successful write returns
+		// before the comparison below, the endpoint reported 200 over a value
+		// it had quietly changed. A value this module cannot shape is not a
+		// value it may destroy. The comparison below still reads storage
+		// against $clean rather than against the slashed copy: storage holds
+		// the unslashed side of that pair, so the two go on meaning the same
+		// value.
+		$slashed = wp_slash( $clean );
+		$updated = $is_tax ? update_term_meta( $id, $key, $slashed ) : update_post_meta( $id, $key, $slashed );
 		if ( false === $updated ) {
 			// update_*_meta() returns false both for a refusal and for a
 			// write that landed the value already stored; telling those

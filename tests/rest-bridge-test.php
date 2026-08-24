@@ -16,6 +16,21 @@ $GLOBALS['dpt_stub_meta_write_fails'] = array( 'stubborn' );
 dpt_test_ok( ! update_post_meta( 7, 'stubborn', 'x' ), 'a write the site refuses reports failure' );
 $GLOBALS['dpt_stub_meta_write_fails'] = array();
 
+// The other thing update_metadata() does to every value it is handed, which
+// a stub that stored what it was given would hide entirely: it unslashes it.
+// A caller that does not slash loses its literal backslashes, so an
+// assertion about a Windows path or a regular expression means nothing
+// unless the stub loses them too.
+$stub_path = 'C:\\Users\\hero.png';
+dpt_test_eq( wp_unslash( wp_slash( $stub_path ) ), $stub_path, 'wp_slash() and wp_unslash() are inverses on a literal backslash' );
+dpt_test_eq( wp_unslash( wp_slash( array( array( 'note' => $stub_path ) ) ) ), array( array( 'note' => $stub_path ) ), 'all the way down a nested array, where a repeater keeps its rows' );
+dpt_test_ok( 42 === wp_unslash( 42 ), 'while a value that is not a string comes back as itself, not as a string of itself' );
+update_post_meta( 7, 'path', $stub_path );
+dpt_test_eq( get_post_meta( 7, 'path', true ), 'C:Usershero.png', 'an unslashed write reaches storage stripped, exactly as update_metadata() leaves it' );
+update_post_meta( 7, 'path', wp_slash( $stub_path ) );
+dpt_test_eq( get_post_meta( 7, 'path', true ), $stub_path, 'and a slashed one stores the value that was actually asked for' );
+delete_post_meta( 7, 'path' );
+
 // The one asymmetry in core's post-meta functions that a stub could not leave
 // out without hiding a bug: both writers send a revision id on to the post it
 // revises, and the reader does not. Checked here, before anything depends on
@@ -1325,6 +1340,47 @@ $after_trip = DPT_RB_Fields::read( $qna, array( 'id' => 12 ) );
 dpt_test_eq( $after_trip[0]['question'], 'Why not?', 'the change landed' );
 dpt_test_eq( $after_trip[0]['icon'], 'fa-star', 'and the unmapped column survived the round trip' );
 dpt_test_eq( $after_trip[1]['icon'], 'fa-bolt', 'on every row, not only the one that changed' );
+
+/* ---- a literal backslash is not the module's to remove ---- */
+
+// update_metadata() unslashes what it is handed, so a value written straight
+// through arrives at the database with its backslashes gone: a Windows path,
+// a regular expression, an ID selector in a stylesheet snippet. Worse than
+// the loss is that the endpoint used to answer 200 - a successful write
+// short-circuits before the read-back comparison, so nothing noticed that
+// what was stored was not what was sent. The slashing is checked on both
+// meta stores and at both depths, because the repeater path hands a whole
+// nested array to the same call.
+$backslash_path  = 'C:\\Users\\brand\\hero.png';
+$backslash_regex = '/^\\d{4}-\\d{2}$/';
+
+$notes = array( 'meta_key' => 'notes', 'title' => 'Editor notes', 'type' => 'text', 'fields' => array(), 'object' => 'post' );
+dpt_test_ok( true === DPT_RB_Fields::write( $notes, $backslash_path, (object) array( 'ID' => 14 ) ), 'a value carrying literal backslashes is written' );
+dpt_test_eq( DPT_RB_Fields::read( $notes, array( 'id' => 14 ) ), $backslash_path, 'and storage holds every backslash that was sent, not the value core stripped them out of' );
+// The other half of the fix: the read-back comparison compares storage
+// against $clean, and storage is the unslashed side of the pair, so a
+// re-write of the same value must still read as the success it is.
+dpt_test_ok( true === DPT_RB_Fields::write( $notes, $backslash_path, (object) array( 'ID' => 14 ) ), 'writing it again is still a success - the read-back comparison and the slashed write agree about the same value' );
+
+$tax_notes = array( 'meta_key' => 'notes', 'title' => 'Editor notes', 'type' => 'text', 'fields' => array(), 'object' => 'taxonomy' );
+dpt_test_ok( true === DPT_RB_Fields::write( $tax_notes, $backslash_path, (object) array( 'term_id' => 6 ) ), 'the term-meta writer takes one too' );
+dpt_test_eq( DPT_RB_Fields::read( $tax_notes, array( 'term_id' => 6 ) ), $backslash_path, 'and keeps it whole, the same as the post store' );
+
+// Inside a repeater, on the column this bridge has no type for - the one it
+// promises to keep verbatim. Verbatim has to include the backslashes.
+dpt_test_ok(
+	true === DPT_RB_Fields::write(
+		$qna,
+		array( array( 'question' => 'Which pattern?', 'answer' => $backslash_path, 'icon' => $backslash_regex ) ),
+		(object) array( 'ID' => 14 )
+	),
+	'a repeater row carrying backslashes in a mapped column and an unmapped one is written'
+);
+$slashed_row = DPT_RB_Fields::read( $qna, array( 'id' => 14 ) );
+dpt_test_eq( $slashed_row[0]['answer'], $backslash_path, 'the mapped column reads back with its backslashes' );
+dpt_test_eq( $slashed_row[0]['icon'], $backslash_regex, 'and so does the column this bridge only carries' );
+dpt_test_ok( true === DPT_RB_Fields::write( $qna, $slashed_row, (object) array( 'ID' => 14 ) ), 'and the list it just handed out writes back as a success' );
+dpt_test_eq( DPT_RB_Fields::read( $qna, array( 'id' => 14 ) ), $slashed_row, 'unchanged, which is the whole property this round trip is for' );
 
 /* ---- a checkbox written twice is not a failure the second time ---- */
 

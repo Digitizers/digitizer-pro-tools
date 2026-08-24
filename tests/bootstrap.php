@@ -152,7 +152,33 @@ function esc_url_raw( $s ) {
 	return 'http://' . $s;
 }
 function sanitize_key( $s ) { return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( (string) $s ) ); }
-function wp_unslash( $s ) { return is_array( $s ) ? array_map( 'stripslashes', $s ) : stripslashes( (string) $s ); }
+/**
+ * stripslashes_deep(), which is all core's wp_unslash() is: a string loses one
+ * level of escaping, an array or an object is walked to the bottom, and
+ * anything else - an int, a bool, null - is handed back as it was rather than
+ * cast to a string.
+ *
+ * The recursion is not decoration. update_metadata() unslashes whatever it is
+ * given before storing it, so a repeater's rows are exactly where a stub that
+ * only mapped the top level would stop looking, and a module that forgot to
+ * slash its write would look correct here while losing a backslash on a live
+ * site.
+ */
+function wp_unslash( $value ) {
+	if ( is_array( $value ) ) {
+		foreach ( $value as $k => $v ) {
+			$value[ $k ] = wp_unslash( $v );
+		}
+		return $value;
+	}
+	if ( is_object( $value ) ) {
+		foreach ( get_object_vars( $value ) as $k => $v ) {
+			$value->$k = wp_unslash( $v );
+		}
+		return $value;
+	}
+	return is_string( $value ) ? stripslashes( $value ) : $value;
+}
 function trailingslashit( $s ) { return rtrim( (string) $s, '/\\' ) . '/'; }
 function untrailingslashit( $s ) { return rtrim( (string) $s, '/\\' ); }
 /**
@@ -382,6 +408,12 @@ function dpt_stub_meta_update( &$store, $id, $key, $value ) {
 		return false;
 	}
 	$id = (int) $id;
+	// update_metadata() opens by unslashing what it was handed, so a caller
+	// that did not slash its value has the backslashes in it stripped out on
+	// the way to the database. Modelling that is what makes an assertion about
+	// a Windows path or a regular expression mean anything: a stub that stored
+	// what it was given would pass whether or not the caller slashed.
+	$value = wp_unslash( $value );
 	// Real meta storage is a text column: a scalar round-trips through a
 	// string on the way in and back out, which is why get_*_meta() never
 	// hands a number field its int back. Modelling that here is what makes
@@ -578,7 +610,21 @@ function sanitize_textarea_field( $s ) { return is_scalar( $s ) ? trim( strip_ta
 function wp_kses_post( $s ) { return is_scalar( $s ) ? (string) $s : ''; }
 function absint( $v ) { return abs( (int) $v ); }
 // wp_json_encode() already exists above, for the same purpose; not redeclared here.
-function wp_slash( $v ) { return $v; }
+/**
+ * The other half of the pair above, and core's own asymmetry with it: strings
+ * and arrays are escaped, objects are not walked. A value written through
+ * wp_slash() must come back out of wp_unslash() as itself, which is the
+ * property every meta write in this plugin leans on.
+ */
+function wp_slash( $value ) {
+	if ( is_array( $value ) ) {
+		foreach ( $value as $k => $v ) {
+			$value[ $k ] = wp_slash( $v );
+		}
+		return $value;
+	}
+	return is_string( $value ) ? addslashes( $value ) : $value;
+}
 // A REST callback's return value passes straight through: there is no
 // transport for it to be prepared for here.
 function rest_ensure_response( $v ) { return $v; }
