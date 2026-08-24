@@ -96,15 +96,24 @@ set_error_handler(
 
 /* ------------------------------------------------------------ WP stubs */
 
+/**
+ * The data argument is kept, not dropped: it is where every one of this
+ * plugin's WP_Errors puts the HTTP status, and a stub that threw it away made
+ * "this is refused with a 401 rather than a 403" an assertion nobody could
+ * write.
+ */
 class WP_Error {
 	private $code;
 	private $message;
-	public function __construct( $code = '', $message = '' ) {
+	private $data;
+	public function __construct( $code = '', $message = '', $data = '' ) {
 		$this->code    = $code;
 		$this->message = $message;
+		$this->data    = $data;
 	}
 	public function get_error_code() { return $this->code; }
 	public function get_error_message() { return $this->message; }
+	public function get_error_data() { return $this->data; }
 }
 
 function is_wp_error( $thing ) { return $thing instanceof WP_Error; }
@@ -281,7 +290,47 @@ $GLOBALS['dpt_stub_denied_caps'] = array();
  * how a test reaches the "not your post" branch.
  */
 $GLOBALS['dpt_stub_denied_post_caps'] = array();
-function current_user_can( $cap, $id = null ) {
+// Whether there is a user at all. "This reader is not allowed" and "there is
+// no reader" are two different answers, and a module that publishes a handful
+// of keys anonymously on purpose has to keep telling them apart.
+$GLOBALS['dpt_stub_no_user'] = false;
+// Meta keys an auth_{$type}_meta_{$key} filter says no to. A site really does
+// install these, and a controller that has established the request may edit
+// the post or the term has not answered them.
+$GLOBALS['dpt_stub_denied_meta_caps'] = array();
+
+function is_user_logged_in() {
+	return ! $GLOBALS['dpt_stub_no_user'];
+}
+function rest_authorization_required_code() {
+	return is_user_logged_in() ? 403 : 401;
+}
+/**
+ * Core's own rule: a meta key beginning with an underscore is protected, and
+ * map_meta_cap() denies the per-key meta capability for a protected key to
+ * every user there is, administrators included.
+ */
+function is_protected_meta( $key, $type = '' ) {
+	return '_' === substr( (string) $key, 0, 1 );
+}
+function current_user_can( $cap, $id = null, $meta_key = null ) {
+	if ( $GLOBALS['dpt_stub_no_user'] ) {
+		return false;
+	}
+	// The per-key metadata capabilities, in the order map_meta_cap() resolves
+	// them: a flat no for a protected key, then whatever an
+	// auth_{$type}_meta_{$key} filter has said, then the containing object's
+	// own edit capability below. The post and term controllers establish only
+	// that last one before a field callback runs, which is exactly why a
+	// callback that writes metadata has to ask for the rest itself.
+	if ( 'edit_post_meta' === $cap || 'edit_term_meta' === $cap ) {
+		if ( is_protected_meta( $meta_key ) ) {
+			return false;
+		}
+		if ( in_array( $meta_key, $GLOBALS['dpt_stub_denied_meta_caps'], true ) ) {
+			return false;
+		}
+	}
 	if ( null !== $id ) {
 		return ! in_array( (int) $id, $GLOBALS['dpt_stub_denied_post_caps'], true );
 	}

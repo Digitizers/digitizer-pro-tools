@@ -196,6 +196,9 @@ taxonomy, to anonymous `GET` requests. Those were never public, and a name
 collision is not a reason to make them so. A schema asked for with no target
 gets `edit` only, the safe answer.
 
+The registered context is also what decides whether a read is gated by the
+per-key metadata capability — see "Metadata capabilities" above.
+
 A site can opt a discovered field back into public read with the
 `dpt_rb_field_context` filter, which receives the context array, the descriptor
 and the target. A filter rather than a setting: this module stores nothing.
@@ -255,10 +258,9 @@ On `rest_api_init`:
 - `get_callback` normalizes stored values: repeater values that arrive as a
   JSON string or a PHP-serialized string are decoded (the old plugin's
   behaviour); non-arrays return `[]` for repeaters, `''` for scalars.
-- `update_callback` validates against the schema, sanitizes, writes. Returns
-  `WP_Error` (400) on shape violations. Capability enforcement is core's:
-  `/wp/v2/*` update requests already require `edit_post`/`manage_terms` on the
-  target before field callbacks run.
+- `update_callback` checks the per-key metadata capability (below), then
+  validates against the schema, sanitizes, writes. Returns `WP_Error` (400)
+  on shape violations.
 - The write itself goes through `wp_slash()`. `update_metadata()` unslashes
   whatever it is handed before storing it, so a sanitized value passed
   straight in reached the database with its literal backslashes removed - a
@@ -273,6 +275,76 @@ On `rest_api_init`:
   write of a backslashed value, which used to be reported as a 500 by that
   same mismatch, reads as the success it is. `DPT_RB_Elementor` already
   slashed its JSON for this reason.
+
+### Metadata capabilities
+
+Core's post and term controllers establish that the request may edit the
+**object** before a field callback runs. They do **not** apply the **per-key**
+metadata capability to an arbitrary field registered with
+`register_rest_field()` — `WP_REST_Meta_Fields` does that for registered meta,
+and this is not registered meta. So a discovered field whose key is protected,
+or one on a site that installs an `auth_post_meta_*` / `auth_term_meta_*`
+restriction, was readable and writable through this module by anyone who may
+edit the containing object. WordPress's own meta endpoints refuse exactly
+that.
+
+Both callbacks now ask the capability WordPress uses for metadata rather than
+deriving one: `current_user_can( 'edit_post_meta', $post_id, $key )` for
+posts and `current_user_can( 'edit_term_meta', $term_id, $key )` for terms.
+`map_meta_cap()` resolves those in three steps — the containing object's own
+edit capability, a flat refusal for a protected key, then the site's
+`auth_{$type}_meta_{$key}` filter — and only the first has been settled by the
+controller. There is no read-side metadata capability in core, and
+`edit_*_meta` is the only per-key one there is; it is the right gate here
+because every gated field is `edit` context only, so its read is already an
+edit-level read.
+
+- A refused **write** is a `WP_Error` in the style of the other error paths,
+  with `rest_authorization_required_code()` as the status — 401 where there is
+  no user, 403 where there is one who may not. It is refused before the value
+  is sanitized.
+- A refused **read** returns `normalize_read( $descriptor, null )`: the
+  schema-honest empty for that field's own type — `0` for a number, `[]` for
+  a repeater, `''` for a string — so a refusal looks like a field with nothing
+  in it rather than a field of a different shape.
+
+**The public legacy reads survive it.** A small set of keys is published
+anonymously on purpose, on exactly the targets the replaced plugin published
+them on, and a capability check run with no user would silently un-publish
+every one of them. The read gate therefore follows the **context the field was
+really registered with**, not a second list: a field readable in `view` is one
+this site publishes to anyone — the legacy keys, and anything a site has opted
+in with `dpt_rb_field_context` — and its read is not gated at all. Everything
+else is `edit` only and its read is gated by the same capability its write is.
+That is what keeps "this reader is not allowed" and "there is no reader" two
+different answers: the first returns the empty, the second still returns a
+published key's value.
+
+Writes are never in that set. Publishing a key anonymously says nothing about
+who may change it.
+
+**What the read gate costs.** `get_callback` runs for every item in a
+collection response, before core filters that response by context, so a
+gated field asks `current_user_can()` once per item per field —
+`map_meta_cap()` resolving `edit_post` against a post the query has already
+put in the cache. Core's own meta fields avoid this by settling the question
+at `register_meta()` time, which is not available to a field registered with
+`register_rest_field()`. The published keys, which are the ones an anonymous
+collection request actually wants, cost nothing: they are not gated. This is
+accepted rather than optimized; a per-item capability call on cached objects
+is the price of not handing a restricted key to whoever asks.
+
+**Protected keys are refused at registration**, not merely at read and write:
+a key beginning with an underscore is one `map_meta_cap()` denies the per-key
+capability for to every user there is, administrators included, so a field on
+it could only ever read empty and refuse every write — noise in the schema and
+in every response. It is refused in `DPT_RB_Fields` rather than in discovery,
+because discovery describes what JetEngine defines (which the info endpoint
+reports) rather than what this module may expose, and because
+`is_protected_meta()` is filterable and takes the object type, which is known
+here and not there. The per-user half of the same question — the
+`auth_*_meta_*` filters — cannot be answered at registration at all and stays
+in the callbacks. The refusal is recorded in `skipped()`, naming the key.
 
 ### Names core already owns
 
@@ -504,7 +576,19 @@ options, no `user_can_toggle` override.
    from the string form, through a model of the validation core runs before
    any of these sanitizers, and what `normalize_read()` gives back is checked
    against the schema `for_descriptor()` advertised.
-3. Fields: a name core's controller already owns is never registered over -
+3. Fields: the per-key metadata capability is enforced on both sides - a key
+   an auth filter refuses reads back as its own type's empty (`0` for a
+   number, not `''`) and refuses a write with a 403, on posts and on terms,
+   leaving storage exactly as it was; a protected key is never registered and
+   is named in the diagnostics; and with **no user at all** the published
+   legacy keys - the reading time, the FAQ, the FAQ heading, the author bio
+   and link - still read, while a discovered field reads as nothing and a
+   write is refused with a 401. A field a site opted into public read with
+   `dpt_rb_field_context` still reads with no user, because the gate follows
+   the registered context rather than a list. The harness models
+   `map_meta_cap()`'s three steps and keeps a `WP_Error`'s data, so the
+   status codes are assertable at all.
+   Also: a name core's controller already owns is never registered over -
    core's own `title` and `excerpt` on posts and `description` on a taxonomy
    survive registration untouched, the harness modelling
    `add_additional_fields_schema()` so an additional field really does

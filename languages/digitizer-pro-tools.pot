@@ -1932,6 +1932,9 @@ msgstr ""
 msgid "The field %s could not be saved."
 msgstr ""
 
+msgid "You are not allowed to edit the field %s."
+msgstr ""
+
 msgid "A list of { widget_id, settings } objects."
 msgstr ""
 

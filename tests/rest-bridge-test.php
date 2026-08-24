@@ -84,6 +84,30 @@ dpt_test_ok( current_user_can( 'edit_post', 8 ), 'a post the user may edit' );
 dpt_test_ok( ! current_user_can( 'edit_post', 9 ), 'and one they may not' );
 $GLOBALS['dpt_stub_denied_post_caps'] = array();
 
+// The per-key metadata capabilities, which are a different question from
+// "may this request edit the post". map_meta_cap() answers them with three
+// things the object's own capability never covers: a protected key is denied
+// to everybody, an auth_{$type}_meta_{$key} filter can deny any other key,
+// and with no user there is nothing to grant anything to.
+dpt_test_ok( current_user_can( 'edit_post_meta', 8, 'reading_time' ), 'an ordinary post meta key may be edited' );
+dpt_test_ok( ! current_user_can( 'edit_post_meta', 8, '_secret' ), 'a protected key may not, by anyone' );
+dpt_test_ok( is_protected_meta( '_secret', 'post' ), 'because that is what protected means' );
+dpt_test_ok( ! is_protected_meta( 'secret', 'post' ), 'and a key without the underscore is not' );
+$GLOBALS['dpt_stub_denied_meta_caps'] = array( 'salary' );
+dpt_test_ok( ! current_user_can( 'edit_post_meta', 8, 'salary' ), 'nor a key the site has put an auth filter on' );
+dpt_test_ok( ! current_user_can( 'edit_term_meta', 8, 'salary' ), 'on terms as well as posts' );
+dpt_test_ok( current_user_can( 'edit_post_meta', 8, 'reading_time' ), 'while its neighbours are untouched' );
+$GLOBALS['dpt_stub_denied_meta_caps'] = array();
+$GLOBALS['dpt_stub_denied_post_caps'] = array( 9 );
+dpt_test_ok( ! current_user_can( 'edit_post_meta', 9, 'reading_time' ), 'and the per-key capability still falls through to the object\'s own, which map_meta_cap() resolves first' );
+$GLOBALS['dpt_stub_denied_post_caps'] = array();
+$GLOBALS['dpt_stub_no_user'] = true;
+dpt_test_ok( ! is_user_logged_in(), 'with no user, nobody is logged in' );
+dpt_test_eq( rest_authorization_required_code(), 401, 'and an authorization failure is a 401, not a 403' );
+dpt_test_ok( ! current_user_can( 'edit_post_meta', 8, 'reading_time' ), 'and no capability is granted at all' );
+$GLOBALS['dpt_stub_no_user'] = false;
+dpt_test_eq( rest_authorization_required_code(), 403, 'while a logged-in user who is refused gets a 403' );
+
 // A later task hooks rest_api_init with add_action() and then asserts on it
 // with dpt_stub_has_filter() - WordPress keeps one hook registry for both, so
 // the stub must too.
@@ -1919,6 +1943,177 @@ $GLOBALS['dpt_stub_rest_fields'] = array();
 DPT_RB_Fields::register();
 dpt_test_ok( isset( $GLOBALS['dpt_stub_rest_fields']['post']['jet_qna']['schema']['items']['properties']['question'] ), 'no qna field at all, and the fallback still registers the legacy shape' );
 dpt_test_ok( in_array( 'jet_qna', DPT_RB_Fields::compat(), true ), 'reported as a compatibility field, as it always was' );
+
+/* ---- the per-key metadata capability, which the controllers do not apply ---- */
+
+// The post and term controllers establish that the request may edit the
+// *object* before a field callback runs. They do not apply the **per-key**
+// metadata capability to a field registered with register_rest_field(), so
+// without a check here a key the site has put an auth_post_meta_* filter on -
+// or one WordPress protects outright - is readable and writable by anyone who
+// may edit the containing post or term. WordPress's own meta endpoints refuse
+// exactly this.
+$saved_post_types = $GLOBALS['dpt_stub_rest_post_types'];
+$saved_taxonomies = $GLOBALS['dpt_stub_rest_taxonomies'];
+
+$GLOBALS['dpt_stub_options'] = array(
+	'jet_engine_meta_boxes' => array(
+		array(
+			'id'          => 'private-box',
+			'args'        => array( 'object_type' => 'post', 'allowed_post_type' => array( 'post' ) ),
+			'meta_fields' => array(
+				array( 'name' => 'notes', 'title' => 'Notes', 'object_type' => 'field', 'type' => 'textarea' ),
+				array( 'name' => 'score', 'title' => 'Score', 'object_type' => 'field', 'type' => 'number' ),
+				array( 'name' => '_secret', 'title' => 'Secret', 'object_type' => 'field', 'type' => 'text' ),
+			),
+		),
+		array(
+			'id'          => 'author-private',
+			'args'        => array( 'object_type' => 'taxonomy', 'allowed_tax' => array( 'authors' ) ),
+			'meta_fields' => array(
+				array( 'name' => 'staff_note', 'title' => 'Staff note', 'object_type' => 'field', 'type' => 'textarea' ),
+			),
+		),
+	),
+);
+DPT_RB_Definitions::reset();
+$GLOBALS['dpt_stub_rest_fields'] = array();
+DPT_RB_Fields::register();
+
+// A protected key is one map_meta_cap() refuses to everybody, administrators
+// included, so a field on it could only ever read empty and refuse every
+// write. It is refused at registration rather than left in the schema as a
+// field nobody can use - and said out loud, because a JetEngine field the
+// site can see in its own admin and cannot find in the API needs explaining.
+dpt_test_ok( ! isset( $GLOBALS['dpt_stub_rest_fields']['post']['_secret'] ), 'a protected meta key is not registered at all' );
+$protected_joined = implode( ' | ', DPT_RB_Fields::skipped() );
+dpt_test_ok( false !== strpos( $protected_joined, '_secret' ), 'and the field is named in the diagnostics' );
+dpt_test_ok( false !== strpos( $protected_joined, 'underscore' ), 'along with why WordPress will not have it' );
+
+$notes_read  = $GLOBALS['dpt_stub_rest_fields']['post']['notes']['get_callback'];
+$notes_write = $GLOBALS['dpt_stub_rest_fields']['post']['notes']['update_callback'];
+$score_read  = $GLOBALS['dpt_stub_rest_fields']['post']['score']['get_callback'];
+$staff_read  = $GLOBALS['dpt_stub_rest_fields']['authors']['staff_note']['get_callback'];
+$staff_write = $GLOBALS['dpt_stub_rest_fields']['authors']['staff_note']['update_callback'];
+
+$GLOBALS['dpt_stub_post_meta'] = array();
+$GLOBALS['dpt_stub_term_meta'] = array();
+update_post_meta( 41, 'notes', 'the client is unhappy' );
+update_post_meta( 41, 'score', '7' );
+update_term_meta( 42, 'staff_note', 'do not book again' );
+
+// With the capability granted, nothing changes: this is a gate, not a wall.
+dpt_test_eq( call_user_func( $notes_read, array( 'id' => 41 ) ), 'the client is unhappy', 'a reader who may edit the key reads it' );
+dpt_test_ok( true === call_user_func( $notes_write, 'better now', (object) array( 'ID' => 41 ) ), 'and may write it' );
+dpt_test_eq( get_post_meta( 41, 'notes', true ), 'better now', 'which really lands' );
+
+/* ---- this reader is not allowed ---- */
+
+$GLOBALS['dpt_stub_denied_meta_caps'] = array( 'notes', 'score', 'staff_note' );
+
+dpt_test_eq( call_user_func( $notes_read, array( 'id' => 41 ) ), '', 'a key the site has put an auth filter on does not leak through the read' );
+dpt_test_eq( call_user_func( $score_read, array( 'id' => 41 ) ), 0, 'and a refused read is the schema-honest empty for its own type, not an empty string' );
+dpt_test_eq( call_user_func( $staff_read, array( 'id' => 42 ) ), '', 'the same on a term' );
+
+$refused = call_user_func( $notes_write, 'written anyway', (object) array( 'ID' => 41 ) );
+dpt_test_ok( is_wp_error( $refused ), 'a refused write is a WP_Error, in the style of the other error paths' );
+dpt_test_eq( $refused->get_error_data()['status'], 403, 'with the status core uses for a logged-in user who may not' );
+dpt_test_eq( get_post_meta( 41, 'notes', true ), 'better now', 'and storage is left exactly as it was' );
+
+$refused_term = call_user_func( $staff_write, 'written anyway', (object) array( 'term_id' => 42 ) );
+dpt_test_ok( is_wp_error( $refused_term ), 'a term write is refused the same way' );
+dpt_test_eq( get_term_meta( 42, 'staff_note', true ), 'do not book again', 'and that storage is untouched too' );
+
+$GLOBALS['dpt_stub_denied_meta_caps'] = array();
+
+/* ---- and there is no reader, which is a different thing ---- */
+
+// A small set of legacy keys is published anonymously on purpose, on exactly
+// the targets the replaced plugin published them on. A capability check that
+// simply ran with no user would silently un-publish every one of them, which
+// is a regression for anything reading them today. The gate follows the
+// context the field was really registered with: a field readable in view is
+// one this site publishes, and its read is not gated at all.
+$GLOBALS['dpt_stub_options'] = array();
+DPT_RB_Definitions::reset();
+$GLOBALS['dpt_stub_rest_fields'] = array();
+DPT_RB_Fields::register();
+
+$GLOBALS['dpt_stub_post_meta'] = array();
+$GLOBALS['dpt_stub_term_meta'] = array();
+update_post_meta( 43, 'reading_time', '4 min' );
+update_post_meta( 43, 'title', 'Questions people ask' );
+update_post_meta( 43, 'qna', array( array( 'question' => 'Why?', 'answer' => 'Because.' ) ) );
+update_term_meta( 44, 'author_description', 'Writes things' );
+update_term_meta( 44, 'linkedin', 'https://example.test/in/ben' );
+
+$public_reads = array(
+	array( $GLOBALS['dpt_stub_rest_fields']['post']['reading_time']['get_callback'], array( 'id' => 43 ), '4 min', 'the reading time' ),
+	array( $GLOBALS['dpt_stub_rest_fields']['post']['jet_faq_title']['get_callback'], array( 'id' => 43 ), 'Questions people ask', 'the FAQ heading' ),
+	array( $GLOBALS['dpt_stub_rest_fields']['authors']['author_description']['get_callback'], array( 'id' => 44 ), 'Writes things', 'the author bio' ),
+	array( $GLOBALS['dpt_stub_rest_fields']['authors']['linkedin']['get_callback'], array( 'id' => 44 ), 'https://example.test/in/ben', 'the author link' ),
+);
+$faq_read     = $GLOBALS['dpt_stub_rest_fields']['post']['jet_qna']['get_callback'];
+$notes_write2 = $GLOBALS['dpt_stub_rest_fields']['post']['reading_time']['update_callback'];
+
+$GLOBALS['dpt_stub_no_user'] = true;
+foreach ( $public_reads as $case ) {
+	dpt_test_eq( call_user_func( $case[0], $case[1] ), $case[2], $case[3] . ' still reads for a caller with no user at all' );
+}
+dpt_test_eq( call_user_func( $faq_read, array( 'id' => 43 ) ), array( array( 'question' => 'Why?', 'answer' => 'Because.' ) ), 'and so does the FAQ, which is the whole point of the compatibility layer' );
+
+// A write is never in that set: publishing a key anonymously says nothing
+// about who may change it.
+$anon_write = call_user_func( $notes_write2, '9 min', (object) array( 'ID' => 43 ) );
+dpt_test_ok( is_wp_error( $anon_write ), 'a write with no user is refused even on a published key' );
+dpt_test_eq( $anon_write->get_error_data()['status'], 401, 'as a 401 rather than a 403 - there is no reader to refuse' );
+dpt_test_eq( get_post_meta( 43, 'reading_time', true ), '4 min', 'and the value stands' );
+$GLOBALS['dpt_stub_no_user'] = false;
+
+/* ---- a discovered field is not published, and reads as nothing to nobody ---- */
+
+$GLOBALS['dpt_stub_options'] = array(
+	'jet_engine_meta_boxes' => array(
+		array(
+			'id'          => 'private-box',
+			'args'        => array( 'object_type' => 'post', 'allowed_post_type' => array( 'post' ) ),
+			'meta_fields' => array(
+				array( 'name' => 'notes', 'title' => 'Notes', 'object_type' => 'field', 'type' => 'textarea' ),
+			),
+		),
+	),
+);
+DPT_RB_Definitions::reset();
+$GLOBALS['dpt_stub_rest_fields'] = array();
+DPT_RB_Fields::register();
+$GLOBALS['dpt_stub_post_meta'] = array();
+update_post_meta( 45, 'notes', 'the client is unhappy' );
+$private_read = $GLOBALS['dpt_stub_rest_fields']['post']['notes']['get_callback'];
+
+$GLOBALS['dpt_stub_no_user'] = true;
+dpt_test_eq( call_user_func( $private_read, array( 'id' => 45 ) ), '', 'a discovered field hands nothing to a caller with no user' );
+$GLOBALS['dpt_stub_no_user'] = false;
+dpt_test_eq( call_user_func( $private_read, array( 'id' => 45 ) ), 'the client is unhappy', 'while an editor still reads it' );
+
+// The filter a site uses to publish one of its own fields has to keep
+// working, or the gate has quietly taken it away: the read follows the
+// context the field was really registered with, not a list written here.
+add_filter(
+	'dpt_rb_field_context',
+	function ( $context, $descriptor, $target ) {
+		return ( 'notes' === $descriptor['meta_key'] && 'post' === $target ) ? array( 'view', 'edit' ) : $context;
+	}
+);
+$GLOBALS['dpt_stub_rest_fields'] = array();
+DPT_RB_Fields::register();
+$opted_read = $GLOBALS['dpt_stub_rest_fields']['post']['notes']['get_callback'];
+$GLOBALS['dpt_stub_no_user'] = true;
+dpt_test_eq( call_user_func( $opted_read, array( 'id' => 45 ) ), 'the client is unhappy', 'a field the site opted into public read is still public with no user' );
+$GLOBALS['dpt_stub_no_user'] = false;
+remove_filter( 'dpt_rb_field_context' );
+
+$GLOBALS['dpt_stub_rest_post_types'] = $saved_post_types;
+$GLOBALS['dpt_stub_rest_taxonomies'] = $saved_taxonomies;
 
 /* ---- a field named after a core REST property never takes that name ---- */
 

@@ -645,6 +645,7 @@ return array (
     'The object to update could not be identified.' => 'לא ניתן לזהות את האובייקט לעדכון.',
     'The field %s could not be cleared.' => 'לא ניתן היה לרוקן את השדה %s.',
     'The field %s could not be saved.' => 'לא ניתן היה לשמור את השדה %s.',
+    'You are not allowed to edit the field %s.' => 'אין לך הרשאה לערוך את השדה %s.',
     'A list of { widget_id, settings } objects.' => 'רשימה של אובייקטי { widget_id, settings }.',
     'This post has no Elementor data.' => 'לפוסט הזה אין נתוני אלמנטור.',
     'The stored Elementor data is not valid JSON.' => 'נתוני האלמנטור השמורים אינם JSON תקין.',

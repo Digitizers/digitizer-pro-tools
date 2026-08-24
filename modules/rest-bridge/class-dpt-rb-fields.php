@@ -7,9 +7,15 @@
  * the plugin this module replaces had invented, because automations were
  * written against those and an upgrade is not the moment to break them.
  *
- * Capabilities are not checked here on purpose: these are fields on core's
- * own post and term controllers, which have already established that the
- * request may edit the object before any update callback runs.
+ * Capabilities are checked here, and have to be. Core's post and term
+ * controllers establish that the request may edit the *object* before an
+ * update callback runs; they do not apply the **per-key** metadata
+ * capability to a field registered with register_rest_field(). So a key the
+ * site has put an auth_post_meta_* or auth_term_meta_* filter on, or one
+ * WordPress protects outright, was readable and writable through this module
+ * by anyone who could edit the containing post or term - which WordPress's
+ * own meta endpoints refuse. Both callbacks ask map_meta_cap() the question
+ * it exists to answer rather than deriving one of their own.
  *
  * @package Digitizer_Pro_Tools
  */
@@ -690,6 +696,32 @@ class DPT_RB_Fields {
 	private static function register_one( $descriptor, $name ) {
 		$count = 0;
 
+		// A protected key - anything beginning with an underscore - is one
+		// map_meta_cap() refuses the per-key meta capability for to every
+		// user there is, administrators included. Registered, it would be a
+		// field that always reads empty and refuses every write: noise in
+		// the schema and in every response, and an invitation to debug the
+		// capability check instead of reading this.
+		//
+		// Refused here rather than in discovery, which describes what
+		// JetEngine defines rather than what this module may expose, and
+		// which has no object type in hand to ask is_protected_meta() with.
+		// The per-user half of the same question - the auth_*_meta_* filters
+		// a site installs - cannot be answered at registration at all and
+		// stays where it belongs, in the callbacks.
+		$meta_type = ( isset( $descriptor['object'] ) && 'taxonomy' === $descriptor['object'] ) ? 'term' : 'post';
+		if ( is_protected_meta( $descriptor['meta_key'], $meta_type ) ) {
+			// English, untranslated, like every other line in this list -
+			// see register_qna_fallback() for why.
+			self::note_skip(
+				sprintf(
+					'The field %s was not registered because WordPress protects meta keys that begin with an underscore: no user at all, administrators included, may read or write one through the REST API.',
+					$descriptor['meta_key']
+				)
+			);
+			return 0;
+		}
+
 		foreach ( $descriptor['targets'] as $target ) {
 			if ( ! self::exposed( $descriptor['object'], $target ) ) {
 				continue;
@@ -732,6 +764,18 @@ class DPT_RB_Fields {
 			 * @param string $target     Post type or taxonomy it lands on.
 			 */
 			$schema['context'] = array_values( (array) apply_filters( 'dpt_rb_field_context', $schema['context'], $resolved, $target ) );
+
+			// Whether the read is gated, decided by the context this field
+			// was really registered with rather than by a list written here.
+			// A field readable in the view context is one this site
+			// publishes to anyone - the legacy keys the replaced plugin
+			// published, and anything a site has opted in with the filter
+			// above - so gating its read would un-publish it for the
+			// anonymous callers it exists for. Everything else is edit-only,
+			// and its read is gated by the same per-key capability its write
+			// is. Carried on the descriptor because that is what the
+			// callbacks below are handed.
+			$resolved['public_read'] = in_array( 'view', $schema['context'], true );
 
 			register_rest_field(
 				$target,
@@ -840,6 +884,49 @@ class DPT_RB_Fields {
 	}
 
 	/**
+	 * Whether this request may read one field's value.
+	 *
+	 * A field registered in the view context is one this site publishes to
+	 * anyone at all: the keys the replaced plugin published anonymously, and
+	 * anything a site has opted in with the dpt_rb_field_context filter.
+	 * Gating those would silently un-publish them, which is the regression a
+	 * capability check run with no user would otherwise cause. Everything
+	 * else is edit-only, so its read is the same question as its write.
+	 *
+	 * @param array $descriptor Field descriptor.
+	 * @param int   $id         Post or term id.
+	 * @return bool
+	 */
+	private static function may_read( $descriptor, $id ) {
+		if ( ! empty( $descriptor['public_read'] ) ) {
+			return true;
+		}
+		return self::may_edit_meta( $descriptor, $id );
+	}
+
+	/**
+	 * Whether this request may edit one meta key on one object.
+	 *
+	 * The capability WordPress itself uses for metadata, asked of
+	 * map_meta_cap() rather than re-derived: it resolves the containing
+	 * object's own edit capability, then refuses a protected key outright,
+	 * then applies the site's auth_{$type}_meta_{$key} filter. Only the
+	 * first of those three has been settled by the controller before a field
+	 * callback runs.
+	 *
+	 * @param array $descriptor Field descriptor.
+	 * @param int   $id         Post or term id.
+	 * @return bool
+	 */
+	private static function may_edit_meta( $descriptor, $id ) {
+		$cap = ( isset( $descriptor['object'] ) && 'taxonomy' === $descriptor['object'] )
+			? 'edit_term_meta'
+			: 'edit_post_meta';
+
+		return current_user_can( $cap, $id, $descriptor['meta_key'] );
+	}
+
+	/**
 	 * Read a field.
 	 *
 	 * @param array $descriptor Field descriptor.
@@ -851,6 +938,15 @@ class DPT_RB_Fields {
 		if ( ! $id ) {
 			return DPT_RB_Schema::normalize_read( $descriptor, null );
 		}
+
+		// Not published, and not this reader's to see. The schema-honest
+		// empty for the field's own type rather than a bare '' - a number
+		// reads back 0, a repeater [] - because a refusal must look like a
+		// field with nothing in it, not like a field of a different shape.
+		if ( ! self::may_read( $descriptor, $id ) ) {
+			return DPT_RB_Schema::normalize_read( $descriptor, null );
+		}
+
 		$stored = 'taxonomy' === $descriptor['object']
 			? get_term_meta( $id, $descriptor['meta_key'], true )
 			: get_post_meta( $id, $descriptor['meta_key'], true );
@@ -873,6 +969,23 @@ class DPT_RB_Fields {
 				'dpt_rb_no_object',
 				__( 'The object to update could not be identified.', 'digitizer-pro-tools' ),
 				array( 'status' => 400 )
+			);
+		}
+
+		// Before the value is even looked at: a write nobody is allowed to
+		// make is not one worth sanitizing. rest_authorization_required_code()
+		// is core's own answer to the difference this module has to keep -
+		// 401 where there is no user to refuse, 403 where there is one and
+		// they may not.
+		if ( ! self::may_edit_meta( $descriptor, $id ) ) {
+			return new WP_Error(
+				'dpt_rb_cannot_edit_meta',
+				sprintf(
+					/* translators: %s: field name */
+					__( 'You are not allowed to edit the field %s.', 'digitizer-pro-tools' ),
+					$descriptor['meta_key']
+				),
+				array( 'status' => rest_authorization_required_code() )
 			);
 		}
 

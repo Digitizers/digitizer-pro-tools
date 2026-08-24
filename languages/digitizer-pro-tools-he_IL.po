@@ -1932,6 +1932,9 @@ msgstr "לא ניתן היה לרוקן את השדה %s."
 msgid "The field %s could not be saved."
 msgstr "לא ניתן היה לשמור את השדה %s."
 
+msgid "You are not allowed to edit the field %s."
+msgstr "אין לך הרשאה לערוך את השדה %s."
+
 msgid "A list of { widget_id, settings } objects."
 msgstr "רשימה של אובייקטי { widget_id, settings }."
 
