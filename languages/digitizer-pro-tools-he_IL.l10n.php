@@ -662,7 +662,7 @@ return array (
     'Open Graph title' => 'כותרת Open Graph',
     'Open Graph description' => 'תיאור Open Graph',
     'Open Graph image URL' => 'כתובת תמונת Open Graph',
-    'Twitter card title' => 'כותרת כרטיס טוויטר',
-    'Twitter card description' => 'תיאור כרטיס טוויטר',
+    'Twitter card title' => 'כותרת כרטיס Twitter',
+    'Twitter card description' => 'תיאור כרטיס Twitter',
   ),
 );

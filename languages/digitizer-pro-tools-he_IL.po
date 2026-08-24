@@ -1984,7 +1984,7 @@ msgid "Open Graph image URL"
 msgstr "כתובת תמונת Open Graph"
 
 msgid "Twitter card title"
-msgstr "כותרת כרטיס טוויטר"
+msgstr "כותרת כרטיס Twitter"
 
 msgid "Twitter card description"
-msgstr "תיאור כרטיס טוויטר"
+msgstr "תיאור כרטיס Twitter"
