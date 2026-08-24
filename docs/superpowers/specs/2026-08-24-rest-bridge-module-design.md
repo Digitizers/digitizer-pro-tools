@@ -80,10 +80,40 @@ by WordPress.
 | media | integer (attachment id) | `absint` |
 | repeater | array of objects; properties from sub-fields | recurse per sub-field |
 
-A repeater value is accepted only as an array of arrays; each item is filtered
-to the **known sub-field keys** (unknown keys dropped), each value sanitized by
-its sub-field type. Empty array clears the meta (`delete_post_meta` /
-`delete_term_meta`; a failed delete with meta still present reports failure).
+A repeater value is accepted only as an array of arrays. Each item's **known
+sub-field keys** are sanitized by their sub-field type; **keys the module does
+not know are kept verbatim**. This is a correction to an earlier draft of this
+spec, which said unknown keys were dropped: discovery already drops sub-fields
+whose JetEngine type is outside the thirteen mapped here - an icon picker, a
+gallery, a nested repeater - so dropping unknown keys on write meant a read,
+edit and write round trip silently deleted those columns from every row, while
+answering 200. A key this module cannot shape is not a key it may delete. For
+the same reason, a repeater with no mappable sub-field at all is not registered
+and the reason is recorded in `skipped()`, rather than being advertised as a
+field whose every item would collapse to an empty object.
+
+Empty array clears the meta (`delete_post_meta` / `delete_term_meta`; a failed
+delete with meta still present reports failure).
+
+### Read context
+
+A discovered field is registered in the **`edit` context only**. The module
+cannot know whether a field a site defined holds public content or internal
+notes, and `view` context means `GET /wp/v2/posts` returns it to anyone with no
+authentication at all. The replaced plugin exposed five named fields; discovery
+exposes every field a site has, so the safe default is the one that cannot
+publish a client's data by accident. Authenticated consumers read them with
+`context=edit`.
+
+The compatibility fields keep `view` and `edit`: `reading_time`,
+`author_description`, `author_image`, `linkedin`, and the `qna`/`jet_qna` FAQ.
+The replaced plugin already published these, and each is public display content
+by nature, so keeping them public is what stops this from being a regression
+for anything already running.
+
+A site can opt a discovered field back into public read with the
+`dpt_rb_field_context` filter, which receives the context array, the descriptor
+and the target. A filter rather than a setting: this module stores nothing.
 
 ### DPT_RB_Fields — registration
 
