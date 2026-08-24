@@ -331,6 +331,178 @@ dpt_test_ok(
 	'and the second as item 2'
 );
 
+/* ---- the gate WordPress puts in front of every one of these sanitizers ---- */
+
+/**
+ * Core validates a registered REST field against the schema it advertises, and
+ * sanitizes the value to that type, before the field's own update_callback is
+ * ever reached: get_endpoint_args_for_item_schema() gives every property a
+ * validate_callback of rest_validate_request_arg and a sanitize_callback of
+ * rest_sanitize_request_arg, and WP_REST_Server::dispatch() runs both before
+ * the callback. So "the sanitizer is generous" and "the API accepts it" are
+ * two different claims, and only the second one is worth anything to a client.
+ *
+ * These two model that gate for the types this module advertises - closely
+ * enough to reproduce the failure they exist to prove is gone: while a switcher
+ * was advertised as a string, { "featured": true } was a 400 and the
+ * sanitizer's boolean branch could never be reached at all.
+ *
+ * @param array $schema A schema from DPT_RB_Schema::for_descriptor().
+ * @param mixed $value  What a client sent.
+ * @return bool
+ */
+function dpt_rb_test_core_accepts( $schema, $value ) {
+	$type = isset( $schema['type'] ) ? $schema['type'] : '';
+
+	switch ( $type ) {
+		case 'boolean':
+			// rest_is_boolean(): a real boolean, the strings 'true', 'false',
+			// '1' and '0' in any case, and the integers 1 and 0.
+			if ( is_bool( $value ) ) {
+				return true;
+			}
+			if ( is_string( $value ) ) {
+				return in_array( strtolower( $value ), array( 'false', 'true', '0', '1' ), true );
+			}
+			if ( is_int( $value ) ) {
+				return in_array( $value, array( 0, 1 ), true );
+			}
+			return false;
+		case 'string':
+			return is_string( $value );
+		case 'number':
+			return is_numeric( $value );
+		case 'integer':
+			return is_numeric( $value ) && round( (float) $value ) === (float) $value;
+		case 'object':
+			return is_array( $value ) || $value instanceof stdClass;
+		case 'array':
+			if ( ! is_array( $value ) ) {
+				return false;
+			}
+			foreach ( $value as $item ) {
+				if ( isset( $schema['items'] ) && ! dpt_rb_test_core_accepts( $schema['items'], $item ) ) {
+					return false;
+				}
+				if ( ! isset( $schema['items']['properties'] ) || ! is_array( $item ) ) {
+					continue;
+				}
+				foreach ( $schema['items']['properties'] as $key => $sub ) {
+					if ( array_key_exists( $key, $item ) && ! dpt_rb_test_core_accepts( $sub, $item[ $key ] ) ) {
+						return false;
+					}
+				}
+			}
+			return true;
+	}
+
+	return true;
+}
+
+/**
+ * The other half of that gate: what core hands the update_callback once the
+ * value has passed. A boolean property arrives as a real PHP boolean however
+ * the client spelled it, which is why the module's own sanitizer sees one.
+ *
+ * @param array $schema A schema from DPT_RB_Schema::for_descriptor().
+ * @param mixed $value  What a client sent.
+ * @return mixed
+ */
+function dpt_rb_test_core_sanitize( $schema, $value ) {
+	$type = isset( $schema['type'] ) ? $schema['type'] : '';
+
+	if ( 'boolean' === $type ) {
+		// rest_sanitize_boolean(): the strings 'false' and '0' are the two
+		// that mean no; everything else follows PHP's own truthiness.
+		if ( is_string( $value ) && in_array( strtolower( $value ), array( 'false', '0' ), true ) ) {
+			return false;
+		}
+		return (bool) $value;
+	}
+
+	if ( 'array' === $type && is_array( $value ) && isset( $schema['items']['properties'] ) ) {
+		foreach ( $value as $index => $item ) {
+			if ( ! is_array( $item ) ) {
+				continue;
+			}
+			foreach ( $schema['items']['properties'] as $key => $sub ) {
+				if ( array_key_exists( $key, $item ) ) {
+					$value[ $index ][ $key ] = dpt_rb_test_core_sanitize( $sub, $item[ $key ] );
+				}
+			}
+		}
+	}
+
+	return $value;
+}
+
+/* ---- a switcher a REST client can actually write ---- */
+
+$sw_schema = DPT_RB_Schema::for_descriptor( $sw );
+dpt_test_eq( $sw_schema['type'], 'boolean', 'a switcher is advertised as the yes-or-no it means' );
+
+// The bug this replaces, run against the model above so the model is known to
+// be able to see it: with the string type the field used to advertise, the
+// natural JSON payload was refused before any sanitizer ran.
+dpt_test_ok( ! dpt_rb_test_core_accepts( array( 'type' => 'string' ), true ), 'a JSON boolean does not validate against a string schema - the 400 this fixes' );
+
+// Both spellings get through the gate now, and both say the same thing at the
+// end of the round trip: the string JetEngine's own admin reads in storage,
+// and a boolean on the way back out to the client.
+$switch_cases = array(
+	array( true, 'true', true ),
+	array( false, 'false', false ),
+	array( 'true', 'true', true ),
+	array( 'false', 'false', false ),
+	array( '1', 'true', true ),
+	array( '0', 'false', false ),
+);
+foreach ( $switch_cases as $case ) {
+	$sent    = $case[0];
+	$label   = var_export( $sent, true );
+	$storage = $case[1];
+	$read    = $case[2];
+
+	dpt_test_ok( dpt_rb_test_core_accepts( $sw_schema, $sent ), "a switcher accepts $label" );
+	$stored = DPT_RB_Schema::sanitize( $sw, dpt_rb_test_core_sanitize( $sw_schema, $sent ) );
+	dpt_test_eq( $stored, $storage, "and stores $label as the string JetEngine keeps" );
+	dpt_test_eq( DPT_RB_Schema::normalize_read( $sw, $stored ), $read, "and reads $label back as a boolean" );
+	dpt_test_ok( dpt_rb_test_core_accepts( $sw_schema, DPT_RB_Schema::normalize_read( $sw, $stored ) ), "which is a value the advertised schema accepts, for $label" );
+}
+
+// And a value this API never wrote: JetEngine's own admin, an older definition
+// that stored 1 and 0, a switch nobody has ever touched.
+dpt_test_eq( DPT_RB_Schema::normalize_read( $sw, '' ), false, 'a switch JetEngine never wrote reads as off, not as an empty string' );
+dpt_test_eq( DPT_RB_Schema::normalize_read( $sw, 'true' ), true, "and one JetEngine's admin switched on reads as on" );
+dpt_test_eq( DPT_RB_Schema::normalize_read( $sw, '1' ), true, 'an older 1 in storage means the same thing' );
+dpt_test_eq( DPT_RB_Schema::normalize_read( $sw, array( 'junk' ) ), false, 'and corrupt storage is off rather than an affirmative answer' );
+
+// The same field inside a repeater, where the sub-schema does the advertising.
+$rep_sw = array(
+	'meta_key' => 'rows',
+	'title'    => 'Rows',
+	'type'     => 'repeater',
+	'fields'   => array(
+		array( 'meta_key' => 'label', 'title' => 'Label', 'type' => 'text', 'fields' => array() ),
+		array( 'meta_key' => 'featured', 'title' => 'Featured', 'type' => 'switcher', 'fields' => array() ),
+	),
+);
+$rep_sw_schema = DPT_RB_Schema::for_descriptor( $rep_sw );
+dpt_test_eq( $rep_sw_schema['items']['properties']['featured']['type'], 'boolean', 'a switcher inside a repeater is advertised the same way' );
+
+$sent_rows = array(
+	array( 'label' => 'One', 'featured' => true ),
+	array( 'label' => 'Two', 'featured' => 'false' ),
+);
+dpt_test_ok( dpt_rb_test_core_accepts( $rep_sw_schema, $sent_rows ), 'and a row carrying either spelling passes validation' );
+$stored_rows = DPT_RB_Schema::sanitize( $rep_sw, dpt_rb_test_core_sanitize( $rep_sw_schema, $sent_rows ) );
+dpt_test_eq( $stored_rows[0]['featured'], 'true', 'the row is stored as the string JetEngine keeps' );
+dpt_test_eq( $stored_rows[1]['featured'], 'false', 'both ways round' );
+$read_rows = DPT_RB_Schema::normalize_read( $rep_sw, $stored_rows );
+dpt_test_eq( $read_rows[0]['featured'], true, 'and read back as a boolean' );
+dpt_test_eq( $read_rows[1]['featured'], false, 'both ways round again' );
+dpt_test_ok( dpt_rb_test_core_accepts( $rep_sw_schema, $read_rows ), 'what the read hands back satisfies the schema the repeater advertises' );
+
 // A url field is not a JetEngine type - discovery never produces one - but
 // the legacy descriptors have two, and a theme prints both straight into an
 // href or a src. A text sanitizer would leave a javascript: URL intact.

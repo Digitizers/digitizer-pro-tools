@@ -73,12 +73,26 @@ by WordPress.
 | textarea | string | `sanitize_textarea_field` |
 | wysiwyg | string | `wp_kses_post` |
 | number | number | `floatval` (int when step absent/integer) |
-| switcher | boolean-ish (string) | `'true'`/`'false'` normalized |
+| switcher | boolean | stored as `'true'`/`'false'`, read back as a boolean |
 | checkbox | object of option-key => `'true'`/`'false'` | keys `sanitize_key`, values normalized |
 | select / radio | string | `sanitize_text_field` |
 | date / time / datetime-local | string | `sanitize_text_field` |
 | media | integer (attachment id) | `absint` |
 | repeater | array of objects; properties from sub-fields | recurse per sub-field |
+
+A switcher is advertised as a **boolean**, not as the string JetEngine stores.
+Core validates a registered field against the advertised type *before* the
+field's own sanitize callback runs, so a switcher advertised as `string` made
+`{"featured": true}` a 400 and left the sanitizer's boolean branch unreachable -
+generosity nobody could get to. `boolean` is the type that takes both spellings,
+because core's own `rest_is_boolean()` accepts `true`, `false`, `'true'`,
+`'false'`, `'1'`, `'0'`, `1` and `0`; the value is still **written** as
+JetEngine's `'true'`/`'false'` string so JetEngine's admin keeps reading it, and
+`normalize_read()` turns whatever storage holds - those strings, an older
+`1`/`0`, or the empty string of a switch nobody ever touched - back into a real
+boolean. Advertised type, sanitized value and read value agree, which is the
+rule this class exists for, and the sub-schema of a switcher inside a repeater
+follows the same three steps.
 
 A repeater value is accepted only as an array of arrays. Each item's **known
 sub-field keys** are sanitized by their sub-field type; **keys the module does
@@ -239,7 +253,10 @@ options, no `user_can_toggle` override.
    tab chrome, unknown type, broken row) → descriptors + skipped list.
 2. Schema: type map, repeater schema from sub-fields, sanitizers incl. kses
    pass-through stub, unknown-key dropping, "0" survives, empty array clears,
-   failed delete reported.
+   failed delete reported. A switcher round-trips from a JSON boolean *and*
+   from the string form, through a model of the validation core runs before
+   any of these sanitizers, and what `normalize_read()` gives back is checked
+   against the schema `for_descriptor()` advertised.
 3. Fields: registration targets (REST-enabled only), read normalization
    (array / JSON string / serialized string / garbage), alias registered only
    when missing, compat set skips discovered names.

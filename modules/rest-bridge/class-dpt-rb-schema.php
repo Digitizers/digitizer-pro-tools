@@ -126,10 +126,24 @@ class DPT_RB_Schema {
 				return 'object';
 			case 'repeater':
 				return 'array';
+			case 'switcher':
+				// A switch is a yes or a no, so it is advertised as the boolean
+				// it means rather than the string JetEngine happens to store it
+				// as. That storage detail stays behind sanitize(), which writes
+				// 'true'/'false' for JetEngine's own admin to keep reading, and
+				// behind normalize_read(), which hands a real boolean back out.
+				//
+				// It was advertised as a string until this, which read honestly
+				// but made the API refuse the natural payload: core validates a
+				// registered field against the advertised type *before* the
+				// field's own sanitizer runs, so { "featured": true } was a 400
+				// and the sanitizer's boolean branch could never be reached.
+				// Boolean is the type that takes both - core's own
+				// rest_is_boolean() accepts true, false, 'true', 'false', '1',
+				// '0', 1 and 0 - and it is the type the read really has.
+				return 'boolean';
 			default:
-				// text, textarea, wysiwyg, select, radio, switcher, dates, url.
-				// A switcher is stored as the string 'true' or 'false' by
-				// JetEngine, so it is advertised as what it is.
+				// text, textarea, wysiwyg, select, radio, dates, url.
 				return 'string';
 		}
 	}
@@ -230,9 +244,12 @@ class DPT_RB_Schema {
 			case 'media':
 				return absint( $value );
 			case 'switcher':
-				// JetEngine stores a switcher as a string, and a REST client
-				// may send a real boolean; both end up saying the same thing.
-				return ( $value && 'false' !== $value && '0' !== $value ) ? 'true' : 'false';
+				// The field is advertised as a boolean and core hands one over
+				// after validating against that, but the string forms JetEngine
+				// stores still arrive here from a caller composing the two in
+				// process, so both are answered. What is written is always the
+				// string JetEngine's own admin reads back.
+				return self::truthy( $value ) ? 'true' : 'false';
 			case 'checkbox':
 				// normalize_read() hands a checkbox back as an object, so this
 				// has to accept one too - otherwise composing the two in
@@ -246,7 +263,7 @@ class DPT_RB_Schema {
 					foreach ( $value as $key => $on ) {
 						$key = sanitize_key( $key );
 						if ( '' !== $key ) {
-							$out[ $key ] = ( $on && 'false' !== $on && '0' !== $on ) ? 'true' : 'false';
+							$out[ $key ] = self::truthy( $on ) ? 'true' : 'false';
 						}
 					}
 				}
@@ -257,6 +274,30 @@ class DPT_RB_Schema {
 				// for all of them.
 				return sanitize_text_field( $value );
 		}
+	}
+
+	/**
+	 * Whether one switch-shaped value means on.
+	 *
+	 * A switch reaches this from three directions - a JSON boolean off the
+	 * wire, the 'true'/'false' strings JetEngine's admin writes, and the
+	 * '1'/'0' an older definition or a hand-edited row can leave behind - and
+	 * the write side and the read side have to agree about every one of them
+	 * or the field says one thing on the way in and another on the way out.
+	 * One function is how they are kept from drifting.
+	 *
+	 * A value that is not a scalar at all - an array left by corrupt storage -
+	 * is off: PHP would call a non-empty array true, which would turn junk
+	 * into an affirmative answer.
+	 *
+	 * @param mixed $value Boolean, string or number.
+	 * @return bool
+	 */
+	private static function truthy( $value ) {
+		if ( ! is_scalar( $value ) ) {
+			return false;
+		}
+		return (bool) $value && 'false' !== $value && '0' !== $value;
 	}
 
 	/**
@@ -358,8 +399,17 @@ class DPT_RB_Schema {
 			case 'media':
 				// Same reasoning as number: an unset attachment id is 0, not "".
 				return is_scalar( $stored ) ? absint( $stored ) : 0;
+			case 'switcher':
+				// The schema promises a boolean, so one comes back whatever
+				// storage holds - JetEngine's 'true'/'false' strings, an older
+				// '1'/'0', or the empty string a switch nobody ever touched
+				// leaves behind, which is off. This is the half of the fix the
+				// type change needs: advertising boolean and then handing back
+				// the raw string would only move the disagreement from the
+				// write side to the read side.
+				return self::truthy( $stored );
 			default:
-				// text, textarea, wysiwyg, select, radio, switcher, dates,
+				// text, textarea, wysiwyg, select, radio, dates,
 				// url: all are advertised as a string by json_type(), so a
 				// scalar cast is honest for all of them; anything that is
 				// not a scalar - an array or object left behind by corrupt
