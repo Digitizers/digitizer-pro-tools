@@ -828,4 +828,14 @@ $GLOBALS['dpt_stub_filters'] = array();
 $module->init();
 dpt_test_ok( ! dpt_stub_has_filter( 'rest_api_init' ), 'the module registers nothing at all' );
 
+// If init() had already hooked boot() before the legacy plugin declared its
+// function - a real possibility, since the two happen on different hooks -
+// boot() itself must still refuse to register anything.
+$GLOBALS['dpt_stub_rest_routes'] = array();
+$GLOBALS['dpt_stub_rest_fields'] = array();
+DPT_RB_Definitions::reset();
+DPT_Rest_Bridge_Module::boot();
+dpt_test_ok( array() === $GLOBALS['dpt_stub_rest_routes'], 'even called directly, boot() registers no routes while the old plugin is active' );
+dpt_test_ok( array() === $GLOBALS['dpt_stub_rest_fields'], 'nor any fields' );
+
 exit( dpt_test_summary() > 0 ? 1 : 0 );

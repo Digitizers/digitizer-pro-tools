@@ -60,6 +60,16 @@ class DPT_Rest_Bridge_Module extends DPT_Module {
 	 * REST request.
 	 */
 	public static function boot() {
+		// init() decided this at plugins_loaded; rest_api_init fires later,
+		// and often on a different request than the one that ran init() at
+		// all (a REST call skips the admin-page code paths that reach some
+		// plugins' own hooks). Whether the legacy plugin is active is worth
+		// asking again here, at the moment the decision is actually acted
+		// on, rather than trusted from further back.
+		if ( self::legacy_plugin_active() ) {
+			return;
+		}
+
 		DPT_RB_Fields::register();
 		DPT_RB_Elementor::register();
 		DPT_RB_Rankmath::register();
