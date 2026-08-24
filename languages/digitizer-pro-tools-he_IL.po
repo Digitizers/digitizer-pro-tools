@@ -1950,6 +1950,9 @@ msgstr "כל עדכון חייב לכלול widget_id ואובייקט settings.
 msgid "The updated layout could not be encoded back to JSON and was not saved."
 msgstr "לא ניתן היה לקדד את הפריסה המעודכנת בחזרה ל-JSON, והיא לא נשמרה."
 
+msgid "The updated layout could not be saved."
+msgstr "לא ניתן היה לשמור את הפריסה המעודכנת."
+
 msgid "SEO title override"
 msgstr "כותרת SEO חלופית"
 

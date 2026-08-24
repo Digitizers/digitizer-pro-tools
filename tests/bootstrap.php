@@ -477,6 +477,38 @@ function get_post( $id = 0 ) {
 // "cleared on every save", which is the kind of bug a cache-clearing hook invites.
 $GLOBALS['dpt_stub_elementor_cache_cleared'] = 0;
 
+/**
+ * Elementor, in the one shape the module reaches for: Plugin::instance()
+ * carrying a files_manager that can be told to forget its generated files.
+ * Without it class_exists( '\Elementor\Plugin' ) is false, the module's
+ * clear_cache() returns before it does anything, and the counter above can
+ * never be anything but zero - which makes "the cache was not cleared" true
+ * of every run and worth nothing as an assertion.
+ *
+ * class_alias() is what gives the stub its namespaced name: a namespace
+ * declaration would force every line of these flat test files into a
+ * namespace block of its own.
+ */
+class DPT_Stub_Elementor_Files_Manager {
+	public function clear_cache() {
+		$GLOBALS['dpt_stub_elementor_cache_cleared']++;
+	}
+}
+class DPT_Stub_Elementor_Plugin {
+	public $files_manager;
+	public function __construct() {
+		$this->files_manager = new DPT_Stub_Elementor_Files_Manager();
+	}
+	public static function instance() {
+		static $instance = null;
+		if ( null === $instance ) {
+			$instance = new self();
+		}
+		return $instance;
+	}
+}
+class_alias( 'DPT_Stub_Elementor_Plugin', 'Elementor\Plugin' );
+
 // Sanitisers a REST callback runs input through before writing it, kept
 // close enough to the real ones that a test can feed them markup and tags.
 function sanitize_text_field( $s ) { return is_scalar( $s ) ? trim( strip_tags( (string) $s ) ) : ''; }

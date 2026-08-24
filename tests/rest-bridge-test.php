@@ -1165,6 +1165,49 @@ $bad_encode_result  = DPT_RB_Elementor::update( new DPT_Stub_Request( array(
 dpt_test_ok( is_wp_error( $bad_encode_result ), 'invalid UTF-8 that cannot be encoded back to JSON is refused, not silently dropped' );
 dpt_test_eq( get_post_meta( 20, '_elementor_data', true ), $before_bad_encode, 'and the previously saved layout is untouched' );
 
+/* ---- a write the site refuses is not reported as a success ---- */
+
+// update_post_meta() answers false for a database error or a metadata filter
+// that says no. The endpoint used to discard that answer, delete the rendered
+// CSS, clear Elementor's cache and hand back success:true over a page whose
+// stored layout had not changed at all - a caller believing it had edited a
+// page it had not.
+update_post_meta( 20, '_elementor_css', 'body{}' );
+$before_refusal                              = get_post_meta( 20, '_elementor_data', true );
+$GLOBALS['dpt_stub_elementor_cache_cleared'] = 0;
+$GLOBALS['dpt_stub_meta_write_fails']        = array( '_elementor_data' );
+$refused = DPT_RB_Elementor::update( new DPT_Stub_Request( array(
+	'post_id' => 20,
+	'updates' => array(
+		array( 'widget_id' => 'w1', 'settings' => array( 'title' => 'Never lands' ) ),
+	),
+) ) );
+$GLOBALS['dpt_stub_meta_write_fails'] = array();
+
+dpt_test_ok( is_wp_error( $refused ), 'a refused write is an error, not success:true' );
+dpt_test_eq( is_wp_error( $refused ) ? $refused->get_error_code() : '', 'save_failed', 'named as the save failure it is' );
+dpt_test_eq( get_post_meta( 20, '_elementor_data', true ), $before_refusal, 'the stored layout is exactly as it was' );
+dpt_test_eq( get_post_meta( 20, '_elementor_css', true ), 'body{}', 'so the rendered CSS still describes it and is not deleted' );
+dpt_test_eq( $GLOBALS['dpt_stub_elementor_cache_cleared'], 0, 'and Elementor is not told to forget a change that never happened' );
+
+/* ---- while a re-write of the same layout is still a success ---- */
+
+// update_post_meta() answers false here too: the value asked for is the one
+// already stored, so nothing happened - which is not the same as a refusal,
+// and reading storage back is the only way to tell them apart. An agent that
+// re-sends the settings it just sent must not be told the write failed.
+$GLOBALS['dpt_stub_elementor_cache_cleared'] = 0;
+$unchanged = DPT_RB_Elementor::update( new DPT_Stub_Request( array(
+	'post_id' => 20,
+	'updates' => array(
+		array( 'widget_id' => 'w1', 'settings' => array( 'title' => 'New title' ) ),
+	),
+) ) );
+dpt_test_ok( ! is_wp_error( $unchanged ), 'writing the layout that is already stored is not a failure' );
+dpt_test_ok( isset( $unchanged['success'] ) && true === $unchanged['success'], 'it reports success' );
+dpt_test_eq( $unchanged['updates_applied'], 1, 'with the widget it merged into' );
+dpt_test_eq( $GLOBALS['dpt_stub_elementor_cache_cleared'], 1, 'and the cache is cleared once, as after any landed write' );
+
 /* ---- and only for someone allowed to edit that post ---- */
 
 // The plugin this replaces asked only whether the user could edit something,

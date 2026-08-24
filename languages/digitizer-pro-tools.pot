@@ -1950,6 +1950,9 @@ msgstr ""
 msgid "The updated layout could not be encoded back to JSON and was not saved."
 msgstr ""
 
+msgid "The updated layout could not be saved."
+msgstr ""
+
 msgid "SEO title override"
 msgstr ""
 

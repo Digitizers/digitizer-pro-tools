@@ -169,8 +169,18 @@ discovery did not already expose the name:
 - `POST /digitizer/v1/elementor/{post_id}` — `{updates: [{widget_id,
   settings}]}` merge, same response shape (`updates_applied`, `not_found`).
 - Both: `permission_callback` = `current_user_can( 'edit_post', $post_id )`.
-- After a save: `delete_post_meta( $post_id, '_elementor_css' )` **and**, when
-  Elementor is loaded, `\Elementor\Plugin::instance()->files_manager->clear_cache()`.
+- The save is checked before anything is reported. `update_post_meta()`
+  returns `false` both for a refused write - a database error, a metadata
+  filter that says no - and for a write that asked for the value already
+  stored, so the two are told apart the way `DPT_RB_Fields::write()` tells
+  them apart: by reading storage back and comparing it against the encoded
+  JSON that was asked for. A refusal is a `WP_Error` with a 500 status; an
+  unchanged re-write is a success.
+- After a save that is known to have landed:
+  `delete_post_meta( $post_id, '_elementor_css' )` **and**, when Elementor is
+  loaded, `\Elementor\Plugin::instance()->files_manager->clear_cache()`.
+  Neither runs on a refused write: the rendered CSS still describes the layout
+  that is still stored.
 - Helper functions become private static methods (`tree()`, `apply()`,
   `collect_ids()`, `count_widgets()`), behaviour identical to the old
   plugin's helpers.
@@ -234,7 +244,9 @@ options, no `user_can_toggle` override.
    (array / JSON string / serialized string / garbage), alias registered only
    when missing, compat set skips discovered names.
 4. Elementor: tree build, updates applied/not_found, per-post capability
-   denial, cache clear called.
+   denial, cache clear called (the harness stubs `\Elementor\Plugin` so that
+   call is really made), a refused write reported as an error with the cache
+   left alone, and an unchanged re-write reported as a success.
 5. Info: shape, skipped surfaced, rank_math flag.
 6. Stand-down: with the old plugin's function defined (declared in a guarded
    block), init registers nothing and the reason is non-empty.

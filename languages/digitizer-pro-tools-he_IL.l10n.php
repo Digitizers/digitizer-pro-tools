@@ -651,6 +651,7 @@ return array (
     'Updates must be a non-empty array.' => 'העדכונים חייבים להיות מערך לא ריק.',
     'Each update must have a widget_id and a settings object.' => 'כל עדכון חייב לכלול widget_id ואובייקט settings.',
     'The updated layout could not be encoded back to JSON and was not saved.' => 'לא ניתן היה לקדד את הפריסה המעודכנת בחזרה ל-JSON, והיא לא נשמרה.',
+    'The updated layout could not be saved.' => 'לא ניתן היה לשמור את הפריסה המעודכנת.',
     'SEO title override' => 'כותרת SEO חלופית',
     'SEO meta description' => 'תיאור מטא ל-SEO',
     'Focus keyword(s)' => 'מילות מפתח מרכזיות',

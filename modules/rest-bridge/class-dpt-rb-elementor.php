@@ -187,9 +187,27 @@ class DPT_RB_Elementor {
 			);
 		}
 
-		update_post_meta( $post_id, '_elementor_data', wp_slash( $encoded ) );
+		// update_post_meta() answers false both for a write the site refused
+		// - a database error, a metadata filter that said no - and for one
+		// that asked for the value already stored. Discarding that answer is
+		// how this endpoint used to clear the cache and report success:true
+		// over a page whose layout it had not changed at all, telling a
+		// caller it had edited something it had not. DPT_RB_Fields::write()
+		// tells the two apart the only way there is, by reading storage back
+		// and comparing it against what was asked for, and so does this.
+		// The comparison is the encoded string rather than the slashed one:
+		// wp_slash() is for the escaping update_post_meta() undoes on the
+		// way in, so what lands in the row is the JSON itself.
+		if ( false === update_post_meta( $post_id, '_elementor_data', wp_slash( $encoded ) ) && get_post_meta( $post_id, '_elementor_data', true ) !== $encoded ) {
+			return new WP_Error(
+				'save_failed',
+				__( 'The updated layout could not be saved.', 'digitizer-pro-tools' ),
+				array( 'status' => 500 )
+			);
+		}
 
-		// The rendered CSS is now describing a page that no longer exists.
+		// Only now, with the new layout known to be stored: the rendered CSS
+		// is describing a page that no longer exists.
 		delete_post_meta( $post_id, '_elementor_css' );
 		self::clear_cache();
 
