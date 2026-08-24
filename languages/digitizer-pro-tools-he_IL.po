@@ -1907,3 +1907,84 @@ msgstr "התוסף העצמאי Update Policy פעיל, ולכן המודול ה
 
 msgid "The standalone Update Policy plugin is active, so this module is standing down - its settings live under Network Admin > Settings > Update Policy."
 msgstr "התוסף העצמאי Update Policy פעיל, ולכן המודול הזה נסוג - ההגדרות שלו נמצאות תחת ניהול רשת > הגדרות > Update Policy."
+
+msgid "REST Bridge"
+msgstr "גשר REST"
+
+msgid "Puts this site's own custom fields on the REST API, so an automation can read and write them the way it reads and writes a post title. The fields are found by reading the definitions JetEngine already stores, which means a field added in JetEngine appears in the API without anyone writing code for it - repeaters included, with their sub-fields described. Also exposes Rank Math's SEO fields, and endpoints for reading and editing Elementor content without disturbing a page's design."
+msgstr "חושף את השדות המותאמים של האתר ל-REST API, כך שאוטומציה יכולה לקרוא ולכתוב אותם כמו שהיא קוראת וכותבת כותרת של פוסט. השדות מתגלים מתוך ההגדרות ש-JetEngine כבר שומר, ולכן שדה שנוסף ב-JetEngine מופיע ב-API בלי שאיש כתב עבורו קוד - כולל ריפיטרים, עם תת-השדות שלהם. חושף גם את שדות ה-SEO של Rank Math, ונקודות קצה לקריאה ולעריכה של תוכן אלמנטור בלי לפגוע בעיצוב של העמוד."
+
+msgid "The Digitizer API Extensions plugin is active, so this module is standing down - the two would register the same fields and the same routes. Deactivate that plugin to let this module take over."
+msgstr "התוסף Digitizer API Extensions פעיל, ולכן המודול הזה נסוג - שניהם היו רושמים את אותם שדות ואת אותם מסלולים. יש לכבות את התוסף כדי שהמודול יוכל לקחת פיקוד."
+
+msgid "The field %s must be an array of items."
+msgstr "השדה %s חייב להיות מערך של פריטים."
+
+msgid "Item %2$d of the field %1$s must be an object."
+msgstr "פריט %2$d בשדה %1$s חייב להיות אובייקט."
+
+msgid "The object to update could not be identified."
+msgstr "לא ניתן לזהות את האובייקט לעדכון."
+
+msgid "The field %s could not be cleared."
+msgstr "לא ניתן היה לרוקן את השדה %s."
+
+msgid "The field %s could not be saved."
+msgstr "לא ניתן היה לשמור את השדה %s."
+
+msgid "jet_qna was not registered because the site's own qna field is a %s field, not a repeater."
+msgstr "jet_qna לא נרשם כי שדה ה-qna של האתר עצמו הוא שדה מסוג %s, ולא ריפיטר."
+
+msgid "A list of { widget_id, settings } objects."
+msgstr "רשימה של אובייקטי { widget_id, settings }."
+
+msgid "This post has no Elementor data."
+msgstr "לפוסט הזה אין נתוני אלמנטור."
+
+msgid "The stored Elementor data is not valid JSON."
+msgstr "נתוני האלמנטור השמורים אינם JSON תקין."
+
+msgid "Updates must be a non-empty array."
+msgstr "העדכונים חייבים להיות מערך לא ריק."
+
+msgid "Each update must have a widget_id and a settings object."
+msgstr "כל עדכון חייב לכלול widget_id ואובייקט settings."
+
+msgid "The updated layout could not be encoded back to JSON and was not saved."
+msgstr "לא ניתן היה לקדד את הפריסה המעודכנת בחזרה ל-JSON, והיא לא נשמרה."
+
+msgid "SEO title override"
+msgstr "כותרת SEO חלופית"
+
+msgid "SEO meta description"
+msgstr "תיאור מטא ל-SEO"
+
+msgid "Focus keyword(s)"
+msgstr "מילות מפתח מרכזיות"
+
+msgid "Robot meta directives"
+msgstr "הנחיות מטא לרובוטים"
+
+msgid "Canonical URL override"
+msgstr "כתובת קנונית חלופית"
+
+msgid "Primary category term ID"
+msgstr "מזהה מונח הקטגוריה הראשית"
+
+msgid "SEO score (0-100)"
+msgstr "ציון SEO (0-100)"
+
+msgid "Open Graph title"
+msgstr "כותרת Open Graph"
+
+msgid "Open Graph description"
+msgstr "תיאור Open Graph"
+
+msgid "Open Graph image URL"
+msgstr "כתובת תמונת Open Graph"
+
+msgid "Twitter card title"
+msgstr "כותרת כרטיס טוויטר"
+
+msgid "Twitter card description"
+msgstr "תיאור כרטיס טוויטר"

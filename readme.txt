@@ -4,7 +4,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.26.0
+Stable tag: 1.27.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -46,6 +46,18 @@ Decides when this site takes a major WordPress release:
 * Nothing is ever installed automatically. When the window passes the release is simply offered again, and updating stays a deliberate act
 * On a multisite network the policy is the main site's, since the WordPress it governs belongs to the network
 * Also available as a standalone plugin, Update Policy, for sites that do not run Digitizer Pro Tools. When that plugin is active this module stands down and says so
+
+= Module: REST Bridge =
+
+Puts this site's own custom fields on the REST API (disabled by default; enable it on the Modules screen):
+
+* Fields are discovered from the definitions JetEngine already stores - meta boxes and their fields, including repeaters with their sub-fields - so a field added in JetEngine appears in the API without anyone writing code for it
+* Discovered fields are added to the standard wp/v2 posts, pages and terms endpoints, reading and writing exactly like a post title or any other core field
+* Legacy field names from the standalone Digitizer API Extensions plugin - reading_time, the author bio fields, and the qna FAQ repeater under its old name jet_qna - keep working wherever a discovered field does not already claim that name, including a fallback for jet_qna on a site whose JetEngine definitions this module cannot see
+* Exposes Rank Math's SEO fields on posts and pages - title and meta description overrides, focus keyword, robots directives, canonical URL, primary category, SEO score, and the Open Graph and Twitter card fields - only while Rank Math is active
+* Elementor endpoints (GET/POST /digitizer/v1/elementor/{post_id}) for reading and merging widget settings by widget ID, without touching the rest of the page's layout
+* An /digitizer/v1/info endpoint reports exactly what was discovered, registered and skipped on this site, and why - restricted to users who can edit posts
+* Replaces the standalone Digitizer API Extensions plugin and stands down while that plugin is active, since both would register the same fields and the same routes
 
 = Module: Cookie Banner =
 
@@ -313,6 +325,10 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 5. Configure each module you enabled from its own screen. For the Cookie Banner that means reviewing the texts per language and pasting your analytics/marketing snippets in the Scripts tab, then checking the site
 
 == Changelog ==
+
+= 1.27.0 =
+* New module: REST Bridge - puts this site's own custom fields on the REST API, discovered from the definitions JetEngine already stores, repeaters included. Also exposes Rank Math's SEO fields on posts and pages, and endpoints for reading and editing Elementor content
+* The module replaces the standalone Digitizer API Extensions plugin and stands down while that plugin is active
 
 = 1.26.0 =
 * Update Policy stands down when the standalone Update Policy plugin is active. The module was extracted into a plugin of its own for the WordPress.org directory; a site running both would have two filters on one update transient and two screens saying the same thing, so the module now does nothing on such a site and says so on the Modules screen
