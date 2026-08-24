@@ -4,7 +4,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.27.0
+Stable tag: 1.28.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -331,6 +331,10 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 5. Configure each module you enabled from its own screen. For the Cookie Banner that means reviewing the texts per language and pasting your analytics/marketing snippets in the Scripts tab, then checking the site
 
 == Changelog ==
+
+= 1.28.0 =
+* Update Policy: the standalone plugin was renamed to Digitizer Update Hold for the WordPress.org directory, and the module now recognises it under either name - a site that adopted it before the rename still stands the module down, rather than quietly running a second filter on the same update transient
+* The stand-down note names the screen the installed build actually has, so it no longer sends anyone looking for a menu item that is not there
 
 = 1.27.0 =
 * New module: REST Bridge - puts this site's own custom fields on the REST API, discovered from the definitions JetEngine already stores, repeaters included. Also exposes Rank Math's SEO fields on posts and pages, and endpoints for reading and editing Elementor content
