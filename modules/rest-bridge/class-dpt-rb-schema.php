@@ -138,7 +138,11 @@ class DPT_RB_Schema {
 	private static function sanitize_scalar( $type, $value ) {
 		switch ( $type ) {
 			case 'wysiwyg':
-				return wp_kses_post( $value );
+				// wp_kses_post() does not guard its input the way the other
+				// sanitizers here do; unlike sanitize_text_field(), an array
+				// or object reaches string-only internals and fatals instead
+				// of degrading, so the guard has to happen here.
+				return is_scalar( $value ) ? wp_kses_post( $value ) : '';
 			case 'textarea':
 				return sanitize_textarea_field( $value );
 			case 'number':
@@ -178,9 +182,14 @@ class DPT_RB_Schema {
 	public static function normalize_read( $descriptor, $stored ) {
 		if ( 'repeater' !== $descriptor['type'] ) {
 			if ( 'checkbox' === $descriptor['type'] ) {
-				return is_array( $stored ) ? $stored : array();
+				// The schema promises an object. A PHP array with no items,
+				// or with keys that happen to look sequential once
+				// sanitize() has run them through sanitize_key(), still
+				// encodes as a JSON array - casting to stdClass is what
+				// forces {} and {"0":...} instead of [] and [...].
+				return is_array( $stored ) ? (object) $stored : (object) array();
 			}
-			return ( null === $stored || is_array( $stored ) ) ? '' : (string) $stored;
+			return ( null === $stored || ! is_scalar( $stored ) ) ? '' : (string) $stored;
 		}
 
 		if ( is_array( $stored ) ) {

@@ -62,7 +62,16 @@ function dpt_test_summary() {
  * deprecation raised while a test runs is not noise to be scrolled past - it
  * is the exact failure this plugin exists to avoid, and is made to fail the
  * assertion count like anything else the tests check.
+ *
+ * The handler's own error_reporting() & $errno check is how it tells "silenced
+ * by @ for this one call" apart from "silenced for good" - and without
+ * pinning the ambient level here first, a runner whose php.ini already hides
+ * deprecations would make that check answer the same way for both, letting a
+ * genuine deprecation through unfailed. Setting E_ALL first means the only
+ * way a level can go missing from that check is a deliberate @ in the code
+ * under test, which is the one case this handler is meant to let pass.
  */
+error_reporting( E_ALL );
 set_error_handler(
 	function ( $errno, $errstr, $errfile, $errline ) {
 		// An @ before a call that is known to warn on bad input - unserialize()

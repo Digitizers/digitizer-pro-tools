@@ -262,4 +262,14 @@ dpt_test_eq( DPT_RB_Schema::normalize_read( $rep, '' ), array(), 'as does nothin
 dpt_test_eq( DPT_RB_Schema::normalize_read( $text, null ), '', 'a scalar field with nothing stored reads as an empty string' );
 dpt_test_eq( DPT_RB_Schema::normalize_read( $text, '0' ), '0', 'and "0" reads back as "0"' );
 
+// A checkbox's schema promises an object, so its wire format has to be one -
+// wp_json_encode( array() ) is '[]', not '{}', and PHP itself turns option
+// keys that look like "0" and "1" into integer array keys, so even a
+// populated checkbox can encode as a JSON array unless the read path forces
+// the point.
+$checkbox = array( 'meta_key' => 'perks', 'title' => 'Perks', 'type' => 'checkbox', 'fields' => array() );
+dpt_test_eq( DPT_RB_Schema::for_descriptor( $checkbox )['type'], 'object', 'a checkbox is advertised as an object' );
+dpt_test_eq( wp_json_encode( DPT_RB_Schema::normalize_read( $checkbox, array() ) ), '{}', 'an empty checkbox encodes as an object, not a list' );
+dpt_test_eq( wp_json_encode( DPT_RB_Schema::normalize_read( $checkbox, array( '0' => 'true', '1' => 'false' ) ) ), '{"0":"true","1":"false"}', 'and numeric-looking keys still encode as an object' );
+
 exit( dpt_test_summary() > 0 ? 1 : 0 );
