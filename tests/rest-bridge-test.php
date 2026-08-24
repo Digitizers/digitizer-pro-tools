@@ -740,6 +740,31 @@ dpt_test_eq( count( $GLOBALS['dpt_stub_registered_post_meta']['page'] ), 12, 'an
 dpt_test_ok( isset( $GLOBALS['dpt_stub_registered_post_meta']['post']['rank_math_focus_keyword'] ), 'including the focus keyword' );
 dpt_test_ok( $GLOBALS['dpt_stub_registered_post_meta']['post']['rank_math_title']['show_in_rest'], 'each visible to REST' );
 
+// Rank Math's Open Graph data lives under rank_math_facebook_*; it has never
+// read rank_math_og_*, so a field registered under that name writes to a
+// meta key nothing reads.
+dpt_test_ok( isset( $GLOBALS['dpt_stub_registered_post_meta']['post']['rank_math_facebook_image'] ), 'the Open Graph image is registered under the key Rank Math actually reads' );
+dpt_test_ok( ! isset( $GLOBALS['dpt_stub_registered_post_meta']['post']['rank_math_og_image'] ), 'and not under the dead key the old plugin used' );
+
+// rank_math_robots is a list of directives (e.g. noindex), never a single
+// string - Rank Math's own admin columns read it with FILTER_REQUIRE_ARRAY.
+dpt_test_eq( $GLOBALS['dpt_stub_registered_post_meta']['post']['rank_math_robots']['type'], 'array', 'robots is registered as an array, matching how Rank Math stores it' );
+
+// rank_math_seo_score and rank_math_primary_category are both numbers in
+// Rank Math's own code (an (int)-cast score and a parseInt()'d term id).
+dpt_test_eq( $GLOBALS['dpt_stub_registered_post_meta']['post']['rank_math_seo_score']['type'], 'integer', 'the SEO score is a number, not a string' );
+dpt_test_eq( $GLOBALS['dpt_stub_registered_post_meta']['post']['rank_math_primary_category']['type'], 'integer', 'the primary category is a term id, not a string' );
+
+// The auth_callback must check the post this meta belongs to, not a blanket
+// edit_posts - the same bug DPT_RB_Elementor::may_edit() was written to
+// avoid, reopened here would let any author-level account overwrite another
+// author's SEO metadata.
+$auth = $GLOBALS['dpt_stub_registered_post_meta']['post']['rank_math_title']['auth_callback'];
+$GLOBALS['dpt_stub_denied_post_caps'] = array( 30 );
+dpt_test_ok( ! call_user_func( $auth, true, 'rank_math_title', 30 ), 'a post this user may not edit is refused' );
+$GLOBALS['dpt_stub_denied_post_caps'] = array();
+dpt_test_ok( call_user_func( $auth, true, 'rank_math_title', 30 ), 'and one they may edit is allowed' );
+
 /* ---- the info endpoint tells an agent what this site exposes ---- */
 
 $info = DPT_RB_Info::payload();

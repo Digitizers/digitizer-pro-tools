@@ -7,6 +7,12 @@
  * registered. Pages get them as well as posts: the plugin this replaces
  * registered posts only, which left every landing page unreachable.
  *
+ * Names and types below were checked against Rank Math's own source rather
+ * than assumed: the plugin this replaces shipped three Open Graph keys
+ * (rank_math_og_*) that Rank Math has never read - it stores that data under
+ * rank_math_facebook_* instead - and one array field (rank_math_robots)
+ * declared as a string.
+ *
  * @package Digitizer_Pro_Tools
  */
 
@@ -29,24 +35,74 @@ class DPT_RB_Rankmath {
 	}
 
 	/**
-	 * The keys, and what each one is.
+	 * The keys, what each one is, and the REST type it actually holds. The
+	 * type is not decoration: a write is validated against it, so a wrong
+	 * type either rejects a value Rank Math itself stores or accepts one it
+	 * cannot read back.
 	 *
 	 * @return array
 	 */
 	private static function fields() {
 		return array(
-			'rank_math_title'               => __( 'SEO title override', 'digitizer-pro-tools' ),
-			'rank_math_description'         => __( 'SEO meta description', 'digitizer-pro-tools' ),
-			'rank_math_focus_keyword'       => __( 'Focus keyword(s)', 'digitizer-pro-tools' ),
-			'rank_math_robots'              => __( 'Robot meta directives', 'digitizer-pro-tools' ),
-			'rank_math_canonical_url'       => __( 'Canonical URL override', 'digitizer-pro-tools' ),
-			'rank_math_primary_category'    => __( 'Primary category ID', 'digitizer-pro-tools' ),
-			'rank_math_seo_score'           => __( 'SEO score (0-100)', 'digitizer-pro-tools' ),
-			'rank_math_og_title'            => __( 'Open Graph title', 'digitizer-pro-tools' ),
-			'rank_math_og_description'      => __( 'Open Graph description', 'digitizer-pro-tools' ),
-			'rank_math_og_image'            => __( 'Open Graph image URL', 'digitizer-pro-tools' ),
-			'rank_math_twitter_title'       => __( 'Twitter card title', 'digitizer-pro-tools' ),
-			'rank_math_twitter_description' => __( 'Twitter card description', 'digitizer-pro-tools' ),
+			'rank_math_title'                => array(
+				'type'        => 'string',
+				'description' => __( 'SEO title override', 'digitizer-pro-tools' ),
+			),
+			'rank_math_description'          => array(
+				'type'        => 'string',
+				'description' => __( 'SEO meta description', 'digitizer-pro-tools' ),
+			),
+			'rank_math_focus_keyword'        => array(
+				'type'        => 'string',
+				'description' => __( 'Focus keyword(s)', 'digitizer-pro-tools' ),
+			),
+			// Rank Math stores this as a list of directives (e.g. noindex),
+			// not a single string - class-post-columns.php reads it with
+			// FILTER_REQUIRE_ARRAY and every importer writes it as an array.
+			'rank_math_robots'               => array(
+				'type'        => 'array',
+				'description' => __( 'Robot meta directives', 'digitizer-pro-tools' ),
+			),
+			'rank_math_canonical_url'        => array(
+				'type'        => 'string',
+				'description' => __( 'Canonical URL override', 'digitizer-pro-tools' ),
+			),
+			// A term id: Rank Math's editor sidebar parseInt()s it before
+			// writing the hidden field that becomes this meta value.
+			'rank_math_primary_category'     => array(
+				'type'        => 'integer',
+				'description' => __( 'Primary category term ID', 'digitizer-pro-tools' ),
+			),
+			// Rank Math's own REST route casts this to (int) before saving
+			// it - class-admin.php's update_seo_score().
+			'rank_math_seo_score'            => array(
+				'type'        => 'integer',
+				'description' => __( 'SEO score (0-100)', 'digitizer-pro-tools' ),
+			),
+			// Rank Math's Open Graph data lives under rank_math_facebook_*,
+			// confirmed by wpml-config.xml and by every third-party importer
+			// mapping other plugins' OG fields into these same keys. There is
+			// no rank_math_og_* anywhere in Rank Math's source.
+			'rank_math_facebook_title'       => array(
+				'type'        => 'string',
+				'description' => __( 'Open Graph title', 'digitizer-pro-tools' ),
+			),
+			'rank_math_facebook_description' => array(
+				'type'        => 'string',
+				'description' => __( 'Open Graph description', 'digitizer-pro-tools' ),
+			),
+			'rank_math_facebook_image'       => array(
+				'type'        => 'string',
+				'description' => __( 'Open Graph image URL', 'digitizer-pro-tools' ),
+			),
+			'rank_math_twitter_title'        => array(
+				'type'        => 'string',
+				'description' => __( 'Twitter card title', 'digitizer-pro-tools' ),
+			),
+			'rank_math_twitter_description'  => array(
+				'type'        => 'string',
+				'description' => __( 'Twitter card description', 'digitizer-pro-tools' ),
+			),
 		);
 	}
 
@@ -62,21 +118,63 @@ class DPT_RB_Rankmath {
 		}
 
 		foreach ( array( 'post', 'page' ) as $post_type ) {
-			foreach ( self::fields() as $key => $description ) {
-				register_post_meta(
-					$post_type,
-					$key,
-					array(
-						'show_in_rest'  => true,
-						'single'        => true,
-						'type'          => 'string',
-						'description'   => $description,
-						'auth_callback' => function () {
-							return current_user_can( 'edit_posts' );
-						},
-					)
+			foreach ( self::fields() as $key => $field ) {
+				$args = array(
+					'show_in_rest'  => self::show_in_rest( $field['type'] ),
+					'single'        => true,
+					'type'          => $field['type'],
+					'description'   => $field['description'],
+					'auth_callback' => array( __CLASS__, 'may_edit_meta' ),
 				);
+
+				if ( 'array' === $field['type'] ) {
+					$args['default'] = array();
+				}
+
+				register_post_meta( $post_type, $key, $args );
 			}
 		}
+	}
+
+	/**
+	 * The show_in_rest argument for a type. A scalar can be described with
+	 * just `true` - core fills in the schema from `type` - but an array
+	 * cannot: without an explicit item schema, WordPress refuses to expose
+	 * it at all rather than expose it wrong.
+	 *
+	 * @param string $type REST schema type.
+	 * @return bool|array
+	 */
+	private static function show_in_rest( $type ) {
+		if ( 'array' !== $type ) {
+			return true;
+		}
+
+		return array(
+			'schema' => array(
+				'type'  => 'array',
+				'items' => array( 'type' => 'string' ),
+			),
+		);
+	}
+
+	/**
+	 * Whether this request may write to the post the meta key belongs to.
+	 *
+	 * register_post_meta()'s auth_callback is handed the object id
+	 * specifically so a check can be scoped to it; discarding that id and
+	 * checking only current_user_can( 'edit_posts' ) - a blanket "can this
+	 * user edit *something*" - is the exact bug DPT_RB_Elementor::may_edit()
+	 * exists to avoid on the Elementor endpoint. Doing it here instead would
+	 * reopen the same hole for SEO metadata: any author-level account could
+	 * rewrite another author's page.
+	 *
+	 * @param bool   $allowed  Whether the value may be seen or edited so far.
+	 * @param string $meta_key The meta key being checked.
+	 * @param int    $post_id  The post this meta value belongs to.
+	 * @return bool
+	 */
+	public static function may_edit_meta( $allowed, $meta_key, $post_id ) {
+		return current_user_can( 'edit_post', (int) $post_id );
 	}
 }
