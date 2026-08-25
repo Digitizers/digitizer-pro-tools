@@ -2000,3 +2000,30 @@ msgstr ""
 
 msgid "That id is a revision. Elementor layouts are read and written on the post itself, so use the id of the post this revision belongs to."
 msgstr ""
+
+msgid "Update Policy is switched on but holds nothing"
+msgstr ""
+
+msgid "The hold is set to zero days, so a major WordPress release is offered here the moment it appears - the same as if this module were switched off. Set a number of days, or switch the module off, so the site behaves the way the Modules screen says it does."
+msgstr ""
+
+msgid "No WordPress release is being held back"
+msgstr ""
+
+msgid "Update Policy is active. A major WordPress release will be held back after this site is first offered it, and offered again when the hold ends. Security and maintenance releases are never held."
+msgstr ""
+
+msgid "WordPress %1$s - first offered here on %2$s, held until %3$s."
+msgstr ""
+
+msgid "A major WordPress release is being held back"
+msgstr ""
+
+msgid "This is the policy working, not a fault. A major release is held so the plugins and themes on this site have time to catch up with it."
+msgstr ""
+
+msgid "Security and maintenance releases are installed as usual and are not affected. The hold can be lifted from the Updates screen."
+msgstr ""
+
+msgid "Security"
+msgstr ""

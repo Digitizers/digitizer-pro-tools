@@ -10,6 +10,7 @@ require_once __DIR__ . '/class-dpt-up-version.php';
 require_once __DIR__ . '/class-dpt-up-offers.php';
 require_once __DIR__ . '/class-dpt-up-settings.php';
 require_once __DIR__ . '/class-dpt-up-policy.php';
+require_once __DIR__ . '/class-dpt-up-health.php';
 require_once __DIR__ . '/class-dpt-up-admin.php';
 
 class DPT_Update_Policy_Module extends DPT_Module {

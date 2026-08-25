@@ -4,6 +4,8 @@ require_once dirname( __DIR__ ) . '/modules/update-policy/class-dpt-up-version.p
 require_once dirname( __DIR__ ) . '/modules/update-policy/class-dpt-up-offers.php';
 require_once dirname( __DIR__ ) . '/modules/update-policy/class-dpt-up-settings.php';
 require_once dirname( __DIR__ ) . '/modules/update-policy/class-dpt-up-policy.php';
+require_once dirname( __DIR__ ) . '/modules/update-policy/class-dpt-up-health.php';
+require_once dirname( __DIR__ ) . '/modules/update-policy/class-dpt-up-admin.php';
 
 /* ---- what counts as a major ---- */
 
@@ -256,6 +258,118 @@ $GLOBALS['dpt_stub_main_site'] = false;
 DPT_UP_Policy::init();
 dpt_test_ok( dpt_stub_has_filter( 'site_transient_update_core' ), 'and a single site is never asked the question' );
 $GLOBALS['dpt_stub_main_site'] = true;
+
+/* ---- the unattended filter runs late enough to be heard ---- */
+
+// Other update plugins hook this filter high on purpose so their answer is
+// the last one - one shipping today uses 999. A plugin arguing for the update
+// beats a plugin arguing against it by merely running later, so the number
+// matters, and a test that only calls allow_major_auto() directly would pass
+// no matter what number the module passed.
+$GLOBALS['dpt_stub_filters'] = array();
+DPT_UP_Policy::init();
+dpt_test_eq(
+	dpt_stub_filter_priority( 'allow_major_auto_core_updates', array( 'DPT_UP_Policy', 'allow_major_auto' ) ),
+	9999,
+	'the unattended filter is registered late'
+);
+
+$now = time();
+$GLOBALS['dpt_stub_options'] = array(
+	'dpt_update_policy' => array( 'hold_days' => 30, 'seen' => array( '7.1' => $now ), 'released' => array() ),
+);
+
+$say_yes = function () {
+	return true;
+};
+add_filter( 'allow_major_auto_core_updates', $say_yes, 999 );
+dpt_test_ok(
+	! apply_filters( 'allow_major_auto_core_updates', false ),
+	'a plugin insisting at 999 that the major may install is still overruled while one is held'
+);
+
+// And the ordering is what did it, not the assertion being unfalsifiable:
+// with this module unhooked, the same competing filter gets its way.
+remove_filter( 'allow_major_auto_core_updates', array( 'DPT_UP_Policy', 'allow_major_auto' ) );
+dpt_test_ok(
+	apply_filters( 'allow_major_auto_core_updates', false ),
+	'the competing filter does decide when nothing is arguing with it'
+);
+
+/* ---- the Site Health entry ---- */
+
+// A hold is a missing update, and a missing update is what someone sees when
+// they go looking for a problem. Site Health is the third place they look.
+$GLOBALS['dpt_stub_filters'] = array();
+DPT_UP_Policy::init();
+dpt_test_ok( dpt_stub_has_filter( 'site_status_tests' ), 'the main site publishes a Site Health entry' );
+
+// A subsite decides nothing here, so it is told nothing either - the same
+// early return that keeps it from filtering the transient.
+$GLOBALS['dpt_stub_filters']   = array();
+$GLOBALS['dpt_stub_multisite'] = true;
+$GLOBALS['dpt_stub_main_site'] = false;
+DPT_UP_Policy::init();
+dpt_test_ok( ! dpt_stub_has_filter( 'site_status_tests' ), 'a subsite on a network publishes none' );
+$GLOBALS['dpt_stub_multisite'] = false;
+$GLOBALS['dpt_stub_main_site'] = true;
+
+$registered = DPT_UP_Health::register( array() );
+dpt_test_ok( isset( $registered['direct']['dpt_update_policy'] ), 'the entry is a direct test' );
+
+$registered = DPT_UP_Health::register( array( 'direct' => array( 'something_else' => 1 ) ) );
+dpt_test_ok( isset( $registered['direct']['something_else'] ), 'added beside the tests already registered' );
+dpt_test_ok( isset( $registered['direct']['dpt_update_policy'] ), 'rather than in place of them' );
+
+dpt_test_eq( DPT_UP_Health::register( 'not a registry' ), 'not a registry', 'and a registry it does not recognise is handed back untouched' );
+
+// A hold in force. date_format is set for real: without it get_option()
+// answers false, the formatted date is the empty string, and strpos() finds
+// the empty string at 0 in anything - an assertion that cannot fail.
+$GLOBALS['dpt_stub_options'] = array(
+	'date_format'       => 'Y-m-d',
+	'dpt_update_policy' => array( 'hold_days' => 30, 'seen' => array( '7.1' => $now ), 'released' => array() ),
+);
+$health   = DPT_UP_Health::run();
+$ends_on  = gmdate( 'Y-m-d', $now + ( 30 * 86400 ) );
+$began_on = gmdate( 'Y-m-d', $now );
+dpt_test_eq( $health['status'], 'good', 'a hold in force is the policy working, not a fault to report' );
+dpt_test_eq( $health['test'], 'dpt_update_policy', 'identified by the same id it was registered under' );
+dpt_test_ok( false !== strpos( $health['description'], '7.1' ), 'and the entry names the release being held' );
+dpt_test_ok( '' !== $ends_on && false !== strpos( $health['description'], $ends_on ), 'with the date the hold ends' );
+dpt_test_ok( '' !== $began_on && false !== strpos( $health['description'], $began_on ), 'and the date the site first saw it' );
+
+// Nothing held: still worth saying, because "the policy is on and holding
+// nothing" is the reading that stops somebody hunting for a hold that was
+// never there.
+$GLOBALS['dpt_stub_options'] = array(
+	'date_format'       => 'Y-m-d',
+	'dpt_update_policy' => array( 'hold_days' => 30, 'seen' => array( '7.1' => $now ), 'released' => array( '7.1' => 1 ) ),
+);
+$health = DPT_UP_Health::run();
+dpt_test_eq( $health['status'], 'good', 'holding nothing is not a fault either' );
+dpt_test_ok( false !== strpos( $health['label'], 'No WordPress release' ), 'and says so plainly' );
+dpt_test_ok( false !== strpos( $health['description'], 'never held' ), 'and repeats what is never held, which is the reassurance being asked for' );
+
+// The length of the hold is not quoted, on purpose: saying it needs a plural
+// form and this catalog has none. A one-day hold reads the same as any other.
+$GLOBALS['dpt_stub_options'] = array(
+	'date_format'       => 'Y-m-d',
+	'dpt_update_policy' => array( 'hold_days' => 1, 'seen' => array( '7.1' => $now ), 'released' => array( '7.1' => 1 ) ),
+);
+dpt_test_ok( false === strpos( DPT_UP_Health::run()['description'], '1 day' ), 'with no day count that would need one' );
+
+// Switched on and holding nothing back is a different thing from switched on
+// and unable to hold anything. The second is a setting that contradicts the
+// Modules screen, and is the one worth raising.
+$GLOBALS['dpt_stub_options'] = array(
+	'dpt_update_policy' => array( 'hold_days' => 0, 'seen' => array( '7.1' => $now ), 'released' => array() ),
+);
+$health = DPT_UP_Health::run();
+dpt_test_eq( $health['status'], 'recommended', 'a zero-day hold is raised, because the module then does nothing it claims to' );
+dpt_test_ok( false !== strpos( $health['label'], 'holds nothing' ), 'and is named for what is actually wrong' );
+
+$GLOBALS['dpt_stub_options'] = array();
 
 /* ---- who may switch the module itself ---- */
 

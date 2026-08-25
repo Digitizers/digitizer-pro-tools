@@ -49,7 +49,19 @@ class DPT_UP_Policy {
 		// The unattended path has to agree with the visible one. Major core
 		// auto-updates are off by default, so this is belt and braces - but a
 		// site that turned them on should not quietly bypass the hold.
-		add_filter( 'allow_major_auto_core_updates', array( __CLASS__, 'allow_major_auto' ) );
+		//
+		// Late on purpose. Other update plugins hook this filter at a high
+		// priority precisely so their answer is the last one - one shipping
+		// today uses 999 - and a plugin arguing for the update wins over a
+		// plugin arguing against it if it merely runs later. Today the hold
+		// would survive that argument anyway, because apply_hold() removes the
+		// release from the transient and there is then nothing left for either
+		// filter to authorise; this makes the agreement explicit rather than
+		// incidental. Not PHP_INT_MAX: a site that deliberately wants the last
+		// word from its own mu-plugin should still be able to take it.
+		add_filter( 'allow_major_auto_core_updates', array( __CLASS__, 'allow_major_auto' ), 9999 );
+
+		DPT_UP_Health::init();
 	}
 
 	/**
