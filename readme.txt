@@ -4,7 +4,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.28.0
+Stable tag: 1.29.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -331,6 +331,11 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 5. Configure each module you enabled from its own screen. For the Cookie Banner that means reviewing the texts per language and pasting your analytics/marketing snippets in the Scripts tab, then checking the site
 
 == Changelog ==
+
+= 1.29.0 =
+* Update Policy now answers in Site Health as well as on the Updates screen and the dashboard. A hold looks exactly like a missing update, and Site Health is where someone goes when an update looks missing - so the entry says which release is held, when the site first saw it and when the hold ends, and says plainly when nothing is held at all
+* Site Health also raises the one setting that contradicts the Modules screen: a hold of zero days, where the module is on and holding nothing back
+* The hold's refusal of unattended major updates is now registered late, so it is heard over update plugins that deliberately hook the same decision last
 
 = 1.28.0 =
 * Update Policy: the standalone plugin was renamed to Digitizer Update Hold for the WordPress.org directory, and the module now recognises it under either name - a site that adopted it before the rename still stands the module down, rather than quietly running a second filter on the same update transient

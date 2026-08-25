@@ -2000,3 +2000,30 @@ msgstr "תיאור כרטיס Twitter"
 
 msgid "That id is a revision. Elementor layouts are read and written on the post itself, so use the id of the post this revision belongs to."
 msgstr "המזהה הזה שייך לגרסה קודמת. פריסות אלמנטור נקראות ונכתבות על הפוסט עצמו, ולכן יש להשתמש במזהה של הפוסט שהגרסה הזו שייכת לו."
+
+msgid "Update Policy is switched on but holds nothing"
+msgstr "מדיניות עדכונים מופעלת אך אינה מחזיקה דבר"
+
+msgid "The hold is set to zero days, so a major WordPress release is offered here the moment it appears - the same as if this module were switched off. Set a number of days, or switch the module off, so the site behaves the way the Modules screen says it does."
+msgstr "ההחזקה מוגדרת לאפס ימים, ולכן גרסת מייג'ור של וורדפרס מוצעת כאן ברגע שהיא מופיעה - בדיוק כאילו המודול כבוי. קבעו מספר ימים, או כבו את המודול, כדי שהאתר יתנהג כפי שמסך המודולים אומר שהוא מתנהג."
+
+msgid "No WordPress release is being held back"
+msgstr "אף גרסה של וורדפרס אינה מוחזקת"
+
+msgid "Update Policy is active. A major WordPress release will be held back after this site is first offered it, and offered again when the hold ends. Security and maintenance releases are never held."
+msgstr "מדיניות עדכונים פעילה. גרסת מייג'ור של וורדפרס תוחזק לאחר שהאתר הזה יקבל אותה לראשונה, ותוצע שוב בתום ההחזקה. עדכוני אבטחה ותחזוקה לעולם אינם מוחזקים."
+
+msgid "WordPress %1$s - first offered here on %2$s, held until %3$s."
+msgstr "וורדפרס %1$s - הוצעה כאן לראשונה ב-%2$s, מוחזקת עד %3$s."
+
+msgid "A major WordPress release is being held back"
+msgstr "גרסת מייג'ור של וורדפרס מוחזקת"
+
+msgid "This is the policy working, not a fault. A major release is held so the plugins and themes on this site have time to catch up with it."
+msgstr "זו המדיניות עובדת, לא תקלה. גרסת מייג'ור מוחזקת כדי לתת לתוספים ולתבניות באתר הזה זמן להדביק אותה."
+
+msgid "Security and maintenance releases are installed as usual and are not affected. The hold can be lifted from the Updates screen."
+msgstr "עדכוני אבטחה ותחזוקה מותקנים כרגיל ואינם מושפעים. אפשר לשחרר את ההחזקה ממסך העדכונים."
+
+msgid "Security"
+msgstr "אבטחה"

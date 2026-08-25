@@ -121,6 +121,8 @@ function is_wp_error( $thing ) { return $thing instanceof WP_Error; }
 function __( $text, $domain = null ) { return $text; }
 function esc_html__( $text, $domain = null ) { return $text; }
 function esc_attr__( $text, $domain = null ) { return $text; }
+function date_i18n( $format, $timestamp ) { return gmdate( (string) $format, (int) $timestamp ); }
+function admin_url( $path = '' ) { return 'https://example.test/wp-admin/' . ltrim( (string) $path, '/' ); }
 function esc_html( $s ) { return htmlspecialchars( (string) $s, ENT_QUOTES, 'UTF-8' ); }
 function esc_attr( $s ) { return htmlspecialchars( (string) $s, ENT_QUOTES, 'UTF-8' ); }
 function esc_url( $s ) { return esc_url_raw( $s ); }
@@ -218,26 +220,78 @@ function apply_filters( $tag, $value ) {
 	if ( empty( $GLOBALS['dpt_stub_filters'][ $tag ] ) ) {
 		return $value;
 	}
-	foreach ( $GLOBALS['dpt_stub_filters'][ $tag ] as $callback ) {
-		if ( is_callable( $callback ) ) {
-			$args[0] = call_user_func_array( $callback, $args );
+	// Lower priority first, insertion order within a priority - WordPress's
+	// order. Modelled rather than ignored because at least one hook here is
+	// registered late on purpose, and a registry that runs callbacks in
+	// insertion order would agree with that code no matter what number it
+	// passed.
+	$hooks = $GLOBALS['dpt_stub_filters'][ $tag ];
+	usort(
+		$hooks,
+		function ( $a, $b ) {
+			if ( $a['priority'] === $b['priority'] ) {
+				return $a['order'] - $b['order'];
+			}
+			return ( $a['priority'] < $b['priority'] ) ? -1 : 1;
+		}
+	);
+	foreach ( $hooks as $hook ) {
+		if ( is_callable( $hook['callback'] ) ) {
+			$args[0] = call_user_func_array( $hook['callback'], $args );
 		}
 	}
 	return $args[0];
 }
-function add_filter( $tag = '', $callback = null ) {
+$GLOBALS['dpt_stub_filter_seq'] = 0;
+function add_filter( $tag = '', $callback = null, $priority = 10 ) {
 	if ( ! isset( $GLOBALS['dpt_stub_filters'][ $tag ] ) ) {
 		$GLOBALS['dpt_stub_filters'][ $tag ] = array();
 	}
-	$GLOBALS['dpt_stub_filters'][ $tag ][] = $callback;
+	$GLOBALS['dpt_stub_filters'][ $tag ][] = array(
+		'callback' => $callback,
+		'priority' => (int) $priority,
+		'order'    => $GLOBALS['dpt_stub_filter_seq']++,
+	);
 }
 // WordPress keeps actions and filters in one registry, so add_action shares
 // the filter store rather than getting its own.
-function add_action( $tag = '', $callback = null ) {
-	add_filter( $tag, $callback );
+function add_action( $tag = '', $callback = null, $priority = 10 ) {
+	add_filter( $tag, $callback, $priority );
 }
+// Removes the named callback only. Dropping the whole tag would quietly
+// un-hook everything else on it, and the one caller that removes a filter here
+// re-adds it two lines later expecting the rest to be untouched.
 function remove_filter( $tag = '', $callback = null ) {
-	unset( $GLOBALS['dpt_stub_filters'][ $tag ] );
+	if ( ! isset( $GLOBALS['dpt_stub_filters'][ $tag ] ) ) {
+		return;
+	}
+	// Harness shorthand, not WordPress: no callback clears the whole tag, which
+	// is how a test says "nothing is hooked here now". Unambiguous because null
+	// is not a callback anything could have registered.
+	if ( null === $callback ) {
+		unset( $GLOBALS['dpt_stub_filters'][ $tag ] );
+		return;
+	}
+	foreach ( $GLOBALS['dpt_stub_filters'][ $tag ] as $i => $hook ) {
+		if ( $hook['callback'] === $callback ) {
+			unset( $GLOBALS['dpt_stub_filters'][ $tag ][ $i ] );
+		}
+	}
+	if ( empty( $GLOBALS['dpt_stub_filters'][ $tag ] ) ) {
+		unset( $GLOBALS['dpt_stub_filters'][ $tag ] );
+	}
+}
+// The priority a callback was registered at, or null when it is not hooked.
+function dpt_stub_filter_priority( $tag, $callback ) {
+	if ( ! isset( $GLOBALS['dpt_stub_filters'][ $tag ] ) ) {
+		return null;
+	}
+	foreach ( $GLOBALS['dpt_stub_filters'][ $tag ] as $hook ) {
+		if ( $hook['callback'] === $callback ) {
+			return $hook['priority'];
+		}
+	}
+	return null;
 }
 // Style registry, enough to see what a tweak removes.
 $GLOBALS['dpt_stub_deregistered_styles'] = array();
