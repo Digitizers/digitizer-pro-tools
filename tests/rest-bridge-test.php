@@ -3082,7 +3082,7 @@ $colours_read  = $GLOBALS['dpt_stub_rest_fields']['post']['צבעים']['get_cal
 dpt_test_ok( true === call_user_func( $colours_write, array( 'כחול' => 'true', 'אדום' => 'false' ), (object) array( 'ID' => 71 ) ), 'a checkbox with Hebrew option keys writes' );
 dpt_test_eq( get_post_meta( 71, 'צבעים', true ), array( 'כחול' => 'true', 'אדום' => 'false' ), 'storing the options the site defined, spelled as it defined them' );
 $colours_back = call_user_func( $colours_read, array( 'id' => 71 ) );
-dpt_test_eq( wp_json_encode( $colours_back ), '{"כחול":"true","אדום":"false"}', 'and reads back as the same options' );
+dpt_test_eq( (array) $colours_back, array( 'כחול' => 'true', 'אדום' => 'false' ), 'and reads back as the same options' );
 dpt_test_ok( true === call_user_func( $colours_write, $colours_back, (object) array( 'ID' => 71 ) ), 'writing back what was just read is a success' );
 dpt_test_eq( get_post_meta( 71, 'צבעים', true ), array( 'כחול' => 'true', 'אדום' => 'false' ), 'and leaves storage holding exactly what it held' );
 

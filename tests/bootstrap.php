@@ -377,7 +377,9 @@ function dpt_stub_has_filter( $tag ) {
 	return isset( $GLOBALS['dpt_stub_filters'][ $tag ] );
 }
 function did_action() { return 0; }
-function wp_json_encode( $d ) { return json_encode( $d, JSON_UNESCAPED_UNICODE ); }
+// Core (wp-includes/functions.php:4443) defaults $flags to 0, so non-ASCII
+// characters escape to \uXXXX by default; it does not pass JSON_UNESCAPED_UNICODE.
+function wp_json_encode( $value, $flags = 0, $depth = 512 ) { return json_encode( $value, $flags, $depth ); }
 function wp_parse_url( $url, $component = -1 ) { return parse_url( $url, $component ); }
 
 function get_option( $key, $default = false ) {

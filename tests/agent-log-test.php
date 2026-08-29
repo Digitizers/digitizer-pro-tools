@@ -256,7 +256,15 @@ dpt_test_eq( $decoded[0], $hebrew[0], 'the first Hebrew name survives intact' );
 // characters, which is the whole difference: a bound that counted characters
 // would have gone on adding names until the column had long since overflowed.
 dpt_test_ok( strlen( $encoded ) > DPT_AL_Store::MAX_FIELDS_BYTES - 200, 'the bytes written fill the budget' );
-dpt_test_ok( mb_strlen( $encoded, 'UTF-8' ) < DPT_AL_Store::MAX_FIELDS_BYTES - 10000, 'while the character count is far short of it, which is the room a character-counting bound would have kept filling' );
+// Once wp_json_encode() escapes non-ASCII to \uXXXX, the encoded string
+// itself is all ASCII, so its own mb_strlen() is no longer a useful
+// contrast - it tracks strlen() almost exactly. The contrast that matters is
+// against the *names before encoding*: a bound that counted their characters
+// instead of the encoded bytes would have believed it had far more room than
+// it did, and kept adding names well past where the real, escaped budget ran
+// out.
+$kept_chars = array_sum( array_map( function ( $name ) { return mb_strlen( $name, 'UTF-8' ); }, $decoded ) );
+dpt_test_ok( $kept_chars < DPT_AL_Store::MAX_FIELDS_BYTES - 10000, 'while the character count of the names actually kept is far short of the byte budget, which is the room a character-counting bound would have kept filling' );
 
 /* ---- query arguments ---- */
 
