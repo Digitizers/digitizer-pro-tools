@@ -698,6 +698,44 @@ DPT_AL_Hooks::on_post_deleted( 609, (object) array( 'post_type' => 'post' ) );
 dpt_test_eq( DPT_AL_Buffer::rows( 'rest', '', 5, 1756108800 ), array(), 'deleting an autosave records nothing' );
 $GLOBALS['dpt_stub_autosaves'] = array();
 
+// 4c. on_post_meta() is the sibling on_post_deleted() had before this fix and
+// on_post_meta() did not: WP 6.4+ copies registered post meta onto each
+// revision through the ordinary metadata APIs (wp_save_revisioned_meta_fields()
+// calling _wp_copy_post_meta(), wp-includes/revision.php), and removes it the
+// same way when a revision is pruned (wp_delete_post_revision() ->
+// wp_delete_post() -> delete_metadata_by_mid(), wp-includes/meta.php). Both
+// fire added_post_meta / deleted_post_meta with the revision's own id, which
+// on_post_meta() resolves with get_post() into the revision object - so an
+// unguarded callback logs a spurious "updated" row for every automated save
+// that touches revisioned meta.
+DPT_AL_Buffer::reset();
+$GLOBALS['dpt_stub_posts'][610] = array( 'post_type' => 'revision', 'post_parent' => 602 );
+DPT_AL_Hooks::on_post_meta( 201, 610, 'rank_math_title' );
+dpt_test_eq( DPT_AL_Buffer::rows( 'rest', '', 5, 1756108800 ), array(), 'added_post_meta on a revision id records nothing' );
+
+DPT_AL_Buffer::reset();
+DPT_AL_Hooks::on_post_meta( 202, 610, 'rank_math_title' );
+dpt_test_eq( DPT_AL_Buffer::rows( 'rest', '', 5, 1756108800 ), array(), 'deleted_post_meta on a revision id records nothing either' );
+
+DPT_AL_Buffer::reset();
+// A real post row, so that without the guard get_post() would resolve it and
+// on_post_meta() would proceed to record - the only thing standing in the way
+// is the autosave check itself.
+$GLOBALS['dpt_stub_posts'][611] = array( 'post_type' => 'post', 'post_title' => 'Autosave Target' );
+$GLOBALS['dpt_stub_autosaves'] = array( 611 );
+DPT_AL_Hooks::on_post_meta( 203, 611, 'rank_math_title' );
+dpt_test_eq( DPT_AL_Buffer::rows( 'rest', '', 5, 1756108800 ), array(), 'and an autosave id records nothing through the meta callback' );
+$GLOBALS['dpt_stub_autosaves'] = array();
+
+// A real post must still be reported: the guard must not have swallowed
+// on_post_meta() outright.
+DPT_AL_Buffer::reset();
+$GLOBALS['dpt_stub_posts'][612] = array( 'post_type' => 'post', 'post_title' => 'Still Reported' );
+DPT_AL_Hooks::on_post_meta( 204, 612, 'rank_math_title' );
+$rows = DPT_AL_Buffer::rows( 'rest', '', 5, 1756108800 );
+dpt_test_eq( count( $rows ), 1, 'a meta write on a real post still records' );
+dpt_test_eq( $rows[0]['fields'], array( 'rank_math_title' ), 'with the meta key' );
+
 DPT_AL_Buffer::reset();
 $attachment_after = (object) array(
 	'post_type'     => 'attachment',

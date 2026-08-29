@@ -132,8 +132,31 @@ class DPT_AL_Hooks {
 		return $changed;
 	}
 
+	/**
+	 * Whether a post id is a revision or an autosave - the internal
+	 * housekeeping every callback that resolves a post id must decline to
+	 * report on, not just the one a reviewer happened to name.
+	 *
+	 * Registered post meta with revision support is copied onto each
+	 * revision, and removed from it again on pruning, through the ordinary
+	 * metadata APIs (wp_save_revisioned_meta_fields() and
+	 * wp_delete_post_revision(), both wp-includes/revision.php, via
+	 * _wp_copy_post_meta() and delete_metadata_by_mid() in
+	 * wp-includes/meta.php since WP 6.4). Those calls fire the same
+	 * added_post_meta / deleted_post_meta hooks a real edit would, with the
+	 * revision's own id as the object id - so this guard belongs wherever a
+	 * callback turns an id into a post, not only in the two places that
+	 * already had it.
+	 *
+	 * @param int $post_id Post ID.
+	 * @return bool
+	 */
+	private static function is_revision_or_autosave( $post_id ) {
+		return wp_is_post_revision( $post_id ) || wp_is_post_autosave( $post_id );
+	}
+
 	public static function on_post_saved( $post_id, $post, $update, $post_before ) {
-		if ( wp_is_post_revision( $post_id ) || wp_is_post_autosave( $post_id ) ) {
+		if ( self::is_revision_or_autosave( $post_id ) ) {
 			return;
 		}
 		$type = ( isset( $post->post_type ) && 'attachment' === $post->post_type ) ? 'attachment' : 'post';
@@ -148,7 +171,7 @@ class DPT_AL_Hooks {
 	}
 
 	public static function on_post_deleted( $post_id, $post = null ) {
-		if ( wp_is_post_revision( $post_id ) || wp_is_post_autosave( $post_id ) ) {
+		if ( self::is_revision_or_autosave( $post_id ) ) {
 			// wp_delete_post_revision() (wp-includes/revision.php) prunes the
 			// oldest revisions past WP_POST_REVISIONS on every save that pushes
 			// a post over the limit, and it deletes each one through
@@ -170,6 +193,16 @@ class DPT_AL_Hooks {
 	}
 
 	public static function on_post_meta( $meta_id, $object_id, $meta_key ) {
+		if ( self::is_revision_or_autosave( $object_id ) ) {
+			// Registered meta with revision support rides along on every
+			// revision - see is_revision_or_autosave() for the core paths
+			// that fire added_post_meta / deleted_post_meta with the
+			// revision's own id. Left unguarded, every automated save on an
+			// affected site would write a spurious "updated" row for
+			// housekeeping nobody asked about, exactly like the unguarded
+			// on_post_deleted() case above.
+			return;
+		}
 		$post = get_post( $object_id );
 		if ( ! $post ) {
 			return;
