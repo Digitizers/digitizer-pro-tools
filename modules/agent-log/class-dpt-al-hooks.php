@@ -306,10 +306,19 @@ class DPT_AL_Hooks {
 				switch_to_blog( $blog_id );
 			}
 			try {
-				foreach ( $blog_rows as $row ) {
-					DPT_AL_Store::insert( $row );
+				// Enablement is per site, and DPT_Plugin::load_modules()
+				// decided it once, for whichever site the request started on.
+				// Now that rows are written in other sites' contexts, that one
+				// answer is the wrong one for every other group: a run that
+				// switches into a site where the operator turned Agent Log off
+				// would record there anyway, into a table install_table() was
+				// never run to create. So each group asks the site it is about.
+				if ( self::blog_records() ) {
+					foreach ( $blog_rows as $row ) {
+						DPT_AL_Store::insert( $row );
+					}
+					self::maybe_prune();
 				}
-				self::maybe_prune();
 			} finally {
 				// Restored even when a write throws. Leaving a switch on the
 				// stack would hand the rest of shutdown - and every other
@@ -319,6 +328,41 @@ class DPT_AL_Hooks {
 				}
 			}
 		}
+	}
+
+	/**
+	 * Whether the site that is current right now records agent activity.
+	 *
+	 * Two questions, both answered per site and both answered from that
+	 * site's own options, so this is only ever meaningful inside the context
+	 * the rows are about:
+	 *
+	 * - Is the module switched on here? The flag lives in the 'modules' array
+	 *   of the dpt_settings option, which is per site. The reading of it is
+	 *   not repeated here: DPT_Plugin::is_module_enabled() already knows how
+	 *   to read it, including the registry default for a site that has never
+	 *   saved the map, and a second copy of that rule would drift from the
+	 *   Modules screen the operator actually used.
+	 * - Is the table there? DPT_AL_Store::install_table() runs from the
+	 *   module's init(), which only ever runs on the site the request started
+	 *   on - so a site reached by switch_to_blog() may have the module on and
+	 *   no table yet, and inserting into a table that does not exist is an
+	 *   error per row. The schema stamp is exactly the right thing to ask,
+	 *   because install_table() only writes it once it has confirmed the
+	 *   table is really present.
+	 *
+	 * Installing listeners for a site the request did not start on is not
+	 * attempted: by the time flush() runs the changes have already happened,
+	 * and the hooks were registered - or not - long before. Declining the
+	 * write is the whole of the fix.
+	 *
+	 * @return bool
+	 */
+	private static function blog_records() {
+		if ( class_exists( 'DPT_Plugin' ) && ! DPT_Plugin::instance()->is_module_enabled( 'agent_log' ) ) {
+			return false;
+		}
+		return get_option( 'dpt_agent_log_schema', '' ) === DPT_AL_Store::SCHEMA_VERSION;
 	}
 
 	/**

@@ -24,6 +24,52 @@ dpt_test_eq( DPT_AL_Channel::current(), '', 'a browser request is not a channel'
 $GLOBALS['dpt_stub_rest_request'] = true;
 dpt_test_eq( DPT_AL_Channel::current(), 'rest', 'a REST request is' );
 
+// ...but not every REST request. The block editor saves posts over the REST
+// API, authenticated by the ordinary logged-in cookie, so REST_REQUEST alone
+// would make every Gutenberg save on every site read as an automation and
+// bury the log in human editing.
+//
+// The signal is core's own $wp_rest_auth_cookie, which
+// rest_cookie_collect_status() (wp-includes/rest-api.php:1185) sets to true
+// from the auth_cookie_valid action, and to the failure name from each of the
+// four failure actions (default-filters.php:338-342). For a REST request that
+// action is reached through wp_validate_logged_in_cookie()
+// (wp-includes/user.php:598, on determine_current_user) and fires only at the
+// very end of wp_validate_auth_cookie() (pluggable.php:931).
+$GLOBALS['dpt_stub_app_password_uuid'] = null;
+$GLOBALS['dpt_stub_app_passwords']     = array();
+$GLOBALS['wp_rest_auth_cookie']        = true;
+dpt_test_eq( DPT_AL_Channel::current(), '', 'a cookie-authenticated REST request - a person saving in the block editor - is not an automation' );
+
+// An application password is unambiguously not a browser, so it wins even in
+// the one case where both could be true of the same request.
+$GLOBALS['dpt_stub_app_password_uuid'] = 'uuid-1';
+$GLOBALS['dpt_stub_app_passwords']     = array( 'uuid-1' => array( 'name' => 'ContentEngine' ) );
+dpt_test_eq( DPT_AL_Channel::current(), 'rest', 'while a REST write authenticated by an application password is still rest, cookie or no cookie' );
+$GLOBALS['dpt_stub_app_password_uuid'] = null;
+$GLOBALS['dpt_stub_app_passwords']     = array();
+
+// A cookie that was sent and rejected is not a session either: core puts the
+// failure name ('expired', 'bad_hash', ...) in the same global, and only the
+// identity true means a session was established.
+$GLOBALS['wp_rest_auth_cookie'] = 'expired';
+dpt_test_eq( DPT_AL_Channel::current(), 'rest', 'a cookie that was sent and rejected is no browser session, so the request is still rest' );
+
+// The cookie check belongs to REST alone. A cron run carrying a valid cookie
+// - an admin-triggered wp-cron.php spawn does exactly that - is still cron.
+$GLOBALS['wp_rest_auth_cookie'] = true;
+$GLOBALS['dpt_stub_doing_cron'] = true;
+dpt_test_eq( DPT_AL_Channel::current(), 'cron', 'a cron run is decided before the cookie is ever looked at' );
+$GLOBALS['dpt_stub_doing_cron'] = false;
+unset( $GLOBALS['wp_rest_auth_cookie'] );
+
+// A REST request with no authentication at all never validated a cookie, so
+// the global is unset. That falls on the recorded side on purpose: no browser
+// session was established, a permission callback would normally reject such a
+// write, and one that lands anyway is exactly the anomalous non-browser change
+// the log exists to surface.
+dpt_test_eq( DPT_AL_Channel::current(), 'rest', 'and an unauthenticated REST write, which no browser session backs, stays on the recorded side' );
+
 // Contexts nest, and the outermost one is the true origin. Cron that runs
 // code setting REST_REQUEST is still cron.
 $GLOBALS['dpt_stub_doing_cron'] = true;
@@ -768,12 +814,28 @@ unset( $_SERVER['REQUEST_METHOD'] );
 // the channel every assertion below would see. See the fixture's header.
 $dpt_child = dirname( __DIR__ ) . '/tests/agent-log-early-channel-child.php';
 $dpt_cases = array();
-foreach ( array( 'cli', 'xmlrpc', 'none' ) as $dpt_case ) {
-	$dpt_out = trim( (string) shell_exec( 'php ' . escapeshellarg( $dpt_child ) . ' ' . escapeshellarg( $dpt_case ) ) );
-	$dpt_cases[ $dpt_case ] = array( 'raw' => $dpt_out, 'early' => null, 'hooks' => null );
-	if ( preg_match( '/^early=(\d+) hooks=(\d+)$/', $dpt_out, $dpt_m ) ) {
-		$dpt_cases[ $dpt_case ]['early'] = (int) $dpt_m[1];
-		$dpt_cases[ $dpt_case ]['hooks'] = (int) $dpt_m[2];
+foreach (
+	array(
+		'cli'           => array( 'cli' ),
+		'xmlrpc'        => array( 'xmlrpc' ),
+		'none'          => array( 'none' ),
+		// The same two channels, this time on a request that also carries a
+		// valid logged-in cookie: the browser-session check current() applies
+		// to REST must not reach them.
+		'cli-cookie'    => array( 'cli', 'cookie' ),
+		'xmlrpc-cookie' => array( 'xmlrpc', 'cookie' ),
+	) as $dpt_name => $dpt_argv
+) {
+	$dpt_cmd = 'php ' . escapeshellarg( $dpt_child );
+	foreach ( $dpt_argv as $dpt_arg ) {
+		$dpt_cmd .= ' ' . escapeshellarg( $dpt_arg );
+	}
+	$dpt_out = trim( (string) shell_exec( $dpt_cmd ) );
+	$dpt_cases[ $dpt_name ] = array( 'raw' => $dpt_out, 'early' => null, 'hooks' => null, 'channel' => null );
+	if ( preg_match( '/^early=(\d+) hooks=(\d+) channel=(\S+)$/', $dpt_out, $dpt_m ) ) {
+		$dpt_cases[ $dpt_name ]['early']   = (int) $dpt_m[1];
+		$dpt_cases[ $dpt_name ]['hooks']   = (int) $dpt_m[2];
+		$dpt_cases[ $dpt_name ]['channel'] = ( '-' === $dpt_m[3] ) ? '' : $dpt_m[3];
 	}
 }
 dpt_test_eq( $dpt_cases['cli']['early'], 1, 'a WP-CLI run is a channel we can name before plugins_loaded' );
@@ -785,7 +847,35 @@ dpt_test_ok( $dpt_cases['xmlrpc']['hooks'] > 0, 'and it registers listeners too'
 dpt_test_eq( $dpt_cases['none']['early'], 0, 'while the same child with neither constant names no channel' );
 dpt_test_eq( $dpt_cases['none']['hooks'], 0, 'and registers nothing at all, which is what makes the cases above mean something' );
 
+// And the browser-session check that keeps a Gutenberg save out of the log is
+// a REST check and nothing wider: a WP-CLI or XML-RPC request that happens to
+// carry a valid logged-in cookie is still the channel it announced itself as.
+dpt_test_eq( $dpt_cases['cli']['channel'], 'cli', 'a WP-CLI run names its own channel' );
+dpt_test_eq( $dpt_cases['cli-cookie']['channel'], 'cli', 'and still does with a valid logged-in cookie on the request' );
+dpt_test_eq( $dpt_cases['xmlrpc']['channel'], 'xmlrpc', 'an XML-RPC request names its own too' );
+dpt_test_eq( $dpt_cases['xmlrpc-cookie']['channel'], 'xmlrpc', 'and is likewise untouched by the cookie check' );
+
 /* ---- flush(): the only path that writes ---- */
+
+// flush() asks each site whether it records before writing that site's rows,
+// and it asks through DPT_Plugin::is_module_enabled() rather than re-reading
+// the dpt_settings option itself - so the real class is loaded here.
+require_once dirname( __DIR__ ) . '/includes/class-dpt-plugin.php';
+
+/**
+ * Put the current stub site in the state a site that records is in: the module
+ * switched on in its own dpt_settings, and the schema stamp that says
+ * install_table() has confirmed the table is really there.
+ */
+function dpt_al_stub_recording( $on = true ) {
+	$settings = get_option( DPT_OPTION, array() );
+	if ( ! is_array( $settings ) ) {
+		$settings = array();
+	}
+	$settings['modules']['agent_log'] = $on ? '1' : '0';
+	update_option( DPT_OPTION, $settings );
+	update_option( 'dpt_agent_log_schema', DPT_AL_Store::SCHEMA_VERSION );
+}
 
 // init() cannot gate on the channel, because core defines REST_REQUEST on
 // 'parse_request', long after the 'plugins_loaded' that reaches init(). So
@@ -793,6 +883,7 @@ dpt_test_eq( $dpt_cases['none']['hooks'], 0, 'and registers nothing at all, whic
 $writer = new DPT_AL_Test_Writer();
 DPT_AL_Store::set_writer( $writer );
 $GLOBALS['dpt_stub_options']           = array();
+dpt_al_stub_recording();
 $GLOBALS['dpt_stub_doing_cron']        = false;
 $GLOBALS['dpt_stub_rest_request']      = false;
 $GLOBALS['dpt_stub_app_password_uuid'] = null;
@@ -883,11 +974,13 @@ $GLOBALS['dpt_stub_restore_calls'] = 0;
 $GLOBALS['dpt_stub_options']       = array();
 DPT_AL_Buffer::reset();
 dpt_stub_enter_blog( 2 );
+dpt_al_stub_recording();
 
 // The same post id on two sites. Keyed on the object alone these would merge
 // into one row describing neither.
 DPT_AL_Buffer::record( 'post', 'post', 5, 'updated', 'Home on site two', array( 'post_title' ) );
 switch_to_blog( 7 );
+dpt_al_stub_recording();
 DPT_AL_Buffer::record( 'post', 'post', 5, 'updated', 'Home on site seven', array( 'post_content' ) );
 restore_current_blog();
 
@@ -926,6 +1019,69 @@ dpt_test_ok(
 dpt_test_ok( isset( $GLOBALS['dpt_stub_options']['dpt_agent_log_last_prune'] ), 'the throttle stamp lands on the originating site' );
 dpt_test_ok( isset( $GLOBALS['dpt_stub_blog_options'][7]['dpt_agent_log_last_prune'] ), 'and a separate one on the site that was switched to, so neither starves the other' );
 
+/* ---- and each site decides for itself whether it records ---- */
+
+// DPT_Plugin::load_modules() decides enablement once, for the site the request
+// started on. Now that flush() writes into other sites' contexts, that one
+// answer is the wrong one for every other group: a run that switches into a
+// site where the operator turned Agent Log off would record there anyway, and
+// into a table that was never created because install_table() only ever runs
+// on the starting site. So each group asks the site it is about, and skips
+// itself when the answer is no.
+
+// Site 7 has the module switched off. Its rows are dropped; site 2's are not,
+// which is what makes this a per-site decision rather than an off switch.
+$GLOBALS['dpt_stub_multisite']    = true;
+$GLOBALS['dpt_stub_blog_options'] = array();
+$GLOBALS['dpt_stub_switch_stack'] = array();
+DPT_AL_Buffer::reset();
+dpt_stub_enter_blog( 2 );
+dpt_al_stub_recording();
+DPT_AL_Buffer::record( 'post', 'post', 5, 'updated', 'Home on site two' );
+switch_to_blog( 7 );
+dpt_al_stub_recording( false );
+DPT_AL_Buffer::record( 'post', 'post', 5, 'updated', 'Home on site seven' );
+restore_current_blog();
+$writer->inserted = array();
+$writer->queries  = array();
+DPT_AL_Hooks::flush();
+
+dpt_test_eq(
+	array_column( $writer->inserted, 'table' ),
+	array( 'wp_2_dpt_agent_log' ),
+	'a site with the module switched off receives no rows, while the site that has it on still does'
+);
+dpt_test_ok(
+	! array_filter( $writer->queries, function ( $sql ) { return false !== strpos( $sql, 'wp_7_dpt_agent_log' ); } ),
+	'and nothing prunes there either, since a disabled site may have no table to prune'
+);
+
+// The other half of the question, and the one that turns a dropped row into a
+// database error rather than a wrong row: the module is on for site 7, but
+// install_table() never ran there - it runs from init(), on the starting site
+// alone - so the schema stamp that only appears once the table is confirmed
+// present is missing.
+$GLOBALS['dpt_stub_blog_options'] = array();
+$GLOBALS['dpt_stub_switch_stack'] = array();
+DPT_AL_Buffer::reset();
+dpt_stub_enter_blog( 2 );
+dpt_al_stub_recording();
+DPT_AL_Buffer::record( 'post', 'post', 5, 'updated', 'Home on site two' );
+switch_to_blog( 7 );
+dpt_al_stub_recording();
+update_option( 'dpt_agent_log_schema', '' );
+DPT_AL_Buffer::record( 'post', 'post', 5, 'updated', 'Home on site seven' );
+restore_current_blog();
+$writer->inserted = array();
+$writer->queries  = array();
+DPT_AL_Hooks::flush();
+
+dpt_test_eq(
+	array_column( $writer->inserted, 'table' ),
+	array( 'wp_2_dpt_agent_log' ),
+	'a site whose table was never installed receives no rows either, rather than inserting into a table that is not there'
+);
+
 // A single site takes none of that path: no switch, no restore, and every row
 // in the one table it has.
 $GLOBALS['dpt_stub_multisite']     = false;
@@ -934,6 +1090,7 @@ $GLOBALS['dpt_stub_restore_calls'] = 0;
 $GLOBALS['dpt_stub_options']       = array();
 DPT_AL_Buffer::reset();
 dpt_stub_enter_blog( 1 );
+dpt_al_stub_recording();
 $writer->inserted = array();
 $writer->queries  = array();
 DPT_AL_Buffer::record( 'post', 'post', 5, 'updated', 'Home', array( 'post_title' ) );
@@ -974,7 +1131,9 @@ $GLOBALS['dpt_stub_restore_calls'] = 0;
 $GLOBALS['dpt_stub_options']       = array();
 DPT_AL_Buffer::reset();
 dpt_stub_enter_blog( 2 );
+dpt_al_stub_recording();
 switch_to_blog( 7 );
+dpt_al_stub_recording();
 DPT_AL_Buffer::record( 'post', 'post', 5, 'updated', 'Home on site seven' );
 restore_current_blog();
 $GLOBALS['dpt_stub_switch_calls']  = 0;
@@ -1200,6 +1359,148 @@ dpt_test_eq( $GLOBALS['dpt_stub_dbdelta_calls'], 2, 'so the next request retries
 $writer->var = 'wp_dpt_agent_log';
 DPT_AL_Store::install_table();
 dpt_test_eq( get_option( 'dpt_agent_log_schema', 'unstamped' ), DPT_AL_Store::SCHEMA_VERSION, 'and stamps the version on the retry that finally works' );
+
+/* ---- the screen ---- */
+
+require_once dirname( __DIR__ ) . '/modules/agent-log/class-dpt-al-admin.php';
+
+// The slice of the admin API render_page() touches, and nothing more.
+function esc_html_e( $text, $domain = null ) { echo esc_html( $text ); }
+function esc_attr_e( $text, $domain = null ) { echo esc_attr( $text ); }
+function selected( $selected, $current = true, $display = true ) {
+	$out = ( (string) $selected === (string) $current ) ? " selected='selected'" : '';
+	if ( $display ) {
+		echo $out; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+	}
+	return $out;
+}
+function wp_nonce_field( $action = -1, $name = '_wpnonce', $referer = true, $display = true ) {
+	if ( $display ) {
+		echo '<input type="hidden" name="' . esc_attr( $name ) . '" value="nonce" />';
+	}
+}
+
+// wp_date() rendered in a fixed, deliberately non-UTC zone. Core's own
+// implementation formats the timestamp in the given timezone
+// (wp-includes/functions.php:243); date_i18n() with an explicit timestamp does
+// not - it treats the value as already carrying an offset - and that is the
+// difference this stub has to keep visible. A stub that ignored the zone, or a
+// test under UTC, could not tell the two apart.
+$GLOBALS['dpt_stub_timezone'] = 'Asia/Jerusalem';
+function wp_date( $format, $timestamp = null, $timezone = null ) {
+	$dt = new DateTimeImmutable( '@' . (int) $timestamp );
+	return $dt->setTimezone( new DateTimeZone( $GLOBALS['dpt_stub_timezone'] ) )->format( (string) $format );
+}
+
+$GLOBALS['dpt_stub_denied_caps'] = array();
+$GLOBALS['dpt_stub_options']     = array(
+	'date_format' => 'Y-m-d',
+	'time_format' => 'H:i',
+);
+
+$writer = new DPT_AL_Test_Writer();
+DPT_AL_Store::set_writer( $writer );
+
+/**
+ * Render the screen for a given query string and hand back the HTML and the
+ * SQL it built.
+ */
+function dpt_al_render( $get ) {
+	global $writer;
+	$_GET            = $get;
+	$writer->queries = array();
+	ob_start();
+	$admin = new DPT_AL_Admin();
+	$admin->render_page();
+	$html = (string) ob_get_clean();
+	return array( $html, implode( ' ', $writer->queries ) );
+}
+
+// The 'When' column. The row is stored in UTC, as every logged_at is, and the
+// screen belongs to a person reading it in the site's timezone.
+$writer->rows = array(
+	(object) array(
+		'id'             => 1,
+		'logged_at'      => '2026-08-25 12:00:00',
+		'channel'        => 'rest',
+		'app'            => 'ContentEngine',
+		'user_id'        => 1,
+		'action'         => 'updated',
+		'object_type'    => 'post',
+		'object_subtype' => 'page',
+		'object_id'      => 20,
+		'object_name'    => 'Homepage',
+		'fields'         => wp_json_encode( array( 'post_title' ) ),
+	),
+);
+
+list( $dpt_al_html ) = dpt_al_render( array() );
+
+// Jerusalem is UTC+3 in August. date_i18n() with an explicit timestamp reads
+// it as a value that already carries an offset and hands back 12:00 wearing a
+// local label; wp_date() renders the moment, which is 15:00 there.
+dpt_test_ok( false !== strpos( $dpt_al_html, '2026-08-25 15:00' ), 'a row stored at 12:00 UTC shows as the local 15:00, not the UTC wall time' );
+dpt_test_ok( false === strpos( $dpt_al_html, '2026-08-25 12:00' ), 'and the UTC wall time is not what appears on the screen' );
+
+// The same row under a zone behind UTC, so a fix that merely added three
+// hours somewhere would not pass either.
+$GLOBALS['dpt_stub_timezone'] = 'America/New_York';
+list( $dpt_al_html )          = dpt_al_render( array() );
+dpt_test_ok( false !== strpos( $dpt_al_html, '2026-08-25 08:00' ), 'and under a zone behind UTC it shows as 08:00, so the offset is read from the site rather than assumed' );
+$GLOBALS['dpt_stub_timezone'] = 'Asia/Jerusalem';
+
+/* ---- the date range filters the spec promised ---- */
+
+// With only the newest hundred rows on the screen, an administrator with an
+// incident window and no date controls cannot narrow to it at all.
+list( $dpt_al_html, $dpt_al_sql ) = dpt_al_render( array( 'after' => '2026-08-01', 'before' => '2026-08-25' ) );
+
+dpt_test_ok( false !== strpos( $dpt_al_sql, "logged_at >= '2026-08-01 00:00:00'" ), 'the From date reaches the store as a lower bound on logged_at' );
+// Inclusive at the top end: someone who types the same date in both boxes
+// means that day, not an empty range from its midnight to its midnight.
+dpt_test_ok( false !== strpos( $dpt_al_sql, "logged_at <= '2026-08-25 23:59:59'" ), 'and the To date as an upper bound covering the whole of that day, not its opening second' );
+dpt_test_ok( false !== strpos( $dpt_al_html, 'name="after" value="2026-08-01"' ), 'the From box keeps what was submitted after the reload' );
+dpt_test_ok( false !== strpos( $dpt_al_html, 'name="before" value="2026-08-25"' ), 'and so does the To box' );
+
+// A single day, both ends the same: the range has to contain the day itself.
+list( , $dpt_al_sql ) = dpt_al_render( array( 'after' => '2026-08-25', 'before' => '2026-08-25' ) );
+dpt_test_ok(
+	false !== strpos( $dpt_al_sql, "logged_at >= '2026-08-25 00:00:00'" ) && false !== strpos( $dpt_al_sql, "logged_at <= '2026-08-25 23:59:59'" ),
+	'one day in both boxes is that whole day, rather than a range that can hold nothing'
+);
+
+// A date that is not a date. strtotime() in the store would happily read
+// "next tuesday", and rolls 2026-13-45 forward into 2027 rather than
+// rejecting it - so the format is checked before it ever gets there.
+// It is dropped rather than kept, too: reflecting it back into the box would
+// leave the screen showing a filter that is not being applied.
+list( , $dpt_al_sql ) = dpt_al_render( array( 'after' => 'next tuesday' ) );
+dpt_test_ok( false === strpos( $dpt_al_sql, 'logged_at' ), 'a relative phrase strtotime() would happily parse narrows nothing rather than inventing a range' );
+
+foreach ( array( '2026-13-45', 'next tuesday', '25/08/2026', '2026-08-25 12:00:00', 'nonsense' ) as $dpt_al_bad ) {
+	list( $dpt_al_html ) = dpt_al_render( array( 'after' => $dpt_al_bad ) );
+	dpt_test_ok( false === strpos( $dpt_al_html, 'value="' . esc_attr( $dpt_al_bad ) . '"' ), 'and a malformed date is not shown back in the box as a filter that is not in force (' . $dpt_al_bad . ')' );
+}
+
+// Absent parameters build no bound at all.
+list( , $dpt_al_sql ) = dpt_al_render( array() );
+dpt_test_ok( false === strpos( $dpt_al_sql, 'logged_at' ), 'and a screen loaded with no dates bounds nothing' );
+
+// An array-valued parameter must not reach a string function: the scalar
+// guard comes first, exactly as it does for the two enum filters, or PHP 8
+// raises a TypeError and the screen is a fatal instead of a list.
+list( , $dpt_al_sql ) = dpt_al_render( array( 'after' => array( '2026-08-01' ), 'before' => array() ) );
+dpt_test_ok( false === strpos( $dpt_al_sql, 'logged_at' ), 'an array-valued date parameter is dropped rather than handed to a string function' );
+
+// The controls are on the screen and inside the filter form, so submitting
+// them keeps the channel and object type the administrator already chose.
+list( $dpt_al_html ) = dpt_al_render( array( 'channel' => 'cron' ) );
+dpt_test_ok( false !== strpos( $dpt_al_html, 'name="after"' ), 'the From control is rendered' );
+dpt_test_ok( false !== strpos( $dpt_al_html, 'name="before"' ), 'and the To control with it' );
+dpt_test_ok( substr_count( $dpt_al_html, '<form method="get">' ) === 1 && strpos( $dpt_al_html, 'name="after"' ) > strpos( $dpt_al_html, '<form method="get">' ), 'both inside the one filter form, so a date submits alongside the other filters' );
+
+$_GET                        = array();
+$GLOBALS['dpt_stub_options'] = array();
 
 /* ---- uninstalling removes the log from every site of a network ---- */
 

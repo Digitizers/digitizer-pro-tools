@@ -13,13 +13,19 @@
  * scheduler fetches wp-cron.php with, and it is the verb that used to make
  * init() bail out and leave a whole channel unrecorded.
  *
- * Usage: php tests/agent-log-early-channel-child.php cli|xmlrpc|none
- * Prints: early=<0|1> hooks=<count>
+ * A second argument of 'cookie' additionally stages a REST request carrying a
+ * valid logged-in cookie, which is how the parent proves that the browser-
+ * session check DPT_AL_Channel::current() applies to REST leaves these two
+ * channels alone.
+ *
+ * Usage: php tests/agent-log-early-channel-child.php cli|xmlrpc|none [cookie]
+ * Prints: early=<0|1> hooks=<count> channel=<name or ->
  *
  * Not named *-test.php: it is a fixture, and the suite runner globs for tests.
  */
 
-$dpt_case = isset( $argv[1] ) ? (string) $argv[1] : 'none';
+$dpt_case   = isset( $argv[1] ) ? (string) $argv[1] : 'none';
+$dpt_cookie = isset( $argv[2] ) && 'cookie' === $argv[2];
 
 if ( 'cli' === $dpt_case ) {
 	define( 'WP_CLI', true );
@@ -36,10 +42,22 @@ require_once dirname( __DIR__ ) . '/modules/agent-log/class-dpt-al-hooks.php';
 
 $_SERVER['REQUEST_METHOD']        = 'GET';
 $GLOBALS['dpt_stub_doing_cron']   = false;
-$GLOBALS['dpt_stub_rest_request'] = false;
+$GLOBALS['dpt_stub_rest_request'] = $dpt_cookie;
 $GLOBALS['dpt_stub_filters']      = array();
 
-$dpt_early = DPT_AL_Channel::is_early_channel() ? 1 : 0;
+if ( $dpt_cookie ) {
+	$GLOBALS['wp_rest_auth_cookie']        = true;
+	$GLOBALS['dpt_stub_app_password_uuid'] = null;
+	$GLOBALS['dpt_stub_app_passwords']     = array();
+}
+
+$dpt_early   = DPT_AL_Channel::is_early_channel() ? 1 : 0;
+$dpt_channel = DPT_AL_Channel::current();
 DPT_AL_Hooks::init();
 
-printf( "early=%d hooks=%d\n", $dpt_early, count( $GLOBALS['dpt_stub_filters'] ) );
+printf(
+	"early=%d hooks=%d channel=%s\n",
+	$dpt_early,
+	count( $GLOBALS['dpt_stub_filters'] ),
+	'' === $dpt_channel ? '-' : $dpt_channel
+);

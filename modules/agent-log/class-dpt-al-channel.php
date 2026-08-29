@@ -40,12 +40,83 @@ class DPT_AL_Channel {
 		// gates at shutdown rather than on plugins_loaded.
 		if ( function_exists( 'wp_is_serving_rest_request' ) ) {
 			if ( wp_is_serving_rest_request() ) {
-				return 'rest';
+				return self::is_browser_rest() ? '' : 'rest';
 			}
 		} elseif ( defined( 'REST_REQUEST' ) && REST_REQUEST ) {
-			return 'rest';
+			return self::is_browser_rest() ? '' : 'rest';
 		}
 		return '';
+	}
+
+	/**
+	 * Whether this REST request is a person in a browser rather than a client.
+	 *
+	 * The block editor saves posts over the REST API, cookie-authenticated,
+	 * so REST_REQUEST alone is not "an automation did this" - it is also
+	 * every Gutenberg save on every site that uses the block editor. Without
+	 * this the module's central promise fails exactly where it is most
+	 * load-bearing: the log fills with ordinary human editing.
+	 *
+	 * The signal is core's own $wp_rest_auth_cookie. Core sets it in
+	 * rest_cookie_collect_status() (wp-includes/rest-api.php:1185), which
+	 * default-filters.php hooks to auth_cookie_valid and to each of the four
+	 * failure actions (lines 338-342):
+	 *
+	 *     if ( 'auth_cookie_valid' !== $status_type ) {
+	 *         $wp_rest_auth_cookie = substr( $status_type, 12 );
+	 *         return;
+	 *     }
+	 *     $wp_rest_auth_cookie = true;
+	 *
+	 * so `true` means, and only means, that wp_validate_auth_cookie() got all
+	 * the way to its final do_action( 'auth_cookie_valid', ... )
+	 * (wp-includes/pluggable.php:931) - past the malformed, expired, bad
+	 * username, bad hash and bad session token returns above it. For a REST
+	 * request that is reached through wp_validate_logged_in_cookie()
+	 * (wp-includes/user.php:598, on 'determine_current_user',
+	 * default-filters.php:521), which is exactly the path a browser session
+	 * takes. rest_cookie_check_errors() reads the same global for the same
+	 * meaning: "if we get an auth error, but we're still logged in, another
+	 * authentication must have been used" (rest-api.php:1142).
+	 *
+	 * Neither direction is misclassified:
+	 *
+	 * - A REST write from ContentEngine with an application password never
+	 *   validates a logged-in cookie, so the global is null and the answer is
+	 *   'rest'. And in the one case where both could be true at once - a
+	 *   browser that also sent an application password header - the password
+	 *   wins, because rest_get_authenticated_app_password()
+	 *   (rest-api.php:1231) answering with a UUID is unambiguously not a
+	 *   browser session. It is read second on purpose: reading it first would
+	 *   cost the lookup on every request, and the cookie global answers the
+	 *   common case for free.
+	 * - A Gutenberg save validates that cookie, so the global is true and the
+	 *   answer is '' - the same as any other browser request, which is what
+	 *   the module promises.
+	 * - A REST request with no authentication at all leaves the global null -
+	 *   nothing ever set it - and so counts as 'rest'. That is the right
+	 *   side: no browser session was established, so it is not a person
+	 *   editing; a permission callback would normally reject such a write,
+	 *   and one that somehow lands is precisely the anomalous non-browser
+	 *   change the log exists to surface. Erring towards recording an
+	 *   unauthenticated write costs a rare row; erring towards recording a
+	 *   cookie session costs the whole boundary.
+	 *
+	 * A string value ('expired', 'bad_hash', ...) means a cookie was sent and
+	 * rejected, which is not a session either - only the identity `true`
+	 * counts.
+	 *
+	 * @return bool
+	 */
+	private static function is_browser_rest() {
+		if ( ! isset( $GLOBALS['wp_rest_auth_cookie'] ) || true !== $GLOBALS['wp_rest_auth_cookie'] ) {
+			return false;
+		}
+		if ( ! function_exists( 'rest_get_authenticated_app_password' ) ) {
+			return true;
+		}
+		$uuid = rest_get_authenticated_app_password();
+		return empty( $uuid );
 	}
 
 	/**
