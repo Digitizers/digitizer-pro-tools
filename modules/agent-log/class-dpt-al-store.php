@@ -15,6 +15,7 @@ class DPT_AL_Store {
 
 	const DEFAULT_PER_PAGE = 20;
 	const MAX_PER_PAGE     = 100;
+	const SCHEMA_VERSION   = '1';
 
 	/** @var object|null */
 	private static $writer = null;
@@ -275,5 +276,66 @@ class DPT_AL_Store {
 		$sql .= ' WHERE ' . $parts['where'];
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- own table; every value is a placeholder filled by prepare().
 		return (int) $writer->get_var( $writer->prepare( $sql, ...$parts['params'] ) );
+	}
+
+	/**
+	 * Create or upgrade the table.
+	 *
+	 * Called from the module's init(), not from the plugin's activation hook:
+	 * a module that has never been switched on should not leave a table
+	 * behind on every site the plugin is installed on. Guarded by a stored
+	 * version so dbDelta does not run on every page load.
+	 *
+	 * @return void
+	 */
+	public static function install_table() {
+		if ( get_option( 'dpt_agent_log_schema', '' ) === self::SCHEMA_VERSION ) {
+			return;
+		}
+
+		global $wpdb;
+		$table   = self::table();
+		$collate = $wpdb->get_charset_collate();
+
+		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange -- this module's own table, created through dbDelta.
+		dbDelta(
+			"CREATE TABLE {$table} (
+				id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+				logged_at DATETIME NOT NULL,
+				channel VARCHAR(20) NOT NULL DEFAULT '',
+				app VARCHAR(100) NOT NULL DEFAULT '',
+				user_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+				action VARCHAR(40) NOT NULL DEFAULT '',
+				object_type VARCHAR(40) NOT NULL DEFAULT '',
+				object_subtype VARCHAR(60) NOT NULL DEFAULT '',
+				object_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+				object_name VARCHAR(191) NOT NULL DEFAULT '',
+				fields TEXT NULL,
+				PRIMARY KEY  (id),
+				KEY logged_at (logged_at),
+				KEY object (object_type, object_id),
+				KEY channel (channel)
+			) {$collate};"
+		);
+
+		update_option( 'dpt_agent_log_schema', self::SCHEMA_VERSION );
+	}
+
+	/**
+	 * Empty the log.
+	 *
+	 * DELETE rather than TRUNCATE: TRUNCATE is a schema change on some
+	 * configurations, cannot be rolled back, and this is reached from a
+	 * button on an admin screen.
+	 *
+	 * @return void
+	 */
+	public static function clear() {
+		$writer = self::writer();
+		$table  = self::table();
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- own table, no user input in the statement.
+		$writer->query( "DELETE FROM {$table}" );
 	}
 }

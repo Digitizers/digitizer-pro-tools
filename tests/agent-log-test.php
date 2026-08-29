@@ -632,4 +632,12 @@ DPT_AL_Rest::handle( new WP_REST_Request( array( 'channel' => 'cron' ) ) );
 $channel_param_sql = implode( ' ', $writer->queries );
 dpt_test_ok( false !== strpos( $channel_param_sql, "WHERE channel = 'cron'" ), 'and one carrying a channel filters the store query by it' );
 
+/* ---- the schema guard skips dbDelta once the version is current ---- */
+
+// dbDelta runs once per schema version, not on every page load.
+$GLOBALS['dpt_stub_options'] = array( 'dpt_agent_log_schema' => DPT_AL_Store::SCHEMA_VERSION );
+$GLOBALS['dpt_stub_dbdelta_calls'] = 0;
+DPT_AL_Store::install_table();
+dpt_test_eq( $GLOBALS['dpt_stub_dbdelta_calls'], 0, 'a table already at this schema version is not rebuilt' );
+
 dpt_test_summary();
