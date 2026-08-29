@@ -118,6 +118,11 @@ class DPT_Plugin {
 				'class'   => 'DPT_Embed_Module',
 				'default' => '0',
 			),
+			'agent_log' => array(
+				'file'    => DPT_PATH . 'modules/agent-log/class-dpt-al-module.php',
+				'class'   => 'DPT_Agent_Log_Module',
+				'default' => '0',
+			),
 		);
 		return apply_filters( 'dpt_modules', $modules );
 	}

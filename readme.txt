@@ -4,7 +4,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.29.0
+Stable tag: 1.30.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -331,6 +331,12 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 5. Configure each module you enabled from its own screen. For the Cookie Banner that means reviewing the texts per language and pasting your analytics/marketing snippets in the Scripts tab, then checking the site
 
 == Changelog ==
+
+= 1.30.0 =
+* New module: Agent Log - records what automations changed on this site. Anything that arrived over the REST API, WP-Cron, WP-CLI or XML-RPC is recorded; a change made by a person in the admin is not recorded at all
+* Each entry names who, what and when, and which fields were touched - never the values, so the log never becomes a second copy of the site's content
+* Readable at /digitizer/v1/activity, which requires the capability to manage options, and on the module's own screen. Nothing erases it over the API
+* Entries are kept for thirty days or twenty thousand rows, whichever comes first. Both limits are filterable, and switching the module off leaves the log where it is
 
 = 1.29.0 =
 * Update Policy now answers in Site Health as well as on the Updates screen and the dashboard. A hold looks exactly like a missing update, and Site Health is where someone goes when an update looks missing - so the entry says which release is held, when the site first saw it and when the hold ends, and says plainly when nothing is held at all
