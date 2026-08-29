@@ -30,6 +30,8 @@ $GLOBALS['dpt_stub_themes']         = array();
 $GLOBALS['dpt_stub_transients']     = array();
 $GLOBALS['dpt_stub_http']           = array();
 $GLOBALS['dpt_stub_options']        = array();
+$GLOBALS['dpt_stub_doing_cron']     = false;
+$GLOBALS['dpt_stub_rest_request']   = false;
 
 function dpt_test_ok( $cond, $label ) {
 	if ( $cond ) {
@@ -55,6 +57,8 @@ function dpt_test_summary() {
 	printf( "\n%d passed, %d failed\n", $GLOBALS['dpt_test_pass'], $GLOBALS['dpt_test_fail'] );
 	return $GLOBALS['dpt_test_fail'];
 }
+
+function wp_is_rest_request() { return (bool) $GLOBALS['dpt_stub_rest_request']; }
 
 /**
  * A notice raised while a REST response is being built corrupts the JSON
@@ -428,7 +432,7 @@ $GLOBALS['dpt_stub_main_site'] = true;
 function is_main_site() { return (bool) $GLOBALS['dpt_stub_main_site']; }
 $GLOBALS['dpt_stub_is_admin'] = true;
 function is_admin() { return (bool) $GLOBALS['dpt_stub_is_admin']; }
-function wp_doing_cron() { return false; }
+function wp_doing_cron() { return (bool) $GLOBALS['dpt_stub_doing_cron']; }
 // Core's answer to "does this site run background updates for this kind of
 // thing at all", which AUTOMATIC_UPDATER_DISABLED and several filters turn off
 // without touching anybody's capabilities.
