@@ -51,16 +51,29 @@ class DPT_AL_Buffer {
 	 * @return void
 	 */
 	public static function record( $type, $subtype, $id, $action, $name = '', $fields = array() ) {
+		// Which site the change happened on. One CLI or cron request can walk
+		// a whole network with switch_to_blog(), and the log table is per site
+		// - so the entry has to carry the site it belongs to, or flush() has
+		// nothing left to route it by. On a single site this is core's
+		// $blog_id global (wp-includes/load.php:1481), which is 1 and costs
+		// nothing to read; it is in the key there too, harmlessly, because a
+		// single site never produces a second value for it.
+		$blog = (int) get_current_blog_id();
+
 		// Objects with a real id are keyed on it. Plugins, themes and options
 		// pass id 0, so keying on id alone would collapse every plugin
 		// activated in one request onto the same "plugin:0" entry - key
-		// those on whatever actually identifies the object instead.
-		$key = $type . ':' . ( (int) $id > 0
+		// those on whatever actually identifies the object instead. The site
+		// leads the key because post 5 on one site and post 5 on another are
+		// two different objects, and merging them would write one row that
+		// describes neither.
+		$key = $blog . ':' . $type . ':' . ( (int) $id > 0
 			? (int) $id
 			: ( '' !== (string) $subtype ? (string) $subtype : (string) $name ) );
 
 		if ( ! isset( self::$pending[ $key ] ) ) {
 			self::$pending[ $key ] = array(
+				'blog_id'        => $blog,
 				'object_type'    => (string) $type,
 				'object_subtype' => (string) $subtype,
 				'object_id'      => (int) $id,
@@ -111,6 +124,12 @@ class DPT_AL_Buffer {
 
 	/**
 	 * The rows this request should write.
+	 *
+	 * Each row carries the 'blog_id' its entry was recorded on. That is
+	 * routing information, not a column: the table is per site, so the row
+	 * needs no site column and DPT_AL_Store::insert() - which builds its data
+	 * from columns() and ignores anything else in the row - never writes it.
+	 * DPT_AL_Hooks::flush() groups on it to reach the right table.
 	 *
 	 * @param string $channel Channel name.
 	 * @param string $app     Application name, '' when unknown.

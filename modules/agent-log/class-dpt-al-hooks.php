@@ -60,7 +60,19 @@ class DPT_AL_Hooks {
 		add_action( 'switch_theme', array( __CLASS__, 'on_theme_switched' ), 10, 2 );
 		add_action( 'updated_option', array( __CLASS__, 'on_option_updated' ) );
 
-		add_action( 'shutdown', array( __CLASS__, 'flush' ) );
+		// Late on purpose, and for the same reason the update policy hooks
+		// allow_major_auto_core_updates at 9999: the answer that runs last is
+		// the one that counts. Here it is not an argument being won but data
+		// being lost - the change listeners above stay hooked for the whole of
+		// 'shutdown', so a plugin that saves something from its own shutdown
+		// callback (deferred writes are an ordinary pattern) buffers a change
+		// after a default-priority flush has already run and emptied the
+		// buffer, and that change is then never written by anyone. Running
+		// after those callbacks is what makes the log complete. Not
+		// PHP_INT_MAX, by the same reasoning as the update policy: a site that
+		// deliberately wants the very last word from its own mu-plugin should
+		// still be able to take it.
+		add_action( 'shutdown', array( __CLASS__, 'flush' ), 9999 );
 	}
 
 	/**
@@ -267,10 +279,62 @@ class DPT_AL_Hooks {
 		if ( empty( $rows ) ) {
 			return;
 		}
+
+		// One request can have changed things on more than one site: a
+		// maintenance script that loops the network with switch_to_blog() is
+		// an ordinary thing to write, and by the time 'shutdown' runs it has
+		// long since restored the site it started on. The table is per site
+		// - $wpdb->prefix follows the switch (wp-includes/ms-blogs.php:534,
+		// via wpdb::set_blog_id()), and so does DPT_AL_Store::table() - so
+		// writing every row here would file all of them under whichever site
+		// happens to be current now. Group by the site each change was
+		// recorded on and write each group in that site's context.
+		$grouped = array();
 		foreach ( $rows as $row ) {
-			DPT_AL_Store::insert( $row );
+			$grouped[ isset( $row['blog_id'] ) ? (int) $row['blog_id'] : 0 ][] = $row;
 		}
 
+		$current = (int) get_current_blog_id();
+		foreach ( $grouped as $blog_id => $blog_rows ) {
+			// Single site: is_multisite() is false, switch_to_blog() is not
+			// even defined (core loads ms-blogs.php only for a network,
+			// wp-settings.php:160), and this is the whole of the difference -
+			// no switch, no restore, no extra query, exactly the path this
+			// method has always taken.
+			$switched = is_multisite() && $blog_id > 0 && $blog_id !== $current;
+			if ( $switched ) {
+				switch_to_blog( $blog_id );
+			}
+			try {
+				foreach ( $blog_rows as $row ) {
+					DPT_AL_Store::insert( $row );
+				}
+				self::maybe_prune();
+			} finally {
+				// Restored even when a write throws. Leaving a switch on the
+				// stack would hand the rest of shutdown - and every other
+				// plugin on it - the wrong site.
+				if ( $switched ) {
+					restore_current_blog();
+				}
+			}
+		}
+	}
+
+	/**
+	 * Prune this site's log, at most once an hour.
+	 *
+	 * Called inside the site context the rows were just written in, because
+	 * both halves of it are per site: the table it trims, and the throttle
+	 * stamp in the options table that decides whether to trim at all. Pruning
+	 * from the originating site's context instead would trim that site's table
+	 * on behalf of writes made elsewhere, leave the other sites' tables to grow
+	 * without bound, and push the originating site's stamp forward so its own
+	 * next prune is skipped.
+	 *
+	 * @return void
+	 */
+	private static function maybe_prune() {
 		$last = (int) get_option( 'dpt_agent_log_last_prune', 0 );
 		if ( ( time() - $last ) < HOUR_IN_SECONDS ) {
 			return;

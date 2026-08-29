@@ -2,6 +2,17 @@
 require_once __DIR__ . '/bootstrap.php';
 require_once dirname( __DIR__ ) . '/modules/agent-log/class-dpt-al-channel.php';
 
+// The site every assertion runs on unless it says otherwise. get_current_blog_id()
+// is stubbed further down this file (function declarations are hoisted, so it is
+// callable from here); core answers 1 on a single site, so that is what it holds
+// while nothing is switching. The per-site option sets the switch stubs swap
+// between start out empty.
+$GLOBALS['dpt_stub_current_blog']  = 1;
+$GLOBALS['dpt_stub_blog_options']  = array();
+$GLOBALS['dpt_stub_switch_stack']  = array();
+$GLOBALS['dpt_stub_switch_calls']  = 0;
+$GLOBALS['dpt_stub_restore_calls'] = 0;
+
 /* ---- channel detection ---- */
 
 // A browser request is the case the whole module turns on: nothing is
@@ -848,6 +859,170 @@ DPT_AL_Hooks::on_option_updated( 'blogname' );
 DPT_AL_Hooks::flush();
 dpt_test_ok( ! empty( $writer->queries ), 'and a flush after the throttle has expired prunes again' );
 
+/* ---- one request, several sites ---- */
+
+// A CLI or cron run that walks a network with switch_to_blog() records changes
+// on several sites and reaches shutdown back where it started. The log table is
+// per site, so the buffer has to remember which site each change was made on
+// and flush() has to write each group in that site's context.
+
+// Production has one $wpdb serving as both the global and the store's writer,
+// which is what makes the prefix - and so the table name - follow a switch.
+// The double has to be the same object in both roles or the switch would be
+// invisible to DPT_AL_Store::table().
+$writer = new DPT_AL_Test_Writer();
+DPT_AL_Store::set_writer( $writer );
+$GLOBALS['wpdb'] = $writer;
+
+$GLOBALS['dpt_stub_rest_request']  = true;
+$GLOBALS['dpt_stub_multisite']     = true;
+$GLOBALS['dpt_stub_blog_options']  = array();
+$GLOBALS['dpt_stub_switch_stack']  = array();
+$GLOBALS['dpt_stub_switch_calls']  = 0;
+$GLOBALS['dpt_stub_restore_calls'] = 0;
+$GLOBALS['dpt_stub_options']       = array();
+DPT_AL_Buffer::reset();
+dpt_stub_enter_blog( 2 );
+
+// The same post id on two sites. Keyed on the object alone these would merge
+// into one row describing neither.
+DPT_AL_Buffer::record( 'post', 'post', 5, 'updated', 'Home on site two', array( 'post_title' ) );
+switch_to_blog( 7 );
+DPT_AL_Buffer::record( 'post', 'post', 5, 'updated', 'Home on site seven', array( 'post_content' ) );
+restore_current_blog();
+
+$GLOBALS['dpt_stub_switch_calls']  = 0;
+$GLOBALS['dpt_stub_restore_calls'] = 0;
+$writer->inserted                  = array();
+$writer->queries                   = array();
+DPT_AL_Hooks::flush();
+
+dpt_test_eq( count( $writer->inserted ), 2, 'post 5 on site two and post 5 on site seven are two rows, not one merged row' );
+dpt_test_eq(
+	array_column( $writer->inserted, 'table' ),
+	array( 'wp_2_dpt_agent_log', 'wp_7_dpt_agent_log' ),
+	'each row written to its own site table rather than all of them to the site the request ends on'
+);
+dpt_test_eq(
+	array_column( array_column( $writer->inserted, 'data' ), 'object_name' ),
+	array( 'Home on site two', 'Home on site seven' ),
+	'and each carrying the name it was recorded with, so the two entries never merged'
+);
+dpt_test_eq( $GLOBALS['dpt_stub_switch_calls'], 1, 'the site the request is already on is written without switching to it' );
+dpt_test_eq( $GLOBALS['dpt_stub_restore_calls'], 1, 'and the one switch that was needed is paired with a restore' );
+dpt_test_eq( $GLOBALS['dpt_stub_current_blog'], 2, 'leaving the request on the site it started on' );
+dpt_test_eq( $writer->prefix, 'wp_2_', 'with the prefix - and so the table every other plugin writes to - back where it was' );
+
+// Pruning follows the switch, because both halves of it are per site: the
+// table it trims and the throttle stamp that decides whether to trim at all.
+dpt_test_ok(
+	(bool) array_filter( $writer->queries, function ( $sql ) { return false !== strpos( $sql, 'wp_7_dpt_agent_log' ); } ),
+	'the prune trims the switched-to site table too, rather than trimming the originating site twice'
+);
+dpt_test_ok(
+	(bool) array_filter( $writer->queries, function ( $sql ) { return false !== strpos( $sql, 'wp_2_dpt_agent_log' ); } ),
+	'and the originating site table as well'
+);
+dpt_test_ok( isset( $GLOBALS['dpt_stub_options']['dpt_agent_log_last_prune'] ), 'the throttle stamp lands on the originating site' );
+dpt_test_ok( isset( $GLOBALS['dpt_stub_blog_options'][7]['dpt_agent_log_last_prune'] ), 'and a separate one on the site that was switched to, so neither starves the other' );
+
+// A single site takes none of that path: no switch, no restore, and every row
+// in the one table it has.
+$GLOBALS['dpt_stub_multisite']     = false;
+$GLOBALS['dpt_stub_switch_calls']  = 0;
+$GLOBALS['dpt_stub_restore_calls'] = 0;
+$GLOBALS['dpt_stub_options']       = array();
+DPT_AL_Buffer::reset();
+dpt_stub_enter_blog( 1 );
+$writer->inserted = array();
+$writer->queries  = array();
+DPT_AL_Buffer::record( 'post', 'post', 5, 'updated', 'Home', array( 'post_title' ) );
+DPT_AL_Buffer::record( 'post', 'post', 9, 'updated', 'About', array( 'post_title' ) );
+DPT_AL_Hooks::flush();
+
+dpt_test_eq(
+	array_column( $writer->inserted, 'table' ),
+	array( 'wp_dpt_agent_log', 'wp_dpt_agent_log' ),
+	'a single site writes both rows to its one table'
+);
+dpt_test_eq( $GLOBALS['dpt_stub_switch_calls'], 0, 'switching no blogs, because there are none to switch to' );
+dpt_test_eq( $GLOBALS['dpt_stub_restore_calls'], 0, 'and restoring none either' );
+dpt_test_eq( $GLOBALS['dpt_stub_current_blog'], 1, 'and staying on the site it was already on' );
+
+// A write that throws mid-flush still leaves the site context as it found it.
+// A switch left on the stack would hand the rest of shutdown, and every other
+// plugin on it, the wrong site.
+class DPT_AL_Test_Throwing_Writer extends DPT_AL_Test_Writer {
+	public $fail_table = '';
+	public function insert( $table, $data, $formats ) {
+		if ( '' !== $this->fail_table && $table === $this->fail_table ) {
+			throw new RuntimeException( 'the database went away' );
+		}
+		return parent::insert( $table, $data, $formats );
+	}
+}
+
+$thrower             = new DPT_AL_Test_Throwing_Writer();
+$thrower->fail_table = 'wp_7_dpt_agent_log';
+DPT_AL_Store::set_writer( $thrower );
+$GLOBALS['wpdb'] = $thrower;
+
+$GLOBALS['dpt_stub_multisite']     = true;
+$GLOBALS['dpt_stub_switch_stack']  = array();
+$GLOBALS['dpt_stub_switch_calls']  = 0;
+$GLOBALS['dpt_stub_restore_calls'] = 0;
+$GLOBALS['dpt_stub_options']       = array();
+DPT_AL_Buffer::reset();
+dpt_stub_enter_blog( 2 );
+switch_to_blog( 7 );
+DPT_AL_Buffer::record( 'post', 'post', 5, 'updated', 'Home on site seven' );
+restore_current_blog();
+$GLOBALS['dpt_stub_switch_calls']  = 0;
+$GLOBALS['dpt_stub_restore_calls'] = 0;
+
+$dpt_al_threw = false;
+try {
+	DPT_AL_Hooks::flush();
+} catch ( RuntimeException $e ) {
+	$dpt_al_threw = true;
+}
+
+dpt_test_ok( $dpt_al_threw, 'a failing write is not swallowed' );
+dpt_test_eq( $GLOBALS['dpt_stub_restore_calls'], 1, 'and the switch it happened inside is restored anyway' );
+dpt_test_eq( $GLOBALS['dpt_stub_current_blog'], 2, 'leaving the request back on its own site' );
+dpt_test_eq( $GLOBALS['dpt_stub_switch_stack'], array(), 'with nothing left on the switched stack' );
+dpt_test_eq( $thrower->prefix, 'wp_2_', 'and the prefix restored with it' );
+
+$GLOBALS['dpt_stub_multisite']     = false;
+$GLOBALS['dpt_stub_blog_options']  = array();
+$GLOBALS['dpt_stub_switch_stack']  = array();
+$GLOBALS['dpt_stub_switch_calls']  = 0;
+$GLOBALS['dpt_stub_restore_calls'] = 0;
+dpt_stub_enter_blog( 1 );
+$writer = new DPT_AL_Test_Writer();
+DPT_AL_Store::set_writer( $writer );
+$GLOBALS['wpdb'] = $writer;
+
+/* ---- the flush runs last on shutdown ---- */
+
+// Deferred writes from another plugin's own shutdown callback are an ordinary
+// pattern, and the change listeners stay hooked for the whole of shutdown. A
+// flush at the default priority runs before those callbacks, empties the
+// buffer, and the change they make is then buffered with nothing left to write
+// it. Asserting only that something is hooked would pass at any priority.
+$GLOBALS['dpt_stub_filters']    = array();
+$GLOBALS['dpt_stub_doing_cron'] = true;
+$_SERVER['REQUEST_METHOD']      = 'GET';
+DPT_AL_Hooks::init();
+dpt_test_eq(
+	dpt_stub_filter_priority( 'shutdown', array( 'DPT_AL_Hooks', 'flush' ) ),
+	9999,
+	'the flush is hooked late enough to see a change another plugin defers to its own shutdown callback'
+);
+$GLOBALS['dpt_stub_filters']    = array();
+$GLOBALS['dpt_stub_doing_cron'] = false;
+unset( $_SERVER['REQUEST_METHOD'] );
+
 DPT_AL_Buffer::reset();
 $GLOBALS['dpt_stub_rest_request']      = false;
 $GLOBALS['dpt_stub_app_password_uuid'] = null;
@@ -1056,19 +1231,41 @@ function get_current_blog_id() {
 	return $GLOBALS['dpt_stub_current_blog'];
 }
 // Core swaps $wpdb->prefix for the switched site's, which is what makes the
-// table name and the options resolve per site.
+// table name and the options resolve per site: switch_to_blog() calls
+// wpdb::set_blog_id() (wp-includes/ms-blogs.php:534), which reassigns
+// $wpdb->prefix from the new site's blog id (wp-includes/class-wpdb.php:1051).
+// The store reads that same property through its writer, so a double whose
+// prefix stayed put would let a test pass while production wrote every row to
+// one table - which is the bug this is here to catch. It follows that a test
+// that means to exercise the switch must make $GLOBALS['wpdb'] the very object
+// it gave DPT_AL_Store::set_writer(), exactly as production has one $wpdb
+// serving both roles.
+//
+// Options are per site too, so the switch swaps the whole option set for that
+// site's, the way a real options table would.
+function dpt_stub_blog_prefix( $blog_id ) {
+	return ( 1 === (int) $blog_id ) ? 'wp_' : 'wp_' . (int) $blog_id . '_';
+}
+function dpt_stub_enter_blog( $blog_id ) {
+	$GLOBALS['dpt_stub_current_blog'] = $blog_id;
+	if ( isset( $GLOBALS['wpdb'] ) ) {
+		$GLOBALS['wpdb']->prefix = dpt_stub_blog_prefix( $blog_id );
+	}
+	$GLOBALS['dpt_stub_options'] = isset( $GLOBALS['dpt_stub_blog_options'][ $blog_id ] )
+		? $GLOBALS['dpt_stub_blog_options'][ $blog_id ]
+		: array();
+}
 function switch_to_blog( $blog_id ) {
 	$GLOBALS['dpt_stub_switch_calls']++;
 	$GLOBALS['dpt_stub_switch_stack'][] = $GLOBALS['dpt_stub_current_blog'];
-	$GLOBALS['dpt_stub_current_blog']   = $blog_id;
-	$GLOBALS['wpdb']->prefix            = ( 1 === $blog_id ) ? 'wp_' : 'wp_' . $blog_id . '_';
+	$GLOBALS['dpt_stub_blog_options'][ $GLOBALS['dpt_stub_current_blog'] ] = $GLOBALS['dpt_stub_options'];
+	dpt_stub_enter_blog( $blog_id );
 	return true;
 }
 function restore_current_blog() {
 	$GLOBALS['dpt_stub_restore_calls']++;
-	$blog_id                          = array_pop( $GLOBALS['dpt_stub_switch_stack'] );
-	$GLOBALS['dpt_stub_current_blog'] = $blog_id;
-	$GLOBALS['wpdb']->prefix          = ( 1 === $blog_id ) ? 'wp_' : 'wp_' . $blog_id . '_';
+	$GLOBALS['dpt_stub_blog_options'][ $GLOBALS['dpt_stub_current_blog'] ] = $GLOBALS['dpt_stub_options'];
+	dpt_stub_enter_blog( array_pop( $GLOBALS['dpt_stub_switch_stack'] ) );
 	return true;
 }
 function delete_option( $key ) {
