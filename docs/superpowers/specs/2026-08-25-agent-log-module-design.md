@@ -159,7 +159,7 @@ Evaluated in this order, first match wins:
 | `cli` | `defined( 'WP_CLI' ) && WP_CLI` |
 | `cron` | `wp_doing_cron()` |
 | `xmlrpc` | `defined( 'XMLRPC_REQUEST' ) && XMLRPC_REQUEST` |
-| `rest` | `wp_is_rest_request()`, falling back to the `REST_REQUEST` constant |
+| `rest` | `wp_is_serving_rest_request()`, falling back to the `REST_REQUEST` constant |
 | *(none)* | **nothing is recorded** |
 
 Order matters because contexts nest — code run by WP-CLI can set `REST_REQUEST`

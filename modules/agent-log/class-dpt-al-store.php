@@ -57,25 +57,49 @@ class DPT_AL_Store {
 	}
 
 	/**
-	 * The columns, their defaults and their printf formats, in one place so
-	 * insert() cannot pass a value without a format - which is what makes a
-	 * value reach the database unescaped.
+	 * The columns, their defaults, their printf formats and the width of the
+	 * column they land in, in one place so insert() cannot pass a value
+	 * without a format - which is what makes a value reach the database
+	 * unescaped - or longer than the column takes, which under MySQL strict
+	 * mode (the default on 5.7 and 8.0) errors the whole INSERT and loses the
+	 * row. Plugin basenames routinely exceed 60 characters and post titles
+	 * 191. 'fields' is TEXT and has no bound here.
 	 *
 	 * @return array
 	 */
 	private static function columns() {
 		return array(
-			'logged_at'      => array( '', '%s' ),
-			'channel'        => array( '', '%s' ),
-			'app'            => array( '', '%s' ),
-			'user_id'        => array( 0, '%d' ),
-			'action'         => array( '', '%s' ),
-			'object_type'    => array( '', '%s' ),
-			'object_subtype' => array( '', '%s' ),
-			'object_id'      => array( 0, '%d' ),
-			'object_name'    => array( '', '%s' ),
-			'fields'         => array( array(), '%s' ),
+			'logged_at'      => array( '', '%s', 19 ),
+			'channel'        => array( '', '%s', 20 ),
+			'app'            => array( '', '%s', 100 ),
+			'user_id'        => array( 0, '%d', 0 ),
+			'action'         => array( '', '%s', 40 ),
+			'object_type'    => array( '', '%s', 40 ),
+			'object_subtype' => array( '', '%s', 60 ),
+			'object_id'      => array( 0, '%d', 0 ),
+			'object_name'    => array( '', '%s', 191 ),
+			'fields'         => array( array(), '%s', 0 ),
 		);
+	}
+
+	/**
+	 * Cut a string to a column's width without splitting a character.
+	 *
+	 * substr() on multi-byte text cuts mid-character and writes invalid UTF-8,
+	 * which is a worse outcome than the overlong value it was fixing.
+	 *
+	 * @param string $value  Value.
+	 * @param int    $length Maximum characters, 0 or less for no bound.
+	 * @return string
+	 */
+	private static function truncate( $value, $length ) {
+		if ( (int) $length < 1 ) {
+			return $value;
+		}
+		if ( function_exists( 'mb_substr' ) ) {
+			return mb_substr( $value, 0, (int) $length );
+		}
+		return substr( $value, 0, (int) $length );
 	}
 
 	/**
@@ -89,8 +113,8 @@ class DPT_AL_Store {
 		$formats = array();
 
 		foreach ( self::columns() as $name => $spec ) {
-			list( $default, $format ) = $spec;
-			$value                    = array_key_exists( $name, $row ) ? $row[ $name ] : $default;
+			list( $default, $format, $max ) = $spec;
+			$value                          = array_key_exists( $name, $row ) ? $row[ $name ] : $default;
 
 			if ( 'fields' === $name ) {
 				$value = wp_json_encode( array_values( array_map( 'strval', (array) $value ) ) );
@@ -104,6 +128,7 @@ class DPT_AL_Store {
 				$value = (int) $value;
 			} else {
 				$value = is_scalar( $value ) ? (string) $value : '';
+				$value = self::truncate( $value, $max );
 			}
 
 			$data[ $name ] = $value;

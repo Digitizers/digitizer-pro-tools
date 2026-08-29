@@ -32,13 +32,17 @@ class DPT_AL_Channel {
 		if ( defined( 'XMLRPC_REQUEST' ) && XMLRPC_REQUEST ) {
 			return 'xmlrpc';
 		}
-		if ( function_exists( 'wp_is_rest_request' ) ) {
-			if ( wp_is_rest_request() ) {
+		// wp_is_serving_rest_request() (wp-includes/functions.php) arrived in
+		// WordPress 6.5 and is itself a read of the REST_REQUEST constant. On
+		// anything older the constant is what there is. Note that core defines
+		// REST_REQUEST inside rest_api_loaded(), on 'parse_request' - so this
+		// answers '' for a REST request until then, which is why the caller
+		// gates at shutdown rather than on plugins_loaded.
+		if ( function_exists( 'wp_is_serving_rest_request' ) ) {
+			if ( wp_is_serving_rest_request() ) {
 				return 'rest';
 			}
 		} elseif ( defined( 'REST_REQUEST' ) && REST_REQUEST ) {
-			// wp_is_rest_request() arrived in WordPress 6.5. On anything
-			// older the constant is what there is.
 			return 'rest';
 		}
 		return '';

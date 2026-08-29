@@ -61,9 +61,18 @@ function dpt_test_summary() {
 	return $GLOBALS['dpt_test_fail'];
 }
 
-function wp_is_rest_request() { return (bool) $GLOBALS['dpt_stub_rest_request']; }
+// Core's real name for this, added in WordPress 6.5. There is no
+// wp_is_rest_request() in WordPress, so stubbing that name would let a caller
+// that invented it pass here and do nothing in production.
+function wp_is_serving_rest_request() { return (bool) $GLOBALS['dpt_stub_rest_request']; }
 
-function rest_get_authenticated_app_password() { return $GLOBALS['dpt_stub_app_password_uuid']; }
+// Counted, so a test can prove a caller did not pay for the lookup: resolving
+// the name reads user meta, which a request that changed nothing should not do.
+$GLOBALS['dpt_stub_app_password_lookups'] = 0;
+function rest_get_authenticated_app_password() {
+	$GLOBALS['dpt_stub_app_password_lookups']++;
+	return $GLOBALS['dpt_stub_app_password_uuid'];
+}
 
 function get_current_user_id() { return (int) $GLOBALS['dpt_stub_current_user_id']; }
 

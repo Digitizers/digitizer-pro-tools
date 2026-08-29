@@ -21,10 +21,18 @@ class DPT_AL_Hooks {
 	 * @return void
 	 */
 	public static function init() {
-		// Nothing at all is hooked for a browser request or a read. The
-		// module's boundary is enforced before any listener exists, rather
-		// than by each listener remembering to check.
-		if ( '' === DPT_AL_Channel::current() || DPT_AL_Channel::is_read_request() ) {
+		// Nothing at all is hooked for a read: the HTTP verb is knowable this
+		// early, and a poll that changes nothing should not even listen.
+		//
+		// The channel is deliberately NOT checked here. init() is reached from
+		// DPT_Plugin::boot() on 'plugins_loaded', but core defines REST_REQUEST
+		// inside rest_api_loaded() (wp-includes/rest-api.php), which
+		// default-filters.php hooks to 'parse_request' - long after
+		// plugins_loaded. Gating here would read '' for every REST request and
+		// register nothing, which is the module's main channel recording
+		// nothing at all. The gate lives in flush() instead, on 'shutdown', by
+		// which time the constant exists.
+		if ( DPT_AL_Channel::is_read_request() ) {
 			return;
 		}
 
@@ -225,8 +233,24 @@ class DPT_AL_Hooks {
 	 * @return void
 	 */
 	public static function flush() {
+		// The channel gate. See init() for why it is here and not there: this
+		// runs on 'shutdown', the first point at which REST_REQUEST is defined
+		// for a REST request. A browser request that reached a listener leaves
+		// nothing behind for a later request in the same process.
+		$channel = DPT_AL_Channel::current();
+		if ( '' === $channel ) {
+			DPT_AL_Buffer::reset();
+			return;
+		}
+
+		if ( ! DPT_AL_Buffer::pending() ) {
+			// Nothing changed. app_name() reads user meta, so it is not paid
+			// for until there is a row that needs it.
+			return;
+		}
+
 		$rows = DPT_AL_Buffer::rows(
-			DPT_AL_Channel::current(),
+			$channel,
 			DPT_AL_Channel::app_name(),
 			get_current_user_id(),
 			time()

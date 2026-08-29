@@ -181,13 +181,13 @@ Expected: a fatal error, `Failed opening required .../class-dpt-al-channel.php`.
 
 - [ ] **Step 3: Add the stubs the test needs**
 
-The harness has no `wp_doing_cron` or `wp_is_rest_request`. Add them to `tests/bootstrap.php` beside the other WordPress stubs, each reading a global the test sets:
+The harness has no `wp_doing_cron` or `wp_is_serving_rest_request`. Add them to `tests/bootstrap.php` beside the other WordPress stubs, each reading a global the test sets:
 
 ```php
 $GLOBALS['dpt_stub_doing_cron']   = false;
 $GLOBALS['dpt_stub_rest_request'] = false;
 function wp_doing_cron() { return (bool) $GLOBALS['dpt_stub_doing_cron']; }
-function wp_is_rest_request() { return (bool) $GLOBALS['dpt_stub_rest_request']; }
+function wp_is_serving_rest_request() { return (bool) $GLOBALS['dpt_stub_rest_request']; }
 ```
 
 - [ ] **Step 4: Write the implementation**
@@ -229,12 +229,12 @@ class DPT_AL_Channel {
 		if ( defined( 'XMLRPC_REQUEST' ) && XMLRPC_REQUEST ) {
 			return 'xmlrpc';
 		}
-		if ( function_exists( 'wp_is_rest_request' ) ) {
-			if ( wp_is_rest_request() ) {
+		if ( function_exists( 'wp_is_serving_rest_request' ) ) {
+			if ( wp_is_serving_rest_request() ) {
 				return 'rest';
 			}
 		} elseif ( defined( 'REST_REQUEST' ) && REST_REQUEST ) {
-			// wp_is_rest_request() arrived in WordPress 6.5. On anything
+			// wp_is_serving_rest_request() arrived in WordPress 6.5. On anything
 			// older the constant is what there is.
 			return 'rest';
 		}

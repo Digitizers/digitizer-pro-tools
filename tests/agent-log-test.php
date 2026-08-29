@@ -129,6 +129,44 @@ dpt_test_eq( $writer->inserted[0]['data']['channel'], '', 'a row with nothing in
 dpt_test_eq( $writer->inserted[0]['data']['object_id'], 0, 'with numeric columns defaulting to zero' );
 dpt_test_eq( $writer->inserted[0]['data']['fields'], '[]', 'and no fields encoding as an empty array, not null' );
 
+/* ---- values too long for their column are cut, not dropped ---- */
+
+// Under MySQL strict mode - the default on 5.7 and 8.0 - an overlong value
+// errors the whole INSERT, and flush() ignores the return value, so the
+// change vanishes from the log with no trace. Plugin basenames routinely
+// exceed object_subtype's 60 characters.
+$writer->inserted = array();
+DPT_AL_Store::insert(
+	array(
+		'channel'        => str_repeat( 'c', 40 ),
+		'app'            => str_repeat( 'a', 200 ),
+		'action'         => str_repeat( 'x', 80 ),
+		'object_subtype' => 'contact-form-7-extension-for-mailchimp/contact-form-7-extension-for-mailchimp.php',
+		'object_name'    => str_repeat( 'n', 400 ),
+	)
+);
+$too_long = $writer->inserted[0]['data'];
+dpt_test_eq( strlen( $too_long['object_subtype'] ), 60, 'an 81-character plugin basename is cut to object_subtype(60)' );
+dpt_test_eq( strlen( $too_long['object_name'] ), 191, 'a long title is cut to object_name(191)' );
+dpt_test_eq( strlen( $too_long['app'] ), 100, 'a long app name is cut to app(100)' );
+dpt_test_eq( strlen( $too_long['action'] ), 40, 'a long action is cut to action(40)' );
+dpt_test_eq( strlen( $too_long['channel'] ), 20, 'and a long channel to channel(20)' );
+
+// And a value that fits is written whole, so the bound is a bound rather
+// than an unconditional trim.
+$writer->inserted = array();
+DPT_AL_Store::insert( array( 'object_name' => 'About us', 'object_subtype' => 'page' ) );
+dpt_test_eq( $writer->inserted[0]['data']['object_name'], 'About us', 'a value inside its column is untouched' );
+dpt_test_eq( $writer->inserted[0]['data']['object_subtype'], 'page', 'and so is a short subtype' );
+
+// substr() on multi-byte text cuts mid-character and writes invalid UTF-8,
+// which is worse than the overlong value it was fixing.
+$writer->inserted = array();
+DPT_AL_Store::insert( array( 'object_name' => str_repeat( 'ת', 300 ) ) );
+$mb_name = $writer->inserted[0]['data']['object_name'];
+dpt_test_eq( mb_strlen( $mb_name, 'UTF-8' ), 191, 'a multi-byte name is cut to 191 characters, not 191 bytes' );
+dpt_test_ok( mb_check_encoding( $mb_name, 'UTF-8' ), 'and what is written is still valid UTF-8, not a half character' );
+
 /* ---- query arguments ---- */
 
 $q = DPT_AL_Store::query_args( array( 'channel' => 'rest', 'object_type' => 'post', 'object_id' => 812, 'per_page' => 20, 'page' => 2 ) );
@@ -313,6 +351,10 @@ $writer->var = 900;
 DPT_AL_Store::prune( 30, 20000, 1756108800 );
 dpt_test_eq( count( $writer->queries ), 3, 'both bounds run: one delete by age, one lookup and one delete by id' );
 dpt_test_ok( false !== strpos( $writer->queries[0], 'logged_at <' ), 'the age bound deletes by date' );
+// The offset is the cap itself: OFFSET 20000 is the 20001st-newest row, the
+// first one that must go. An off-by-one here silently keeps or drops a row
+// on every prune, and the query count alone would not notice.
+dpt_test_ok( false !== strpos( $writer->queries[1], 'OFFSET 20000' ), 'the lookup finds the id at exactly the cap, not one either side of it' );
 dpt_test_ok( false !== strpos( $writer->queries[2], 'id <= 900' ), 'and the row bound deletes below the id at the cap' );
 
 // Nothing below the cap means nothing to delete, and no DELETE issued.
@@ -497,15 +539,18 @@ DPT_AL_Buffer::reset();
 DPT_AL_Hooks::on_option_updated( '_transient_doing_cron' );
 dpt_test_eq( DPT_AL_Buffer::rows( 'rest', '', 5, 1756108800 ), array(), 'an option outside the allowlist records nothing' );
 
-// 8. init() registers nothing for a browser request, nothing for a read, and
-// something for a real write - each checked against a reset registry so
-// "registers nothing" cannot pass vacuously.
+// 8. init() registers nothing for a read, and something for a write. It does
+// NOT gate on the channel: init() runs on 'plugins_loaded', and core does not
+// define REST_REQUEST until rest_api_loaded() on 'parse_request', so a channel
+// gate here would read '' for every REST request and hook nothing at all. A
+// browser request therefore does register listeners, and flush() - which runs
+// at shutdown, when the channel is knowable - is what writes nothing for it.
 $GLOBALS['dpt_stub_filters']      = array();
 $GLOBALS['dpt_stub_doing_cron']   = false;
 $GLOBALS['dpt_stub_rest_request'] = false;
-unset( $_SERVER['REQUEST_METHOD'] );
+$_SERVER['REQUEST_METHOD']        = 'POST';
 DPT_AL_Hooks::init();
-dpt_test_eq( $GLOBALS['dpt_stub_filters'], array(), 'init() on a browser request (no channel) registers nothing' );
+dpt_test_ok( ! empty( $GLOBALS['dpt_stub_filters'] ), 'init() registers on a write whose channel is not yet knowable, rather than losing every REST request to a gate that runs too early' );
 
 $GLOBALS['dpt_stub_filters']      = array();
 $GLOBALS['dpt_stub_rest_request'] = true;
@@ -521,6 +566,86 @@ dpt_test_ok( ! empty( $GLOBALS['dpt_stub_filters'] ), 'init() on a real write re
 $GLOBALS['dpt_stub_filters']      = array();
 $GLOBALS['dpt_stub_rest_request'] = false;
 unset( $_SERVER['REQUEST_METHOD'] );
+
+/* ---- flush(): the only path that writes ---- */
+
+// init() cannot gate on the channel, because core defines REST_REQUEST on
+// 'parse_request', long after the 'plugins_loaded' that reaches init(). So
+// the whole boundary lives here, at shutdown, and this is what proves it.
+$writer = new DPT_AL_Test_Writer();
+DPT_AL_Store::set_writer( $writer );
+$GLOBALS['dpt_stub_options']           = array();
+$GLOBALS['dpt_stub_doing_cron']        = false;
+$GLOBALS['dpt_stub_rest_request']      = false;
+$GLOBALS['dpt_stub_app_password_uuid'] = null;
+$GLOBALS['dpt_stub_app_passwords']     = array();
+
+// A browser request writes nothing - and leaves nothing buffered, so a later
+// request in the same process cannot inherit its changes and file them under
+// the wrong channel.
+DPT_AL_Buffer::reset();
+DPT_AL_Hooks::on_option_updated( 'siteurl' );
+DPT_AL_Hooks::flush();
+dpt_test_eq( $writer->inserted, array(), 'flush() on a browser request writes no row' );
+dpt_test_eq( DPT_AL_Buffer::pending(), array(), 'and empties the buffer rather than leaving it for the next request' );
+dpt_test_eq( $writer->queries, array(), 'and prunes nothing' );
+
+// A recognised channel with nothing buffered touches neither the database nor
+// the throttle: a poll that changed nothing must not push the prune stamp
+// forward and starve the prune that a real write would have done.
+$GLOBALS['dpt_stub_rest_request'] = true;
+DPT_AL_Buffer::reset();
+$writer->inserted = array();
+$writer->queries  = array();
+$GLOBALS['dpt_stub_app_password_lookups'] = 0;
+DPT_AL_Hooks::flush();
+dpt_test_eq( $writer->inserted, array(), 'a recognised channel with an empty buffer writes no row' );
+dpt_test_eq( $writer->queries, array(), 'and issues no query at all' );
+dpt_test_ok( ! isset( $GLOBALS['dpt_stub_options']['dpt_agent_log_last_prune'] ), 'and does not stamp the prune throttle' );
+// Resolving the app name reads user meta. A request that changed nothing must
+// decide that before paying for it.
+dpt_test_eq( $GLOBALS['dpt_stub_app_password_lookups'], 0, 'and never looks the application password up at all' );
+
+// A recognised channel with real changes: one row per object, each carrying
+// the channel read at shutdown and the application password's name.
+$GLOBALS['dpt_stub_app_password_uuid'] = 'uuid-1';
+$GLOBALS['dpt_stub_app_passwords']     = array( 'uuid-1' => array( 'name' => 'ContentEngine' ) );
+DPT_AL_Buffer::reset();
+$writer->inserted = array();
+$writer->queries  = array();
+DPT_AL_Hooks::on_option_updated( 'siteurl' );
+DPT_AL_Hooks::on_plugin_activated( 'akismet/akismet.php' );
+DPT_AL_Hooks::flush();
+dpt_test_eq( count( $writer->inserted ), 2, 'a REST request that changed two objects writes two rows' );
+$flushed_channels = array_unique( array_column( array_column( $writer->inserted, 'data' ), 'channel' ) );
+dpt_test_eq( $flushed_channels, array( 'rest' ), 'every row carrying the channel, read at shutdown when the constant exists' );
+$flushed_apps = array_unique( array_column( array_column( $writer->inserted, 'data' ), 'app' ) );
+dpt_test_eq( $flushed_apps, array( 'ContentEngine' ), 'and the name of the application password that authenticated it' );
+dpt_test_eq( DPT_AL_Buffer::pending(), array(), 'and the buffer is empty afterwards' );
+dpt_test_ok( ! empty( $writer->queries ), 'a first flush prunes, since the throttle has never been stamped' );
+dpt_test_ok( isset( $GLOBALS['dpt_stub_options']['dpt_agent_log_last_prune'] ), 'stamping the throttle as it goes' );
+
+// A second flush within the hour writes its rows but does not prune again.
+$writer->inserted = array();
+$writer->queries  = array();
+DPT_AL_Hooks::on_option_updated( 'blogname' );
+DPT_AL_Hooks::flush();
+dpt_test_eq( count( $writer->inserted ), 1, 'a second flush within the hour still writes its row' );
+dpt_test_eq( $writer->queries, array(), 'but issues no prune query' );
+
+// Once the throttle has expired, the next flush prunes again.
+$GLOBALS['dpt_stub_options']['dpt_agent_log_last_prune'] = time() - HOUR_IN_SECONDS - 1;
+$writer->inserted = array();
+$writer->queries  = array();
+DPT_AL_Hooks::on_option_updated( 'blogname' );
+DPT_AL_Hooks::flush();
+dpt_test_ok( ! empty( $writer->queries ), 'and a flush after the throttle has expired prunes again' );
+
+DPT_AL_Buffer::reset();
+$GLOBALS['dpt_stub_rest_request']      = false;
+$GLOBALS['dpt_stub_app_password_uuid'] = null;
+$GLOBALS['dpt_stub_app_passwords']     = array();
+$GLOBALS['dpt_stub_options']           = array();
 
 require_once dirname( __DIR__ ) . '/modules/agent-log/class-dpt-al-rest.php';
 
