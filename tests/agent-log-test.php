@@ -1392,6 +1392,15 @@ function wp_date( $format, $timestamp = null, $timezone = null ) {
 	return $dt->setTimezone( new DateTimeZone( $GLOBALS['dpt_stub_timezone'] ) )->format( (string) $format );
 }
 
+// wp_timezone() (wp-includes/functions.php:152-154) wraps wp_timezone_string(),
+// which returns either the site's named zone or a "+HH:MM" string built from
+// gmt_offset (lines 124-141) - DateTimeZone accepts both, so this one stub
+// covers a named zone and a raw offset alike; the tests below exercise it as
+// both.
+function wp_timezone() {
+	return new DateTimeZone( $GLOBALS['dpt_stub_timezone'] );
+}
+
 $GLOBALS['dpt_stub_denied_caps'] = array();
 $GLOBALS['dpt_stub_options']     = array(
 	'date_format' => 'Y-m-d',
@@ -1453,20 +1462,59 @@ $GLOBALS['dpt_stub_timezone'] = 'Asia/Jerusalem';
 
 // With only the newest hundred rows on the screen, an administrator with an
 // incident window and no date controls cannot narrow to it at all.
+//
+// The boxes are picked against the *locally rendered* date - Jerusalem is
+// still the active zone here, the same one the 'When' column above was just
+// proven to render in - so the bound the store receives is not the literal
+// UTC value of the typed string. It is that local day's boundary, converted
+// to UTC: Jerusalem is UTC+3 in August, so local 2026-08-01 00:00:00 is
+// 2026-07-31 21:00:00 UTC, and local 2026-08-25 23:59:59 is 2026-08-25
+// 20:59:59 UTC. A store that received the boxes' text unconverted - the
+// previous round's bug - would produce '2026-08-01 00:00:00' and
+// '2026-08-25 23:59:59' instead, so this assertion fails without the fix.
 list( $dpt_al_html, $dpt_al_sql ) = dpt_al_render( array( 'after' => '2026-08-01', 'before' => '2026-08-25' ) );
 
-dpt_test_ok( false !== strpos( $dpt_al_sql, "logged_at >= '2026-08-01 00:00:00'" ), 'the From date reaches the store as a lower bound on logged_at' );
+dpt_test_ok( false !== strpos( $dpt_al_sql, "logged_at >= '2026-07-31 21:00:00'" ), 'the From date reaches the store as a lower bound on logged_at, converted from the local day to UTC' );
 // Inclusive at the top end: someone who types the same date in both boxes
 // means that day, not an empty range from its midnight to its midnight.
-dpt_test_ok( false !== strpos( $dpt_al_sql, "logged_at <= '2026-08-25 23:59:59'" ), 'and the To date as an upper bound covering the whole of that day, not its opening second' );
+dpt_test_ok( false !== strpos( $dpt_al_sql, "logged_at <= '2026-08-25 20:59:59'" ), 'and the To date as an upper bound covering the whole of that local day, not its opening second, likewise converted to UTC' );
 dpt_test_ok( false !== strpos( $dpt_al_html, 'name="after" value="2026-08-01"' ), 'the From box keeps what was submitted after the reload' );
 dpt_test_ok( false !== strpos( $dpt_al_html, 'name="before" value="2026-08-25"' ), 'and so does the To box' );
 
-// A single day, both ends the same: the range has to contain the day itself.
+// A single day, both ends the same: the range has to contain the day itself,
+// again in the site's timezone - local 2026-08-25 00:00:00 is 2026-08-24
+// 21:00:00 UTC.
 list( , $dpt_al_sql ) = dpt_al_render( array( 'after' => '2026-08-25', 'before' => '2026-08-25' ) );
 dpt_test_ok(
-	false !== strpos( $dpt_al_sql, "logged_at >= '2026-08-25 00:00:00'" ) && false !== strpos( $dpt_al_sql, "logged_at <= '2026-08-25 23:59:59'" ),
-	'one day in both boxes is that whole day, rather than a range that can hold nothing'
+	false !== strpos( $dpt_al_sql, "logged_at >= '2026-08-24 21:00:00'" ) && false !== strpos( $dpt_al_sql, "logged_at <= '2026-08-25 20:59:59'" ),
+	'one day in both boxes is that whole local day, rather than a range that can hold nothing'
+);
+
+// The finding itself, proved against the bounds the running code just
+// produced (extracted from $dpt_al_sql above, not recomputed by hand): a row
+// stored at 22:30 UTC on the 24th displays as the 25th in Jerusalem (UTC+3
+// puts it at 01:30 local on the 25th). Filtering for the 25th in both boxes
+// must include it. This is the one case a test run under UTC cannot catch,
+// because under UTC the local and UTC days coincide and the bug is invisible.
+preg_match( "/logged_at >= '([^']+)'/", $dpt_al_sql, $dpt_al_lower_m );
+preg_match( "/logged_at <= '([^']+)'/", $dpt_al_sql, $dpt_al_upper_m );
+$dpt_al_lower_bound = $dpt_al_lower_m[1];
+$dpt_al_upper_bound = $dpt_al_upper_m[1];
+
+$dpt_al_p2_row = '2026-08-24 22:30:00';
+dpt_test_ok(
+	$dpt_al_p2_row >= $dpt_al_lower_bound && $dpt_al_p2_row <= $dpt_al_upper_bound,
+	'a row whose UTC day is the 24th but whose local Jerusalem day is the 25th falls inside the bounds the store actually received for a "25th in both boxes" filter'
+);
+
+// The mirror image: a row that displays on the 26th in Jerusalem - stored at
+// 21:30 UTC on the 25th, which is 00:30 local on the 26th - must fall
+// outside the same filter's upper bound, again checked against the bound the
+// running code actually sent.
+$dpt_al_next_day_row = '2026-08-25 21:30:00';
+dpt_test_ok(
+	$dpt_al_next_day_row > $dpt_al_upper_bound,
+	'a row that displays on the local day after the one selected falls outside the upper bound the store actually received for that selection'
 );
 
 // A date that is not a date. strtotime() in the store would happily read
@@ -1491,6 +1539,20 @@ dpt_test_ok( false === strpos( $dpt_al_sql, 'logged_at' ), 'and a screen loaded 
 // raises a TypeError and the screen is a fatal instead of a list.
 list( , $dpt_al_sql ) = dpt_al_render( array( 'after' => array( '2026-08-01' ), 'before' => array() ) );
 dpt_test_ok( false === strpos( $dpt_al_sql, 'logged_at' ), 'an array-valued date parameter is dropped rather than handed to a string function' );
+
+// A site with no named timezone, only a raw gmt_offset - wp_timezone_string()
+// (wp-includes/functions.php:124-141) formats that into a "+HH:MM" string
+// rather than returning a zone name, and DateTimeZone accepts that string
+// exactly as it accepts 'Asia/Jerusalem'. +02:00 puts local midnight on the
+// 25th at 2026-08-24 22:00:00 UTC, and local 23:59:59 on the 25th at
+// 2026-08-25 21:59:59 UTC.
+$GLOBALS['dpt_stub_timezone'] = '+02:00';
+list( , $dpt_al_sql )         = dpt_al_render( array( 'after' => '2026-08-25', 'before' => '2026-08-25' ) );
+dpt_test_ok(
+	false !== strpos( $dpt_al_sql, "logged_at >= '2026-08-24 22:00:00'" ) && false !== strpos( $dpt_al_sql, "logged_at <= '2026-08-25 21:59:59'" ),
+	'a site configured with a raw UTC offset instead of a named timezone gets the same local-day-to-UTC conversion'
+);
+$GLOBALS['dpt_stub_timezone'] = 'Asia/Jerusalem';
 
 // The controls are on the screen and inside the filter form, so submitting
 // them keeps the channel and object type the administrator already chose.

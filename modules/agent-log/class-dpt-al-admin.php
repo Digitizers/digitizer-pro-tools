@@ -96,15 +96,37 @@ class DPT_AL_Admin {
 		// these an administrator looking into an incident cannot narrow to the
 		// window it happened in at all. Whole days, and inclusive at both ends:
 		// someone who types the same date in both boxes means that day, not an
-		// empty range from its midnight to its midnight. The store bounds
-		// logged_at, which is stored in UTC, so the day boundaries are UTC too.
+		// empty range from its midnight to its midnight.
+		//
+		// The boxes are picked against the locally rendered date - the 'When'
+		// column below reads in the site's timezone via wp_date() - but the
+		// store bounds logged_at, which is stored in UTC, and its query_args()
+		// compares the value handed to it verbatim (strtotime( $value . ' UTC' )).
+		// So each selected day's boundaries are built here in the site's
+		// timezone and only then converted to UTC, or a row that displays on
+		// the selected local day - but whose UTC timestamp falls on the
+		// neighbouring UTC day - would be wrongly excluded (or a row from the
+		// neighbouring local day wrongly included). wp_timezone() is what to
+		// use for this: per wp-includes/functions.php:152-154 it wraps
+		// wp_timezone_string(), and that function (line 124-141) returns the
+		// site's named zone when one is set, or otherwise formats gmt_offset
+		// into a "+HH:MM" string - DateTimeZone accepts both forms, so a site
+		// configured with a raw UTC offset instead of a named zone is handled
+		// the same way, with no separate branch needed here.
 		$after  = $this->date_arg( 'after' );
 		$before = $this->date_arg( 'before' );
+		$tz     = wp_timezone();
+		$utc    = new DateTimeZone( 'UTC' );
 		if ( '' !== $after ) {
-			$args['after'] = $after . ' 00:00:00';
+			$start         = new DateTimeImmutable( $after . ' 00:00:00', $tz );
+			$args['after'] = $start->setTimezone( $utc )->format( 'Y-m-d H:i:s' );
 		}
 		if ( '' !== $before ) {
-			$args['before'] = $before . ' 23:59:59';
+			// End of the selected local day, not the start of the next one:
+			// query_args() compares with '<=', so the whole day - including its
+			// last second - stays inside the range.
+			$end            = new DateTimeImmutable( $before . ' 23:59:59', $tz );
+			$args['before'] = $end->setTimezone( $utc )->format( 'Y-m-d H:i:s' );
 		}
 
 		// Values outside the enums contribute nothing to the query, so a
