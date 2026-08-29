@@ -165,10 +165,10 @@ class DPT_AL_Admin {
 						<option value="<?php echo esc_attr( $type ); ?>" <?php selected( isset( $args['object_type'] ) ? $args['object_type'] : '', $type ); ?>><?php echo esc_html( $type ); ?></option>
 					<?php endforeach; ?>
 				</select>
-				<label for="dpt-al-after" class="screen-reader-text"><?php esc_html_e( 'From', 'digitizer-pro-tools' ); ?></label>
-				<input type="date" id="dpt-al-after" name="after" value="<?php echo esc_attr( $after ); ?>" placeholder="<?php esc_attr_e( 'From', 'digitizer-pro-tools' ); ?>" />
-				<label for="dpt-al-before" class="screen-reader-text"><?php esc_html_e( 'To', 'digitizer-pro-tools' ); ?></label>
-				<input type="date" id="dpt-al-before" name="before" value="<?php echo esc_attr( $before ); ?>" placeholder="<?php esc_attr_e( 'To', 'digitizer-pro-tools' ); ?>" />
+				<label for="dpt-al-after" class="screen-reader-text"><?php esc_html_e( 'From date', 'digitizer-pro-tools' ); ?></label>
+				<input type="date" id="dpt-al-after" name="after" value="<?php echo esc_attr( $after ); ?>" placeholder="<?php esc_attr_e( 'From date', 'digitizer-pro-tools' ); ?>" />
+				<label for="dpt-al-before" class="screen-reader-text"><?php esc_html_e( 'To date', 'digitizer-pro-tools' ); ?></label>
+				<input type="date" id="dpt-al-before" name="before" value="<?php echo esc_attr( $before ); ?>" placeholder="<?php esc_attr_e( 'To date', 'digitizer-pro-tools' ); ?>" />
 				<button type="submit" class="button"><?php esc_html_e( 'Filter', 'digitizer-pro-tools' ); ?></button>
 			</form>
 

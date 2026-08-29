@@ -2040,7 +2040,10 @@ msgstr ""
 msgid "Everything"
 msgstr ""
 
-msgid "From"
+msgid "From date"
+msgstr ""
+
+msgid "To date"
 msgstr ""
 
 msgid "Filter"
