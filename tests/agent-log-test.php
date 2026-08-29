@@ -169,4 +169,62 @@ dpt_test_eq( DPT_AL_Store::prune_plan( 0, 0, $now ), array(), 'and both disabled
 $plan = DPT_AL_Store::prune_plan( 30, 0, $now );
 dpt_test_eq( $plan[0]['cutoff'], gmdate( 'Y-m-d H:i:s', $now - ( 30 * 86400 ) ), 'the age cutoff is 30 days before now, in UTC' );
 
+require_once dirname( __DIR__ ) . '/modules/agent-log/class-dpt-al-buffer.php';
+
+/* ---- one row per object per request ---- */
+
+DPT_AL_Buffer::reset();
+DPT_AL_Buffer::record( 'post', 'page', 812, 'updated', 'About us', array( 'post_content' ) );
+DPT_AL_Buffer::record( 'post', 'page', 812, 'updated', 'About us', array( 'rank_math_title' ) );
+DPT_AL_Buffer::record( 'post', 'page', 812, 'updated', 'About us', array( '_elementor_data', 'post_content' ) );
+
+$rows = DPT_AL_Buffer::rows( 'rest', 'ContentEngine', 5, 1756108800 );
+dpt_test_eq( count( $rows ), 1, 'three writes to one post are one row' );
+dpt_test_eq( count( $rows[0]['fields'] ), 3, 'carrying every distinct field name' );
+dpt_test_ok( in_array( 'post_content', $rows[0]['fields'], true ), 'including one named twice' );
+dpt_test_eq( count( array_unique( $rows[0]['fields'] ) ), 3, 'and named once each, not twice' );
+dpt_test_eq( $rows[0]['logged_at'], gmdate( 'Y-m-d H:i:s', 1756108800 ), 'stamped in UTC from the clock it was handed' );
+dpt_test_eq( $rows[0]['channel'], 'rest', 'carrying the channel' );
+dpt_test_eq( $rows[0]['app'], 'ContentEngine', 'and the app' );
+
+// Two objects are two rows, however interleaved the writes were.
+DPT_AL_Buffer::reset();
+DPT_AL_Buffer::record( 'post', 'page', 812, 'updated', 'About us', array( 'post_title' ) );
+DPT_AL_Buffer::record( 'term', 'category', 4, 'updated', 'News', array( 'name' ) );
+DPT_AL_Buffer::record( 'post', 'page', 812, 'updated', 'About us', array( 'post_excerpt' ) );
+dpt_test_eq( count( DPT_AL_Buffer::rows( 'rest', '', 5, 1756108800 ) ), 2, 'two objects are two rows' );
+
+// A delete outranks an update: the object is gone, and saying it was
+// "updated" because an update came first in the same request is a lie the
+// log would tell forever.
+DPT_AL_Buffer::reset();
+DPT_AL_Buffer::record( 'post', 'page', 812, 'updated', 'About us', array( 'post_title' ) );
+DPT_AL_Buffer::record( 'post', 'page', 812, 'deleted', 'About us' );
+$rows = DPT_AL_Buffer::rows( 'rest', '', 5, 1756108800 );
+dpt_test_eq( $rows[0]['action'], 'deleted', 'a delete in the same request wins over an update' );
+
+// And a create outranks an update for the same reason, in the other
+// direction: the request that made the object is the one worth recording.
+DPT_AL_Buffer::reset();
+DPT_AL_Buffer::record( 'post', 'page', 813, 'created', 'New page' );
+DPT_AL_Buffer::record( 'post', 'page', 813, 'updated', 'New page', array( 'post_content' ) );
+$rows = DPT_AL_Buffer::rows( 'rest', '', 5, 1756108800 );
+dpt_test_eq( $rows[0]['action'], 'created', 'a create earlier in the request wins over the update that followed it' );
+dpt_test_eq( count( $rows[0]['fields'] ), 1, 'while still collecting the fields the update touched' );
+
+DPT_AL_Buffer::reset();
+dpt_test_eq( DPT_AL_Buffer::rows( 'rest', '', 5, 1756108800 ), array(), 'a request that changed nothing writes nothing' );
+
+/* ---- retention settings ---- */
+
+$GLOBALS['dpt_stub_filters'] = array();
+dpt_test_eq( DPT_AL_Buffer::max_age_days(), 30, 'the age bound defaults to thirty days' );
+dpt_test_eq( DPT_AL_Buffer::max_rows(), 20000, 'and the row bound to twenty thousand' );
+
+add_filter( 'dpt_agent_log_max_age_days', function () { return 7; } );
+dpt_test_eq( DPT_AL_Buffer::max_age_days(), 7, 'both are filterable' );
+add_filter( 'dpt_agent_log_max_rows', function () { return 0; } );
+dpt_test_eq( DPT_AL_Buffer::max_rows(), 0, 'including down to zero, which disables that bound' );
+$GLOBALS['dpt_stub_filters'] = array();
+
 dpt_test_summary();
