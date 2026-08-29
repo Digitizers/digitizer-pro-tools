@@ -30,8 +30,11 @@ $GLOBALS['dpt_stub_themes']         = array();
 $GLOBALS['dpt_stub_transients']     = array();
 $GLOBALS['dpt_stub_http']           = array();
 $GLOBALS['dpt_stub_options']        = array();
-$GLOBALS['dpt_stub_doing_cron']     = false;
-$GLOBALS['dpt_stub_rest_request']   = false;
+$GLOBALS['dpt_stub_doing_cron']       = false;
+$GLOBALS['dpt_stub_rest_request']     = false;
+$GLOBALS['dpt_stub_app_password_uuid'] = null;
+$GLOBALS['dpt_stub_app_passwords']     = array();
+$GLOBALS['dpt_stub_current_user_id']   = 1;
 
 function dpt_test_ok( $cond, $label ) {
 	if ( $cond ) {
@@ -59,6 +62,22 @@ function dpt_test_summary() {
 }
 
 function wp_is_rest_request() { return (bool) $GLOBALS['dpt_stub_rest_request']; }
+
+function rest_get_authenticated_app_password() { return $GLOBALS['dpt_stub_app_password_uuid']; }
+
+function get_current_user_id() { return (int) $GLOBALS['dpt_stub_current_user_id']; }
+
+// Class declarations at the top level of a file are hoisted in PHP, so this
+// stub is only declared when nothing else already provides the real (or
+// another stub) class - guarding it the way the functions above cannot be
+// guarded.
+if ( ! class_exists( 'WP_Application_Passwords' ) ) {
+	class WP_Application_Passwords {
+		public static function get_user_application_password( $user_id, $uuid ) {
+			return isset( $GLOBALS['dpt_stub_app_passwords'][ $uuid ] ) ? $GLOBALS['dpt_stub_app_passwords'][ $uuid ] : null;
+		}
+	}
+}
 
 /**
  * A notice raised while a REST response is being built corrupts the JSON

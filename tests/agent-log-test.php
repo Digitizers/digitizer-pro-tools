@@ -38,8 +38,27 @@ dpt_test_ok( ! DPT_AL_Channel::is_read_request(), 'and a request with no method 
 
 /* ---- the app name is never guessed ---- */
 
-$_SERVER['HTTP_USER_AGENT'] = 'ContentEngine/1.0';
+// A UUID that resolves to a record: the name comes back, and a User-Agent
+// header present at the same time proves it was ignored rather than used.
+$_SERVER['HTTP_USER_AGENT']            = 'ContentEngine/1.0';
+$GLOBALS['dpt_stub_app_password_uuid'] = 'uuid-1';
+$GLOBALS['dpt_stub_app_passwords']     = array(
+	'uuid-1' => array( 'name' => 'ContentEngine' ),
+);
+dpt_test_eq( DPT_AL_Channel::app_name(), 'ContentEngine', 'a resolved application password returns its name, not the User-Agent' );
+
+// A UUID that authenticated the request but no longer resolves to a record
+// (e.g. deleted between authentication and shutdown).
+$GLOBALS['dpt_stub_app_password_uuid'] = 'uuid-missing';
+$GLOBALS['dpt_stub_app_passwords']     = array();
+dpt_test_eq( DPT_AL_Channel::app_name(), '', 'a UUID with no matching record has no app name' );
+
+// No application password authenticated this request at all.
+$GLOBALS['dpt_stub_app_password_uuid'] = null;
 dpt_test_eq( DPT_AL_Channel::app_name(), '', 'an unidentified caller has no app name, and the User-Agent is not one' );
+
 unset( $_SERVER['HTTP_USER_AGENT'] );
+$GLOBALS['dpt_stub_app_password_uuid'] = null;
+$GLOBALS['dpt_stub_app_passwords']     = array();
 
 dpt_test_summary();
