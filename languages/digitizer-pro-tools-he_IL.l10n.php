@@ -681,6 +681,7 @@ return array (
     'Changes that arrived from somewhere other than a browser: the REST API, WP-Cron, WP-CLI or XML-RPC. Work done by a person in the admin is not recorded here.' => 'שינויים שהגיעו ממקור שאינו דפדפן: REST API,‏ WP-Cron,‏ WP-CLI או XML-RPC. עבודה שבוצעה על ידי אדם בממשק הניהול אינה נרשמת כאן.',
     'Every channel' => 'כל הערוצים',
     'Everything' => 'הכול',
+    'From' => 'מ',
     'Filter' => 'סינון',
     'When' => 'מתי',
     'Channel' => 'ערוץ',

@@ -2040,6 +2040,9 @@ msgstr "כל הערוצים"
 msgid "Everything"
 msgstr "הכול"
 
+msgid "From"
+msgstr "מ"
+
 msgid "Filter"
 msgstr "סינון"
 

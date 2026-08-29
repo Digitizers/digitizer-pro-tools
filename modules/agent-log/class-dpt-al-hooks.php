@@ -148,6 +148,17 @@ class DPT_AL_Hooks {
 	}
 
 	public static function on_post_deleted( $post_id, $post = null ) {
+		if ( wp_is_post_revision( $post_id ) || wp_is_post_autosave( $post_id ) ) {
+			// wp_delete_post_revision() (wp-includes/revision.php) prunes the
+			// oldest revisions past WP_POST_REVISIONS on every save that pushes
+			// a post over the limit, and it deletes each one through
+			// wp_delete_post(), which fires this same 'before_delete_post'
+			// hook (wp-includes/post.php). Without this guard, every routine
+			// automated update would also write a spurious "deleted" row for
+			// internal housekeeping nobody asked about - the same reasoning
+			// on_post_saved() above already applies to revisions and autosaves.
+			return;
+		}
 		$type = ( is_object( $post ) && isset( $post->post_type ) && 'attachment' === $post->post_type ) ? 'attachment' : 'post';
 		DPT_AL_Buffer::record(
 			$type,

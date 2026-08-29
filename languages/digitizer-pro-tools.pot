@@ -2040,6 +2040,9 @@ msgstr ""
 msgid "Everything"
 msgstr ""
 
+msgid "From"
+msgstr ""
+
 msgid "Filter"
 msgstr ""
 

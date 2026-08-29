@@ -682,6 +682,22 @@ DPT_AL_Hooks::on_post_deleted( 606, (object) array( 'post_type' => 'attachment',
 $rows = DPT_AL_Buffer::rows( 'rest', '', 5, 1756108800 );
 dpt_test_eq( $rows[0]['object_type'], 'attachment', 'a deleted attachment is object_type attachment' );
 
+// 4b. on_post_deleted() is silent on a revision or an autosave too - the same
+// guard on_post_saved() uses. wp_delete_post_revision() (wp-includes/revision.php)
+// prunes the oldest revisions past WP_POST_REVISIONS through wp_delete_post(),
+// which fires 'before_delete_post' just like a real delete, so without this
+// guard every routine automated update would also log spurious "deleted" rows.
+DPT_AL_Buffer::reset();
+$GLOBALS['dpt_stub_posts'][608] = array( 'post_type' => 'revision', 'post_parent' => 602 );
+DPT_AL_Hooks::on_post_deleted( 608, (object) array( 'post_type' => 'revision' ) );
+dpt_test_eq( DPT_AL_Buffer::rows( 'rest', '', 5, 1756108800 ), array(), 'deleting a revision records nothing' );
+
+DPT_AL_Buffer::reset();
+$GLOBALS['dpt_stub_autosaves'] = array( 609 );
+DPT_AL_Hooks::on_post_deleted( 609, (object) array( 'post_type' => 'post' ) );
+dpt_test_eq( DPT_AL_Buffer::rows( 'rest', '', 5, 1756108800 ), array(), 'deleting an autosave records nothing' );
+$GLOBALS['dpt_stub_autosaves'] = array();
+
 DPT_AL_Buffer::reset();
 $attachment_after = (object) array(
 	'post_type'     => 'attachment',
