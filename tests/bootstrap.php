@@ -907,6 +907,7 @@ function dpt_stub_post_row( $id ) {
 		// rewrites it from the layout, and an endpoint that writes only the
 		// layout leaves it describing the previous version of the page.
 		'post_content' => isset( $row['post_content'] ) ? $row['post_content'] : '',
+		'post_title'   => isset( $row['post_title'] ) ? $row['post_title'] : '',
 	);
 }
 function get_post( $id = 0 ) {
@@ -955,6 +956,31 @@ function wp_is_post_revision( $id ) {
 		return false;
 	}
 	return $row['post_parent'];
+}
+// Autosaves, kept in a set of their own rather than modelled on the post row:
+// core tells a revision and an autosave apart by a suffix on post_name, and a
+// test naming ids directly here is a clearer signal than reproducing that.
+$GLOBALS['dpt_stub_autosaves'] = array();
+function wp_is_post_autosave( $id ) {
+	return in_array( (int) $id, (array) $GLOBALS['dpt_stub_autosaves'], true );
+}
+
+// Users, keyed by id. Absent means false, the way core answers for an id
+// nobody registered - never an object with empty properties, which would let
+// a caller read a login of '' from a user that does not exist at all.
+$GLOBALS['dpt_stub_users'] = array();
+function get_userdata( $user_id ) {
+	$id = (int) $user_id;
+	return isset( $GLOBALS['dpt_stub_users'][ $id ] ) ? (object) $GLOBALS['dpt_stub_users'][ $id ] : false;
+}
+
+// Terms, keyed by id. Core's get_term() answers null for an id it does not
+// know, not false and not a WP_Error, so that is what the absent case returns
+// here too.
+$GLOBALS['dpt_stub_terms'] = array();
+function get_term( $term_id, $taxonomy = '' ) {
+	$id = (int) $term_id;
+	return isset( $GLOBALS['dpt_stub_terms'][ $id ] ) ? (object) $GLOBALS['dpt_stub_terms'][ $id ] : null;
 }
 
 // The site-wide purge, counted so a test can assert it is *not* reached: it

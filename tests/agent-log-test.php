@@ -325,4 +325,201 @@ $writer->queries = array();
 DPT_AL_Store::prune( 0, 0, 1756108800 );
 dpt_test_eq( $writer->queries, array(), 'and both bounds disabled runs no query at all, rather than an unbounded delete' );
 
+/* ---- hook callbacks, smoke-tested through the buffer ---- */
+// The brief only required tests for the two pure statics and Store::prune().
+// The design spec's Testing section additionally names "meta names
+// accumulated across several hook fires in one request collapsing to one
+// row" as required coverage, and nothing proves the record() call sites pass
+// their arguments in the right positions - which is exactly what the
+// buffer's id-less keying (rewritten a task ago) depends on getting right.
+
+// 1. on_post_saved() on an update.
+DPT_AL_Buffer::reset();
+$post_before = (object) array(
+	'post_title'    => 'Old Title',
+	'post_content'  => 'Body',
+	'post_status'   => 'publish',
+	'post_modified' => '2026-01-01 00:00:00',
+);
+$post_after = (object) array(
+	'post_type'     => 'post',
+	'post_title'    => 'New Title',
+	'post_content'  => 'Body',
+	'post_status'   => 'publish',
+	'post_modified' => '2026-08-25 00:00:00',
+);
+DPT_AL_Hooks::on_post_saved( 601, $post_after, true, $post_before );
+$rows = DPT_AL_Buffer::rows( 'rest', '', 5, 1756108800 );
+dpt_test_eq( count( $rows ), 1, 'on_post_saved() writes one row' );
+dpt_test_eq( $rows[0]['object_type'], 'post', 'as an object_type of post' );
+dpt_test_eq( $rows[0]['object_subtype'], 'post', 'the post type as subtype' );
+dpt_test_eq( $rows[0]['object_id'], 601, 'the post id' );
+dpt_test_eq( $rows[0]['action'], 'updated', 'action updated for $update = true' );
+dpt_test_eq( $rows[0]['object_name'], 'New Title', 'the title as object_name' );
+dpt_test_eq( $rows[0]['fields'], array( 'post_title' ), 'and only the column that actually changed' );
+
+// 2. The accumulation case the spec names by name: a save plus three meta
+// writes on the same post collapse to one row carrying all four field names.
+DPT_AL_Buffer::reset();
+$GLOBALS['dpt_stub_posts'][602] = array(
+	'post_type'   => 'post',
+	'post_title'  => 'Accumulated',
+	'post_status' => 'publish',
+);
+$before = (object) array(
+	'post_title'    => 'Was Accumulated',
+	'post_content'  => 'Body',
+	'post_status'   => 'publish',
+	'post_modified' => '2026-01-01 00:00:00',
+);
+$after = (object) array(
+	'post_type'     => 'post',
+	'post_title'    => 'Accumulated',
+	'post_content'  => 'Body',
+	'post_status'   => 'publish',
+	'post_modified' => '2026-08-25 00:00:00',
+);
+DPT_AL_Hooks::on_post_saved( 602, $after, true, $before );
+DPT_AL_Hooks::on_post_meta( 101, 602, 'rank_math_title' );
+DPT_AL_Hooks::on_post_meta( 102, 602, '_elementor_data' );
+DPT_AL_Hooks::on_post_meta( 103, 602, 'custom_field' );
+$rows = DPT_AL_Buffer::rows( 'rest', '', 5, 1756108800 );
+dpt_test_eq( count( $rows ), 1, 'a save plus three meta writes on one post collapse to one row' );
+dpt_test_eq( count( $rows[0]['fields'] ), 4, 'carrying all four field names' );
+foreach ( array( 'post_title', 'rank_math_title', '_elementor_data', 'custom_field' ) as $expected_field ) {
+	dpt_test_ok( in_array( $expected_field, $rows[0]['fields'], true ), "including {$expected_field}" );
+}
+
+// 3. on_post_saved() is silent on a revision, and on an autosave - and test 1
+// above already proves the guard is not simply an always-return.
+DPT_AL_Buffer::reset();
+$GLOBALS['dpt_stub_posts'][603] = array( 'post_type' => 'revision', 'post_parent' => 602 );
+DPT_AL_Hooks::on_post_saved( 603, (object) array( 'post_type' => 'revision' ), false, null );
+dpt_test_eq( DPT_AL_Buffer::rows( 'rest', '', 5, 1756108800 ), array(), 'a revision records nothing' );
+
+DPT_AL_Buffer::reset();
+$GLOBALS['dpt_stub_autosaves'] = array( 604 );
+DPT_AL_Hooks::on_post_saved( 604, (object) array( 'post_type' => 'post' ), false, null );
+dpt_test_eq( DPT_AL_Buffer::rows( 'rest', '', 5, 1756108800 ), array(), 'and an autosave records nothing either' );
+$GLOBALS['dpt_stub_autosaves'] = array();
+
+// 4. on_post_deleted() records deleted, and an attachment is object_type
+// attachment rather than post - through both on_post_saved and on_post_deleted.
+DPT_AL_Buffer::reset();
+DPT_AL_Hooks::on_post_deleted( 605, (object) array( 'post_type' => 'post', 'post_title' => 'Gone' ) );
+$rows = DPT_AL_Buffer::rows( 'rest', '', 5, 1756108800 );
+dpt_test_eq( $rows[0]['action'], 'deleted', 'on_post_deleted() records deleted' );
+dpt_test_eq( $rows[0]['object_type'], 'post', 'a plain post stays object_type post' );
+
+DPT_AL_Buffer::reset();
+DPT_AL_Hooks::on_post_deleted( 606, (object) array( 'post_type' => 'attachment', 'post_title' => 'Image' ) );
+$rows = DPT_AL_Buffer::rows( 'rest', '', 5, 1756108800 );
+dpt_test_eq( $rows[0]['object_type'], 'attachment', 'a deleted attachment is object_type attachment' );
+
+DPT_AL_Buffer::reset();
+$attachment_after = (object) array(
+	'post_type'     => 'attachment',
+	'post_title'    => 'New Image',
+	'post_content'  => '',
+	'post_status'   => 'inherit',
+	'post_modified' => '2026-08-25 00:00:00',
+);
+DPT_AL_Hooks::on_post_saved( 607, $attachment_after, false, null );
+$rows = DPT_AL_Buffer::rows( 'rest', '', 5, 1756108800 );
+dpt_test_eq( $rows[0]['object_type'], 'attachment', 'a saved attachment is object_type attachment too' );
+dpt_test_eq( $rows[0]['action'], 'created', 'and action created for $update = false' );
+
+// 5. Term hooks: edited records term with the taxonomy and the term's current
+// name; deleted takes its name from the object it is handed, since the term
+// is already gone by the time delete_term fires.
+DPT_AL_Buffer::reset();
+$GLOBALS['dpt_stub_terms'][30] = array( 'name' => 'News' );
+DPT_AL_Hooks::on_term_edited( 30, 300, 'category' );
+$rows = DPT_AL_Buffer::rows( 'rest', '', 5, 1756108800 );
+dpt_test_eq( $rows[0]['object_type'], 'term', 'on_term_edited() records object_type term' );
+dpt_test_eq( $rows[0]['object_subtype'], 'category', 'the taxonomy as subtype' );
+dpt_test_eq( $rows[0]['object_name'], 'News', "the term's current name" );
+dpt_test_eq( $rows[0]['action'], 'updated', 'action updated' );
+
+DPT_AL_Buffer::reset();
+$deleted_term = (object) array( 'name' => 'Old Category' );
+DPT_AL_Hooks::on_term_deleted( 31, 301, 'category', $deleted_term );
+$rows = DPT_AL_Buffer::rows( 'rest', '', 5, 1756108800 );
+dpt_test_eq( $rows[0]['action'], 'deleted', 'on_term_deleted() records deleted' );
+dpt_test_eq( $rows[0]['object_name'], 'Old Category', 'taking the name from the deleted-term object, not a lookup' );
+
+// 6. User hooks.
+DPT_AL_Buffer::reset();
+$GLOBALS['dpt_stub_users'][70] = array( 'user_login' => 'agent-seven' );
+DPT_AL_Hooks::on_user_role( 70, 'editor' );
+$rows = DPT_AL_Buffer::rows( 'rest', '', 5, 1756108800 );
+dpt_test_eq( $rows[0]['object_subtype'], 'editor', 'on_user_role() records the role as subtype' );
+dpt_test_eq( $rows[0]['fields'], array( 'role' ), "and 'role' in fields" );
+dpt_test_eq( $rows[0]['object_name'], 'agent-seven', "the user's login" );
+
+DPT_AL_Buffer::reset();
+DPT_AL_Hooks::on_user_created( 71 );
+$rows = DPT_AL_Buffer::rows( 'rest', '', 5, 1756108800 );
+dpt_test_eq( $rows[0]['action'], 'created', 'on_user_created() records created' );
+
+DPT_AL_Buffer::reset();
+DPT_AL_Hooks::on_user_updated( 71 );
+$rows = DPT_AL_Buffer::rows( 'rest', '', 5, 1756108800 );
+dpt_test_eq( $rows[0]['action'], 'updated', 'on_user_updated() records updated' );
+
+DPT_AL_Buffer::reset();
+DPT_AL_Hooks::on_user_deleted( 71 );
+$rows = DPT_AL_Buffer::rows( 'rest', '', 5, 1756108800 );
+dpt_test_eq( $rows[0]['action'], 'deleted', 'on_user_deleted() records deleted' );
+
+// 7. The id-less keying, proven through the real call sites: two plugins
+// activated in one request are two rows with different names, and so are two
+// watched options updated in one request. This is the exact thing that broke
+// silently a task ago.
+DPT_AL_Buffer::reset();
+DPT_AL_Hooks::on_plugin_activated( 'akismet/akismet.php' );
+DPT_AL_Hooks::on_plugin_activated( 'hello-dolly/hello.php' );
+$rows  = DPT_AL_Buffer::rows( 'rest', '', 5, 1756108800 );
+$names = array_column( $rows, 'object_name' );
+dpt_test_eq( count( $rows ), 2, 'two plugins activated through the real hooks are two rows' );
+dpt_test_ok( in_array( 'akismet/akismet.php', $names, true ) && in_array( 'hello-dolly/hello.php', $names, true ), 'each carrying its own file as its name' );
+
+DPT_AL_Buffer::reset();
+DPT_AL_Hooks::on_option_updated( 'siteurl' );
+DPT_AL_Hooks::on_option_updated( 'blogname' );
+$rows  = DPT_AL_Buffer::rows( 'rest', '', 5, 1756108800 );
+$names = array_column( $rows, 'object_name' );
+dpt_test_eq( count( $rows ), 2, 'two watched options updated through the real hook are two rows' );
+dpt_test_ok( in_array( 'siteurl', $names, true ) && in_array( 'blogname', $names, true ), 'each carrying its own option name' );
+
+// An unwatched option updated through the real hook records nothing at all.
+DPT_AL_Buffer::reset();
+DPT_AL_Hooks::on_option_updated( '_transient_doing_cron' );
+dpt_test_eq( DPT_AL_Buffer::rows( 'rest', '', 5, 1756108800 ), array(), 'an option outside the allowlist records nothing' );
+
+// 8. init() registers nothing for a browser request, nothing for a read, and
+// something for a real write - each checked against a reset registry so
+// "registers nothing" cannot pass vacuously.
+$GLOBALS['dpt_stub_filters']      = array();
+$GLOBALS['dpt_stub_doing_cron']   = false;
+$GLOBALS['dpt_stub_rest_request'] = false;
+unset( $_SERVER['REQUEST_METHOD'] );
+DPT_AL_Hooks::init();
+dpt_test_eq( $GLOBALS['dpt_stub_filters'], array(), 'init() on a browser request (no channel) registers nothing' );
+
+$GLOBALS['dpt_stub_filters']      = array();
+$GLOBALS['dpt_stub_rest_request'] = true;
+$_SERVER['REQUEST_METHOD']        = 'GET';
+DPT_AL_Hooks::init();
+dpt_test_eq( $GLOBALS['dpt_stub_filters'], array(), 'init() on a real channel that is only a read also registers nothing' );
+
+$GLOBALS['dpt_stub_filters'] = array();
+$_SERVER['REQUEST_METHOD']   = 'POST';
+DPT_AL_Hooks::init();
+dpt_test_ok( ! empty( $GLOBALS['dpt_stub_filters'] ), 'init() on a real write registers something' );
+
+$GLOBALS['dpt_stub_filters']      = array();
+$GLOBALS['dpt_stub_rest_request'] = false;
+unset( $_SERVER['REQUEST_METHOD'] );
+
 dpt_test_summary();
