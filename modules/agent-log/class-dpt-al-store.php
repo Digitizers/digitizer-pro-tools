@@ -239,4 +239,41 @@ class DPT_AL_Store {
 			}
 		}
 	}
+
+	/**
+	 * @param array $args Request arguments.
+	 * @return array
+	 */
+	public static function query( $args ) {
+		$parts  = self::query_args( $args );
+		$writer = self::writer();
+		$table  = self::table();
+		$sql    = "SELECT * FROM {$table}";
+		if ( '' !== $parts['where'] ) {
+			$sql .= ' WHERE ' . $parts['where'];
+		}
+		$sql   .= ' ORDER BY id DESC LIMIT %d OFFSET %d';
+		$params = array_merge( $parts['params'], array( $parts['limit'], $parts['offset'] ) );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- own table; every value is a placeholder filled by prepare().
+		$rows = $writer->get_results( $writer->prepare( $sql, ...$params ) );
+		return is_array( $rows ) ? $rows : array();
+	}
+
+	/**
+	 * @param array $args Request arguments.
+	 * @return int
+	 */
+	public static function count( $args ) {
+		$parts  = self::query_args( $args );
+		$writer = self::writer();
+		$table  = self::table();
+		$sql    = "SELECT COUNT(*) FROM {$table}";
+		if ( '' === $parts['where'] ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- own table, no user input in the statement.
+			return (int) $writer->get_var( $sql );
+		}
+		$sql .= ' WHERE ' . $parts['where'];
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- own table; every value is a placeholder filled by prepare().
+		return (int) $writer->get_var( $writer->prepare( $sql, ...$parts['params'] ) );
+	}
 }

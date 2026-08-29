@@ -522,4 +522,34 @@ $GLOBALS['dpt_stub_filters']      = array();
 $GLOBALS['dpt_stub_rest_request'] = false;
 unset( $_SERVER['REQUEST_METHOD'] );
 
+require_once dirname( __DIR__ ) . '/modules/agent-log/class-dpt-al-rest.php';
+
+/* ---- the endpoint's argument schema ---- */
+
+$args = DPT_AL_Rest::args();
+dpt_test_eq( $args['per_page']['default'], 20, 'per_page defaults to twenty' );
+dpt_test_eq( $args['per_page']['maximum'], 100, 'and is capped at a hundred in the schema, not only in the store' );
+dpt_test_eq( $args['channel']['enum'], array( 'rest', 'cron', 'cli', 'xmlrpc' ), 'the channel is an enum the core validator can reject against' );
+dpt_test_ok( isset( $args['object_type']['enum'] ), 'and so is the object type' );
+
+/* ---- who may read it ---- */
+
+// The log names who changed what. edit_posts is not enough to see that.
+$GLOBALS['dpt_stub_denied_caps'] = array( 'manage_options' );
+dpt_test_ok( ! DPT_AL_Rest::may_read(), 'a user without manage_options may not read the log' );
+$GLOBALS['dpt_stub_denied_caps'] = array();
+dpt_test_ok( DPT_AL_Rest::may_read(), 'and one with it may' );
+
+/* ---- there is no way to erase it over the API ---- */
+
+$GLOBALS['dpt_stub_rest_routes'] = array();
+DPT_AL_Rest::init();
+$key = 'digitizer/v1/activity';
+dpt_test_ok( isset( $GLOBALS['dpt_stub_rest_routes'][ $key ] ), 'the route is registered under digitizer/v1/activity' );
+$methods = array();
+foreach ( $GLOBALS['dpt_stub_rest_routes'][ $key ] as $registered ) {
+	$methods[] = isset( $registered['methods'] ) ? $registered['methods'] : '';
+}
+dpt_test_eq( $methods, array( 'GET' ), 'for GET and nothing else - a log erasable over the API is a log an attacker erases' );
+
 dpt_test_summary();
