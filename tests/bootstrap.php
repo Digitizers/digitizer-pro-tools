@@ -79,6 +79,43 @@ if ( ! class_exists( 'WP_Application_Passwords' ) ) {
 	}
 }
 
+// The minimal slice of WP_REST_Response a callback that sets headers and
+// returns data needs: a constructor that keeps the data, header() that
+// records rather than sends, and readers for both - enough to assert on
+// without pulling in core's real class.
+if ( ! class_exists( 'WP_REST_Response' ) ) {
+	class WP_REST_Response {
+		private $data;
+		private $headers = array();
+		public function __construct( $data = null, $status = 200 ) {
+			$this->data = $data;
+		}
+		public function header( $name, $value ) {
+			$this->headers[ $name ] = $value;
+		}
+		public function get_data() {
+			return $this->data;
+		}
+		public function get_headers() {
+			return $this->headers;
+		}
+	}
+}
+
+// The minimal slice of WP_REST_Request a callback that only reads named
+// params needs, backed by a plain array the test hands it.
+if ( ! class_exists( 'WP_REST_Request' ) ) {
+	class WP_REST_Request {
+		private $params;
+		public function __construct( $params = array() ) {
+			$this->params = $params;
+		}
+		public function get_param( $key ) {
+			return array_key_exists( $key, $this->params ) ? $this->params[ $key ] : null;
+		}
+	}
+}
+
 /**
  * A notice raised while a REST response is being built corrupts the JSON
  * before a single byte of it reaches a client, so a notice, warning or

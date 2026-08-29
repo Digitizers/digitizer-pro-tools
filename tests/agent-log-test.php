@@ -552,4 +552,84 @@ foreach ( $GLOBALS['dpt_stub_rest_routes'][ $key ] as $registered ) {
 }
 dpt_test_eq( $methods, array( 'GET' ), 'for GET and nothing else - a log erasable over the API is a log an attacker erases' );
 
+/* ---- handle(): the endpoint's actual output shape ---- */
+
+$writer = new DPT_AL_Test_Writer();
+DPT_AL_Store::set_writer( $writer );
+
+// A normal row, a row whose fields column is malformed JSON, and a row
+// whose fields column is null - the two ways a column that is only ever
+// written by this module's own insert() could still arrive broken.
+$row_normal = (object) array(
+	'id'             => 5,
+	'logged_at'      => '2026-08-25 10:00:00',
+	'channel'        => 'rest',
+	'app'            => 'seo-bot',
+	'user_id'        => '812', // a numeric string on purpose: handle() must cast it.
+	'action'         => 'updated',
+	'object_type'    => 'post',
+	'object_subtype' => 'page',
+	'object_id'      => '20',
+	'object_name'    => 'Homepage',
+	'fields'         => wp_json_encode( array( 'post_content', 'rank_math_title' ) ),
+);
+$row_malformed = (object) array(
+	'id'             => 6,
+	'logged_at'      => '2026-08-25 10:05:00',
+	'channel'        => 'cron',
+	'app'            => '',
+	'user_id'        => 0,
+	'action'         => 'created',
+	'object_type'    => 'option',
+	'object_subtype' => '',
+	'object_id'      => 0,
+	'object_name'    => 'siteurl',
+	'fields'         => 'not json at all',
+);
+$row_null_fields = (object) array(
+	'id'             => 7,
+	'logged_at'      => '2026-08-25 10:06:00',
+	'channel'        => 'cron',
+	'app'            => '',
+	'user_id'        => 0,
+	'action'         => 'created',
+	'object_type'    => 'option',
+	'object_subtype' => '',
+	'object_id'      => 0,
+	'object_name'    => 'blogname',
+	'fields'         => null,
+);
+
+$writer->rows = array( $row_normal, $row_malformed, $row_null_fields );
+$writer->var  = 45; // deliberately not a multiple of the 20-per-page default.
+
+$response = DPT_AL_Rest::handle( new WP_REST_Request( array() ) );
+$data     = $response->get_data();
+
+dpt_test_eq( $data[0]['fields'], array( 'post_content', 'rank_math_title' ), 'fields comes back as the decoded array of names, not the JSON string' );
+dpt_test_eq( $data[1]['fields'], array(), 'malformed JSON in the fields column comes back as an empty array' );
+dpt_test_eq( $data[2]['fields'], array(), 'and a null fields column comes back as an empty array too, not null or false' );
+
+dpt_test_eq( $data[0]['id'], 5, 'id is an int' );
+dpt_test_eq( $data[0]['object_id'], 20, 'so is a numeric-string object_id, cast rather than passed through' );
+dpt_test_eq( $data[0]['user_id'], 812, 'and a numeric-string user_id casts to an int too' );
+dpt_test_eq( $data[0]['channel'], 'rest', 'while channel stays a string' );
+dpt_test_eq( $data[0]['object_name'], 'Homepage', 'and object_name carries the value untouched' );
+
+$headers = $response->get_headers();
+dpt_test_eq( $headers['X-WP-Total'], '45', 'X-WP-Total carries the store total' );
+dpt_test_eq( $headers['X-WP-TotalPages'], '3', '45 rows at 20 per page is 3 pages, rounded up rather than floored' );
+
+/* ---- only the parameters actually present reach the store ---- */
+
+$writer->queries = array();
+DPT_AL_Rest::handle( new WP_REST_Request( array() ) );
+$no_param_sql = implode( ' ', $writer->queries );
+dpt_test_ok( false === strpos( $no_param_sql, 'WHERE' ), 'a request with no parameters builds no WHERE clause' );
+
+$writer->queries = array();
+DPT_AL_Rest::handle( new WP_REST_Request( array( 'channel' => 'cron' ) ) );
+$channel_param_sql = implode( ' ', $writer->queries );
+dpt_test_ok( false !== strpos( $channel_param_sql, "WHERE channel = 'cron'" ), 'and one carrying a channel filters the store query by it' );
+
 dpt_test_summary();
