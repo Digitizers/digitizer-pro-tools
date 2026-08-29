@@ -26,7 +26,9 @@ class DPT_AL_Buffer {
 	 * creation and deletion, which are facts about its existence - so all
 	 * five outrank a mere update. An action this table does not know about
 	 * ranks 0, below even "updated", so it can never silently outrank one
-	 * the table does know.
+	 * the table does know. Rank breaks ties in favour of the later action:
+	 * see record(), where equal rank means two claims of the same strength
+	 * and the second one is the one that is still true at the end.
 	 */
 	private static $rank = array(
 		'updated'     => 1,
@@ -71,7 +73,14 @@ class DPT_AL_Buffer {
 			$new  = (string) $action;
 			$a    = isset( self::$rank[ $held ] ) ? self::$rank[ $held ] : 0;
 			$b    = isset( self::$rank[ $new ] ) ? self::$rank[ $new ] : 0;
-			if ( $b > $a ) {
+			// Greater *or equal*: two actions of the same rank are two state
+			// changes, and the later one is the state the request left the
+			// object in. A plugin activated and then deactivated in one
+			// request is deactivated, whatever order the hooks fired in, and
+			// a row saying "activated" would be the log contradicting the
+			// site. Ranks that differ are unaffected, so a create still
+			// outranks the update that followed it.
+			if ( $b >= $a ) {
 				self::$pending[ $key ]['action'] = $new;
 			}
 			if ( '' !== (string) $name ) {

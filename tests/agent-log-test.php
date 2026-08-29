@@ -203,6 +203,61 @@ $writer->inserted = array();
 DPT_AL_Store::insert( array( 'object_name' => 'שלום עולם' ) );
 dpt_test_eq( $writer->inserted[0]['data']['object_name'], 'שלום עולם', 'a short Hebrew title is untouched' );
 
+/* ---- a field list too long for TEXT is shortened, not left to lose the row ---- */
+
+// The same failure the per-column bounds fixed, on the one column that has no
+// character width: fields is TEXT, 65,535 bytes, and one import touching a few
+// hundred long meta keys on a single object passes that. Strict mode then
+// errors the INSERT and flush() ignores the return value, so the log loses the
+// fact that the object changed at all.
+$writer->inserted = array();
+$many             = array();
+for ( $i = 0; $i < 2000; $i++ ) {
+	$many[] = '_a_fairly_long_plugin_meta_key_name_number_' . $i;
+}
+DPT_AL_Store::insert( array( 'fields' => $many ) );
+$encoded = $writer->inserted[0]['data']['fields'];
+dpt_test_ok( strlen( wp_json_encode( $many ) ) > DPT_AL_Store::MAX_FIELDS_BYTES, 'the unbounded encoding of 2000 long meta keys really does exceed the budget' );
+dpt_test_ok( strlen( $encoded ) <= DPT_AL_Store::MAX_FIELDS_BYTES, 'what is written is inside the budget' );
+$decoded = json_decode( $encoded, true );
+dpt_test_ok( is_array( $decoded ), 'and still decodes to an array, which is what the endpoint and the screen both require' );
+dpt_test_ok( count( $decoded ) > 500, 'keeping as many names as fit rather than giving up on the list' );
+dpt_test_ok( count( $decoded ) < count( $many ), 'but not all of them, since all of them would not fit' );
+dpt_test_eq( $decoded[0], $many[0], 'the names kept are the leading ones, in order' );
+dpt_test_eq( $decoded[ count( $decoded ) - 1 ], $many[ count( $decoded ) - 1 ], 'up to wherever the budget ran out' );
+
+// A list that fits is written whole, so the budget is a bound and not a trim.
+$writer->inserted = array();
+DPT_AL_Store::insert( array( 'fields' => array( 'post_content', 'rank_math_title' ) ) );
+dpt_test_eq( $writer->inserted[0]['data']['fields'], '["post_content","rank_math_title"]', 'a field list that fits is written exactly as it came' );
+
+// Bytes, not characters. A Hebrew meta key costs two bytes a character in the
+// column and one in mb_strlen(), and on a real site more still: core's
+// wp_json_encode() defaults its flags to 0 and escapes non-ASCII to \uXXXX,
+// six bytes a character. (The stub in tests/bootstrap.php passes
+// JSON_UNESCAPED_UNICODE, so what is measured here is the two-byte case - the
+// gentler of the two, which means the real column has more headroom than this
+// test proves, not less.) Either way, counting characters, or counting the
+// names before they were encoded, leaves the overflow in place.
+$writer->inserted = array();
+$hebrew           = array();
+for ( $i = 0; $i < 4000; $i++ ) {
+	$hebrew[] = str_repeat( 'ת', 20 ) . $i;
+}
+DPT_AL_Store::insert( array( 'fields' => $hebrew ) );
+$encoded = $writer->inserted[0]['data']['fields'];
+$decoded = json_decode( $encoded, true );
+dpt_test_ok( strlen( $encoded ) <= DPT_AL_Store::MAX_FIELDS_BYTES, 'a list of non-ASCII names is bounded by its encoded bytes' );
+dpt_test_ok( is_array( $decoded ) && count( $decoded ) > 0, 'and decodes to a non-empty array of names' );
+dpt_test_ok( count( $decoded ) < count( $hebrew ), 'with the tail dropped, because the escaped bytes ran out before the names did' );
+dpt_test_ok( mb_check_encoding( $decoded[ count( $decoded ) - 1 ], 'UTF-8' ), 'and the last name kept is a whole name, not a cut one' );
+dpt_test_eq( $decoded[0], $hebrew[0], 'the first Hebrew name survives intact' );
+// What was written fills the byte budget but is nowhere near it in
+// characters, which is the whole difference: a bound that counted characters
+// would have gone on adding names until the column had long since overflowed.
+dpt_test_ok( strlen( $encoded ) > DPT_AL_Store::MAX_FIELDS_BYTES - 200, 'the bytes written fill the budget' );
+dpt_test_ok( mb_strlen( $encoded, 'UTF-8' ) < DPT_AL_Store::MAX_FIELDS_BYTES - 10000, 'while the character count is far short of it, which is the room a character-counting bound would have kept filling' );
+
 /* ---- query arguments ---- */
 
 $q = DPT_AL_Store::query_args( array( 'channel' => 'rest', 'object_type' => 'post', 'object_id' => 812, 'per_page' => 20, 'page' => 2 ) );
@@ -329,6 +384,66 @@ DPT_AL_Buffer::record( 'plugin', 'akismet/akismet.php', 0, 'deactivated', 'Akism
 DPT_AL_Buffer::record( 'plugin', 'akismet/akismet.php', 0, 'updated', 'Akismet' );
 $rows = DPT_AL_Buffer::rows( 'rest', '', 5, 1756108800 );
 dpt_test_eq( $rows[0]['action'], 'deactivated', 'deactivated is not overwritten by a later updated' );
+
+/* ---- between two state changes of equal rank, the later one is the truth ---- */
+
+// activated, deactivated and switched all rank the same, so rank alone cannot
+// separate them: what separates them is that one of them happened last. A
+// plugin activated and then deactivated in one request is deactivated at the
+// end of it, and a row saying "activated" is the log contradicting the site.
+DPT_AL_Buffer::reset();
+DPT_AL_Buffer::record( 'plugin', 'akismet/akismet.php', 0, 'activated', 'Akismet' );
+DPT_AL_Buffer::record( 'plugin', 'akismet/akismet.php', 0, 'deactivated', 'Akismet' );
+$rows = DPT_AL_Buffer::rows( 'rest', '', 5, 1756108800 );
+dpt_test_eq( $rows[0]['action'], 'deactivated', 'activated then deactivated in one request keeps deactivated' );
+
+DPT_AL_Buffer::reset();
+DPT_AL_Buffer::record( 'plugin', 'akismet/akismet.php', 0, 'deactivated', 'Akismet' );
+DPT_AL_Buffer::record( 'plugin', 'akismet/akismet.php', 0, 'activated', 'Akismet' );
+$rows = DPT_AL_Buffer::rows( 'rest', '', 5, 1756108800 );
+dpt_test_eq( $rows[0]['action'], 'activated', 'and deactivated then activated keeps activated, the other way round' );
+
+// Two switches in one request do not meet in the buffer at all: switch_theme
+// carries the theme being switched *to*, and a theme has no id and no
+// subtype, so it keys on that name. Two names are two keys, and the tie-break
+// never sees them - each row names the theme it is about, which is not a lie,
+// just two facts instead of one.
+DPT_AL_Buffer::reset();
+DPT_AL_Buffer::record( 'theme', '', 0, 'switched', 'Twenty Twenty-Four' );
+DPT_AL_Buffer::record( 'theme', '', 0, 'switched', 'Twenty Twenty-Five' );
+$rows  = DPT_AL_Buffer::rows( 'rest', '', 5, 1756108800 );
+$names = array_column( $rows, 'object_name' );
+dpt_test_eq( count( $rows ), 2, 'two switches to different themes key on the theme name, so they are two rows' );
+dpt_test_eq( $names, array( 'Twenty Twenty-Four', 'Twenty Twenty-Five' ), 'each naming the theme it switched to, in the order they happened' );
+
+// Where two equal-ranked records DO meet on one key, the later one is kept -
+// a theme switched and then reported switched again is still switched, and a
+// 'switched' arriving after an 'activated' on the same key replaces it rather
+// than being ignored for tying.
+DPT_AL_Buffer::reset();
+DPT_AL_Buffer::record( 'theme', '', 0, 'activated', 'Twenty Twenty-Five' );
+DPT_AL_Buffer::record( 'theme', '', 0, 'switched', 'Twenty Twenty-Five' );
+$rows = DPT_AL_Buffer::rows( 'rest', '', 5, 1756108800 );
+dpt_test_eq( count( $rows ), 1, 'two records for one theme name are one row' );
+dpt_test_eq( $rows[0]['action'], 'switched', 'and the later of two equal-ranked actions is the one kept' );
+
+// An object created and destroyed inside one request is deleted: it does not
+// exist now, and "created" would send a reader looking for something that
+// isn't there. The creation is not lost so much as subsumed - a row for an
+// object that no longer exists is a row about a deletion.
+DPT_AL_Buffer::reset();
+DPT_AL_Buffer::record( 'post', 'page', 814, 'created', 'Draft' );
+DPT_AL_Buffer::record( 'post', 'page', 814, 'deleted', 'Draft' );
+$rows = DPT_AL_Buffer::rows( 'rest', '', 5, 1756108800 );
+dpt_test_eq( $rows[0]['action'], 'deleted', 'created then deleted in one request records the deletion' );
+
+// Ties are broken by order, not by ignoring rank: a weaker action arriving
+// later still loses.
+DPT_AL_Buffer::reset();
+DPT_AL_Buffer::record( 'plugin', 'akismet/akismet.php', 0, 'deleted', 'Akismet' );
+DPT_AL_Buffer::record( 'plugin', 'akismet/akismet.php', 0, 'deactivated', 'Akismet' );
+$rows = DPT_AL_Buffer::rows( 'rest', '', 5, 1756108800 );
+dpt_test_eq( $rows[0]['action'], 'deleted', 'a lower-ranked action arriving later still does not win' );
 
 /* ---- retention settings ---- */
 

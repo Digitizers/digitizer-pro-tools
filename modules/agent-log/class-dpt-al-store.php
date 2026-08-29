@@ -17,6 +17,21 @@ class DPT_AL_Store {
 	const MAX_PER_PAGE     = 100;
 	const SCHEMA_VERSION   = '1';
 
+	/**
+	 * How many bytes of encoded field list a row may carry.
+	 *
+	 * The column is TEXT, which holds 65,535 bytes - bytes, not characters,
+	 * and a Hebrew or Japanese meta key costs six bytes per character once
+	 * wp_json_encode() escapes it to \uXXXX. One bulk import touching a few
+	 * hundred long meta keys on a single object is enough to pass that, and
+	 * under MySQL strict mode an overlong value errors the whole INSERT -
+	 * losing not just the field list but the row that says the object changed
+	 * at all. So the list is bounded here, well short of the boundary rather
+	 * than sitting on it, since nothing else about this row is worth risking
+	 * for the last few hundred bytes of a list nobody reads to the end.
+	 */
+	const MAX_FIELDS_BYTES = 60000;
+
 	/** @var object|null */
 	private static $writer = null;
 
@@ -63,7 +78,8 @@ class DPT_AL_Store {
 	 * unescaped - or longer than the column takes, which under MySQL strict
 	 * mode (the default on 5.7 and 8.0) errors the whole INSERT and loses the
 	 * row. Plugin basenames routinely exceed 60 characters and post titles
-	 * 191. 'fields' is TEXT and has no bound here.
+	 * 191. 'fields' carries 0 here because it is TEXT and is bounded in bytes
+	 * by encode_fields() rather than in characters by truncate().
 	 *
 	 * @return array
 	 */
@@ -104,6 +120,57 @@ class DPT_AL_Store {
 	}
 
 	/**
+	 * Encode a field list small enough to reach the column.
+	 *
+	 * The bound is on the encoded string in bytes, because bytes are what the
+	 * column counts: mb_strlen() here would be the bug rather than the fix,
+	 * and so would measuring the names before wp_json_encode() escaped them.
+	 * Names are measured one at a time - the encoding of a JSON array of
+	 * strings is exactly the two brackets, each element's own encoding, and a
+	 * comma between each pair - and the leading names that fit are kept.
+	 *
+	 * Dropping the tail is the point. The endpoint and the screen both
+	 * json_decode() this column and must get an array back, so a string cut
+	 * mid-name would be worse than useless; but a row naming four hundred of
+	 * five hundred changed fields is worth far more than no row at all, which
+	 * is the alternative once MySQL refuses the INSERT.
+	 *
+	 * @param array $fields Field names.
+	 * @return string Valid JSON for an array, at most MAX_FIELDS_BYTES bytes.
+	 */
+	private static function encode_fields( $fields ) {
+		$names = array_values( array_map( 'strval', $fields ) );
+		$json  = wp_json_encode( $names );
+
+		if ( is_string( $json ) && strlen( $json ) <= self::MAX_FIELDS_BYTES ) {
+			return $json;
+		}
+
+		// '[]' and the comma each element after the first needs.
+		$budget = self::MAX_FIELDS_BYTES - 2;
+		$kept   = array();
+
+		foreach ( $names as $name ) {
+			$encoded = wp_json_encode( $name );
+			if ( ! is_string( $encoded ) ) {
+				// wp_json_encode() fails on malformed UTF-8. One unwritable
+				// name is not a reason to lose the names around it.
+				continue;
+			}
+			$cost = strlen( $encoded ) + ( empty( $kept ) ? 0 : 1 );
+			if ( $cost > $budget ) {
+				break;
+			}
+			$budget -= $cost;
+			$kept[]  = $name;
+		}
+
+		$json = wp_json_encode( $kept );
+
+		return is_string( $json ) ? $json : '[]';
+	}
+
+	/**
 	 * Write one row.
 	 *
 	 * @param array $row Partial row; anything missing takes its default.
@@ -118,13 +185,7 @@ class DPT_AL_Store {
 			$value                          = array_key_exists( $name, $row ) ? $row[ $name ] : $default;
 
 			if ( 'fields' === $name ) {
-				$value = wp_json_encode( array_values( array_map( 'strval', (array) $value ) ) );
-				if ( ! is_string( $value ) ) {
-					// wp_json_encode() can fail on malformed UTF-8. An
-					// unwritable field list must not lose the row that says
-					// the object changed at all.
-					$value = '[]';
-				}
+				$value = self::encode_fields( (array) $value );
 			} elseif ( '%d' === $format ) {
 				$value = (int) $value;
 			} else {
