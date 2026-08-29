@@ -268,4 +268,61 @@ add_filter( 'dpt_agent_log_max_rows', function () { return 0; } );
 dpt_test_eq( DPT_AL_Buffer::max_rows(), 0, 'including down to zero, which disables that bound' );
 $GLOBALS['dpt_stub_filters'] = array();
 
+require_once dirname( __DIR__ ) . '/modules/agent-log/class-dpt-al-hooks.php';
+
+/* ---- which post columns changed ---- */
+
+$before = (object) array( 'post_title' => 'Old', 'post_content' => 'Body', 'post_status' => 'draft', 'post_modified' => '2026-01-01 00:00:00' );
+$after  = (object) array( 'post_title' => 'New', 'post_content' => 'Body', 'post_status' => 'publish', 'post_modified' => '2026-08-25 00:00:00' );
+
+$diff = DPT_AL_Hooks::post_field_diff( $after, $before );
+dpt_test_ok( in_array( 'post_title', $diff, true ), 'a changed title is reported' );
+dpt_test_ok( in_array( 'post_status', $diff, true ), 'and a changed status' );
+dpt_test_ok( ! in_array( 'post_content', $diff, true ), 'an unchanged column is not' );
+// post_modified changes on every save by definition. Reporting it would put
+// a field in every single row that means nothing.
+dpt_test_ok( ! in_array( 'post_modified', $diff, true ), 'and neither is post_modified, which changes on every save' );
+
+// A create has no "before". Every column would look changed, which is true
+// and useless - the action already says the object is new.
+dpt_test_eq( DPT_AL_Hooks::post_field_diff( $after, null ), array(), 'a create reports no field diff at all' );
+
+/* ---- the option allowlist ---- */
+
+$GLOBALS['dpt_stub_filters'] = array();
+$watched = DPT_AL_Hooks::watched_options();
+dpt_test_ok( in_array( 'siteurl', $watched, true ), 'siteurl is watched' );
+dpt_test_ok( in_array( 'active_plugins', $watched, true ), 'and so is active_plugins' );
+// updated_option fires for every transient. Without an allowlist the table
+// fills with noise in a day and buries the writes worth seeing.
+dpt_test_ok( ! in_array( '_transient_doing_cron', $watched, true ), 'a transient is not' );
+
+add_filter( 'dpt_agent_log_watched_options', function ( $list ) { $list[] = 'my_option'; return $list; } );
+dpt_test_ok( in_array( 'my_option', DPT_AL_Hooks::watched_options(), true ), 'and a site may add one by filter' );
+// A filter returning something that is not a list must not disarm the
+// allowlist into "watch everything".
+add_filter( 'dpt_agent_log_watched_options', function () { return 'nonsense'; } );
+dpt_test_ok( in_array( 'siteurl', DPT_AL_Hooks::watched_options(), true ), 'while a filter returning nonsense leaves the defaults standing' );
+$GLOBALS['dpt_stub_filters'] = array();
+
+/* ---- pruning execution ---- */
+
+$writer = new DPT_AL_Test_Writer();
+DPT_AL_Store::set_writer( $writer );
+$writer->var = 900;
+DPT_AL_Store::prune( 30, 20000, 1756108800 );
+dpt_test_eq( count( $writer->queries ), 3, 'both bounds run: one delete by age, one lookup and one delete by id' );
+dpt_test_ok( false !== strpos( $writer->queries[0], 'logged_at <' ), 'the age bound deletes by date' );
+dpt_test_ok( false !== strpos( $writer->queries[2], 'id <= 900' ), 'and the row bound deletes below the id at the cap' );
+
+// Nothing below the cap means nothing to delete, and no DELETE issued.
+$writer->queries = array();
+$writer->var     = null;
+DPT_AL_Store::prune( 0, 20000, 1756108800 );
+dpt_test_eq( count( $writer->queries ), 1, 'a table under the row cap issues the lookup and no delete' );
+
+$writer->queries = array();
+DPT_AL_Store::prune( 0, 0, 1756108800 );
+dpt_test_eq( $writer->queries, array(), 'and both bounds disabled runs no query at all, rather than an unbounded delete' );
+
 dpt_test_summary();

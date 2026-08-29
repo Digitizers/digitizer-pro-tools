@@ -209,4 +209,34 @@ class DPT_AL_Store {
 
 		return $plan;
 	}
+
+	/**
+	 * Carry out what prune_plan() described.
+	 *
+	 * @param int $max_age_days Days to keep, 0 or less to disable.
+	 * @param int $max_rows     Rows to keep, 0 or less to disable.
+	 * @param int $now          Current timestamp.
+	 * @return void
+	 */
+	public static function prune( $max_age_days, $max_rows, $now ) {
+		$writer = self::writer();
+		$table  = self::table();
+
+		foreach ( self::prune_plan( $max_age_days, $max_rows, $now ) as $step ) {
+			if ( 'age' === $step['kind'] ) {
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- own table, name from the writer prefix; the value is prepared.
+				$writer->query( $writer->prepare( "DELETE FROM {$table} WHERE logged_at < %s", $step['cutoff'] ) );
+				continue;
+			}
+			// Keep the newest $keep rows: find the id at that depth and drop
+			// everything below it. One comparison against an indexed column,
+			// rather than a subquery over the whole table.
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- own table; the value is prepared.
+			$floor = $writer->get_var( $writer->prepare( "SELECT id FROM {$table} ORDER BY id DESC LIMIT 1 OFFSET %d", (int) $step['keep'] ) );
+			if ( $floor ) {
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- own table; the value is prepared.
+				$writer->query( $writer->prepare( "DELETE FROM {$table} WHERE id <= %d", (int) $floor ) );
+			}
+		}
+	}
 }

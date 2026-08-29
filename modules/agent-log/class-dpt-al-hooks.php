@@ -1,0 +1,250 @@
+<?php
+/**
+ * Agent Log module - the WordPress wiring.
+ *
+ * The only file here that hooks anything. What it decides lives in static
+ * methods that take their inputs as arguments, so the decisions can be tested
+ * without a request.
+ */
+
+if ( ! defined( 'ABSPATH' ) ) { exit; }
+
+class DPT_AL_Hooks {
+
+	/**
+	 * Columns whose change says nothing. post_modified moves on every save by
+	 * definition, so reporting it would put one meaningless name in every row.
+	 */
+	private static $ignored_columns = array( 'post_modified', 'post_modified_gmt' );
+
+	/**
+	 * @return void
+	 */
+	public static function init() {
+		// Nothing at all is hooked for a browser request or a read. The
+		// module's boundary is enforced before any listener exists, rather
+		// than by each listener remembering to check.
+		if ( '' === DPT_AL_Channel::current() || DPT_AL_Channel::is_read_request() ) {
+			return;
+		}
+
+		add_action( 'wp_after_insert_post', array( __CLASS__, 'on_post_saved' ), 10, 4 );
+		add_action( 'before_delete_post', array( __CLASS__, 'on_post_deleted' ), 10, 2 );
+		add_action( 'added_post_meta', array( __CLASS__, 'on_post_meta' ), 10, 3 );
+		add_action( 'updated_post_meta', array( __CLASS__, 'on_post_meta' ), 10, 3 );
+		add_action( 'deleted_post_meta', array( __CLASS__, 'on_post_meta' ), 10, 3 );
+		add_action( 'created_term', array( __CLASS__, 'on_term_created' ), 10, 3 );
+		add_action( 'edited_term', array( __CLASS__, 'on_term_edited' ), 10, 3 );
+		add_action( 'delete_term', array( __CLASS__, 'on_term_deleted' ), 10, 4 );
+		add_action( 'user_register', array( __CLASS__, 'on_user_created' ) );
+		add_action( 'profile_update', array( __CLASS__, 'on_user_updated' ) );
+		add_action( 'set_user_role', array( __CLASS__, 'on_user_role' ), 10, 2 );
+		add_action( 'deleted_user', array( __CLASS__, 'on_user_deleted' ) );
+		add_action( 'activated_plugin', array( __CLASS__, 'on_plugin_activated' ) );
+		add_action( 'deactivated_plugin', array( __CLASS__, 'on_plugin_deactivated' ) );
+		add_action( 'switch_theme', array( __CLASS__, 'on_theme_switched' ), 10, 2 );
+		add_action( 'updated_option', array( __CLASS__, 'on_option_updated' ) );
+
+		add_action( 'shutdown', array( __CLASS__, 'flush' ) );
+	}
+
+	/**
+	 * The options worth a row.
+	 *
+	 * @return array
+	 */
+	public static function watched_options() {
+		$default = array(
+			'siteurl',
+			'home',
+			'blogname',
+			'users_can_register',
+			'default_role',
+			'permalink_structure',
+			'template',
+			'stylesheet',
+			'active_plugins',
+		);
+		/**
+		 * Filter which options are recorded when they change.
+		 *
+		 * @param array $options Option names.
+		 */
+		$filtered = apply_filters( 'dpt_agent_log_watched_options', $default );
+		// A filter that returns something other than a list would otherwise
+		// turn the allowlist into "watch everything", which is the one
+		// outcome it exists to prevent.
+		return is_array( $filtered ) ? array_values( array_filter( $filtered, 'is_string' ) ) : $default;
+	}
+
+	/**
+	 * Which columns of a post actually changed.
+	 *
+	 * @param object      $after  Post after the save.
+	 * @param object|null $before Post before it, null on a create.
+	 * @return array
+	 */
+	public static function post_field_diff( $after, $before ) {
+		if ( ! is_object( $after ) || ! is_object( $before ) ) {
+			// A create has no before. Every column would read as changed,
+			// which is true and useless: the action already says it is new.
+			return array();
+		}
+		$changed = array();
+		foreach ( get_object_vars( $after ) as $column => $value ) {
+			if ( in_array( $column, self::$ignored_columns, true ) ) {
+				continue;
+			}
+			if ( ! property_exists( $before, $column ) ) {
+				continue;
+			}
+			if ( $before->$column !== $value ) {
+				$changed[] = $column;
+			}
+		}
+		return $changed;
+	}
+
+	public static function on_post_saved( $post_id, $post, $update, $post_before ) {
+		if ( wp_is_post_revision( $post_id ) || wp_is_post_autosave( $post_id ) ) {
+			return;
+		}
+		$type = ( isset( $post->post_type ) && 'attachment' === $post->post_type ) ? 'attachment' : 'post';
+		DPT_AL_Buffer::record(
+			$type,
+			isset( $post->post_type ) ? $post->post_type : '',
+			$post_id,
+			$update ? 'updated' : 'created',
+			isset( $post->post_title ) ? $post->post_title : '',
+			self::post_field_diff( $post, $post_before )
+		);
+	}
+
+	public static function on_post_deleted( $post_id, $post = null ) {
+		$type = ( is_object( $post ) && isset( $post->post_type ) && 'attachment' === $post->post_type ) ? 'attachment' : 'post';
+		DPT_AL_Buffer::record(
+			$type,
+			is_object( $post ) && isset( $post->post_type ) ? $post->post_type : '',
+			$post_id,
+			'deleted',
+			is_object( $post ) && isset( $post->post_title ) ? $post->post_title : ''
+		);
+	}
+
+	public static function on_post_meta( $meta_id, $object_id, $meta_key ) {
+		$post = get_post( $object_id );
+		if ( ! $post ) {
+			return;
+		}
+		$type = ( 'attachment' === $post->post_type ) ? 'attachment' : 'post';
+		DPT_AL_Buffer::record( $type, $post->post_type, $object_id, 'updated', $post->post_title, array( $meta_key ) );
+	}
+
+	public static function on_term_created( $term_id, $tt_id, $taxonomy ) {
+		self::record_term( $term_id, $taxonomy, 'created' );
+	}
+
+	public static function on_term_edited( $term_id, $tt_id, $taxonomy ) {
+		self::record_term( $term_id, $taxonomy, 'updated' );
+	}
+
+	public static function on_term_deleted( $term_id, $tt_id, $taxonomy, $deleted_term ) {
+		DPT_AL_Buffer::record(
+			'term',
+			(string) $taxonomy,
+			$term_id,
+			'deleted',
+			is_object( $deleted_term ) && isset( $deleted_term->name ) ? $deleted_term->name : ''
+		);
+	}
+
+	private static function record_term( $term_id, $taxonomy, $action ) {
+		$term = get_term( $term_id, $taxonomy );
+		DPT_AL_Buffer::record(
+			'term',
+			(string) $taxonomy,
+			$term_id,
+			$action,
+			( $term && ! is_wp_error( $term ) && isset( $term->name ) ) ? $term->name : ''
+		);
+	}
+
+	public static function on_user_created( $user_id ) {
+		self::record_user( $user_id, 'created' );
+	}
+
+	public static function on_user_updated( $user_id ) {
+		self::record_user( $user_id, 'updated' );
+	}
+
+	public static function on_user_role( $user_id, $role ) {
+		DPT_AL_Buffer::record( 'user', (string) $role, $user_id, 'updated', self::user_login( $user_id ), array( 'role' ) );
+	}
+
+	public static function on_user_deleted( $user_id ) {
+		DPT_AL_Buffer::record( 'user', '', $user_id, 'deleted' );
+	}
+
+	private static function record_user( $user_id, $action ) {
+		DPT_AL_Buffer::record( 'user', '', $user_id, $action, self::user_login( $user_id ) );
+	}
+
+	private static function user_login( $user_id ) {
+		$user = get_userdata( $user_id );
+		return ( $user && isset( $user->user_login ) ) ? $user->user_login : '';
+	}
+
+	public static function on_plugin_activated( $plugin ) {
+		DPT_AL_Buffer::record( 'plugin', (string) $plugin, 0, 'activated', (string) $plugin );
+	}
+
+	public static function on_plugin_deactivated( $plugin ) {
+		DPT_AL_Buffer::record( 'plugin', (string) $plugin, 0, 'deactivated', (string) $plugin );
+	}
+
+	public static function on_theme_switched( $new_name, $new_theme = null ) {
+		DPT_AL_Buffer::record( 'theme', '', 0, 'switched', (string) $new_name );
+	}
+
+	public static function on_option_updated( $option ) {
+		if ( ! in_array( $option, self::watched_options(), true ) ) {
+			return;
+		}
+		DPT_AL_Buffer::record( 'option', '', 0, 'updated', (string) $option, array( (string) $option ) );
+	}
+
+	/**
+	 * Write this request's rows, then prune at most once an hour.
+	 *
+	 * Pruning here rather than on a scheduled event: a module that is
+	 * switched off never runs init(), so it can never unschedule an event it
+	 * scheduled while on, and a scheduled hook whose callback is gone is a
+	 * leak nothing on the Modules screen would show. A site that is not being
+	 * written to has nothing to prune.
+	 *
+	 * @return void
+	 */
+	public static function flush() {
+		$rows = DPT_AL_Buffer::rows(
+			DPT_AL_Channel::current(),
+			DPT_AL_Channel::app_name(),
+			get_current_user_id(),
+			time()
+		);
+		DPT_AL_Buffer::reset();
+
+		if ( empty( $rows ) ) {
+			return;
+		}
+		foreach ( $rows as $row ) {
+			DPT_AL_Store::insert( $row );
+		}
+
+		$last = (int) get_option( 'dpt_agent_log_last_prune', 0 );
+		if ( ( time() - $last ) < HOUR_IN_SECONDS ) {
+			return;
+		}
+		update_option( 'dpt_agent_log_last_prune', time(), false );
+		DPT_AL_Store::prune( DPT_AL_Buffer::max_age_days(), DPT_AL_Buffer::max_rows(), time() );
+	}
+}
