@@ -380,11 +380,13 @@ class DPT_AL_Store {
 			return;
 		}
 
-		global $wpdb;
+		$writer  = self::writer();
 		$table   = self::table();
-		$collate = $wpdb->get_charset_collate();
+		$collate = $writer->get_charset_collate();
 
-		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		if ( ! function_exists( 'dbDelta' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		}
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange -- this module's own table, created through dbDelta.
 		dbDelta(
@@ -406,6 +408,27 @@ class DPT_AL_Store {
 				KEY channel (channel)
 			) {$collate};"
 		);
+
+		// dbDelta() reports nothing a caller can test: it returns the list of
+		// changes it believes it made whether or not the queries succeeded. So
+		// the stamp is only written once the table is actually there. Stamping
+		// it regardless would mean a single failed CREATE - a transient
+		// database error, a user without CREATE rights - permanently satisfies
+		// the version guard above, and the log then stays empty forever while
+		// flush() inserts into a table that does not exist. Leaving the option
+		// unset costs one dbDelta per request until the table appears, and
+		// nothing else; a run that fails a second time is a run that would
+		// have been silently broken instead.
+		//
+		// LIKE reads _ as a single-character wildcard and every prefix has
+		// one, so the name is escaped with esc_like() before prepare() quotes
+		// it - otherwise wp_dpt_agent_log would match wpXdptXagentXlog and the
+		// check would pass on a table this module never created.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- checking for the table this module just created; there is no cache for that.
+		$found = $writer->get_var( $writer->prepare( 'SHOW TABLES LIKE %s', $writer->esc_like( $table ) ) );
+		if ( $found !== $table ) {
+			return;
+		}
 
 		update_option( 'dpt_agent_log_schema', self::SCHEMA_VERSION );
 	}

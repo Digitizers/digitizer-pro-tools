@@ -110,6 +110,14 @@ class DPT_AL_Test_Writer {
 		$this->queries[] = $sql;
 		return $this->var;
 	}
+	// Core's own implementation (wp-includes/class-wpdb.php:1786): the LIKE
+	// metacharacters and the backslash, escaped with a backslash.
+	public function esc_like( $text ) {
+		return addcslashes( $text, '_%\\' );
+	}
+	public function get_charset_collate() {
+		return '';
+	}
 	// Deliberately naive, and deliberately NOT a no-op: a prepare() that
 	// returned its first argument unchanged would let a test pass while the
 	// real query dropped every parameter.
@@ -963,5 +971,182 @@ $GLOBALS['dpt_stub_options'] = array( 'dpt_agent_log_schema' => DPT_AL_Store::SC
 $GLOBALS['dpt_stub_dbdelta_calls'] = 0;
 DPT_AL_Store::install_table();
 dpt_test_eq( $GLOBALS['dpt_stub_dbdelta_calls'], 0, 'a table already at this schema version is not rebuilt' );
+
+/* ---- and the stamp is only written once the table is really there ---- */
+
+// dbDelta() lives in wp-admin/includes/upgrade.php, which does not exist
+// here; the store requires that file only when the function is missing, so
+// this stub stands in for it. It records rather than creates - which is the
+// point: dbDelta returns its list of intended changes whether or not the
+// queries ran, so the store cannot learn anything from its return value and
+// has to go and look for the table.
+function dbDelta( $queries = '', $execute = true ) {
+	$GLOBALS['dpt_stub_dbdelta_calls']++;
+	$GLOBALS['dpt_stub_dbdelta_sql'] = $queries;
+	return array();
+}
+
+$writer = new DPT_AL_Test_Writer();
+DPT_AL_Store::set_writer( $writer );
+
+// The table is there afterwards: SHOW TABLES answers with its name.
+$GLOBALS['dpt_stub_options']       = array();
+$GLOBALS['dpt_stub_dbdelta_calls'] = 0;
+$writer->queries                   = array();
+$writer->var                       = 'wp_dpt_agent_log';
+DPT_AL_Store::install_table();
+dpt_test_eq( $GLOBALS['dpt_stub_dbdelta_calls'], 1, 'an unstamped schema version runs dbDelta' );
+dpt_test_eq( get_option( 'dpt_agent_log_schema', 'unstamped' ), DPT_AL_Store::SCHEMA_VERSION, 'and stamps the version once the table is confirmed present' );
+
+// _ is a single-character wildcard in LIKE and every table prefix has one, so
+// an unescaped name would match wpXdptXagentXlog and report a table this
+// module never created as its own.
+dpt_test_ok(
+	in_array( "SHOW TABLES LIKE 'wp\_dpt\_agent\_log'", $writer->queries, true ),
+	'the existence check escapes the underscores rather than leaving them as LIKE wildcards'
+);
+
+// The creation failed - a transient database error, a user without CREATE
+// rights - so SHOW TABLES finds nothing.
+$GLOBALS['dpt_stub_options']       = array();
+$GLOBALS['dpt_stub_dbdelta_calls'] = 0;
+$writer->var                       = null;
+DPT_AL_Store::install_table();
+dpt_test_eq( $GLOBALS['dpt_stub_dbdelta_calls'], 1, 'a failed creation still only ran dbDelta once' );
+dpt_test_eq( get_option( 'dpt_agent_log_schema', 'unstamped' ), 'unstamped', 'but leaves the version unstamped, because a stamp would claim a table that is not there' );
+
+// Which is what makes the next request try again: were the stamp written,
+// the version guard would return before dbDelta and the enabled log would
+// stay empty forever with nothing to say why.
+DPT_AL_Store::install_table();
+dpt_test_eq( $GLOBALS['dpt_stub_dbdelta_calls'], 2, 'so the next request retries instead of returning at the version guard' );
+
+// And it stamps as soon as a retry succeeds.
+$writer->var = 'wp_dpt_agent_log';
+DPT_AL_Store::install_table();
+dpt_test_eq( get_option( 'dpt_agent_log_schema', 'unstamped' ), DPT_AL_Store::SCHEMA_VERSION, 'and stamps the version on the retry that finally works' );
+
+/* ---- uninstalling removes the log from every site of a network ---- */
+
+// The uninstaller is a plain script, so the pieces of WordPress it reaches
+// for are stubbed here and it is required directly. WordPress runs it once
+// per network, not once per site, which is the whole point of the loop.
+class DPT_AL_Test_Uninstall_DB {
+	public $prefix  = 'wp_';
+	public $queries = array();
+	public function query( $sql ) {
+		$this->queries[] = $sql;
+		return 1;
+	}
+}
+
+$GLOBALS['dpt_stub_sites']         = array();
+$GLOBALS['dpt_stub_site_args']     = array();
+$GLOBALS['dpt_stub_switch_stack']  = array();
+$GLOBALS['dpt_stub_switch_calls']  = 0;
+$GLOBALS['dpt_stub_restore_calls'] = 0;
+$GLOBALS['dpt_stub_deleted']       = array();
+$GLOBALS['dpt_stub_current_blog']  = 1;
+
+function get_sites( $args = array() ) {
+	$GLOBALS['dpt_stub_site_args'] = $args;
+	return $GLOBALS['dpt_stub_sites'];
+}
+function get_current_blog_id() {
+	return $GLOBALS['dpt_stub_current_blog'];
+}
+// Core swaps $wpdb->prefix for the switched site's, which is what makes the
+// table name and the options resolve per site.
+function switch_to_blog( $blog_id ) {
+	$GLOBALS['dpt_stub_switch_calls']++;
+	$GLOBALS['dpt_stub_switch_stack'][] = $GLOBALS['dpt_stub_current_blog'];
+	$GLOBALS['dpt_stub_current_blog']   = $blog_id;
+	$GLOBALS['wpdb']->prefix            = ( 1 === $blog_id ) ? 'wp_' : 'wp_' . $blog_id . '_';
+	return true;
+}
+function restore_current_blog() {
+	$GLOBALS['dpt_stub_restore_calls']++;
+	$blog_id                          = array_pop( $GLOBALS['dpt_stub_switch_stack'] );
+	$GLOBALS['dpt_stub_current_blog'] = $blog_id;
+	$GLOBALS['wpdb']->prefix          = ( 1 === $blog_id ) ? 'wp_' : 'wp_' . $blog_id . '_';
+	return true;
+}
+function delete_option( $key ) {
+	$GLOBALS['dpt_stub_deleted'][] = $GLOBALS['dpt_stub_current_blog'] . ':' . $key;
+	unset( $GLOBALS['dpt_stub_options'][ $key ] );
+	return true;
+}
+function delete_site_option( $key ) {
+	$GLOBALS['dpt_stub_deleted'][] = 'network:' . $key;
+	return true;
+}
+
+define( 'WP_UNINSTALL_PLUGIN', 'digitizer-pro-tools/digitizer-pro-tools.php' );
+
+// A single site: one table dropped, one pair of options deleted, and no
+// switching at all - exactly what the file did before it learned to loop.
+$GLOBALS['dpt_stub_multisite'] = false;
+$wpdb                          = new DPT_AL_Test_Uninstall_DB();
+$GLOBALS['wpdb']               = $wpdb;
+require dirname( __DIR__ ) . '/uninstall.php';
+
+dpt_test_eq( $wpdb->queries, array( 'DROP TABLE IF EXISTS `wp_dpt_agent_log`' ), 'a single site drops its one log table' );
+dpt_test_eq( $GLOBALS['dpt_stub_switch_calls'], 0, 'and switches no blogs, because there are none to switch to' );
+$dpt_al_single_deleted = array_values( array_filter( $GLOBALS['dpt_stub_deleted'], function ( $entry ) { return false !== strpos( $entry, 'dpt_agent_log' ); } ) );
+dpt_test_eq( $dpt_al_single_deleted, array( '1:dpt_agent_log_schema', '1:dpt_agent_log_last_prune' ), 'and deletes both of the log stamps' );
+
+// A network of three: the table and both stamps go from every one of them,
+// not only from the site the uninstall happened to run in. Site 4 carries a
+// prefix of its own, so a drop that ignored the switch would name wp_ three
+// times over.
+$GLOBALS['dpt_stub_multisite']     = true;
+$GLOBALS['dpt_stub_sites']         = array( 1, 2, 4 );
+$GLOBALS['dpt_stub_switch_calls']  = 0;
+$GLOBALS['dpt_stub_restore_calls'] = 0;
+$GLOBALS['dpt_stub_deleted']       = array();
+$wpdb                              = new DPT_AL_Test_Uninstall_DB();
+$GLOBALS['wpdb']                   = $wpdb;
+require dirname( __DIR__ ) . '/uninstall.php';
+
+dpt_test_eq(
+	$wpdb->queries,
+	array(
+		'DROP TABLE IF EXISTS `wp_dpt_agent_log`',
+		'DROP TABLE IF EXISTS `wp_2_dpt_agent_log`',
+		'DROP TABLE IF EXISTS `wp_4_dpt_agent_log`',
+	),
+	'every site on the network loses its own log table, named from that site prefix'
+);
+
+$dpt_al_network_deleted = array_values( array_filter( $GLOBALS['dpt_stub_deleted'], function ( $entry ) { return false !== strpos( $entry, 'dpt_agent_log_' ); } ) );
+dpt_test_eq(
+	$dpt_al_network_deleted,
+	array(
+		'1:dpt_agent_log_schema',
+		'1:dpt_agent_log_last_prune',
+		'2:dpt_agent_log_schema',
+		'2:dpt_agent_log_last_prune',
+		'4:dpt_agent_log_schema',
+		'4:dpt_agent_log_last_prune',
+	),
+	'and both of its stamps, deleted in that site context rather than the uninstalling one'
+);
+
+dpt_test_eq( $GLOBALS['dpt_stub_switch_calls'], 3, 'one switch per site' );
+dpt_test_eq( $GLOBALS['dpt_stub_restore_calls'], 3, 'each paired with a restore, so core switched stack ends balanced' );
+dpt_test_eq( $GLOBALS['dpt_stub_switch_stack'], array(), 'leaving nothing on the stack' );
+dpt_test_eq( $wpdb->prefix, 'wp_', 'and the prefix back where it started' );
+
+// get_sites() stops at 100 sites unless the cap is lifted, and a network
+// larger than that is exactly where an orphaned table would go unnoticed.
+dpt_test_eq( $GLOBALS['dpt_stub_site_args'], array( 'fields' => 'ids', 'number' => 0 ), 'the site query asks for ids and lifts the 100-site default cap' );
+
+// The other options in the file keep their single-site reach: this change
+// loops the Agent Log's data alone.
+dpt_test_eq(
+	count( array_filter( $GLOBALS['dpt_stub_deleted'], function ( $entry ) { return false !== strpos( $entry, 'dpt_settings' ); } ) ),
+	1,
+	'dpt_settings is still deleted once, not once per site'
+);
 
 dpt_test_summary();
