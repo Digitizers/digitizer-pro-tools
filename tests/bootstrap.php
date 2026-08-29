@@ -30,6 +30,11 @@ $GLOBALS['dpt_stub_themes']         = array();
 $GLOBALS['dpt_stub_transients']     = array();
 $GLOBALS['dpt_stub_http']           = array();
 $GLOBALS['dpt_stub_options']        = array();
+$GLOBALS['dpt_stub_doing_cron']       = false;
+$GLOBALS['dpt_stub_rest_request']     = false;
+$GLOBALS['dpt_stub_app_password_uuid'] = null;
+$GLOBALS['dpt_stub_app_passwords']     = array();
+$GLOBALS['dpt_stub_current_user_id']   = 1;
 
 function dpt_test_ok( $cond, $label ) {
 	if ( $cond ) {
@@ -54,6 +59,70 @@ function dpt_test_eq( $actual, $expected, $label ) {
 function dpt_test_summary() {
 	printf( "\n%d passed, %d failed\n", $GLOBALS['dpt_test_pass'], $GLOBALS['dpt_test_fail'] );
 	return $GLOBALS['dpt_test_fail'];
+}
+
+// Core's real name for this, added in WordPress 6.5. There is no
+// wp_is_rest_request() in WordPress, so stubbing that name would let a caller
+// that invented it pass here and do nothing in production.
+function wp_is_serving_rest_request() { return (bool) $GLOBALS['dpt_stub_rest_request']; }
+
+// Counted, so a test can prove a caller did not pay for the lookup: resolving
+// the name reads user meta, which a request that changed nothing should not do.
+$GLOBALS['dpt_stub_app_password_lookups'] = 0;
+function rest_get_authenticated_app_password() {
+	$GLOBALS['dpt_stub_app_password_lookups']++;
+	return $GLOBALS['dpt_stub_app_password_uuid'];
+}
+
+function get_current_user_id() { return (int) $GLOBALS['dpt_stub_current_user_id']; }
+
+// Class declarations at the top level of a file are hoisted in PHP, so this
+// stub is only declared when nothing else already provides the real (or
+// another stub) class - guarding it the way the functions above cannot be
+// guarded.
+if ( ! class_exists( 'WP_Application_Passwords' ) ) {
+	class WP_Application_Passwords {
+		public static function get_user_application_password( $user_id, $uuid ) {
+			return isset( $GLOBALS['dpt_stub_app_passwords'][ $uuid ] ) ? $GLOBALS['dpt_stub_app_passwords'][ $uuid ] : null;
+		}
+	}
+}
+
+// The minimal slice of WP_REST_Response a callback that sets headers and
+// returns data needs: a constructor that keeps the data, header() that
+// records rather than sends, and readers for both - enough to assert on
+// without pulling in core's real class.
+if ( ! class_exists( 'WP_REST_Response' ) ) {
+	class WP_REST_Response {
+		private $data;
+		private $headers = array();
+		public function __construct( $data = null, $status = 200 ) {
+			$this->data = $data;
+		}
+		public function header( $name, $value ) {
+			$this->headers[ $name ] = $value;
+		}
+		public function get_data() {
+			return $this->data;
+		}
+		public function get_headers() {
+			return $this->headers;
+		}
+	}
+}
+
+// The minimal slice of WP_REST_Request a callback that only reads named
+// params needs, backed by a plain array the test hands it.
+if ( ! class_exists( 'WP_REST_Request' ) ) {
+	class WP_REST_Request {
+		private $params;
+		public function __construct( $params = array() ) {
+			$this->params = $params;
+		}
+		public function get_param( $key ) {
+			return array_key_exists( $key, $this->params ) ? $this->params[ $key ] : null;
+		}
+	}
 }
 
 /**
@@ -308,7 +377,9 @@ function dpt_stub_has_filter( $tag ) {
 	return isset( $GLOBALS['dpt_stub_filters'][ $tag ] );
 }
 function did_action() { return 0; }
-function wp_json_encode( $d ) { return json_encode( $d, JSON_UNESCAPED_UNICODE ); }
+// Core (wp-includes/functions.php:4443) defaults $flags to 0, so non-ASCII
+// characters escape to \uXXXX by default; it does not pass JSON_UNESCAPED_UNICODE.
+function wp_json_encode( $value, $flags = 0, $depth = 512 ) { return json_encode( $value, $flags, $depth ); }
 function wp_parse_url( $url, $component = -1 ) { return parse_url( $url, $component ); }
 
 function get_option( $key, $default = false ) {
@@ -428,7 +499,7 @@ $GLOBALS['dpt_stub_main_site'] = true;
 function is_main_site() { return (bool) $GLOBALS['dpt_stub_main_site']; }
 $GLOBALS['dpt_stub_is_admin'] = true;
 function is_admin() { return (bool) $GLOBALS['dpt_stub_is_admin']; }
-function wp_doing_cron() { return false; }
+function wp_doing_cron() { return (bool) $GLOBALS['dpt_stub_doing_cron']; }
 // Core's answer to "does this site run background updates for this kind of
 // thing at all", which AUTOMATIC_UPDATER_DISABLED and several filters turn off
 // without touching anybody's capabilities.
@@ -884,6 +955,7 @@ function dpt_stub_post_row( $id ) {
 		// rewrites it from the layout, and an endpoint that writes only the
 		// layout leaves it describing the previous version of the page.
 		'post_content' => isset( $row['post_content'] ) ? $row['post_content'] : '',
+		'post_title'   => isset( $row['post_title'] ) ? $row['post_title'] : '',
 	);
 }
 function get_post( $id = 0 ) {
@@ -932,6 +1004,31 @@ function wp_is_post_revision( $id ) {
 		return false;
 	}
 	return $row['post_parent'];
+}
+// Autosaves, kept in a set of their own rather than modelled on the post row:
+// core tells a revision and an autosave apart by a suffix on post_name, and a
+// test naming ids directly here is a clearer signal than reproducing that.
+$GLOBALS['dpt_stub_autosaves'] = array();
+function wp_is_post_autosave( $id ) {
+	return in_array( (int) $id, (array) $GLOBALS['dpt_stub_autosaves'], true );
+}
+
+// Users, keyed by id. Absent means false, the way core answers for an id
+// nobody registered - never an object with empty properties, which would let
+// a caller read a login of '' from a user that does not exist at all.
+$GLOBALS['dpt_stub_users'] = array();
+function get_userdata( $user_id ) {
+	$id = (int) $user_id;
+	return isset( $GLOBALS['dpt_stub_users'][ $id ] ) ? (object) $GLOBALS['dpt_stub_users'][ $id ] : false;
+}
+
+// Terms, keyed by id. Core's get_term() answers null for an id it does not
+// know, not false and not a WP_Error, so that is what the absent case returns
+// here too.
+$GLOBALS['dpt_stub_terms'] = array();
+function get_term( $term_id, $taxonomy = '' ) {
+	$id = (int) $term_id;
+	return isset( $GLOBALS['dpt_stub_terms'][ $id ] ) ? (object) $GLOBALS['dpt_stub_terms'][ $id ] : null;
 }
 
 // The site-wide purge, counted so a test can assert it is *not* reached: it
