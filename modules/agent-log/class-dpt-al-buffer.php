@@ -20,14 +20,21 @@ class DPT_AL_Buffer {
 
 	/**
 	 * How strongly an action describes what happened to an object, when more
-	 * than one reached the buffer in one request. Creation and deletion are
-	 * facts about the object's existence; an update is a fact about its
-	 * contents, and the weaker claim.
+	 * than one reached the buffer in one request. An update is a fact about
+	 * an object's contents, the weakest claim. Activation, deactivation and
+	 * switching are facts about its state - the same class of fact as
+	 * creation and deletion, which are facts about its existence - so all
+	 * five outrank a mere update. An action this table does not know about
+	 * ranks 0, below even "updated", so it can never silently outrank one
+	 * the table does know.
 	 */
 	private static $rank = array(
-		'updated' => 1,
-		'created' => 2,
-		'deleted' => 3,
+		'updated'     => 1,
+		'activated'   => 2,
+		'deactivated' => 2,
+		'switched'    => 2,
+		'created'     => 3,
+		'deleted'     => 4,
 	);
 
 	/**
@@ -42,7 +49,13 @@ class DPT_AL_Buffer {
 	 * @return void
 	 */
 	public static function record( $type, $subtype, $id, $action, $name = '', $fields = array() ) {
-		$key = $type . ':' . (int) $id;
+		// Objects with a real id are keyed on it. Plugins, themes and options
+		// pass id 0, so keying on id alone would collapse every plugin
+		// activated in one request onto the same "plugin:0" entry - key
+		// those on whatever actually identifies the object instead.
+		$key = $type . ':' . ( (int) $id > 0
+			? (int) $id
+			: ( '' !== (string) $subtype ? (string) $subtype : (string) $name ) );
 
 		if ( ! isset( self::$pending[ $key ] ) ) {
 			self::$pending[ $key ] = array(

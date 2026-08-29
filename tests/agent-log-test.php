@@ -215,6 +215,47 @@ dpt_test_eq( count( $rows[0]['fields'] ), 1, 'while still collecting the fields 
 DPT_AL_Buffer::reset();
 dpt_test_eq( DPT_AL_Buffer::rows( 'rest', '', 5, 1756108800 ), array(), 'a request that changed nothing writes nothing' );
 
+/* ---- objects without an id key on what identifies them, not on 0 ---- */
+
+// Two plugins activated in one request are two objects, not one - keying on
+// id 0 for both would collapse the second's name onto the first's row.
+DPT_AL_Buffer::reset();
+DPT_AL_Buffer::record( 'plugin', 'akismet/akismet.php', 0, 'activated', 'Akismet' );
+DPT_AL_Buffer::record( 'plugin', 'hello-dolly/hello.php', 0, 'activated', 'Hello Dolly' );
+$rows  = DPT_AL_Buffer::rows( 'rest', '', 5, 1756108800 );
+$names = array_column( $rows, 'object_name' );
+dpt_test_eq( count( $rows ), 2, 'two plugins activated in one request are two rows' );
+dpt_test_ok( in_array( 'Akismet', $names, true ) && in_array( 'Hello Dolly', $names, true ), 'each carrying its own name' );
+
+// Two watched options updated in one request are likewise two rows.
+DPT_AL_Buffer::reset();
+DPT_AL_Buffer::record( 'option', '', 0, 'updated', 'siteurl' );
+DPT_AL_Buffer::record( 'option', '', 0, 'updated', 'blogname' );
+$rows  = DPT_AL_Buffer::rows( 'rest', '', 5, 1756108800 );
+$names = array_column( $rows, 'object_name' );
+dpt_test_eq( count( $rows ), 2, 'two options updated in one request are two rows' );
+dpt_test_ok( in_array( 'siteurl', $names, true ) && in_array( 'blogname', $names, true ), 'one per option name' );
+
+/* ---- state-change actions outrank a later update, same as create/delete ---- */
+
+DPT_AL_Buffer::reset();
+DPT_AL_Buffer::record( 'plugin', 'akismet/akismet.php', 0, 'activated', 'Akismet' );
+DPT_AL_Buffer::record( 'plugin', 'akismet/akismet.php', 0, 'updated', 'Akismet' );
+$rows = DPT_AL_Buffer::rows( 'rest', '', 5, 1756108800 );
+dpt_test_eq( $rows[0]['action'], 'activated', 'activated recorded before updated on the same key keeps activated' );
+
+DPT_AL_Buffer::reset();
+DPT_AL_Buffer::record( 'theme', '', 0, 'switched', 'Twenty Twenty-Five' );
+DPT_AL_Buffer::record( 'theme', '', 0, 'updated', 'Twenty Twenty-Five' );
+$rows = DPT_AL_Buffer::rows( 'rest', '', 5, 1756108800 );
+dpt_test_eq( $rows[0]['action'], 'switched', 'switched is not overwritten by a later updated' );
+
+DPT_AL_Buffer::reset();
+DPT_AL_Buffer::record( 'plugin', 'akismet/akismet.php', 0, 'deactivated', 'Akismet' );
+DPT_AL_Buffer::record( 'plugin', 'akismet/akismet.php', 0, 'updated', 'Akismet' );
+$rows = DPT_AL_Buffer::rows( 'rest', '', 5, 1756108800 );
+dpt_test_eq( $rows[0]['action'], 'deactivated', 'deactivated is not overwritten by a later updated' );
+
 /* ---- retention settings ---- */
 
 $GLOBALS['dpt_stub_filters'] = array();
