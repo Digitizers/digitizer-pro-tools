@@ -32,6 +32,23 @@ delete_option( 'dpt_woo_checkout_fields' );
 delete_option( 'dpt_embed' );
 delete_option( 'dpt_resend_mail_log' );
 
+// The Agent Log keeps a table of its own, plus the schema stamp that says the
+// table exists and the throttle stamp for pruning. Uninstalling is the one
+// place the log is removed: switching the module off deliberately leaves it
+// alone, so without this a reinstall would silently recover stale audit rows
+// and dpt_agent_log_schema would claim a table that had been dropped.
+//
+// The table is per site, and this file does not loop the network - the only
+// multisite branch above is for a single network-wide site option - so on
+// multisite this removes the log of the site being uninstalled from, which is
+// the same reach the rest of the file has.
+global $wpdb;
+$dpt_agent_log_table = $wpdb->prefix . 'dpt_agent_log';
+// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this module's own table, named from the $wpdb prefix; there is no user input in the statement.
+$wpdb->query( "DROP TABLE IF EXISTS `{$dpt_agent_log_table}`" );
+delete_option( 'dpt_agent_log_schema' );
+delete_option( 'dpt_agent_log_last_prune' );
+
 // Remove the User Role Editor's dedicated gating capability from every role.
 if ( function_exists( 'wp_roles' ) ) {
 	foreach ( array_keys( wp_roles()->roles ) as $dpt_role_key ) {

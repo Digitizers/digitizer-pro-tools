@@ -36,6 +36,29 @@ dpt_test_ok( ! DPT_AL_Channel::is_read_request(), 'nor is DELETE' );
 unset( $_SERVER['REQUEST_METHOD'] );
 dpt_test_ok( ! DPT_AL_Channel::is_read_request(), 'and a request with no method at all is not a read' );
 
+/* ---- the channels that can be named before plugins_loaded ---- */
+
+// Most hosts disable WP-Cron and have a system cron fetch wp-cron.php, which
+// is a GET. wp-cron.php defines DOING_CRON (line 42) before it requires
+// wp-load.php, so wp_doing_cron() is already true at plugins_loaded and the
+// verb must not be allowed to hide the channel.
+$_SERVER['REQUEST_METHOD']      = 'GET';
+$GLOBALS['dpt_stub_doing_cron'] = true;
+dpt_test_ok( DPT_AL_Channel::is_early_channel(), 'a GET-triggered cron run is a channel we can already name' );
+
+$GLOBALS['dpt_stub_doing_cron'] = false;
+dpt_test_ok( ! DPT_AL_Channel::is_early_channel(), 'a plain browser request is not' );
+
+// REST is deliberately outside this list: core defines REST_REQUEST in
+// rest_api_loaded() on 'parse_request' (wp-includes/rest-api.php line 478),
+// long after plugins_loaded, so it cannot be named that early. The stub
+// standing in for it being true here proves the list is not just "any
+// channel at all".
+$GLOBALS['dpt_stub_rest_request'] = true;
+dpt_test_ok( ! DPT_AL_Channel::is_early_channel(), 'and REST is not, because REST_REQUEST does not exist yet at plugins_loaded' );
+$GLOBALS['dpt_stub_rest_request'] = false;
+unset( $_SERVER['REQUEST_METHOD'] );
+
 /* ---- the app name is never guessed ---- */
 
 // A UUID that resolves to a record: the name comes back, and a User-Agent
@@ -166,6 +189,19 @@ DPT_AL_Store::insert( array( 'object_name' => str_repeat( 'ת', 300 ) ) );
 $mb_name = $writer->inserted[0]['data']['object_name'];
 dpt_test_eq( mb_strlen( $mb_name, 'UTF-8' ), 191, 'a multi-byte name is cut to 191 characters, not 191 bytes' );
 dpt_test_ok( mb_check_encoding( $mb_name, 'UTF-8' ), 'and what is written is still valid UTF-8, not a half character' );
+// object_name's bound is 191, an odd number of characters over two-byte
+// Hebrew, so byte 191 lands in the middle of the 96th character. substr()
+// would stop there and write a lone lead byte; there is no substr() fallback
+// any more, because inside WordPress mb_substr() always exists - core
+// polyfills it in wp-includes/compat.php, line 256.
+dpt_test_eq( strlen( $mb_name ), 382, 'a 191-character Hebrew name is 382 bytes, so the cut was made in characters and not in bytes' );
+dpt_test_eq( $mb_name, str_repeat( 'ת', 191 ), 'and what survives is the first 191 characters, whole' );
+
+// A Hebrew title that fits is written exactly as it came, so the multi-byte
+// path is a bound and not a mangling.
+$writer->inserted = array();
+DPT_AL_Store::insert( array( 'object_name' => 'שלום עולם' ) );
+dpt_test_eq( $writer->inserted[0]['data']['object_name'], 'שלום עולם', 'a short Hebrew title is untouched' );
 
 /* ---- query arguments ---- */
 
@@ -563,9 +599,49 @@ $_SERVER['REQUEST_METHOD']   = 'POST';
 DPT_AL_Hooks::init();
 dpt_test_ok( ! empty( $GLOBALS['dpt_stub_filters'] ), 'init() on a real write registers something' );
 
+// A cron run reached over GET - an external scheduler fetching wp-cron.php,
+// which is what most hosts do - must still register. It is a write channel
+// whose name is knowable at plugins_loaded, and bailing out on the verb would
+// leave every change that cron run makes unrecorded.
+$GLOBALS['dpt_stub_filters']    = array();
+$GLOBALS['dpt_stub_doing_cron'] = true;
+$_SERVER['REQUEST_METHOD']      = 'GET';
+DPT_AL_Hooks::init();
+dpt_test_ok( ! empty( $GLOBALS['dpt_stub_filters'] ), 'init() registers for a cron run fetched over GET, rather than reading it as a poll and recording nothing all run' );
+dpt_test_ok( isset( $GLOBALS['dpt_stub_filters']['shutdown'] ), 'including the shutdown flush, without which nothing buffered is ever written' );
+
+// And the same request without cron registers nothing, so the line above is
+// the channel doing the work and not the verb quietly passing.
+$GLOBALS['dpt_stub_filters']    = array();
+$GLOBALS['dpt_stub_doing_cron'] = false;
+DPT_AL_Hooks::init();
+dpt_test_eq( $GLOBALS['dpt_stub_filters'], array(), 'while the same GET off any early channel still registers nothing' );
+
 $GLOBALS['dpt_stub_filters']      = array();
 $GLOBALS['dpt_stub_rest_request'] = false;
 unset( $_SERVER['REQUEST_METHOD'] );
+
+// WP-CLI and XML-RPC announce themselves with constants, which cannot be
+// undefined once set - so they run in a child process rather than changing
+// the channel every assertion below would see. See the fixture's header.
+$dpt_child = dirname( __DIR__ ) . '/tests/agent-log-early-channel-child.php';
+$dpt_cases = array();
+foreach ( array( 'cli', 'xmlrpc', 'none' ) as $dpt_case ) {
+	$dpt_out = trim( (string) shell_exec( 'php ' . escapeshellarg( $dpt_child ) . ' ' . escapeshellarg( $dpt_case ) ) );
+	$dpt_cases[ $dpt_case ] = array( 'raw' => $dpt_out, 'early' => null, 'hooks' => null );
+	if ( preg_match( '/^early=(\d+) hooks=(\d+)$/', $dpt_out, $dpt_m ) ) {
+		$dpt_cases[ $dpt_case ]['early'] = (int) $dpt_m[1];
+		$dpt_cases[ $dpt_case ]['hooks'] = (int) $dpt_m[2];
+	}
+}
+dpt_test_eq( $dpt_cases['cli']['early'], 1, 'a WP-CLI run is a channel we can name before plugins_loaded' );
+dpt_test_ok( $dpt_cases['cli']['hooks'] > 0, 'so it registers listeners even though it has no HTTP verb of its own' );
+dpt_test_eq( $dpt_cases['xmlrpc']['early'], 1, 'so is an XML-RPC request, whose constant is likewise set before wp-load' );
+dpt_test_ok( $dpt_cases['xmlrpc']['hooks'] > 0, 'and it registers listeners too' );
+// The control: the same child, the same GET, no constant. If this registered
+// anything the four above would prove nothing.
+dpt_test_eq( $dpt_cases['none']['early'], 0, 'while the same child with neither constant names no channel' );
+dpt_test_eq( $dpt_cases['none']['hooks'], 0, 'and registers nothing at all, which is what makes the cases above mean something' );
 
 /* ---- flush(): the only path that writes ---- */
 

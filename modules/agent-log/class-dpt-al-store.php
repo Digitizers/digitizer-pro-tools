@@ -86,7 +86,11 @@ class DPT_AL_Store {
 	 * Cut a string to a column's width without splitting a character.
 	 *
 	 * substr() on multi-byte text cuts mid-character and writes invalid UTF-8,
-	 * which is a worse outcome than the overlong value it was fixing.
+	 * which is a worse outcome than the overlong value it was fixing. So there
+	 * is no substr() fallback here: inside WordPress mb_substr() always
+	 * exists. Core polyfills it in wp-includes/compat.php, which at line 256
+	 * declares it when the mbstring extension is missing and delegates to the
+	 * UTF-8-safe _mb_substr().
 	 *
 	 * @param string $value  Value.
 	 * @param int    $length Maximum characters, 0 or less for no bound.
@@ -96,10 +100,7 @@ class DPT_AL_Store {
 		if ( (int) $length < 1 ) {
 			return $value;
 		}
-		if ( function_exists( 'mb_substr' ) ) {
-			return mb_substr( $value, 0, (int) $length );
-		}
-		return substr( $value, 0, (int) $length );
+		return mb_substr( $value, 0, (int) $length );
 	}
 
 	/**

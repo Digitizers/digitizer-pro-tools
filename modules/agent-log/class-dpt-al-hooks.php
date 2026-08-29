@@ -24,6 +24,13 @@ class DPT_AL_Hooks {
 		// Nothing at all is hooked for a read: the HTTP verb is knowable this
 		// early, and a poll that changes nothing should not even listen.
 		//
+		// But only on a channel this request has not already named. Most
+		// hosts disable WP-Cron and have a system cron fetch wp-cron.php,
+		// which is a GET; WP-CLI has no HTTP verb at all. Skipping either for
+		// looking like a read would leave a whole advertised channel with no
+		// listener and no shutdown flush, so every change it made would go
+		// unrecorded. See DPT_AL_Channel::is_early_channel().
+		//
 		// The channel is deliberately NOT checked here. init() is reached from
 		// DPT_Plugin::boot() on 'plugins_loaded', but core defines REST_REQUEST
 		// inside rest_api_loaded() (wp-includes/rest-api.php), which
@@ -32,7 +39,7 @@ class DPT_AL_Hooks {
 		// register nothing, which is the module's main channel recording
 		// nothing at all. The gate lives in flush() instead, on 'shutdown', by
 		// which time the constant exists.
-		if ( DPT_AL_Channel::is_read_request() ) {
+		if ( ! DPT_AL_Channel::is_early_channel() && DPT_AL_Channel::is_read_request() ) {
 			return;
 		}
 

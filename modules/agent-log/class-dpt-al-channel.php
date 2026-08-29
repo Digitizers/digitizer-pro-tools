@@ -49,6 +49,38 @@ class DPT_AL_Channel {
 	}
 
 	/**
+	 * Whether this request is on a channel whose name is knowable this early.
+	 *
+	 * "This early" means 'plugins_loaded', which is where the module wires
+	 * itself up. Three of the four channels announce themselves before that,
+	 * and each does so before WordPress is even loaded:
+	 *
+	 * - WP-CLI defines WP_CLI while bootstrapping, ahead of wp-load.php.
+	 * - wp-cron.php defines DOING_CRON at line 42, and only then requires
+	 *   wp-load.php - so wp_doing_cron() is already true at plugins_loaded.
+	 * - xmlrpc.php defines XMLRPC_REQUEST at line 13, likewise before the
+	 *   load.
+	 *
+	 * 'rest' is deliberately absent. Core defines REST_REQUEST inside
+	 * rest_api_loaded() (wp-includes/rest-api.php line 478), which
+	 * default-filters.php hooks to 'parse_request' - long after
+	 * plugins_loaded. At plugins_loaded a REST request cannot be told from a
+	 * browser one, which is the whole reason the channel gate itself lives in
+	 * DPT_AL_Hooks::flush(), on 'shutdown'.
+	 *
+	 * @return bool
+	 */
+	public static function is_early_channel() {
+		if ( defined( 'WP_CLI' ) && WP_CLI ) {
+			return true;
+		}
+		if ( function_exists( 'wp_doing_cron' ) && wp_doing_cron() ) {
+			return true;
+		}
+		return defined( 'XMLRPC_REQUEST' ) && XMLRPC_REQUEST;
+	}
+
+	/**
 	 * Whether this request only reads.
 	 *
 	 * ContentEngine polls. Recording reads fills the table in a day and
