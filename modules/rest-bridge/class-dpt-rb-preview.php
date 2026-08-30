@@ -76,6 +76,7 @@ class DPT_RB_Preview {
 		$fields  = isset( $report['fields'] ) && is_array( $report['fields'] ) ? $report['fields'] : array();
 		$skipped = isset( $report['skipped'] ) && is_array( $report['skipped'] ) ? $report['skipped'] : array();
 		$compat  = isset( $report['compat'] ) && is_array( $report['compat'] ) ? $report['compat'] : array();
+		$seo     = isset( $report['rank_math_fields'] ) && is_array( $report['rank_math_fields'] ) ? $report['rank_math_fields'] : array();
 
 		$total = 0;
 		foreach ( $fields as $names ) {
@@ -94,7 +95,7 @@ class DPT_RB_Preview {
 			?>
 		</p>
 		<?php if ( empty( $fields ) ) : ?>
-			<p><?php esc_html_e( 'Nothing was found to expose. If this site uses JetEngine, check that its field definitions are saved.', 'digitizer-pro-tools' ); ?></p>
+			<p><?php esc_html_e( 'No JetEngine fields were found. If this site uses JetEngine, check that its field definitions are saved.', 'digitizer-pro-tools' ); ?></p>
 		<?php else : ?>
 			<table class="widefat striped">
 				<thead>
@@ -121,6 +122,26 @@ class DPT_RB_Preview {
 				<?php endforeach; ?>
 				</tbody>
 			</table>
+		<?php endif; ?>
+
+		<h2><?php esc_html_e( 'Rank Math', 'digitizer-pro-tools' ); ?></h2>
+		<?php if ( empty( $seo ) ) : ?>
+			<p><?php esc_html_e( 'Rank Math is not active here, so none of its fields would be exposed.', 'digitizer-pro-tools' ); ?></p>
+		<?php else : ?>
+			<p>
+				<?php
+				printf(
+					/* translators: %d: number of Rank Math meta keys */
+					esc_html__( '%d Rank Math keys would be readable and writable on posts and pages, in the edit context only.', 'digitizer-pro-tools' ),
+					count( $seo )
+				);
+				?>
+			</p>
+			<ul class="ul-disc">
+				<?php foreach ( $seo as $dpt_key ) : ?>
+					<li><code><?php echo esc_html( (string) $dpt_key ); ?></code></li>
+				<?php endforeach; ?>
+			</ul>
 		<?php endif; ?>
 
 		<h2><?php esc_html_e( 'Not exposed', 'digitizer-pro-tools' ); ?></h2>

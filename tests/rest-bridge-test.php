@@ -3973,4 +3973,18 @@ $dpt_preview = DPT_RB_Info::preview();
 dpt_test_eq( $dpt_preview['fields'], $dpt_real_fields, 'the preview payload carries the fields' );
 dpt_test_eq( $dpt_preview['routes'], DPT_RB_Info::payload()['routes'], 'and the same route list the endpoint reports' );
 
+// Rank Math's keys are registered with register_post_meta() rather than
+// register_rest_field(), so they are absent from 'fields' entirely. A preview
+// that read only that array would tell a site with Rank Math and no JetEngine
+// definitions that switching the module on exposes nothing - which is the
+// opposite of true, and on exactly the site the screen exists for.
+$GLOBALS['dpt_stub_registered_post_meta'] = array();
+DPT_RB_Rankmath::register();
+dpt_test_eq(
+	$dpt_preview['rank_math_fields'],
+	array_keys( $GLOBALS['dpt_stub_registered_post_meta']['post'] ),
+	'the preview names every Rank Math key registration really registers'
+);
+dpt_test_eq( count( $dpt_preview['rank_math_fields'] ), 12, 'all twelve of them' );
+
 exit( dpt_test_summary() > 0 ? 1 : 0 );

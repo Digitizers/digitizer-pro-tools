@@ -86,6 +86,12 @@ class DPT_RB_Info {
 				array_merge( DPT_RB_Definitions::skipped(), DPT_RB_Fields::skipped() )
 			),
 			'rank_math' => DPT_RB_Rankmath::active(),
+			// The keys themselves, not only whether Rank Math is here.
+			// These are registered with register_post_meta() rather than
+			// register_rest_field(), so they are absent from 'fields' above -
+			// and a report that says only "rank_math: true" leaves both an
+			// agent and the preview screen to guess what that added.
+			'rank_math_fields' => DPT_RB_Rankmath::active() ? DPT_RB_Rankmath::keys() : array(),
 			'routes'    => array(
 				// With their methods: the Elementor route reads on GET and
 				// writes on POST, and a list that says neither leaves an

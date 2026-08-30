@@ -112,6 +112,19 @@ class DPT_RB_Rankmath {
 	 * they are invisible to the REST API no matter how the rest of the
 	 * bridge is configured.
 	 */
+	/**
+	 * The keys this class registers, for a report that has to name them.
+	 *
+	 * Read from fields(), never listed a second time: a report that keeps its
+	 * own copy of the list is a report that will one day name a key this
+	 * class no longer registers.
+	 *
+	 * @return array
+	 */
+	public static function keys() {
+		return array_keys( self::fields() );
+	}
+
 	public static function register() {
 		if ( ! self::active() ) {
 			return;

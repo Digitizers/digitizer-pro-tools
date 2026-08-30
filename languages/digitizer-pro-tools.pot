@@ -1926,10 +1926,19 @@ msgstr ""
 msgid "Run the preview"
 msgstr ""
 
-msgid "%1$d fields on %2$d post types and taxonomies."
+msgid "No JetEngine fields were found. If this site uses JetEngine, check that its field definitions are saved."
 msgstr ""
 
-msgid "Nothing was found to expose. If this site uses JetEngine, check that its field definitions are saved."
+msgid "Rank Math"
+msgstr ""
+
+msgid "Rank Math is not active here, so none of its fields would be exposed."
+msgstr ""
+
+msgid "%d Rank Math keys would be readable and writable on posts and pages, in the edit context only."
+msgstr ""
+
+msgid "%1$d fields on %2$d post types and taxonomies."
 msgstr ""
 
 msgid "Post type or taxonomy"

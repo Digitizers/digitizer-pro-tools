@@ -1926,11 +1926,20 @@ msgstr "מריץ את הגילוי והרישום של המודול בלי לר�
 msgid "Run the preview"
 msgstr "הרצת התצוגה המקדימה"
 
+msgid "No JetEngine fields were found. If this site uses JetEngine, check that its field definitions are saved."
+msgstr "לא נמצאו שדות JetEngine. אם האתר משתמש ב-JetEngine, יש לבדוק שהגדרות השדות שלו נשמרו."
+
+msgid "Rank Math"
+msgstr "Rank Math"
+
+msgid "Rank Math is not active here, so none of its fields would be exposed."
+msgstr "Rank Math אינו פעיל כאן, ולכן אף אחד מהשדות שלו לא ייחשף."
+
+msgid "%d Rank Math keys would be readable and writable on posts and pages, in the edit context only."
+msgstr "%d מפתחות של Rank Math יהיו קריאים וניתנים לכתיבה בפוסטים ובעמודים, בהקשר עריכה בלבד."
+
 msgid "%1$d fields on %2$d post types and taxonomies."
 msgstr "%1$d שדות על %2$d סוגי תוכן וטקסונומיות."
-
-msgid "Nothing was found to expose. If this site uses JetEngine, check that its field definitions are saved."
-msgstr "לא נמצא דבר לחשיפה. אם האתר משתמש ב-JetEngine, יש לבדוק שהגדרות השדות שלו נשמרו."
 
 msgid "Post type or taxonomy"
 msgstr "סוג תוכן או טקסונומיה"
