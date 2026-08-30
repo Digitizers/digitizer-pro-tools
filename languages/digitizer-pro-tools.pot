@@ -1914,6 +1914,9 @@ msgstr ""
 msgid "The standalone Digitizer Update Hold plugin is active, so this module is standing down - its settings live under Network Admin > Settings > Digitizer Update Hold."
 msgstr ""
 
+msgid "The standalone AI Agent Activity Log plugin is active, so this module is standing down - its log lives under Agent Activity in the admin menu."
+msgstr ""
+
 msgid "REST Bridge"
 msgstr ""
 

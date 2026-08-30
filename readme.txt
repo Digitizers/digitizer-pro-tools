@@ -4,7 +4,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.30.0
+Stable tag: 1.31.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -331,6 +331,9 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 5. Configure each module you enabled from its own screen. For the Cookie Banner that means reviewing the texts per language and pasting your analytics/marketing snippets in the Scripts tab, then checking the site
 
 == Changelog ==
+
+= 1.31.0 =
+* Agent Log stands down when the standalone AI Agent Activity Log plugin is active, the way Update Policy already does for Digitizer Update Hold. Two logs of one thing, in two tables, from two sets of listeners on the same hooks, is worse than either alone.
 
 = 1.30.0 =
 * New module: Agent Log - records what automations changed on this site. Anything that arrived over the REST API, WP-Cron, WP-CLI or XML-RPC is recorded; a change made by a person in the admin is not recorded at all
