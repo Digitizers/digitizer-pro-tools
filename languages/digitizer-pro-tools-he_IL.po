@@ -1917,6 +1917,36 @@ msgstr "התוסף העצמאי Digitizer Update Hold פעיל, ולכן המו�
 msgid "The standalone AI Agent Activity Log plugin is active, so this module is standing down - its log lives under Agent Activity in the admin menu."
 msgstr "התוסף העצמאי AI Agent Activity Log פעיל, ולכן המודול הזה נסוג - היומן שלו נמצא תחת Agent Activity בתפריט הניהול."
 
+msgid "REST Bridge Preview"
+msgstr "תצוגה מקדימה של REST Bridge"
+
+msgid "Runs the module's discovery and registration without registering anything, and reports what it found. Nothing on this page changes the site."
+msgstr "מריץ את הגילוי והרישום של המודול בלי לרשום דבר, ומדווח על מה שנמצא. שום דבר בעמוד הזה לא משנה את האתר."
+
+msgid "Run the preview"
+msgstr "הרצת התצוגה המקדימה"
+
+msgid "%1$d fields on %2$d post types and taxonomies."
+msgstr "%1$d שדות על %2$d סוגי תוכן וטקסונומיות."
+
+msgid "Nothing was found to expose. If this site uses JetEngine, check that its field definitions are saved."
+msgstr "לא נמצא דבר לחשיפה. אם האתר משתמש ב-JetEngine, יש לבדוק שהגדרות השדות שלו נשמרו."
+
+msgid "Post type or taxonomy"
+msgstr "סוג תוכן או טקסונומיה"
+
+msgid "(compatibility name)"
+msgstr "(שם תאימות)"
+
+msgid "Not exposed"
+msgstr "לא נחשף"
+
+msgid "Nothing was skipped."
+msgstr "שום דבר לא דולג."
+
+msgid "Routes"
+msgstr "מסלולים"
+
 msgid "REST Bridge"
 msgstr "גשר REST"
 

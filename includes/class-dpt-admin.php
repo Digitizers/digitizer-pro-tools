@@ -42,6 +42,15 @@ class DPT_Admin {
 				$module->register_admin_menu( self::MENU_SLUG );
 			}
 		}
+
+		// Registered whatever the REST Bridge module's own state is, and that
+		// is the point of it: the screen answers what the module would put on
+		// the API, which is only worth asking while it is not yet doing it.
+		// The loop above cannot register it, because a module that is off
+		// never reaches register_admin_menu() at all.
+		if ( class_exists( 'DPT_RB_Preview' ) ) {
+			DPT_RB_Preview::register_menu( self::MENU_SLUG );
+		}
 	}
 
 	public function enqueue( $hook ) {

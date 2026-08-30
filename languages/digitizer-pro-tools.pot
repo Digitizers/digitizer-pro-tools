@@ -1917,6 +1917,36 @@ msgstr ""
 msgid "The standalone AI Agent Activity Log plugin is active, so this module is standing down - its log lives under Agent Activity in the admin menu."
 msgstr ""
 
+msgid "REST Bridge Preview"
+msgstr ""
+
+msgid "Runs the module's discovery and registration without registering anything, and reports what it found. Nothing on this page changes the site."
+msgstr ""
+
+msgid "Run the preview"
+msgstr ""
+
+msgid "%1$d fields on %2$d post types and taxonomies."
+msgstr ""
+
+msgid "Nothing was found to expose. If this site uses JetEngine, check that its field definitions are saved."
+msgstr ""
+
+msgid "Post type or taxonomy"
+msgstr ""
+
+msgid "(compatibility name)"
+msgstr ""
+
+msgid "Not exposed"
+msgstr ""
+
+msgid "Nothing was skipped."
+msgstr ""
+
+msgid "Routes"
+msgstr ""
+
 msgid "REST Bridge"
 msgstr ""
 

@@ -13,6 +13,7 @@ require_once __DIR__ . '/class-dpt-rb-fields.php';
 require_once __DIR__ . '/class-dpt-rb-elementor.php';
 require_once __DIR__ . '/class-dpt-rb-rankmath.php';
 require_once __DIR__ . '/class-dpt-rb-info.php';
+require_once __DIR__ . '/class-dpt-rb-preview.php';
 
 /**
  * Wires the REST bridge.

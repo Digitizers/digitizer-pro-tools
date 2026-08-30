@@ -49,6 +49,21 @@ class DPT_RB_Info {
 	}
 
 	/**
+	 * The same report, for a module that has not registered anything.
+	 *
+	 * Rehearses the registration and then reads the result through payload(),
+	 * so the preview screen and the live endpoint cannot drift apart: there
+	 * is one description of what this module does to a site, and both read
+	 * it.
+	 *
+	 * @return array
+	 */
+	public static function preview() {
+		DPT_RB_Fields::rehearse();
+		return self::payload();
+	}
+
+	/**
 	 * What the endpoint says. Every value here is read from the same
 	 * methods that do the actual registering, never re-derived, so the
 	 * report cannot claim a field that was not really registered.
