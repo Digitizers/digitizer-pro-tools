@@ -51,11 +51,18 @@ Compare the screen against what the site exposes today through the old plugin.
 
 ## 4. Swap
 
-Only once step 3 is clean:
+Only once step 3 is clean, and in this order:
 
-1. Deactivate `digitizer-api-extensions`
-2. Switch on **REST Bridge** on the Modules screen
-3. Reload — the module should no longer say it is standing down
+1. Switch on **REST Bridge** on the Modules screen. It does nothing yet: the
+   module stands down while the old plugin is present, and says so on the card.
+2. Deactivate `digitizer-api-extensions`.
+
+That order leaves no gap. The reverse order does: the module ships disabled, so
+between deactivating the old plugin and saving the switch the site has neither,
+and requests arriving in that window get 404s or responses with fields missing.
+`boot()` re-asks whether the old plugin is active on every REST request rather
+than trusting what `init()` decided, so the module takes over on the first
+request after the deactivation.
 
 ## 5. Verify
 
