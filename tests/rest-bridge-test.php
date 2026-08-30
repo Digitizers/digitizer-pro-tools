@@ -3920,4 +3920,71 @@ DPT_Rest_Bridge_Module::boot();
 dpt_test_ok( array() === $GLOBALS['dpt_stub_rest_routes'], 'even called directly, boot() registers no routes while the old plugin is active' );
 dpt_test_ok( array() === $GLOBALS['dpt_stub_rest_fields'], 'nor any fields' );
 
+/* ---- rehearsing the registration without performing it ---- */
+
+// The preview screen exists because the fields are discovered from the site's
+// own JetEngine definitions: until something reads them, nobody knows what
+// this module would expose. It has to describe the real run exactly, so the
+// two are compared here against one another rather than against a list
+// written out by hand.
+$GLOBALS['dpt_stub_options'] = array(
+	'jet_engine_meta_boxes' => array(
+		array(
+			'id'          => 'rehearsal',
+			'args'        => array( 'object_type' => 'post', 'allowed_post_type' => array( 'post' ) ),
+			'meta_fields' => array(
+				array( 'name' => 'rehearsed', 'title' => 'Rehearsed', 'object_type' => 'field', 'type' => 'text' ),
+			),
+		),
+	),
+);
+
+DPT_RB_Definitions::reset();
+$GLOBALS['dpt_stub_rest_fields'] = array();
+DPT_RB_Fields::register();
+$dpt_real_fields  = DPT_RB_Fields::registered();
+$dpt_real_skipped = DPT_RB_Fields::skipped();
+$dpt_real_compat  = DPT_RB_Fields::compat();
+dpt_test_ok( isset( $GLOBALS['dpt_stub_rest_fields']['post']['rehearsed'] ), 'a real run registers the field' );
+// Named so the comparisons below cannot pass by both sides being empty.
+dpt_test_ok( ! empty( $dpt_real_fields ), 'and reports it, so the comparisons below have something to compare' );
+
+DPT_RB_Definitions::reset();
+$GLOBALS['dpt_stub_rest_fields'] = array();
+DPT_RB_Fields::rehearse();
+
+dpt_test_eq( $GLOBALS['dpt_stub_rest_fields'], array(), 'a rehearsal registers nothing at all' );
+dpt_test_eq( DPT_RB_Fields::registered(), $dpt_real_fields, 'while reporting the same fields the real run reported' );
+dpt_test_eq( DPT_RB_Fields::skipped(), $dpt_real_skipped, 'and the same diagnostics' );
+dpt_test_eq( DPT_RB_Fields::compat(), $dpt_real_compat, 'and the same compatibility names' );
+
+// The whole value of the screen is that it describes what would happen. A
+// rehearsal that left the flag set would make every later run a rehearsal too,
+// and the module would go quiet on a site that had merely been looked at.
+DPT_RB_Definitions::reset();
+$GLOBALS['dpt_stub_rest_fields'] = array();
+DPT_RB_Fields::register();
+dpt_test_ok( isset( $GLOBALS['dpt_stub_rest_fields']['post']['rehearsed'] ), 'and the run after a rehearsal registers normally again' );
+
+// One description of what this module does to a site, read by both the
+// endpoint and the screen.
+DPT_RB_Definitions::reset();
+$dpt_preview = DPT_RB_Info::preview();
+dpt_test_eq( $dpt_preview['fields'], $dpt_real_fields, 'the preview payload carries the fields' );
+dpt_test_eq( $dpt_preview['routes'], DPT_RB_Info::payload()['routes'], 'and the same route list the endpoint reports' );
+
+// Rank Math's keys are registered with register_post_meta() rather than
+// register_rest_field(), so they are absent from 'fields' entirely. A preview
+// that read only that array would tell a site with Rank Math and no JetEngine
+// definitions that switching the module on exposes nothing - which is the
+// opposite of true, and on exactly the site the screen exists for.
+$GLOBALS['dpt_stub_registered_post_meta'] = array();
+DPT_RB_Rankmath::register();
+dpt_test_eq(
+	$dpt_preview['rank_math_fields'],
+	array_keys( $GLOBALS['dpt_stub_registered_post_meta']['post'] ),
+	'the preview names every Rank Math key registration really registers'
+);
+dpt_test_eq( count( $dpt_preview['rank_math_fields'] ), 12, 'all twelve of them' );
+
 exit( dpt_test_summary() > 0 ? 1 : 0 );

@@ -52,6 +52,25 @@ class DPT_RB_Fields {
 	private static $skipped = array();
 
 	/**
+	 * Whether this run is a rehearsal.
+	 *
+	 * A rehearsal answers one question: what would this module put on the API
+	 * if it were switched on here. It is asked while the module is off, or
+	 * while it is standing down for the plugin it replaces - which is the
+	 * only moment the answer is worth anything, because it is the moment
+	 * before somebody deactivates a working plugin on a client's site.
+	 *
+	 * The flag suppresses exactly one call, register_rest_field(), and
+	 * nothing else. Every discovery, every collision check, every refusal and
+	 * every diagnostic runs as it always does. A rehearsal that took a
+	 * shortcut would describe a path the real run does not take, which is
+	 * worse than showing nothing at all.
+	 *
+	 * @var bool
+	 */
+	private static $dry = false;
+
+	/**
 	 * The property names core's own controllers already define on a REST
 	 * response, by object kind.
 	 *
@@ -308,6 +327,30 @@ class DPT_RB_Fields {
 	/**
 	 * Register everything. Called on rest_api_init.
 	 */
+	/**
+	 * Run register() without registering anything.
+	 *
+	 * The flag is cleared in a finally, so a rehearsal that throws leaves the
+	 * next real run to register normally rather than silently registering
+	 * nothing - a failure mode that would look like the module being broken.
+	 *
+	 * What the rehearsal leaves behind in $registered, $compat and $skipped
+	 * is the point: the caller reads it through the same reporting methods
+	 * the info endpoint uses. It is not cleared afterwards because
+	 * register() clears all of it on entry, so a real run later in the same
+	 * request cannot inherit any of it.
+	 *
+	 * @return void
+	 */
+	public static function rehearse() {
+		self::$dry = true;
+		try {
+			self::register();
+		} finally {
+			self::$dry = false;
+		}
+	}
+
 	public static function register() {
 		self::$registered     = array();
 		self::$compat         = array();
@@ -845,19 +888,24 @@ class DPT_RB_Fields {
 			// callbacks below are handed.
 			$resolved['public_read'] = in_array( 'view', $schema['context'], true );
 
-			register_rest_field(
-				self::rest_field_type( $descriptor['object'], $target ),
-				$expose,
-				array(
-					'get_callback'    => function ( $object ) use ( $resolved ) {
-						return DPT_RB_Fields::read( $resolved, $object );
-					},
-					'update_callback' => function ( $value, $object ) use ( $resolved ) {
-						return DPT_RB_Fields::write( $resolved, $value, $object );
-					},
-					'schema'          => $schema,
-				)
-			);
+			// The one call a rehearsal does not make. Everything above it has
+			// already run, so what is recorded below is what a real run would
+			// have recorded.
+			if ( ! self::$dry ) {
+				register_rest_field(
+					self::rest_field_type( $descriptor['object'], $target ),
+					$expose,
+					array(
+						'get_callback'    => function ( $object ) use ( $resolved ) {
+							return DPT_RB_Fields::read( $resolved, $object );
+						},
+						'update_callback' => function ( $value, $object ) use ( $resolved ) {
+							return DPT_RB_Fields::write( $resolved, $value, $object );
+						},
+						'schema'          => $schema,
+					)
+				);
+			}
 
 			$key = $descriptor['object'] . '/' . $target;
 			if ( ! isset( self::$registered[ $key ] ) ) {

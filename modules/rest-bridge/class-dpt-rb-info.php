@@ -49,6 +49,21 @@ class DPT_RB_Info {
 	}
 
 	/**
+	 * The same report, for a module that has not registered anything.
+	 *
+	 * Rehearses the registration and then reads the result through payload(),
+	 * so the preview screen and the live endpoint cannot drift apart: there
+	 * is one description of what this module does to a site, and both read
+	 * it.
+	 *
+	 * @return array
+	 */
+	public static function preview() {
+		DPT_RB_Fields::rehearse();
+		return self::payload();
+	}
+
+	/**
 	 * What the endpoint says. Every value here is read from the same
 	 * methods that do the actual registering, never re-derived, so the
 	 * report cannot claim a field that was not really registered.
@@ -71,6 +86,12 @@ class DPT_RB_Info {
 				array_merge( DPT_RB_Definitions::skipped(), DPT_RB_Fields::skipped() )
 			),
 			'rank_math' => DPT_RB_Rankmath::active(),
+			// The keys themselves, not only whether Rank Math is here.
+			// These are registered with register_post_meta() rather than
+			// register_rest_field(), so they are absent from 'fields' above -
+			// and a report that says only "rank_math: true" leaves both an
+			// agent and the preview screen to guess what that added.
+			'rank_math_fields' => DPT_RB_Rankmath::active() ? DPT_RB_Rankmath::keys() : array(),
 			'routes'    => array(
 				// With their methods: the Elementor route reads on GET and
 				// writes on POST, and a list that says neither leaves an
