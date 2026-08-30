@@ -1763,4 +1763,37 @@ dpt_test_eq(
 	'dpt_settings is still deleted once, not once per site'
 );
 
+/* ---- standing down for the standalone plugin ---- */
+
+// The module was extracted into a plugin of its own for WordPress.org. A site
+// running both would keep two logs of one thing, in two tables, written by two
+// sets of listeners on the same hooks - so when the standalone is present this
+// module registers nothing and says why on the Modules screen.
+require_once dirname( __DIR__ ) . '/includes/class-dpt-module.php';
+require_once dirname( __DIR__ ) . '/modules/agent-log/class-dpt-al-module.php';
+
+$module = new DPT_Agent_Log_Module();
+
+dpt_test_ok( ! DPT_Agent_Log_Module::standalone_active(), 'without the standalone plugin the module is in charge' );
+dpt_test_eq( $module->standing_down_reason(), '', 'and has nothing to explain' );
+
+$GLOBALS['dpt_stub_filters'] = array();
+$module->init();
+dpt_test_ok( dpt_stub_has_filter( 'shutdown' ), 'so it registers the shutdown flush that does all the writing' );
+
+// The standalone announces itself by its own class, the same way the Update
+// Hold standalone does. Declared here rather than at the top of the file
+// because a class declaration at the top level is hoisted, which would make
+// the assertion above pass for the wrong reason.
+if ( ! class_exists( 'AI_Agent_Activity_Log_Core' ) ) {
+	class AI_Agent_Activity_Log_Core {}
+}
+
+dpt_test_ok( DPT_Agent_Log_Module::standalone_active(), 'the standalone class is seen' );
+
+$GLOBALS['dpt_stub_filters'] = array();
+$module->init();
+dpt_test_eq( $GLOBALS['dpt_stub_filters'], array(), 'and the module then registers nothing at all' );
+dpt_test_ok( false !== strpos( $module->standing_down_reason(), 'Agent Activity' ), 'while pointing the Modules screen at the menu the standalone actually adds' );
+
 dpt_test_summary();
