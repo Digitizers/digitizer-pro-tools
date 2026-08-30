@@ -4,7 +4,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.32.0
+Stable tag: 1.32.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -331,6 +331,9 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 5. Configure each module you enabled from its own screen. For the Cookie Banner that means reviewing the texts per language and pasting your analytics/marketing snippets in the Scripts tab, then checking the site
 
 == Changelog ==
+
+= 1.32.1 =
+* REST Bridge preview: compatibility names are listed on their own instead of marking rows in the fields table. The module records those names without the targets they landed on, so a site's own field could be labelled as somebody else's - on the screen used to decide whether to deactivate a working plugin.
 
 = 1.32.0 =
 * REST Bridge: a preview screen that runs the module's discovery and registration without registering anything, and reports what it would put on the API. The fields are discovered from the site's own JetEngine definitions, so until something reads them nobody knows what the module will expose - and the module stands down while the plugin it replaces is active, so there was no way to look without first deactivating a plugin that works.

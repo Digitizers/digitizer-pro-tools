@@ -110,18 +110,23 @@ class DPT_RB_Preview {
 					<?php foreach ( (array) $names as $name => $schema ) : ?>
 						<tr>
 							<td><?php echo esc_html( $target ); ?></td>
-							<td>
-								<code><?php echo esc_html( $name ); ?></code>
-								<?php if ( in_array( $name, $compat, true ) ) : ?>
-									<span class="description"><?php esc_html_e( '(compatibility name)', 'digitizer-pro-tools' ); ?></span>
-								<?php endif; ?>
-							</td>
+							<td><code><?php echo esc_html( $name ); ?></code></td>
 							<td><?php echo esc_html( isset( $schema['type'] ) ? (string) $schema['type'] : '' ); ?></td>
 						</tr>
 					<?php endforeach; ?>
 				<?php endforeach; ?>
 				</tbody>
 			</table>
+		<?php endif; ?>
+
+		<?php if ( ! empty( $compat ) ) : ?>
+			<h2><?php esc_html_e( 'Compatibility names', 'digitizer-pro-tools' ); ?></h2>
+			<p><?php esc_html_e( 'Names the module provides so callers written against the plugin it replaces keep working. A name here is not marked in the table above, because the list records names and not the targets they landed on - and the same name can be the site\'s own field on one post type and a compatibility name on another.', 'digitizer-pro-tools' ); ?></p>
+			<ul class="ul-disc">
+				<?php foreach ( $compat as $dpt_compat_name ) : ?>
+					<li><code><?php echo esc_html( (string) $dpt_compat_name ); ?></code></li>
+				<?php endforeach; ?>
+			</ul>
 		<?php endif; ?>
 
 		<h2><?php esc_html_e( 'Rank Math', 'digitizer-pro-tools' ); ?></h2>
