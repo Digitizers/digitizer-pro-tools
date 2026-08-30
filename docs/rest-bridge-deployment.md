@@ -59,7 +59,10 @@ Only once step 3 is clean:
 
 ## 5. Verify
 
-- `GET /wp-json/digitizer/v1/info` should report what the preview showed
+- `GET /wp-json/digitizer/v1/info` should report what the preview showed.
+  The route requires `edit_posts`, so authenticate — an application password,
+  or a REST nonce from a logged-in browser. Called anonymously it answers 401,
+  and that looks exactly like a deployment that failed.
 - Exercise the consumer that actually uses these fields before moving to the
   next site
 
