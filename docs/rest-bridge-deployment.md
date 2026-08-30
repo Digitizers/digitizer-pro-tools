@@ -41,13 +41,28 @@ Four sections:
 
 ## 3. Compare — the step everything else exists for
 
-Compare the screen against what the site exposes today through the old plugin.
+Compare the **fields** the screen reports against the fields the site exposes
+today through the old plugin.
 
 | What you see | What it means | What to do |
 |---|---|---|
 | The same | Safe | Go to step 4 |
 | The module exposes **more** | Usually right — it discovers fields the old plugin never knew about, and covers pages as well as posts for Rank Math | Read the additions and check none of them is an internal field that should not leave the site |
 | The module exposes **less** | **Stop.** The reason is in Not exposed | Do not deactivate the old plugin until you understand it |
+
+The routes are **not** compared this way, because they are known to differ and
+the difference is deliberate:
+
+| Old plugin | Module |
+|---|---|
+| `digitizer/v1/faq/bulk` | **Dropped.** No consumer in any of our code |
+| `digitizer/v1/faq/info` | Replaced by `digitizer/v1/info`, which reports far more |
+| `digitizer/v1/elementor/{post_id}` | Kept, GET and POST |
+
+Reading the Routes section as a like-for-like comparison would land every
+deployment in the "exposes less" row above, on a difference that was designed.
+If something outside our code calls `faq/bulk`, that is the one thing to find
+before deactivating — and it is worth grepping for, not assuming.
 
 ## 4. Swap
 
