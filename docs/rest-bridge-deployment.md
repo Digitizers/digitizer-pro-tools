@@ -13,10 +13,15 @@ Since 1.32.0 they can be read first. This is the order to do it in.
 Not all of them, then find out. The whole value of the preview is knowing
 before, and deploying everywhere at once gives exactly that up.
 
-## 1. Update to 1.32.0 or later
+## 1. Update to 1.32.1 or later
 
 Update Digitizer Pro Tools through the updates screen. **Leave
 `digitizer-api-extensions` active.**
+
+1.32.1 and not 1.32.0: the preview shipped in 1.32.0 marked field rows whose
+name appeared in the compatibility list, which on a site that uses the same
+name on two targets labelled the site's own field as somebody else's - during
+this comparison, and nowhere else.
 
 ## 2. Run the preview
 
