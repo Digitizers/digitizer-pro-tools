@@ -30,7 +30,7 @@ class DPT_Agent_Log_Module extends DPT_Module {
 	}
 
 	/**
-	 * Whether the standalone AI Agent Activity Log plugin is running here.
+	 * Whether the standalone Digitizer AI Agent Log plugin is running here.
 	 *
 	 * The module was extracted into a plugin of its own for WordPress.org. A
 	 * site with both would keep two logs of one thing, in two tables, from two
