@@ -1932,6 +1932,12 @@ msgstr ""
 msgid "Rank Math"
 msgstr ""
 
+msgid "Compatibility names"
+msgstr ""
+
+msgid "Names that are not the site's own name for the field. Two kinds, and the list does not separate them: names the plugin this module replaces published, kept so callers written against it keep working; and aliases invented here when a field's own name is one a core REST property already owns, which are prefixed jet_. Neither kind is marked in the table above, because the list records names without the targets they landed on - the same name can be the site's own field on one post type and one of these on another."
+msgstr ""
+
 msgid "Rank Math is not active here, so none of its fields would be exposed."
 msgstr ""
 
@@ -1942,9 +1948,6 @@ msgid "%1$d fields on %2$d post types and taxonomies."
 msgstr ""
 
 msgid "Post type or taxonomy"
-msgstr ""
-
-msgid "(compatibility name)"
 msgstr ""
 
 msgid "Not exposed"
