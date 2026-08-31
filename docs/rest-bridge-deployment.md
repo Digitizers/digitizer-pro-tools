@@ -26,11 +26,15 @@ The screen works while the old plugin is still active, which is the point of
 it. It changes nothing: it runs the module's discovery and registration with
 one call suppressed — `register_rest_field()` — and reports what it found.
 
-Four sections:
+Five sections:
 
-- **Fields** — every field that would be exposed, with its target and type. A
-  name marked `(compatibility name)` is one the module assigns, not one the
-  site's own definition gave it.
+- **Fields** — every field that would be exposed, with its target and type.
+- **Compatibility names** — names the module provides so callers written
+  against the old plugin keep working. They are listed on their own rather than
+  marked in the Fields table, because the module records these as names without
+  the targets they landed on: the same name can be the site's own field on one
+  post type and a compatibility name on another, and a per-row mark would call
+  the site's own field somebody else's.
 - **Rank Math** — the twelve keys, if Rank Math is active. They are registered
   as post meta rather than REST fields, so they are deliberately absent from
   the Fields table.
