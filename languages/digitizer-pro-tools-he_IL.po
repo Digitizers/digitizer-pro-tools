@@ -1917,6 +1917,9 @@ msgstr "התוסף העצמאי Digitizer Update Hold פעיל, ולכן המו�
 msgid "The standalone Digitizer AI Agent Log plugin is active, so this module is standing down - its log lives under Agent Activity in the admin menu."
 msgstr "התוסף העצמאי Digitizer AI Agent Log פעיל, ולכן המודול הזה נסוג - היומן שלו נמצא תחת Agent Activity בתפריט הניהול."
 
+msgid "The standalone AI Agent Activity Log plugin is active, so this module is standing down - its log lives under Agent Activity in the admin menu."
+msgstr "התוסף העצמאי AI Agent Activity Log פעיל, ולכן המודול הזה נסוג - היומן שלו נמצא תחת Agent Activity בתפריט הניהול."
+
 msgid "REST Bridge Preview"
 msgstr "תצוגה מקדימה של REST Bridge"
 

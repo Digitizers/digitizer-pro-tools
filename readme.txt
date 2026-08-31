@@ -333,7 +333,7 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 == Changelog ==
 
 = 1.33.0 =
-* Agent Log recognises the standalone plugin under its new name, Digitizer AI Agent Log. WordPress.org judged the first name too generic to list, so it was renamed before approval; both names count as the standalone being present, because the earlier build is installed on machines it was tested on.
+* Agent Log recognises the standalone plugin under its new name, Digitizer AI Agent Log. WordPress.org judged the first name too generic to list, so it was renamed before approval. Both names count as the standalone being present, because the earlier build is installed on machines it was tested on - and the notice on the Modules screen names whichever of the two that site actually has, so it never sends anyone looking for a plugin that is not there.
 
 = 1.32.1 =
 * REST Bridge preview: compatibility names are listed on their own instead of marking rows in the fields table. The module records those names without the targets they landed on, so a site's own field could be labelled as somebody else's - on the screen used to decide whether to deactivate a working plugin.

@@ -72,6 +72,15 @@ class DPT_Agent_Log_Module extends DPT_Module {
 		if ( ! self::standalone_active() ) {
 			return '';
 		}
+		// The name the operator will actually find on the Plugins screen. A
+		// site that installed the build made before the directory asked for
+		// the rename has no plugin called Digitizer AI Agent Log on it, and a
+		// notice naming one sends them looking for something that is not
+		// there. Update Policy names its legacy standalone the same way, for
+		// the same reason.
+		if ( ! class_exists( 'Digitizer_AI_Agent_Log_Core' ) ) {
+			return __( 'The standalone AI Agent Activity Log plugin is active, so this module is standing down - its log lives under Agent Activity in the admin menu.', 'digitizer-pro-tools' );
+		}
 		return __( 'The standalone Digitizer AI Agent Log plugin is active, so this module is standing down - its log lives under Agent Activity in the admin menu.', 'digitizer-pro-tools' );
 	}
 

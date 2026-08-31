@@ -1917,6 +1917,9 @@ msgstr ""
 msgid "The standalone Digitizer AI Agent Log plugin is active, so this module is standing down - its log lives under Agent Activity in the admin menu."
 msgstr ""
 
+msgid "The standalone AI Agent Activity Log plugin is active, so this module is standing down - its log lives under Agent Activity in the admin menu."
+msgstr ""
+
 msgid "REST Bridge Preview"
 msgstr ""
 
