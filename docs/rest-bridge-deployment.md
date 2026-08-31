@@ -34,12 +34,15 @@ one call suppressed — `register_rest_field()` — and reports what it found.
 Five sections:
 
 - **Fields** — every field that would be exposed, with its target and type.
-- **Compatibility names** — names the module provides so callers written
-  against the old plugin keep working. They are listed on their own rather than
-  marked in the Fields table, because the module records these as names without
-  the targets they landed on: the same name can be the site's own field on one
-  post type and a compatibility name on another, and a per-row mark would call
-  the site's own field somebody else's.
+- **Compatibility names** — names that are not the site's own name for the
+  field, of two kinds the list does not separate: names the old plugin
+  published, kept so callers written against it keep working; and aliases
+  invented here, prefixed `jet_`, when a field's own name is one a core REST
+  property already owns. Only the first kind is API surface something outside
+  this site may depend on. They are listed on their own rather than marked in
+  the Fields table, because the module records these as names without the
+  targets they landed on: the same name can be the site's own field on one post
+  type and one of these on another.
 - **Rank Math** — the twelve keys, if Rank Math is active. They are registered
   as post meta rather than REST fields, so they are deliberately absent from
   the Fields table.

@@ -1935,8 +1935,8 @@ msgstr "Rank Math"
 msgid "Compatibility names"
 msgstr "שמות תאימות"
 
-msgid "Names the module provides so callers written against the plugin it replaces keep working. A name here is not marked in the table above, because the list records names and not the targets they landed on - and the same name can be the site's own field on one post type and a compatibility name on another."
-msgstr "שמות שהמודול מספק כדי שקוראים שנכתבו מול התוסף שהוא מחליף ימשיכו לעבוד. שם שמופיע כאן אינו מסומן בטבלה שלמעלה, כי הרשימה רושמת שמות ולא את היעדים שעליהם נחתו - ואותו שם יכול להיות שדה של האתר עצמו בסוג תוכן אחד ושם תאימות באחר."
+msgid "Names that are not the site's own name for the field. Two kinds, and the list does not separate them: names the plugin this module replaces published, kept so callers written against it keep working; and aliases invented here when a field's own name is one a core REST property already owns, which are prefixed jet_. Neither kind is marked in the table above, because the list records names without the targets they landed on - the same name can be the site's own field on one post type and one of these on another."
+msgstr "שמות שאינם השם שהאתר עצמו נתן לשדה. שני סוגים, והרשימה לא מפרידה ביניהם: שמות שהתוסף שהמודול מחליף פרסם, שנשמרים כדי שקוראים שנכתבו מולו ימשיכו לעבוד; וכינויים שהומצאו כאן כששמו של שדה הוא שם שמאפיין REST של הליבה כבר תופס, והם בתחילית jet_. אף אחד מהסוגים אינו מסומן בטבלה שלמעלה, כי הרשימה רושמת שמות בלי היעדים שעליהם נחתו - אותו שם יכול להיות שדה של האתר עצמו בסוג תוכן אחד ואחד מאלה באחר."
 
 msgid "Rank Math is not active here, so none of its fields would be exposed."
 msgstr "Rank Math אינו פעיל כאן, ולכן אף אחד מהשדות שלו לא ייחשף."
