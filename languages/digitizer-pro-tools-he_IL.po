@@ -1914,6 +1914,9 @@ msgstr "התוסף העצמאי Update Policy פעיל, ולכן המודול ה
 msgid "The standalone Digitizer Update Hold plugin is active, so this module is standing down - its settings live under Network Admin > Settings > Digitizer Update Hold."
 msgstr "התוסף העצמאי Digitizer Update Hold פעיל, ולכן המודול הזה נסוג - ההגדרות שלו נמצאות תחת ניהול רשת > הגדרות > Digitizer Update Hold."
 
+msgid "The standalone Digitizer AI Agent Log plugin is active, so this module is standing down - its log lives under Agent Activity in the admin menu."
+msgstr "התוסף העצמאי Digitizer AI Agent Log פעיל, ולכן המודול הזה נסוג - היומן שלו נמצא תחת Agent Activity בתפריט הניהול."
+
 msgid "The standalone AI Agent Activity Log plugin is active, so this module is standing down - its log lives under Agent Activity in the admin menu."
 msgstr "התוסף העצמאי AI Agent Activity Log פעיל, ולכן המודול הזה נסוג - היומן שלו נמצא תחת Agent Activity בתפריט הניהול."
 

@@ -1781,19 +1781,33 @@ $GLOBALS['dpt_stub_filters'] = array();
 $module->init();
 dpt_test_ok( dpt_stub_has_filter( 'shutdown' ), 'so it registers the shutdown flush that does all the writing' );
 
-// The standalone announces itself by its own class, the same way the Update
-// Hold standalone does. Declared here rather than at the top of the file
-// because a class declaration at the top level is hoisted, which would make
-// the assertion above pass for the wrong reason.
+// The standalone announces itself by its own class. Declared here rather than
+// at the top of the file because a class declaration at the top level is
+// hoisted, which would make the assertion above pass for the wrong reason.
+//
+// The pre-rename build is defined first, on purpose. class_exists() answers
+// process-wide, so the only way to exercise both arms of the check - and both
+// branches of the notice - is to reach the states in the order a site would:
+// the old build alone, then the renamed one.
 if ( ! class_exists( 'AI_Agent_Activity_Log_Core' ) ) {
 	class AI_Agent_Activity_Log_Core {}
 }
 
-dpt_test_ok( DPT_Agent_Log_Module::standalone_active(), 'the standalone class is seen' );
+dpt_test_ok( DPT_Agent_Log_Module::standalone_active(), 'the pre-rename build counts as the standalone being present' );
+dpt_test_ok( false !== strpos( $module->standing_down_reason(), 'AI Agent Activity Log' ), 'and the notice names that build, which is what its Plugins screen says' );
+dpt_test_ok( false === strpos( $module->standing_down_reason(), 'Digitizer AI Agent Log' ), 'not the name it was given later, which that site has never seen' );
 
 $GLOBALS['dpt_stub_filters'] = array();
 $module->init();
-dpt_test_eq( $GLOBALS['dpt_stub_filters'], array(), 'and the module then registers nothing at all' );
-dpt_test_ok( false !== strpos( $module->standing_down_reason(), 'Agent Activity' ), 'while pointing the Modules screen at the menu the standalone actually adds' );
+dpt_test_eq( $GLOBALS['dpt_stub_filters'], array(), 'and the module registers nothing at all' );
+
+// The name the directory asked for.
+if ( ! class_exists( 'Digitizer_AI_Agent_Log_Core' ) ) {
+	class Digitizer_AI_Agent_Log_Core {}
+}
+
+dpt_test_ok( DPT_Agent_Log_Module::standalone_active(), 'the renamed build is seen too' );
+dpt_test_ok( false !== strpos( $module->standing_down_reason(), 'Digitizer AI Agent Log' ), 'and now the notice names it instead' );
+dpt_test_ok( false !== strpos( $module->standing_down_reason(), 'Agent Activity' ), 'while still pointing at the menu the standalone actually adds' );
 
 dpt_test_summary();

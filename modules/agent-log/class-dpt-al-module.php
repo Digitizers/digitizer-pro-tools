@@ -30,7 +30,7 @@ class DPT_Agent_Log_Module extends DPT_Module {
 	}
 
 	/**
-	 * Whether the standalone AI Agent Activity Log plugin is running here.
+	 * Whether the standalone Digitizer AI Agent Log plugin is running here.
 	 *
 	 * The module was extracted into a plugin of its own for WordPress.org. A
 	 * site with both would keep two logs of one thing, in two tables, from two
@@ -41,7 +41,14 @@ class DPT_Agent_Log_Module extends DPT_Module {
 	 * @return bool
 	 */
 	public static function standalone_active() {
-		return class_exists( 'AI_Agent_Activity_Log_Core' );
+		// Two class names because the standalone was renamed for the
+		// WordPress.org directory, which judged "AI Agent Activity Log" too
+		// generic a name to list. It never reached the directory under the
+		// old name, but it did reach the machines it was tested on, and a
+		// site still running that build must go on standing this module down
+		// - otherwise it quietly gets two sets of listeners on one set of
+		// hooks, which is the exact thing this method exists to prevent.
+		return class_exists( 'Digitizer_AI_Agent_Log_Core' ) || class_exists( 'AI_Agent_Activity_Log_Core' );
 	}
 
 	public function init() {
@@ -65,7 +72,16 @@ class DPT_Agent_Log_Module extends DPT_Module {
 		if ( ! self::standalone_active() ) {
 			return '';
 		}
-		return __( 'The standalone AI Agent Activity Log plugin is active, so this module is standing down - its log lives under Agent Activity in the admin menu.', 'digitizer-pro-tools' );
+		// The name the operator will actually find on the Plugins screen. A
+		// site that installed the build made before the directory asked for
+		// the rename has no plugin called Digitizer AI Agent Log on it, and a
+		// notice naming one sends them looking for something that is not
+		// there. Update Policy names its legacy standalone the same way, for
+		// the same reason.
+		if ( ! class_exists( 'Digitizer_AI_Agent_Log_Core' ) ) {
+			return __( 'The standalone AI Agent Activity Log plugin is active, so this module is standing down - its log lives under Agent Activity in the admin menu.', 'digitizer-pro-tools' );
+		}
+		return __( 'The standalone Digitizer AI Agent Log plugin is active, so this module is standing down - its log lives under Agent Activity in the admin menu.', 'digitizer-pro-tools' );
 	}
 
 	public function register_admin_menu( $parent_slug ) {
