@@ -1785,11 +1785,22 @@ dpt_test_ok( dpt_stub_has_filter( 'shutdown' ), 'so it registers the shutdown fl
 // Hold standalone does. Declared here rather than at the top of the file
 // because a class declaration at the top level is hoisted, which would make
 // the assertion above pass for the wrong reason.
-if ( ! class_exists( 'AI_Agent_Activity_Log_Core' ) ) {
-	class AI_Agent_Activity_Log_Core {}
+if ( ! class_exists( 'Digitizer_AI_Agent_Log_Core' ) ) {
+	class Digitizer_AI_Agent_Log_Core {}
 }
 
 dpt_test_ok( DPT_Agent_Log_Module::standalone_active(), 'the standalone class is seen' );
+
+// The pre-rename name is also accepted - the directory judged the first name
+// too generic, and a machine still running that build has to keep standing
+// this module down. It cannot be asserted separately here: class_exists() is
+// process-wide, so once the name above is defined the check answers true
+// whatever the second one does. Defining it anyway proves at least that
+// having both present is not an error.
+if ( ! class_exists( 'AI_Agent_Activity_Log_Core' ) ) {
+	class AI_Agent_Activity_Log_Core {}
+}
+dpt_test_ok( DPT_Agent_Log_Module::standalone_active(), 'and both builds present at once is not a contradiction' );
 
 $GLOBALS['dpt_stub_filters'] = array();
 $module->init();

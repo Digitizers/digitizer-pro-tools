@@ -639,7 +639,7 @@ return array (
     'The standalone Update Policy plugin is active, so this module is standing down - its settings live under Settings > Update Policy.' => 'התוסף העצמאי Update Policy פעיל, ולכן המודול הזה נסוג - ההגדרות שלו נמצאות תחת הגדרות > Update Policy.',
     'The standalone Update Policy plugin is active, so this module is standing down - its settings live under Network Admin > Settings > Update Policy.' => 'התוסף העצמאי Update Policy פעיל, ולכן המודול הזה נסוג - ההגדרות שלו נמצאות תחת ניהול רשת > הגדרות > Update Policy.',
     'The standalone Digitizer Update Hold plugin is active, so this module is standing down - its settings live under Network Admin > Settings > Digitizer Update Hold.' => 'התוסף העצמאי Digitizer Update Hold פעיל, ולכן המודול הזה נסוג - ההגדרות שלו נמצאות תחת ניהול רשת > הגדרות > Digitizer Update Hold.',
-    'The standalone AI Agent Activity Log plugin is active, so this module is standing down - its log lives under Agent Activity in the admin menu.' => 'התוסף העצמאי AI Agent Activity Log פעיל, ולכן המודול הזה נסוג - היומן שלו נמצא תחת Agent Activity בתפריט הניהול.',
+    'The standalone Digitizer AI Agent Log plugin is active, so this module is standing down - its log lives under Agent Activity in the admin menu.' => 'התוסף העצמאי Digitizer AI Agent Log פעיל, ולכן המודול הזה נסוג - היומן שלו נמצא תחת Agent Activity בתפריט הניהול.',
     'REST Bridge Preview' => 'תצוגה מקדימה של REST Bridge',
     'Runs the module\'s discovery and registration without registering anything, and reports what it found. Nothing on this page changes the site.' => 'מריץ את הגילוי והרישום של המודול בלי לרשום דבר, ומדווח על מה שנמצא. שום דבר בעמוד הזה לא משנה את האתר.',
     'Run the preview' => 'הרצת התצוגה המקדימה',
