@@ -12,6 +12,9 @@ require_once __DIR__ . '/class-dpt-cc-settings.php';
 require_once __DIR__ . '/class-dpt-cc-metabox.php';
 require_once __DIR__ . '/class-dpt-cc-menu.php';
 require_once __DIR__ . '/class-dpt-cc-admin.php';
+require_once __DIR__ . '/class-dpt-cc-restrictions.php';
+require_once __DIR__ . '/class-dpt-cc-rules.php';
+require_once __DIR__ . '/class-dpt-cc-enforce.php';
 
 class DPT_Content_Control_Module extends DPT_Module {
 
@@ -23,6 +26,9 @@ class DPT_Content_Control_Module extends DPT_Module {
 
 	/** @var DPT_CC_Menu */
 	private $menu;
+
+	/** @var DPT_CC_Enforce */
+	private $enforce;
 
 	public function id() {
 		return 'content_control';
@@ -44,6 +50,8 @@ class DPT_Content_Control_Module extends DPT_Module {
 		$this->admin   = new DPT_CC_Admin();
 		$this->metabox = new DPT_CC_Metabox();
 		$this->menu    = new DPT_CC_Menu();
+		$this->enforce = new DPT_CC_Enforce();
+		$this->enforce->init();
 
 		// Whole-site protection - earliest front-end decision.
 		add_action( 'template_redirect', array( $this, 'enforce_site_protection' ), 1 );
@@ -181,24 +189,73 @@ class DPT_Content_Control_Module extends DPT_Module {
 			&& ! DPT_CC_Access::can_view_post( $post_id );
 	}
 
+	/**
+	 * What the viewer gets in place of restricted content, or null when the
+	 * content is theirs to see. Per-post meta is consulted first and wins;
+	 * global restrictions come second, adding a per-row message override and
+	 * an optional teaser excerpt above the notice.
+	 *
+	 * @param int  $post_id Post being rendered.
+	 * @param bool $strip   Return plain text (feeds, REST, excerpt lists).
+	 * @return string|null
+	 */
+	private function restricted_output( $post_id, $strip = false ) {
+		if ( ! $post_id ) {
+			return null;
+		}
+		if ( $this->should_hide( $post_id ) ) {
+			$html = DPT_CC_Access::restriction_message( $post_id );
+			return $strip ? wp_strip_all_tags( $html ) : $html;
+		}
+		$row = $this->enforce ? $this->enforce->restriction_for_post( get_post( $post_id ) ) : null;
+		if ( ! $row ) {
+			return null;
+		}
+		$custom = $this->enforce->denial_message( $row );
+		$html   = '' !== $custom
+			? '<div class="dpt-cc-restricted">' . wp_kses_post( wpautop( $custom ) ) . '</div>'
+			: DPT_CC_Access::restriction_message( 0 );
+		if ( ! empty( $row['protection']['show_excerpts'] ) ) {
+			$teaser = get_post_field( 'post_excerpt', $post_id );
+			if ( '' !== trim( (string) $teaser ) ) {
+				$allowed = apply_filters(
+					'dpt_cc_teaser_allowed_tags',
+					array(
+						'a'          => array( 'href' => array() ),
+						'em'         => array(),
+						'strong'     => array(),
+						'p'          => array(),
+						'ul'         => array(),
+						'ol'         => array(),
+						'li'         => array(),
+						'blockquote' => array(),
+					)
+				);
+				$html = '<div class="dpt-cc-excerpt">' . wp_kses( wpautop( $teaser ), $allowed ) . '</div>' . $html;
+			}
+		}
+		return $strip ? wp_strip_all_tags( $html ) : $html;
+	}
+
 	public function filter_the_content( $content ) {
-		$id = get_the_ID();
-		return $this->should_hide( $id ) ? DPT_CC_Access::restriction_message( $id ) : $content;
+		$out = $this->restricted_output( get_the_ID() );
+		return null === $out ? $content : $out;
 	}
 
 	public function filter_the_excerpt( $excerpt ) {
-		$id = get_the_ID();
-		return $this->should_hide( $id ) ? DPT_CC_Access::restriction_message( $id ) : $excerpt;
+		$out = $this->restricted_output( get_the_ID() );
+		return null === $out ? $excerpt : $out;
 	}
 
 	public function filter_get_the_excerpt( $excerpt, $post = null ) {
-		$id = $post ? ( is_object( $post ) ? $post->ID : (int) $post ) : get_the_ID();
-		return $this->should_hide( $id ) ? wp_strip_all_tags( DPT_CC_Access::restriction_message( $id ) ) : $excerpt;
+		$id  = $post ? ( is_object( $post ) ? $post->ID : (int) $post ) : get_the_ID();
+		$out = $this->restricted_output( $id, true );
+		return null === $out ? $excerpt : $out;
 	}
 
 	public function filter_feed_content( $content ) {
-		$id = get_the_ID();
-		return $this->should_hide( $id ) ? wp_strip_all_tags( DPT_CC_Access::restriction_message( $id ) ) : $content;
+		$out = $this->restricted_output( get_the_ID(), true );
+		return null === $out ? $content : $out;
 	}
 
 	/* --------------------------------------------------------------------- */
@@ -212,11 +269,14 @@ class DPT_Content_Control_Module extends DPT_Module {
 	}
 
 	public function filter_rest_prepare( $response, $post, $request ) {
-		if ( ! $post || ! $this->should_hide( $post->ID ) ) {
+		if ( ! $post ) {
 			return $response;
 		}
-		$data    = $response->get_data();
-		$message = wp_strip_all_tags( DPT_CC_Access::restriction_message( $post->ID ) );
+		$message = $this->restricted_output( $post->ID, true );
+		if ( null === $message ) {
+			return $response;
+		}
+		$data = $response->get_data();
 		if ( isset( $data['content'] ) ) {
 			$data['content'] = array( 'rendered' => '<p>' . esc_html( $message ) . '</p>', 'protected' => true );
 		}
