@@ -232,7 +232,16 @@ class DPT_CC_Enforce {
 					&& $this->replace_with_page( (int) $row['archive_page'] ) ) {
 					return;
 				}
-				if ( empty( $wp_query->posts ) || ! $this->restriction_for_post( $wp_query->posts[0] ) ) {
+				// Coverage: a hide-handled archive is covered by
+				// construction - the_posts has ALREADY removed the barred
+				// rows, so probing the filtered list would misread an
+				// emptied or unrestricted-first-post archive as uncovered
+				// and wrongly apply the protection. The probe is only sound
+				// for filter handling, which leaves rows in place.
+				// (Codex round-7 P1)
+				$covered = 'hide' === $row['archive_handling']
+					|| ( ! empty( $wp_query->posts ) && $this->restriction_for_post( $wp_query->posts[0] ) );
+				if ( ! $covered ) {
 					// Main-query-only rules (search, blog index, 404) have
 					// no per-post coverage - apply the protection here. Only
 					// a SUCCESSFUL replacement ends enforcement (round-3
@@ -326,7 +335,11 @@ class DPT_CC_Enforce {
 		} elseif ( 'custom' === $type && '' !== $url ) {
 			$to = $url;
 		}
-		if ( '' === $to || untrailingslashit( $to ) === $current ) {
+		// Browsers never send the fragment back, so a self-target wearing
+		// one (#details) would dodge the loop guard and redirect forever.
+		// (Codex round-7 P2)
+		$to_cmp = untrailingslashit( preg_replace( '/#.*$/', '', $to ) );
+		if ( '' === $to || $to_cmp === $current ) {
 			$to = wp_login_url( self::current_request_url() );
 		}
 		return $to;

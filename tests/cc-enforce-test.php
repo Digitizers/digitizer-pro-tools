@@ -241,6 +241,7 @@ $_SERVER['REQUEST_URI'] = '/site/private';
 dpt_test_eq( DPT_CC_Enforce::redirect_target( 'home', '' ), 'https://example.com/site/', 'redirect-home elsewhere goes home' );
 dpt_test_ok( false !== strpos( DPT_CC_Enforce::redirect_target( 'custom', 'https://example.com/site/private' ), 'wp-login.php' ), 'custom target equal to the denied page falls back to login' );
 dpt_test_eq( DPT_CC_Enforce::redirect_target( 'custom', 'https://other.test/x' ), 'https://other.test/x', 'other custom targets pass through' );
+dpt_test_ok( false !== strpos( DPT_CC_Enforce::redirect_target( 'custom', 'https://example.com/site/private#details' ), 'wp-login.php' ), 'a fragment-bearing self-target still trips the loop guard (round-7 P2)' );
 
 /* ---- round-2 P1: internal post types and taxonomies stay out of hiding ---- */
 
