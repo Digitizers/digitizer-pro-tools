@@ -28,8 +28,9 @@ function is_home() { return false; }
 function wp_login_url( $redirect = '' ) { return 'https://example.com/site/wp-login.php?redirect_to=' . rawurlencode( $redirect ); }
 function get_post_types( $args = array(), $output = 'names' ) {
 	$o = array(
-		'post' => (object) array( 'name' => 'post', 'rest_base' => 'posts' ),
-		'page' => (object) array( 'name' => 'page', 'rest_base' => 'pages' ),
+		'post'      => (object) array( 'name' => 'post', 'rest_base' => 'posts' ),
+		'page'      => (object) array( 'name' => 'page', 'rest_base' => 'pages' ),
+		'acme_item' => (object) array( 'name' => 'acme_item', 'rest_base' => 'items', 'rest_namespace' => 'acme/v1' ),
 	);
 	return 'objects' === $output ? $o : array_keys( $o );
 }
@@ -267,6 +268,8 @@ dpt_test_eq( DPT_CC_Enforce::rest_route_target( '/wp/v2/posts/7' ), array( 'post
 dpt_test_eq( DPT_CC_Enforce::rest_route_target( '/wp/v2/pages/3' ), array( 'page', 3 ), 'pages route resolves too' );
 dpt_test_eq( DPT_CC_Enforce::rest_route_target( '/wp/v2/users/7' ), array( '', 0 ), 'a users route is never judged by post 7' );
 dpt_test_eq( DPT_CC_Enforce::rest_route_target( '/wp/v2/comments/7' ), array( '', 0 ), 'a comments route is ignored' );
+dpt_test_eq( DPT_CC_Enforce::rest_route_target( '/acme/v1/items/9' ), array( 'acme_item', 9 ), 'a custom rest_namespace resolves (round-5 P2)' );
+dpt_test_eq( DPT_CC_Enforce::rest_route_target( '/wp/v2/items/9' ), array( '', 0 ), 'the custom base is not accepted under the core namespace' );
 
 /* ---- round-4: redirect rows withheld from REST collections + totals ---- */
 

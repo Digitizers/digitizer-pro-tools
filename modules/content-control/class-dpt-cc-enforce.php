@@ -231,10 +231,24 @@ class DPT_CC_Enforce {
 				return;
 			}
 			if ( 'replace' === $row['protection']['method'] && ! is_singular() ) {
-				// Search / blog index / archive / 404 rules match no single
-				// post, so per-post content filtering cannot cover them.
-				// Singular views re-match through the queried post's own
-				// context and get the message there.
+				// The row's own archive action comes first: an archive it
+				// explicitly redirects or replaces must not collapse into
+				// the generic denial. (Codex round-5 P1)
+				if ( 'redirect' === $row['archive_handling'] ) {
+					$this->do_redirect( $row['archive_redirect_type'], $row['archive_redirect_url'] );
+				}
+				if ( 'replace_page' === $row['archive_handling'] && $row['archive_page']
+					&& $this->replace_with_page( (int) $row['archive_page'] ) ) {
+					return;
+				}
+				// filter/hide: when the row also bars the listed posts
+				// individually (an entire-site rule does), per-post handling
+				// already covers the page and a blanket denial would
+				// override the configured behaviour. Only main-query-ONLY
+				// rules - search, blog index, 404 - fall through here.
+				if ( ! empty( $wp_query->posts ) && $this->restriction_for_post( $wp_query->posts[0] ) ) {
+					return;
+				}
 				$this->deny_main( $row );
 			}
 		}
@@ -420,8 +434,7 @@ class DPT_CC_Enforce {
 			// redirect-protected post is withheld from it entirely rather
 			// than leaking title/link/author around a blanked body.
 			// (Codex round-4 P1)
-			if ( 'filter' === $handling && 'redirect' === $row['protection']['method']
-				&& function_exists( 'wp_is_serving_rest_request' ) && wp_is_serving_rest_request() ) {
+			if ( 'filter' === $handling && 'redirect' === $row['protection']['method'] && self::doing_rest() ) {
 				$handling = 'hide';
 			}
 			if ( 'hide' === $handling ) {
@@ -477,22 +490,33 @@ class DPT_CC_Enforce {
 	/* --------------------------------------------------------------------- */
 
 	/**
-	 * Resolve a core REST route to (post type, id) - ONLY when the route's
-	 * base belongs to a registered post type. /wp/v2/users/7 or
-	 * /wp/v2/comments/7 must never be judged by post 7's restrictions.
-	 * (Codex round-4 P2)
+	 * Whether this request serves the REST API. The core helper exists only
+	 * since WordPress 6.5; earlier versions inside this plugin's 5.8 floor
+	 * are covered by the REST_REQUEST constant. (Codex round-5 P1)
+	 */
+	private static function doing_rest() {
+		if ( function_exists( 'wp_is_serving_rest_request' ) && wp_is_serving_rest_request() ) {
+			return true;
+		}
+		return defined( 'REST_REQUEST' ) && REST_REQUEST;
+	}
+
+	/**
+	 * Resolve a single-item REST route to (post type, id) - ONLY when the
+	 * route matches a registered post type's own namespace and base
+	 * (rest_namespace defaults to wp/v2; custom types may register others).
+	 * /wp/v2/users/7 or /wp/v2/comments/7 must never be judged by post 7's
+	 * restrictions. (Codex round-4 P2, round-5 P2)
 	 *
 	 * @param string $route REST route.
 	 * @return array{0:string,1:int} Post type and id, or ('', 0).
 	 */
 	public static function rest_route_target( $route ) {
-		if ( ! preg_match( '#^/wp/v2/([^/]+)/(\d+)$#', (string) $route, $m ) ) {
-			return array( '', 0 );
-		}
 		foreach ( get_post_types( array( 'show_in_rest' => true ), 'objects' ) as $obj ) {
 			$base = ! empty( $obj->rest_base ) ? $obj->rest_base : $obj->name;
-			if ( $base === $m[1] ) {
-				return array( $obj->name, (int) $m[2] );
+			$ns   = ! empty( $obj->rest_namespace ) ? $obj->rest_namespace : 'wp/v2';
+			if ( preg_match( '#^/' . preg_quote( $ns, '#' ) . '/' . preg_quote( $base, '#' ) . '/(\d+)$#', (string) $route, $m ) ) {
+				return array( $obj->name, (int) $m[1] );
 			}
 		}
 		return array( '', 0 );
