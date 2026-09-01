@@ -212,18 +212,16 @@ dpt_test_eq( $roww ? $roww['id'] : null, 'r_global', 'without the meta, the glob
 $_SERVER['REQUEST_URI'] = '/site/private?x=1';
 dpt_test_eq( DPT_CC_Enforce::current_request_url(), 'https://example.com/site/private?x=1', 'scheme+host from home_url, path from REQUEST_URI - subdirectory not doubled' );
 
-/* ---- round-2 P1: main-query-only restrictions still show their message ---- */
+/* ---- round-2/3 P1: main-query-only restrictions compose their denial ---- */
 
-$enf2 = new DPT_CC_Enforce();
-dpt_test_eq( $enf2->filter_main_denial_content( 'body' ), 'body', 'no main denial - content untouched' );
-$enf2->deny_main( DPT_CC_Restrictions::sanitize_row( array(
+$row_m = DPT_CC_Restrictions::sanitize_row( array(
 	'id'         => 'r_m',
 	'enabled'    => true,
 	'protection' => array( 'method' => 'replace', 'override_message' => true, 'custom_message' => 'Members search.' ),
-) ) );
-$denied = $enf2->filter_main_denial_content( 'body' );
-dpt_test_ok( false !== strpos( $denied, 'Members search.' ), 'denied main query renders the row message' );
-dpt_test_ok( false === strpos( $denied, 'body' ), 'and the original content is gone' );
+) );
+dpt_test_ok( false !== strpos( $enf->denial_html( $row_m ), 'Members search.' ), 'denial_html renders the row message' );
+$row_plainm = DPT_CC_Restrictions::sanitize_row( array( 'id' => 'r_pm', 'enabled' => true ) );
+dpt_test_ok( false !== strpos( $enf->denial_html( $row_plainm ), 'restricted' ), 'denial_html falls back to the default message' );
 
 /* ---- round-2 P1: redirect target never points back at the denied page ---- */
 

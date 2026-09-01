@@ -18,11 +18,6 @@ class DPT_CC_Enforce {
 		// Late registration keeps setup-time queries out of the filters.
 		add_action( 'init', array( $this, 'register_query_filters' ), 999 );
 		add_filter( 'rest_pre_dispatch', array( $this, 'enforce_rest' ), 10, 3 );
-		// Denied main-query pages whose protection is "replace with message"
-		// but which match no individual post (search, blog index, archives)
-		// get their message through these. (Codex round-2 P1)
-		add_filter( 'the_content', array( $this, 'filter_main_denial_content' ), 999 );
-		add_filter( 'the_excerpt', array( $this, 'filter_main_denial_content' ), 999 );
 	}
 
 	public function register_query_filters() {
@@ -158,28 +153,32 @@ class DPT_CC_Enforce {
 		return '';
 	}
 
-	/** @var array|null Row denying the whole current main query, message-style. */
-	private $main_denial = null;
-
 	/**
-	 * Mark the whole current main request as denied by $row. A "Search
-	 * results" / "Blog index" / archive / 404 rule matches no individual
-	 * post, so the ordinary per-post content filter would sail past it and
-	 * leave the listing visible. (Codex round-2 P1)
+	 * The HTML shown to a viewer this row refuses: the row's own message
+	 * when it overrides, else the module default chain.
 	 */
-	public function deny_main( $row ) {
-		$this->main_denial = $row;
-	}
-
-	public function filter_main_denial_content( $content ) {
-		if ( ! $this->main_denial ) {
-			return $content;
-		}
-		$custom = $this->denial_message( $this->main_denial );
+	public function denial_html( $row ) {
+		$custom = $this->denial_message( $row );
 		if ( '' !== $custom ) {
 			return '<div class="dpt-cc-restricted">' . wp_kses_post( wpautop( $custom ) ) . '</div>';
 		}
 		return DPT_CC_Access::restriction_message( 0 );
+	}
+
+	/**
+	 * A dedicated denied response for a main-query-only message rule. A
+	 * "Search results" / "Blog index" / archive / 404 rule matches no
+	 * individual post, and content filters cannot suppress titles,
+	 * permalinks or templates that never call them - so the whole response
+	 * is refused, the way whole-site protection's message mode already
+	 * does. (Codex round-2/3 P1)
+	 */
+	private function deny_main( $row ) {
+		wp_die(
+			$this->denial_html( $row ), // Already escaped via wp_kses_post / restriction_message. phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+			esc_html__( 'Restricted', 'digitizer-pro-tools' ),
+			array( 'response' => 403 )
+		);
 	}
 
 	/* --------------------------------------------------------------------- */
@@ -223,15 +222,19 @@ class DPT_CC_Enforce {
 			if ( 'redirect' === $row['protection']['method'] ) {
 				$this->do_redirect( $row['protection']['redirect_type'], $row['protection']['redirect_url'] );
 			}
-			if ( 'replace' === $row['protection']['method'] && $row['protection']['replacement_page'] ) {
-				$this->replace_with_page( (int) $row['protection']['replacement_page'] );
+			// Only a SUCCESSFUL replacement ends enforcement: a drafted,
+			// trashed or deleted replacement page falls through to the
+			// denial below instead of rendering the restricted output.
+			// (Codex round-3 P1)
+			if ( 'replace' === $row['protection']['method'] && $row['protection']['replacement_page']
+				&& $this->replace_with_page( (int) $row['protection']['replacement_page'] ) ) {
 				return;
 			}
 			if ( 'replace' === $row['protection']['method'] && ! is_singular() ) {
 				// Search / blog index / archive / 404 rules match no single
-				// post, so the per-post content filter cannot show the
-				// message - deny the whole page. Singular views re-match
-				// through the queried post's own context. (Codex round-2 P1)
+				// post, so per-post content filtering cannot cover them.
+				// Singular views re-match through the queried post's own
+				// context and get the message there.
 				$this->deny_main( $row );
 			}
 		}
@@ -276,10 +279,12 @@ class DPT_CC_Enforce {
 			if ( 'redirect' === $row['archive_handling'] ) {
 				$this->do_redirect( $row['archive_redirect_type'], $row['archive_redirect_url'] );
 			}
-			if ( 'replace_page' === $row['archive_handling'] && $row['archive_page'] ) {
-				$this->replace_with_page( (int) $row['archive_page'] );
+			if ( 'replace_page' === $row['archive_handling'] && $row['archive_page']
+				&& $this->replace_with_page( (int) $row['archive_page'] ) ) {
 				return;
 			}
+			// An unavailable archive replacement page falls back to per-post
+			// content filtering rather than exposing the archive untouched.
 		}
 	}
 
@@ -339,11 +344,12 @@ class DPT_CC_Enforce {
 		global $wp_query;
 		$page = get_post( $page_id );
 		if ( ! $page || 'publish' !== $page->post_status ) {
-			return;
+			return false; // Caller falls back to denial. (Codex round-3 P1)
 		}
 		$wp_query->init();
 		$wp_query->query( array( 'page_id' => $page_id, 'ignore_restrictions' => true ) );
 		status_header( 200 );
+		return true;
 	}
 
 	/* --------------------------------------------------------------------- */

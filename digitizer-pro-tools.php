@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'DPT_VERSION', '1.33.0' );
+define( 'DPT_VERSION', '1.34.0' );
 define( 'DPT_PATH', plugin_dir_path( __FILE__ ) );
 define( 'DPT_URL', plugin_dir_url( __FILE__ ) );
 define( 'DPT_BASENAME', plugin_basename( __FILE__ ) );
