@@ -202,6 +202,45 @@ dpt_test_eq( $module2->elementor_lock_edit_link( $native, 43 ), $native, 'a non-
 $GLOBALS['dpt_stub_denied_caps'] = array();
 dpt_test_eq( $module2->elementor_lock_edit_link( $native, 42 ), $native, 'and a bypass user keeps every native link' );
 
+/* ---- Elementor's own editing gate (Role Manager among its rules) ---- */
+
+// A role excluded in Elementor Pro's Role Manager passes edit_post but is
+// refused by the Elementor editor. Redirecting such a user - or rewriting
+// their links, or hiding their switch - strands them on Elementor's
+// permission error with no editor at all, so the lock asks Elementor's own
+// gate and stands down when it refuses. (Codex round-1 P1.)
+$GLOBALS['dpt_stub_denied_caps'] = array( 'manage_options' );
+$_GET = array( 'post' => '42' );
+class_alias( 'DPT_Stub_Elementor_User', 'Elementor\User' );
+dpt_test_ok( '' !== $module2->elementor_lock_redirect_url(), 'with the gate answering yes, the redirect stands' );
+
+$GLOBALS['dpt_stub_elementor_excluded_roles'] = array( 'editor' );
+$GLOBALS['dpt_stub_current_user_roles']       = array( 'editor' );
+dpt_test_eq( $module2->elementor_lock_redirect_url(), '', 'a role Elementor excludes keeps the native editor - no redirect into a refusal' );
+dpt_test_eq( $module2->elementor_lock_edit_link( $native, 42 ), $native, 'keeps its native edit links' );
+ob_start();
+$module2->elementor_lock_switch_css();
+dpt_test_eq( ob_get_clean(), '', 'and keeps the switch - the one door left to a usable editor' );
+$GLOBALS['dpt_stub_elementor_excluded_roles'] = array();
+
+/* ---- the per-post exemption reaches the switch too ---- */
+
+// The advertised dpt_st_elementor_lock_enabled exemption must not be
+// partial: a post it exempts keeps its switch as well as its redirect.
+// (Codex round-1 P2.)
+$dpt_test_exempt_42_again = function ( $enabled, $post_id ) {
+	return 42 === $post_id ? false : $enabled;
+};
+add_filter( 'dpt_st_elementor_lock_enabled', $dpt_test_exempt_42_again );
+ob_start();
+$module2->elementor_lock_switch_css();
+dpt_test_eq( ob_get_clean(), '', 'an exempt post keeps its switch' );
+remove_filter( 'dpt_st_elementor_lock_enabled', $dpt_test_exempt_42_again );
+
+ob_start();
+$module2->elementor_lock_switch_css();
+dpt_test_ok( '' !== ob_get_clean(), 'and with the exemption gone the switch is hidden again' );
+
 /* ---- the toggle wires the hooks, and only the toggle ---- */
 
 $GLOBALS['dpt_stub_filters']  = array();

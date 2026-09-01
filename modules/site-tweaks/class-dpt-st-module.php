@@ -367,6 +367,25 @@ class DPT_Site_Tweaks_Module extends DPT_Module {
 	}
 
 	/**
+	 * Elementor's own answer to "may this user edit this post with
+	 * Elementor" - Role Manager exclusions, trashed posts, unsupported post
+	 * types and the posts page among its refusals. Mirrors
+	 * DPT_RB_Elementor::elementor_allows_editing(): Elementor's rules are
+	 * called, not reimplemented, so they cannot go stale here. Where the
+	 * gate is not there to ask (an Elementor without it), the caller's own
+	 * edit_post check has already passed and the lock proceeds.
+	 *
+	 * @param int $post_id Post ID.
+	 * @return bool
+	 */
+	private function elementor_allows_editing( $post_id ) {
+		if ( ! is_callable( array( '\Elementor\User', 'is_current_user_can_edit' ) ) ) {
+			return true;
+		}
+		return (bool) \Elementor\User::is_current_user_can_edit( $post_id );
+	}
+
+	/**
 	 * Whether a post is built with Elementor, asked through Elementor's own
 	 * API rather than by reading raw meta - is_built_with_elementor() also
 	 * answers no for a post type Elementor does not support. The meta read is
@@ -437,8 +456,14 @@ class DPT_Site_Tweaks_Module extends DPT_Module {
 		}
 		// A user who cannot edit the post at all gets WordPress's own
 		// permission error, not a redirect into an editor that would refuse
-		// them anyway (Elementor Pro's Role Manager among the refusers).
+		// them anyway.
 		if ( ! current_user_can( 'edit_post', $post_id ) ) {
+			return '';
+		}
+		// And a user Elementor itself refuses - a role excluded in Elementor
+		// Pro's Role Manager among them - keeps the native editor: redirecting
+		// them lands on Elementor's permission error with no editor at all.
+		if ( ! $this->elementor_allows_editing( $post_id ) ) {
 			return '';
 		}
 		if ( ! $this->is_built_with_elementor( $post_id ) ) {
@@ -484,6 +509,17 @@ class DPT_Site_Tweaks_Module extends DPT_Module {
 		if ( ! defined( 'ELEMENTOR_VERSION' ) || $this->elementor_lock_bypassed() ) {
 			return;
 		}
+		// The redirect's per-post decisions apply to the switch too: a post
+		// the dpt_st_elementor_lock_enabled filter exempts keeps its switch,
+		// and so does a user Elementor itself refuses - the native editor
+		// behind that switch is the only editor that will open for them.
+		// post-new.php has no post to ask about, and a brand-new post is not
+		// in builder mode, so the CSS is idle there either way.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only routing of a GET screen; nothing is written.
+		$post_id = isset( $_GET['post'] ) ? absint( wp_unslash( $_GET['post'] ) ) : 0;
+		if ( $post_id && ( ! $this->elementor_allows_editing( $post_id ) || ! apply_filters( 'dpt_st_elementor_lock_enabled', true, $post_id ) ) ) {
+			return;
+		}
 		/**
 		 * Filter whether the lock hides the switch button (the redirect is
 		 * unaffected).
@@ -515,6 +551,11 @@ class DPT_Site_Tweaks_Module extends DPT_Module {
 		}
 		$post_id = absint( $post_id );
 		if ( ! $post_id || $this->elementor_lock_bypassed() || ! current_user_can( 'edit_post', $post_id ) ) {
+			return $link;
+		}
+		// Same reason as the redirect: a user Elementor refuses keeps links
+		// to the one editor that will actually open for them.
+		if ( ! $this->elementor_allows_editing( $post_id ) ) {
 			return $link;
 		}
 		$running = true;
