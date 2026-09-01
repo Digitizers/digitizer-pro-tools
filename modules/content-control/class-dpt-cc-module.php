@@ -41,7 +41,7 @@ class DPT_Content_Control_Module extends DPT_Module {
 	}
 
 	public function description() {
-		return __( 'Restrict pages and posts by role, hide menu items, gate content with a shortcode, and protect the whole site behind login. Replaces the Content Control plugin.', 'digitizer-pro-tools' );
+		return __( 'Restrict pages and posts by role, define global restriction rules with redirect/replace protection, hide menu items and widgets, gate content with a shortcode, and protect the whole site behind login. Replaces the Content Control plugin.', 'digitizer-pro-tools' );
 	}
 
 	public function install_defaults() {

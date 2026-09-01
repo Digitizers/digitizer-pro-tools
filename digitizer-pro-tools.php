@@ -3,7 +3,7 @@
  * Plugin Name:       Digitizer Pro Tools
  * Plugin URI:        https://github.com/digitizers/digitizer-pro-tools
  * Description:       One toolbox plugin by Digitizer: a multilingual cookie-consent banner, one-click post duplication, auto-update email silencing, and more modules to come.
- * Version:           1.33.0
+ * Version:           1.34.0
  * Requires at least: 5.8
  * Requires PHP:      7.4
  * Author:            Digitizer
