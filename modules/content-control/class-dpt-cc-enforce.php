@@ -153,14 +153,6 @@ class DPT_CC_Enforce {
 		return '';
 	}
 
-	/** @var array<string,bool> Row ids that pruned the current main query. */
-	private $main_hidden_rows = array();
-
-	/** Whether $row_id removed at least one post from the main listing. */
-	public function main_query_hid( $row_id ) {
-		return isset( $this->main_hidden_rows[ $row_id ] );
-	}
-
 	/**
 	 * The HTML shown to a viewer this row refuses: the row's own message
 	 * when it overrides, else the module default chain.
@@ -240,18 +232,22 @@ class DPT_CC_Enforce {
 					&& $this->replace_with_page( (int) $row['archive_page'] ) ) {
 					return;
 				}
-				// Coverage: the_posts runs before template_redirect, so a
-				// hide-handled row's barred posts are ALREADY gone - probing
-				// the filtered list would misread an emptied archive. Hide
-				// counts as coverage only when the row really pruned
-				// something: main-only rules (blog index, search, archives)
-				// match no posts, prune nothing, and must fall through to
-				// the denial. Filter handling leaves rows in place, so its
-				// probe reads the intact list. (Codex round-7/8 P1)
-				$first_row = ! empty( $wp_query->posts ) ? $this->restriction_for_post( $wp_query->posts[0] ) : null;
-				$covered   = ( 'hide' === $row['archive_handling'] && $this->main_query_hid( $row['id'] ) )
-					|| ( $first_row && $first_row['id'] === $row['id'] ); // Coverage must come from THIS row, not any row. (Codex round-9 P1)
-				if ( ! $covered ) {
+				// Page-level or item-level? Re-evaluate the matched row with
+				// any-context rules (entire_site) masked off: pure post
+				// rules are already false in this post-less main context, so
+				// a masked match proves a MAIN-ONLY arm (search, blog index,
+				// 404, archive) sufficed - the page itself is restricted and
+				// per-item handling can never cover it. No masked match
+				// means the row matched item-style (entire_site), and the
+				// listing renders with its items filtered or hidden by
+				// the_posts and the content filters. This replaces the
+				// filtered-list probes of rounds 5-9, which misread emptied,
+				// mixed, or meta-governed listings. (Codex round-5..10 P1)
+				$page_level = DPT_CC_Rules::check(
+					$row['conditions'],
+					array_merge( $context, array( 'mask_any' => true ) )
+				);
+				if ( $page_level ) {
 					// Main-query-only rules (search, blog index, 404) have
 					// no per-post coverage - apply the protection here. Only
 					// a SUCCESSFUL replacement ends enforcement (round-3
@@ -475,12 +471,6 @@ class DPT_CC_Enforce {
 				unset( $posts[ $i ] );
 				$changed = true;
 				++$removed;
-				if ( $is_main ) {
-					// Remember WHICH rows actually pruned the main listing:
-					// template_redirect's coverage check must not assume a
-					// hide-handled row did any hiding. (Codex round-8 P1)
-					$this->main_hidden_rows[ $row['id'] ] = true;
-				}
 			}
 		}
 		if ( $changed ) {

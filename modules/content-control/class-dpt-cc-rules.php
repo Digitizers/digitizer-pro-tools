@@ -104,8 +104,14 @@ class DPT_CC_Rules {
 				'label'    => __( 'Entire site', 'digitizer-pro-tools' ),
 				'category' => $general,
 				'option'   => '',
-				'callback' => static function () {
-					return true;
+				'callback' => static function ( $o, $ctx ) {
+					// mask_any: the enforcement layer re-evaluates a matched
+					// row with any-context rules silenced to learn whether a
+					// MAIN-ONLY arm (search, blog index, 404, archives)
+					// sufficed on its own - pure post rules are already
+					// false in a post-less main context, entire_site is the
+					// one rule that is not. (Codex round-10 P1)
+					return empty( $ctx['mask_any'] );
 				},
 			),
 			'content_is_front_page'     => array(

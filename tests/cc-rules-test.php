@@ -97,6 +97,13 @@ $tpl = (object) array( 'ID' => 30, 'post_type' => 'page', 'post_parent' => 0, 'p
 dpt_test_ok( DPT_CC_Rules::check( dpt_conds( 'and', dpt_rule( 'content_is_page_with_template', array( 'template' => 'tpl-landing.php' ) ) ), array( 'type' => 'post', 'post' => $tpl, 'term' => null ) ), 'page template match' );
 dpt_test_ok( DPT_CC_Rules::check( dpt_conds( 'and', dpt_rule( 'content_is_page_with_template', array( 'template' => 'default' ) ) ), $ctx_page ), 'default template = no slug' );
 
+/* ---- mask_any: page-level vs item-level classification ---- */
+$ctx_masked_main = $ctx_main;
+$ctx_masked_main['mask_any'] = true;
+dpt_test_ok( ! DPT_CC_Rules::check( dpt_conds( 'and', dpt_rule( 'entire_site' ) ), $ctx_masked_main ), 'mask_any silences entire_site - an item-style match' );
+dpt_test_ok( DPT_CC_Rules::check( dpt_conds( 'or', dpt_rule( 'entire_site' ), dpt_rule( 'content_is_blog_index' ) ), $ctx_masked_main ), 'a main-only arm still matches under mask_any - page-level' );
+dpt_test_ok( ! DPT_CC_Rules::check( dpt_conds( 'or', dpt_rule( 'entire_site' ), dpt_rule( 'content_is_selected_page', array( 'ids' => '42' ) ) ), $ctx_masked_main ), 'post arms are false in a post-less main context under mask_any' );
+
 /* ---- fail closed ---- */
 dpt_test_ok( ! DPT_CC_Rules::check( dpt_conds( 'and', dpt_rule( 'no_such_rule' ) ), $ctx_page ), 'unknown rule is false' );
 dpt_test_ok( ! DPT_CC_Rules::check( dpt_conds( 'or' ), $ctx_page ), 'empty conditions do not match' );
