@@ -26,11 +26,19 @@ class DPT_CC_Rules {
 		if ( ! is_array( $conditions ) || empty( $conditions['items'] ) || ! is_array( $conditions['items'] ) ) {
 			return false;
 		}
-		$op = ( isset( $conditions['operator'] ) && 'or' === $conditions['operator'] ) ? 'or' : 'and';
+		$op   = ( isset( $conditions['operator'] ) && 'or' === $conditions['operator'] ) ? 'or' : 'and';
+		$seen = false;
 		foreach ( $conditions['items'] as $item ) {
 			$result = ( isset( $item['type'] ) && 'group' === $item['type'] )
 				? self::check_group( $item, $context )
 				: self::check_rule( $item, $context );
+			if ( null === $result ) {
+				// A masked rule is NEUTRAL: it must neither satisfy an OR
+				// nor fail an AND - "entire_site AND search" masked has to
+				// keep reading as the search arm. (Codex round-11 P1)
+				continue;
+			}
+			$seen = true;
 			if ( 'or' === $op && $result ) {
 				return true;
 			}
@@ -38,16 +46,21 @@ class DPT_CC_Rules {
 				return false;
 			}
 		}
-		return 'and' === $op;
+		return $seen && 'and' === $op;
 	}
 
 	private static function check_group( $group, $context ) {
 		if ( empty( $group['items'] ) || ! is_array( $group['items'] ) ) {
 			return false;
 		}
-		$op = ( isset( $group['operator'] ) && 'and' === $group['operator'] ) ? 'and' : 'or';
+		$op   = ( isset( $group['operator'] ) && 'and' === $group['operator'] ) ? 'and' : 'or';
+		$seen = false;
 		foreach ( $group['items'] as $rule ) {
 			$result = self::check_rule( $rule, $context );
+			if ( null === $result ) {
+				continue;
+			}
+			$seen = true;
 			if ( 'or' === $op && $result ) {
 				return true;
 			}
@@ -55,7 +68,8 @@ class DPT_CC_Rules {
 				return false;
 			}
 		}
-		return 'and' === $op;
+		// A group of only masked rules is itself neutral.
+		return $seen ? ( 'and' === $op ) : null;
 	}
 
 	private static function check_rule( $rule, $context ) {
@@ -66,6 +80,9 @@ class DPT_CC_Rules {
 		$name = isset( $rule['name'] ) ? $rule['name'] : '';
 		if ( ! isset( $defs[ $name ] ) || ! is_callable( $defs[ $name ]['callback'] ) ) {
 			return false; // Fail closed; NOT does not apply to a rule that never ran.
+		}
+		if ( ! empty( $context['mask_any'] ) && ! empty( $defs[ $name ]['any_context'] ) ) {
+			return null; // Neutral under mask - see check(). NOT does not resurrect it.
 		}
 		$options = isset( $rule['options'] ) && is_array( $rule['options'] ) ? $rule['options'] : array();
 		$result  = (bool) call_user_func( $defs[ $name ]['callback'], $options, $context );
@@ -101,17 +118,19 @@ class DPT_CC_Rules {
 		$general = __( 'General', 'digitizer-pro-tools' );
 		$defs    = array(
 			'entire_site'               => array(
-				'label'    => __( 'Entire site', 'digitizer-pro-tools' ),
-				'category' => $general,
-				'option'   => '',
-				'callback' => static function ( $o, $ctx ) {
-					// mask_any: the enforcement layer re-evaluates a matched
-					// row with any-context rules silenced to learn whether a
-					// MAIN-ONLY arm (search, blog index, 404, archives)
-					// sufficed on its own - pure post rules are already
-					// false in a post-less main context, entire_site is the
-					// one rule that is not. (Codex round-10 P1)
-					return empty( $ctx['mask_any'] );
+				'label'       => __( 'Entire site', 'digitizer-pro-tools' ),
+				'category'    => $general,
+				'option'      => '',
+				// mask_any: the enforcement layer re-evaluates a matched row
+				// with any-context rules NEUTRALIZED (skipped, not falsified)
+				// to learn whether a MAIN-ONLY arm - search, blog index,
+				// 404, archives - carries the match on its own. Pure post
+				// rules are already false in a post-less main context;
+				// entire_site is the one rule that is not, and falsifying it
+				// would break "entire_site AND search". (Codex round-10/11 P1)
+				'any_context' => true,
+				'callback'    => static function () {
+					return true;
 				},
 			),
 			'content_is_front_page'     => array(

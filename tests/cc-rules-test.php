@@ -100,9 +100,13 @@ dpt_test_ok( DPT_CC_Rules::check( dpt_conds( 'and', dpt_rule( 'content_is_page_w
 /* ---- mask_any: page-level vs item-level classification ---- */
 $ctx_masked_main = $ctx_main;
 $ctx_masked_main['mask_any'] = true;
-dpt_test_ok( ! DPT_CC_Rules::check( dpt_conds( 'and', dpt_rule( 'entire_site' ) ), $ctx_masked_main ), 'mask_any silences entire_site - an item-style match' );
-dpt_test_ok( DPT_CC_Rules::check( dpt_conds( 'or', dpt_rule( 'entire_site' ), dpt_rule( 'content_is_blog_index' ) ), $ctx_masked_main ), 'a main-only arm still matches under mask_any - page-level' );
+dpt_test_ok( ! DPT_CC_Rules::check( dpt_conds( 'and', dpt_rule( 'entire_site' ) ), $ctx_masked_main ), 'entire_site alone is neutral under mask_any - item-style match' );
+dpt_test_ok( DPT_CC_Rules::check( dpt_conds( 'or', dpt_rule( 'entire_site' ), dpt_rule( 'content_is_blog_index' ) ), $ctx_masked_main ), 'OR: a main-only arm still matches under mask_any - page-level' );
+dpt_test_ok( DPT_CC_Rules::check( dpt_conds( 'and', dpt_rule( 'entire_site' ), dpt_rule( 'content_is_blog_index' ) ), $ctx_masked_main ), 'AND: masking is neutral, not false - entire_site AND blog index stays page-level (round-11 P1)' );
 dpt_test_ok( ! DPT_CC_Rules::check( dpt_conds( 'or', dpt_rule( 'entire_site' ), dpt_rule( 'content_is_selected_page', array( 'ids' => '42' ) ) ), $ctx_masked_main ), 'post arms are false in a post-less main context under mask_any' );
+$masked_group = array( 'type' => 'group', 'operator' => 'or', 'items' => array( dpt_rule( 'entire_site' ) ) );
+dpt_test_ok( ! DPT_CC_Rules::check( dpt_conds( 'and', $masked_group ), $ctx_masked_main ), 'a group of only masked rules is neutral, and an all-neutral query does not match' );
+dpt_test_ok( ! DPT_CC_Rules::check( dpt_conds( 'and', dpt_rule( 'entire_site', array(), true ) ), $ctx_masked_main ), 'NOT does not resurrect a masked rule' );
 
 /* ---- fail closed ---- */
 dpt_test_ok( ! DPT_CC_Rules::check( dpt_conds( 'and', dpt_rule( 'no_such_rule' ) ), $ctx_page ), 'unknown rule is false' );
