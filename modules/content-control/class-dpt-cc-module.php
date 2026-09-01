@@ -172,37 +172,21 @@ class DPT_Content_Control_Module extends DPT_Module {
 	}
 
 	private function current_url() {
-		// REQUEST_URI already contains the full path including any subdirectory
-		// the site lives in, so combine it with the trusted scheme+host from
-		// home_url() rather than home_url( $req ), which would double the
-		// subdirectory prefix (e.g. /site/site/page/).
-		// Not passed through a text sanitizer: the value is re-assembled into a
-		// URL below and only ever compared, never printed.
-		$req    = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '/'; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Compared, never output, see above.
-		$home   = wp_parse_url( home_url() );
-		$scheme = ! empty( $home['scheme'] ) ? $home['scheme'] : ( is_ssl() ? 'https' : 'http' );
-		$host   = ! empty( $home['host'] ) ? $home['host'] : '';
-		if ( ! empty( $home['port'] ) ) {
-			$host .= ':' . $home['port'];
-		}
-		return $scheme . '://' . $host . $req;
+		// One implementation of the scheme+host+REQUEST_URI rule, shared with
+		// the enforcement layer so a subdirectory fix lands in both at once.
+		return DPT_CC_Enforce::current_request_url();
 	}
 
 	/* --------------------------------------------------------------------- */
 	/* Per-post content replacement                                          */
 	/* --------------------------------------------------------------------- */
 
-	private function should_hide( $post_id ) {
-		return $post_id
-			&& DPT_CC_Access::post_is_restricted( $post_id )
-			&& ! DPT_CC_Access::can_view_post( $post_id );
-	}
-
 	/**
 	 * What the viewer gets in place of restricted content, or null when the
-	 * content is theirs to see. Per-post meta is consulted first and wins;
-	 * global restrictions come second, adding a per-row message override and
-	 * an optional teaser excerpt above the notice.
+	 * content is theirs to see. A post carrying per-post meta is governed by
+	 * that meta ALONE - a per-page rule that admits the viewer also shields
+	 * the post from global rules (Codex round-1 P2). Global restrictions add
+	 * a per-row message override and an optional teaser excerpt.
 	 *
 	 * @param int  $post_id Post being rendered.
 	 * @param bool $strip   Return plain text (feeds, REST, excerpt lists).
@@ -212,7 +196,10 @@ class DPT_Content_Control_Module extends DPT_Module {
 		if ( ! $post_id ) {
 			return null;
 		}
-		if ( $this->should_hide( $post_id ) ) {
+		if ( DPT_CC_Access::post_is_restricted( $post_id ) ) {
+			if ( DPT_CC_Access::can_view_post( $post_id ) ) {
+				return null; // Per-page settings always win over global rules.
+			}
 			$html = DPT_CC_Access::restriction_message( $post_id );
 			return $strip ? wp_strip_all_tags( $html ) : $html;
 		}

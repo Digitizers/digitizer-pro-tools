@@ -18,6 +18,13 @@ function wp_get_current_user() { return $GLOBALS['dpt_stub_user']; }
 function user_can( $user, $cap ) { return in_array( 'administrator', (array) $user->roles, true ); }
 function wp_doing_ajax() { return false; }
 function wpautop( $s ) { return $s; }
+function home_url( $path = '' ) { return 'https://example.com/site' . $path; }
+function is_ssl() { return true; }
+$GLOBALS['dpt_stub_queried_id'] = 0;
+$GLOBALS['dpt_stub_front_page'] = false;
+function get_queried_object_id() { return (int) $GLOBALS['dpt_stub_queried_id']; }
+function is_front_page() { return (bool) $GLOBALS['dpt_stub_front_page']; }
+function is_home() { return false; }
 
 require_once dirname( __DIR__ ) . '/modules/content-control/class-dpt-cc-access.php';
 require_once dirname( __DIR__ ) . '/modules/content-control/class-dpt-cc-restrictions.php';
@@ -31,6 +38,9 @@ class DPT_CC_Rules {
 		}
 		if ( 'match_term' === $name ) {
 			return ! empty( $context['term'] );
+		}
+		if ( 'match_front' === $name ) {
+			return ! empty( $context['main']['is_front_page'] );
 		}
 		return false;
 	}
@@ -46,6 +56,7 @@ class WP_Query {
 	public function __construct( $qv = array() ) { $this->qv = $qv; }
 	public function is_main_query() { return ! empty( $this->qv['main'] ); }
 	public function is_search() { return ! empty( $this->qv['s'] ); }
+	public function is_singular() { return ! empty( $this->qv['singular'] ); }
 	public function get( $k, $d = '' ) { return isset( $this->qv[ $k ] ) ? $this->qv[ $k ] : $d; }
 }
 
@@ -156,5 +167,45 @@ dpt_test_eq( $enf->denial_message( $rm_plain ), '', 'no override -> empty, calle
 dpt_test_ok( in_array( 77, $enf->exempt_ids(), true ), 'replacement page is exempt' );
 $page77 = (object) array( 'ID' => 77, 'post_type' => 'page' );
 dpt_test_eq( $enf->restriction_for_post( $page77 ), null, 'the replacement page itself is never restricted (no loop)' );
+
+/* ---- singular main queries are template_redirect's job (round-1 P1) ---- */
+
+DPT_CC_Restrictions::save_all( array( dpt_cc_page_rule_row( 'r_hideall', array( 'archive_handling' => 'hide', 'query_handling' => 'hide' ) ) ) );
+$qsing = new WP_Query( array( 'main' => 1, 'singular' => 1 ) );
+$qsing->posts = array( $page );
+$qsing->post_count = 1;
+dpt_test_eq( count( $enf->filter_posts( $qsing->posts, $qsing ) ), 1, 'singular main query keeps its post so protection can run' );
+
+/* ---- front-page rules reach the shared post cache slot (round-1 P1) ---- */
+
+DPT_CC_Restrictions::save_all( array( array(
+	'id'         => 'r_front',
+	'enabled'    => true,
+	'who'        => array( 'status' => 'logged_in', 'role_match' => 'any', 'roles' => array() ),
+	'conditions' => array( 'operator' => 'and', 'items' => array( array( 'type' => 'rule', 'name' => 'match_front', 'not' => false, 'options' => array() ) ) ),
+) ) );
+$GLOBALS['dpt_stub_queried_id'] = 1;
+$GLOBALS['dpt_stub_front_page'] = true;
+$rowf = $enf->restriction_for_post( $page );
+dpt_test_eq( $rowf ? $rowf['id'] : null, 'r_front', 'front-page-only rule bars the queried front page post' );
+dpt_test_eq( $enf->restriction_for_post( $post ), null, 'the same rule leaves a non-queried post alone' );
+$GLOBALS['dpt_stub_queried_id'] = 0;
+$GLOBALS['dpt_stub_front_page'] = false;
+DPT_CC_Restrictions::flush_cache();
+
+/* ---- per-post meta always wins over global rules (round-1 P2) ---- */
+
+DPT_CC_Restrictions::save_all( array( dpt_cc_page_rule_row( 'r_global' ) ) );
+$GLOBALS['dpt_stub_post_meta'][1]['_dpt_cc_visibility'] = 'logged_in';
+dpt_test_eq( $enf->restriction_for_post( $page ), null, 'a post governed by per-post meta is invisible to global enforcement' );
+unset( $GLOBALS['dpt_stub_post_meta'][1] );
+DPT_CC_Restrictions::flush_cache();
+$roww = $enf->restriction_for_post( $page );
+dpt_test_eq( $roww ? $roww['id'] : null, 'r_global', 'without the meta, the global rule applies again' );
+
+/* ---- login return URL on subdirectory installs (round-1 P2) ---- */
+
+$_SERVER['REQUEST_URI'] = '/site/private?x=1';
+dpt_test_eq( DPT_CC_Enforce::current_request_url(), 'https://example.com/site/private?x=1', 'scheme+host from home_url, path from REQUEST_URI - subdirectory not doubled' );
 
 exit( dpt_test_summary() );

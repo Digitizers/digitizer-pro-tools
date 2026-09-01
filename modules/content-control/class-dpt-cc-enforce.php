@@ -73,11 +73,43 @@ class DPT_CC_Enforce {
 		if ( in_array( (int) $post->ID, $this->exempt_ids(), true ) ) {
 			return null;
 		}
-		$row = DPT_CC_Restrictions::match( array( 'type' => 'post', 'post_id' => (int) $post->ID, 'post' => $post, 'term' => null ) );
+		if ( DPT_CC_Access::post_is_restricted( (int) $post->ID ) ) {
+			return null; // Per-page settings always win over global rules. (Codex round-1 P2)
+		}
+		$context = array( 'type' => 'post', 'post_id' => (int) $post->ID, 'post' => $post, 'term' => null );
+		$main    = $this->main_flags_for( $post );
+		if ( null !== $main ) {
+			$context['main'] = $main;
+		}
+		$row = DPT_CC_Restrictions::match( $context );
 		if ( ! $row || DPT_CC_Access::who_allows( $row['who'] ) ) {
 			return null;
 		}
 		return $row;
+	}
+
+	/**
+	 * Main-query conditional flags for the post being viewed. Without them,
+	 * the main query's own the_posts pass evaluates the queried page with a
+	 * post-only context and caches that verdict in the shared post-{id}
+	 * slot - so a "front page" rule reads false and the poisoned entry then
+	 * skips the restriction at template_redirect too. (Codex round-1 P1)
+	 *
+	 * @param object $post Post-like object.
+	 * @return array|null Null when $post is not the queried main object.
+	 */
+	private function main_flags_for( $post ) {
+		if ( ! function_exists( 'get_queried_object_id' ) || (int) get_queried_object_id() !== (int) $post->ID ) {
+			return null;
+		}
+		return array(
+			'is_front_page'        => function_exists( 'is_front_page' ) ? is_front_page() : false,
+			'is_home'              => function_exists( 'is_home' ) ? is_home() : false,
+			'is_search'            => false,
+			'is_404'               => false,
+			'is_post_type_archive' => array(),
+			'is_tax'               => array(),
+		);
 	}
 
 	/**
@@ -149,6 +181,9 @@ class DPT_CC_Enforce {
 		if ( ! empty( $context['post'] ) && ! empty( $context['post']->ID ) ) {
 			if ( in_array( (int) $context['post']->ID, $this->exempt_ids(), true ) ) {
 				return;
+			}
+			if ( DPT_CC_Access::post_is_restricted( (int) $context['post']->ID ) ) {
+				return; // Per-page settings always win over global rules. (Codex round-1 P2)
 			}
 			$context['type']    = 'post';
 			$context['post_id'] = (int) $context['post']->ID;
@@ -229,13 +264,27 @@ class DPT_CC_Enforce {
 			}
 			$to = $url;
 		} else {
-			// Back-to-here login. REQUEST_URI is only re-assembled into the
-			// redirect target, never printed.
-			$req = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '/'; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-			$to  = wp_login_url( home_url( $req ) );
+			$to = wp_login_url( self::current_request_url() );
 		}
 		wp_safe_redirect( $to );
 		exit;
+	}
+
+	/**
+	 * The URL being requested: trusted scheme+host from home_url() plus
+	 * REQUEST_URI. home_url( $request_uri ) would double a subdirectory
+	 * install's path (/site/site/...). Only compared and redirected to,
+	 * never printed. (Codex round-1 P2)
+	 */
+	public static function current_request_url() {
+		$req    = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '/'; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- re-assembled into a URL, never output.
+		$home   = wp_parse_url( home_url() );
+		$scheme = ! empty( $home['scheme'] ) ? $home['scheme'] : ( function_exists( 'is_ssl' ) && is_ssl() ? 'https' : 'http' );
+		$host   = ! empty( $home['host'] ) ? $home['host'] : '';
+		if ( ! empty( $home['port'] ) ) {
+			$host .= ':' . $home['port'];
+		}
+		return $scheme . '://' . $host . $req;
 	}
 
 	private function replace_with_page( $page_id ) {
@@ -266,7 +315,13 @@ class DPT_CC_Enforce {
 		}
 		$is_main   = $query && method_exists( $query, 'is_main_query' ) && $query->is_main_query();
 		$is_search = $query && method_exists( $query, 'is_search' ) && $query->is_search();
-		$changed   = false;
+		// A singular main query is template_redirect's job: hiding its only
+		// post here would 404 the request before the configured redirect or
+		// replacement protection ever runs. (Codex round-1 P1)
+		if ( $is_main && method_exists( $query, 'is_singular' ) && $query->is_singular() ) {
+			return $posts;
+		}
+		$changed = false;
 		foreach ( $posts as $i => $post ) {
 			if ( ! is_object( $post ) || empty( $post->ID ) ) {
 				continue;

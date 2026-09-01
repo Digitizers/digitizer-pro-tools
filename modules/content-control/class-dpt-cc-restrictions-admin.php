@@ -66,13 +66,17 @@ class DPT_CC_Restrictions_Admin {
 	}
 
 	/**
-	 * Rebuild conditions from parallel POST arrays: cond_rule[]/cond_not[]/
-	 * cond_value[] for the root, gcond_* for the one optional group, plus
-	 * cond_op / gcond_op operators. The same posted value feeds both the
-	 * 'ids' and 'template' options - each rule callback reads only the one
-	 * it declares, so the duplicate is harmless.
+	 * Rebuild conditions from indexed POST arrays: cond_rule[i]/cond_not[i]/
+	 * cond_value[i] for the root, gcond_* for the one optional group, plus
+	 * cond_op / gcond_op operators. Every field carries its row index in the
+	 * form markup because browsers omit unchecked checkboxes - a bare
+	 * cond_not[] would compact and negate the WRONG rule (Codex round-1 P1).
+	 * The same posted value feeds both the 'ids' and 'template' options -
+	 * each rule callback reads only the one it declares.
+	 *
+	 * Public for the test harness; reads $_POST directly.
 	 */
-	private static function conditions_from_post() {
+	public static function conditions_from_post() {
 		// phpcs:disable WordPress.Security.ValidatedSanitizedInput -- every element passes through DPT_CC_Restrictions::sanitize_conditions().
 		$read = static function ( $key ) {
 			return isset( $_POST[ $key ] ) && is_array( $_POST[ $key ] ) ? wp_unslash( $_POST[ $key ] ) : array();
@@ -247,7 +251,7 @@ class DPT_CC_Restrictions_Admin {
 		$items   = $items ? array_values( $items ) : array();
 		$items[] = array( 'name' => '', 'not' => false, 'options' => array() ); // one spare blank row
 
-		foreach ( $items as $item ) {
+		foreach ( $items as $idx => $item ) {
 			$name  = isset( $item['name'] ) ? $item['name'] : '';
 			$value = '';
 			if ( isset( $item['options']['ids'] ) && '' !== $item['options']['ids'] ) {
@@ -257,8 +261,8 @@ class DPT_CC_Restrictions_Admin {
 			}
 			?>
 			<div class="dpt-cc-rule-row" style="margin:4px 0;">
-				<label><input type="checkbox" name="<?php echo esc_attr( $prefix ); ?>_not[]" value="1" <?php checked( ! empty( $item['not'] ) ); ?> /> <?php esc_html_e( 'NOT', 'digitizer-pro-tools' ); ?></label>
-				<select name="<?php echo esc_attr( $prefix ); ?>_rule[]">
+				<label><input type="checkbox" name="<?php echo esc_attr( $prefix ); ?>_not[<?php echo (int) $idx; ?>]" value="1" <?php checked( ! empty( $item['not'] ) ); ?> /> <?php esc_html_e( 'NOT', 'digitizer-pro-tools' ); ?></label>
+				<select name="<?php echo esc_attr( $prefix ); ?>_rule[<?php echo (int) $idx; ?>]">
 					<option value=""><?php esc_html_e( '— rule —', 'digitizer-pro-tools' ); ?></option>
 					<?php foreach ( $by_cat as $cat => $rules ) : ?>
 						<optgroup label="<?php echo esc_attr( $cat ); ?>">
@@ -268,7 +272,7 @@ class DPT_CC_Restrictions_Admin {
 						</optgroup>
 					<?php endforeach; ?>
 				</select>
-				<input type="text" name="<?php echo esc_attr( $prefix ); ?>_value[]" value="<?php echo esc_attr( $value ); ?>" placeholder="<?php esc_attr_e( 'IDs / template (when the rule needs one)', 'digitizer-pro-tools' ); ?>" />
+				<input type="text" name="<?php echo esc_attr( $prefix ); ?>_value[<?php echo (int) $idx; ?>]" value="<?php echo esc_attr( $value ); ?>" placeholder="<?php esc_attr_e( 'IDs / template (when the rule needs one)', 'digitizer-pro-tools' ); ?>" />
 			</div>
 			<?php
 		}
