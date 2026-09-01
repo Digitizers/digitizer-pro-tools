@@ -70,6 +70,20 @@ class DPT_Site_Tweaks_Module extends DPT_Module {
 		if ( '1' === $o['elementor_icon_fonts'] ) {
 			add_action( 'elementor/frontend/after_register_styles', array( $this, 'drop_elementor_icon_fonts' ), 20 );
 		}
+		if ( '1' === $o['elementor_lock'] ) {
+			// The redirect is the mechanism; hiding the switch and rewriting
+			// edit links are belt and braces for a cached admin page or a
+			// stale tab that still shows a way in. Every callback is a no-op
+			// unless Elementor is active, so a site that deactivates Elementor
+			// keeps the toggle on harmlessly.
+			add_action( 'load-post.php', array( $this, 'elementor_lock_redirect' ) );
+			add_action( 'admin_head-post.php', array( $this, 'elementor_lock_switch_css' ) );
+			add_action( 'admin_head-post-new.php', array( $this, 'elementor_lock_switch_css' ) );
+			// Covers the row actions, the title link on the post lists, and
+			// the admin bar's Edit link in one place - they all read
+			// get_edit_post_link().
+			add_filter( 'get_edit_post_link', array( $this, 'elementor_lock_edit_link' ), 10, 2 );
+		}
 
 		// --- Front-end weight ----------------------------------------------
 		if ( '1' === $o['block_library_css'] ) {
@@ -337,6 +351,223 @@ class DPT_Site_Tweaks_Module extends DPT_Module {
 			);
 			$ajax_handler->add_error( $field['id'], $message );
 		}
+	}
+
+	// --- Elementor editor lock ---------------------------------------------
+
+	/**
+	 * Whether the current user may keep using the native WordPress editor.
+	 * Administrators (or whatever dpt_st_elementor_lock_bypass_cap says) are
+	 * never locked, consistent with the lockout-proofing in User Role Editor
+	 * and Content Control: the person who can turn the toggle off must never
+	 * be caught by it.
+	 */
+	private function elementor_lock_bypassed() {
+		return current_user_can( DPT_ST_Settings::elementor_lock_bypass_cap() );
+	}
+
+	/**
+	 * Elementor's own answer to "may this user edit this post with
+	 * Elementor" - Role Manager exclusions, trashed posts, unsupported post
+	 * types and the posts page among its refusals. Mirrors
+	 * DPT_RB_Elementor::elementor_allows_editing(): Elementor's rules are
+	 * called, not reimplemented, so they cannot go stale here. Where the
+	 * gate is not there to ask (an Elementor without it), the caller's own
+	 * edit_post check has already passed and the lock proceeds.
+	 *
+	 * @param int $post_id Post ID.
+	 * @return bool
+	 */
+	private function elementor_allows_editing( $post_id ) {
+		if ( ! is_callable( array( '\Elementor\User', 'is_current_user_can_edit' ) ) ) {
+			return true;
+		}
+		return (bool) \Elementor\User::is_current_user_can_edit( $post_id );
+	}
+
+	/**
+	 * Whether a post is built with Elementor, asked through Elementor's own
+	 * API rather than by reading raw meta - is_built_with_elementor() also
+	 * answers no for a post type Elementor does not support. The meta read is
+	 * a fallback for the case where the documents manager is not there to ask.
+	 *
+	 * @param int $post_id Post ID.
+	 * @return bool
+	 */
+	public function is_built_with_elementor( $post_id ) {
+		$doc = $this->elementor_document( $post_id );
+		if ( $doc ) {
+			return (bool) $doc->is_built_with_elementor();
+		}
+		return 'builder' === get_post_meta( $post_id, '_elementor_edit_mode', true );
+	}
+
+	/**
+	 * The post's Elementor document, or null when Elementor cannot provide
+	 * one.
+	 *
+	 * @param int $post_id Post ID.
+	 * @return object|null
+	 */
+	private function elementor_document( $post_id ) {
+		if ( ! class_exists( '\Elementor\Plugin' ) || ! is_callable( array( '\Elementor\Plugin', 'instance' ) ) ) {
+			return null;
+		}
+		$plugin = \Elementor\Plugin::instance();
+		if ( ! isset( $plugin->documents ) || ! is_object( $plugin->documents ) || ! method_exists( $plugin->documents, 'get' ) ) {
+			return null;
+		}
+		$doc = $plugin->documents->get( $post_id );
+		return ( is_object( $doc ) && method_exists( $doc, 'is_built_with_elementor' ) ) ? $doc : null;
+	}
+
+	/**
+	 * Where the lock sends the current request, or '' when it must not touch
+	 * it. Separated from the redirect itself so every branch is testable
+	 * without exiting the process.
+	 *
+	 * @return string Elementor edit URL, or '' to leave the request alone.
+	 */
+	public function elementor_lock_redirect_url() {
+		// The guard is the constant, not the meta: _elementor_edit_mode
+		// survives deactivating Elementor, and redirecting into an editor
+		// that is not there would take the page away from everyone.
+		if ( ! defined( 'ELEMENTOR_VERSION' ) ) {
+			return '';
+		}
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only routing of a GET screen; nothing is written.
+		$post_id = isset( $_GET['post'] ) ? absint( wp_unslash( $_GET['post'] ) ) : 0;
+		if ( ! $post_id ) {
+			return '';
+		}
+		// Only the plain edit screen, and this condition is the one line that
+		// must never be "simplified" away: the Elementor editor itself is
+		// post.php?post=ID&action=elementor and fires this same load-post.php
+		// hook, so redirecting it too is an infinite loop. Trash, untrash,
+		// restore and the classic editor's POST (action=editpost) must also
+		// pass through untouched.
+		$action = isset( $_GET['action'] ) ? sanitize_key( wp_unslash( $_GET['action'] ) ) : 'edit';
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended
+		if ( 'edit' !== $action ) {
+			return '';
+		}
+		if ( $this->elementor_lock_bypassed() ) {
+			return '';
+		}
+		// A user who cannot edit the post at all gets WordPress's own
+		// permission error, not a redirect into an editor that would refuse
+		// them anyway.
+		if ( ! current_user_can( 'edit_post', $post_id ) ) {
+			return '';
+		}
+		// And a user Elementor itself refuses - a role excluded in Elementor
+		// Pro's Role Manager among them - keeps the native editor: redirecting
+		// them lands on Elementor's permission error with no editor at all.
+		if ( ! $this->elementor_allows_editing( $post_id ) ) {
+			return '';
+		}
+		if ( ! $this->is_built_with_elementor( $post_id ) ) {
+			return '';
+		}
+		/**
+		 * Filter whether the Elementor editor lock applies to one post.
+		 *
+		 * @param bool $enabled Whether the lock applies.
+		 * @param int  $post_id Post ID.
+		 */
+		if ( ! apply_filters( 'dpt_st_elementor_lock_enabled', true, $post_id ) ) {
+			return '';
+		}
+		// The URL comes from Elementor's own document - never hand-built, so
+		// whatever Elementor adds to it (nonces included) stays correct. No
+		// document, no redirect.
+		$doc = $this->elementor_document( $post_id );
+		return ( $doc && method_exists( $doc, 'get_edit_url' ) ) ? (string) $doc->get_edit_url() : '';
+	}
+
+	/**
+	 * Send a locked user from the native editor to Elementor. Runs on
+	 * load-post.php; every decision lives in elementor_lock_redirect_url().
+	 */
+	public function elementor_lock_redirect() {
+		$url = $this->elementor_lock_redirect_url();
+		if ( '' !== $url ) {
+			wp_safe_redirect( $url );
+			exit;
+		}
+	}
+
+	/**
+	 * Hide the "Back to WordPress Editor" switch from locked users who reach
+	 * Gutenberg anyway (a stale tab, a cached admin page). Scoped to
+	 * body.elementor-editor-active - the class Elementor toggles only while
+	 * the page is in builder mode - because both mode spans are always in the
+	 * DOM, so any selector keyed on them alone would also hide "Edit with
+	 * Elementor" on pages that are not built with Elementor.
+	 */
+	public function elementor_lock_switch_css() {
+		if ( ! defined( 'ELEMENTOR_VERSION' ) || $this->elementor_lock_bypassed() ) {
+			return;
+		}
+		// The redirect's per-post decisions apply to the switch too: a post
+		// the dpt_st_elementor_lock_enabled filter exempts keeps its switch,
+		// and so does a user Elementor itself refuses - the native editor
+		// behind that switch is the only editor that will open for them.
+		// post-new.php has no post to ask about, and a brand-new post is not
+		// in builder mode, so the CSS is idle there either way.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only routing of a GET screen; nothing is written.
+		$post_id = isset( $_GET['post'] ) ? absint( wp_unslash( $_GET['post'] ) ) : 0;
+		if ( $post_id && ( ! $this->elementor_allows_editing( $post_id ) || ! apply_filters( 'dpt_st_elementor_lock_enabled', true, $post_id ) ) ) {
+			return;
+		}
+		/**
+		 * Filter whether the lock hides the switch button (the redirect is
+		 * unaffected).
+		 *
+		 * @param bool $hide Whether to hide the switch.
+		 */
+		if ( ! apply_filters( 'dpt_st_elementor_lock_hide_switch', true ) ) {
+			return;
+		}
+		echo '<style id="dpt-st-elementor-lock">body.elementor-editor-active #elementor-switch-mode{display:none !important;}</style>' . "\n";
+	}
+
+	/**
+	 * Point edit links for locked users at the Elementor editor. One filter
+	 * covers the post list row actions, the title links and the admin bar,
+	 * because they all read get_edit_post_link().
+	 *
+	 * @param string $link    The edit URL.
+	 * @param int    $post_id Post ID.
+	 * @return string
+	 */
+	public function elementor_lock_edit_link( $link, $post_id ) {
+		// Re-entry guard: nothing here calls get_edit_post_link() today, but
+		// this filter runs on every edit link in the admin and a future
+		// Elementor could route get_edit_url() through it.
+		static $running = false;
+		if ( $running || ! defined( 'ELEMENTOR_VERSION' ) ) {
+			return $link;
+		}
+		$post_id = absint( $post_id );
+		if ( ! $post_id || $this->elementor_lock_bypassed() || ! current_user_can( 'edit_post', $post_id ) ) {
+			return $link;
+		}
+		// Same reason as the redirect: a user Elementor refuses keeps links
+		// to the one editor that will actually open for them.
+		if ( ! $this->elementor_allows_editing( $post_id ) ) {
+			return $link;
+		}
+		$running = true;
+		$url     = '';
+		if ( $this->is_built_with_elementor( $post_id ) && apply_filters( 'dpt_st_elementor_lock_enabled', true, $post_id ) ) {
+			$doc = $this->elementor_document( $post_id );
+			if ( $doc && method_exists( $doc, 'get_edit_url' ) ) {
+				$url = (string) $doc->get_edit_url();
+			}
+		}
+		$running = false;
+		return '' !== $url ? $url : $link;
 	}
 
 	public function register_admin_menu( $parent_slug ) {

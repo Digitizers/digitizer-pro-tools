@@ -1118,12 +1118,50 @@ class DPT_Stub_Elementor_DB {
 		return $out;
 	}
 }
+/**
+ * Elementor's documents manager, in the two methods the editor lock reaches
+ * for: documents->get( $id ), then is_built_with_elementor() and
+ * get_edit_url() on what comes back.
+ *
+ * Backed by $GLOBALS['dpt_stub_elementor_documents'] - id => bool (built with
+ * Elementor or not); an id absent from the map gets no document at all, which
+ * is a state the lock must survive (its redirect URL comes only from a
+ * document, never hand-built, so no document has to mean no redirect rather
+ * than a broken one).
+ */
+$GLOBALS['dpt_stub_elementor_documents'] = array();
+class DPT_Stub_Elementor_Document {
+	private $id;
+	private $built;
+	public function __construct( $id, $built ) {
+		$this->id    = (int) $id;
+		$this->built = (bool) $built;
+	}
+	public function is_built_with_elementor() {
+		return $this->built;
+	}
+	public function get_edit_url() {
+		return admin_url( 'post.php?post=' . $this->id . '&action=elementor' );
+	}
+}
+class DPT_Stub_Elementor_Documents_Manager {
+	public function get( $post_id ) {
+		$post_id = (int) $post_id;
+		if ( ! array_key_exists( $post_id, $GLOBALS['dpt_stub_elementor_documents'] ) ) {
+			// The real manager answers false for a post it cannot document.
+			return false;
+		}
+		return new DPT_Stub_Elementor_Document( $post_id, $GLOBALS['dpt_stub_elementor_documents'][ $post_id ] );
+	}
+}
 class DPT_Stub_Elementor_Plugin {
 	public $files_manager;
 	public $db;
+	public $documents;
 	public function __construct() {
 		$this->files_manager = new DPT_Stub_Elementor_Files_Manager();
 		$this->db            = new DPT_Stub_Elementor_DB();
+		$this->documents     = new DPT_Stub_Elementor_Documents_Manager();
 	}
 	public static function instance() {
 		static $instance = null;

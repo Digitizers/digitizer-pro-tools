@@ -4,7 +4,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.34.0
+Stable tag: 1.35.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -166,6 +166,7 @@ Small site-wide tweaks that replace assorted functions.php snippets - each an in
 * Sanitised SVG uploads: every SVG is cleaned on upload (scripts, event handlers, javascript: URLs, external references and entity/DOCTYPE payloads are stripped), and uploads are limited to users with a configurable capability (administrators by default)
 * Hide the WordPress version: removes the generator meta tag/RSS marker and the `?ver=` core version from asset URLs, while keeping plugin/theme asset versions so cache-busting still works
 * Elementor helpers (only when Elementor is active): disable Elementor's Google Fonts, validate phone numbers in Elementor Pro `tel` form fields, and drop Elementor's icon fonts (Font Awesome and eicons) on a design that uses no icons - a page that does use one shows an empty square, so check first
+* Lock Elementor pages to the Elementor editor: users without the bypass capability (`manage_options` by default, filterable) are sent from the native WordPress editor straight to Elementor for pages built with Elementor, edit links point there directly, and the "Back to WordPress Editor" switch - the button that makes a page render its Gutenberg content instead of the Elementor layout - is hidden from them. Administrators are never affected, trash and the Elementor editor itself always pass through, and the whole thing is a no-op while Elementor is inactive
 * Front-end weight: drop the block editor stylesheets from public pages on a site built entirely in Elementor (the editor itself is unaffected, and any page that does contain a block loses its styling), and switch the block editor off for posts and pages so there is one way to edit content rather than two
 
 = Module: WooCommerce Checkout =
@@ -331,6 +332,9 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 5. Configure each module you enabled from its own screen. For the Cookie Banner that means reviewing the texts per language and pasting your analytics/marketing snippets in the Scripts tab, then checking the site
 
 == Changelog ==
+
+= 1.35.0 =
+* Site Tweaks: new "Lock Elementor pages to the Elementor editor" toggle (off by default). Users without the bypass capability are redirected from the native WordPress editor to Elementor for pages built with Elementor, edit links on the post lists and admin bar point straight there, and the "Back to WordPress Editor" switch is hidden from them - the switch that makes a page render its Gutenberg content instead of the Elementor layout. Administrators keep full access, trash/untrash and the Elementor editor itself are never redirected, and deactivating Elementor makes the toggle a harmless no-op. Filters: dpt_st_elementor_lock_bypass_cap, dpt_st_elementor_lock_enabled, dpt_st_elementor_lock_hide_switch
 
 = 1.34.0 =
 * Content Control learns the standalone plugin's global restrictions: rules that pick content (post types, selected IDs, taxonomies, archives, page templates - AND/OR with an optional group), an audience with any/match/exclude role matching, and a choice of what refusal looks like - redirect to login/home/a URL, replace with a page, or show the message, with per-archive hiding or replacement, forced hiding from search, and teaser excerpts above the notice. Classic widgets gain visibility controls, and the [dpt_restrict] shortcode gains excluded_roles, inline and class. Per-page settings, menu visibility and whole-site protection keep working exactly as before - and a per-page setting always wins over a global rule.

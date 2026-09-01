@@ -81,4 +81,181 @@ dpt_test_ok( $module->classic_editor_for_post( true, null ), 'and a call with no
 dpt_test_ok( ! $module->classic_editor_for_post_type( true, 'page' ), 'the post-type question is answered the same way' );
 dpt_test_ok( $module->classic_editor_for_post_type( true, 'wp_template' ), 'for the types it covers, and only those' );
 
+/* ---- the Elementor editor lock ---- */
+
+dpt_test_ok( array_key_exists( 'elementor_lock', DPT_ST_Settings::defaults() ), 'the lock is a known tweak' );
+dpt_test_eq( DPT_ST_Settings::defaults()['elementor_lock'], '0', 'and it is off by default' );
+
+// The decision method is separated from the redirect (which exits), so every
+// branch here asserts on the URL the lock would send the request to - '' being
+// "leave the request alone".
+
+// A page built with Elementor, opened for editing by a user who is denied the
+// bypass capability. This is the request the lock exists for.
+$GLOBALS['dpt_stub_posts'][42]               = 'page';
+$GLOBALS['dpt_stub_elementor_documents'][42] = true;
+$GLOBALS['dpt_stub_denied_caps']             = array( 'manage_options' );
+$_GET = array( 'post' => '42' );
+
+// Before Elementor is "installed" (the constant below is not defined yet),
+// nothing happens - _elementor_edit_mode survives deactivating Elementor, and
+// redirecting into an editor that is not there would take the page away from
+// everyone. The constant is defined once and for all below, so this assertion
+// has to run first.
+$module2 = new DPT_Site_Tweaks_Module();
+dpt_test_eq( $module2->elementor_lock_redirect_url(), '', 'no Elementor, no redirect - whatever the meta still says' );
+
+define( 'ELEMENTOR_VERSION', '3.30.0' );
+
+dpt_test_eq(
+	$module2->elementor_lock_redirect_url(),
+	'https://example.test/wp-admin/post.php?post=42&action=elementor',
+	'a locked user opening an Elementor page is sent to the Elementor editor'
+);
+
+// The one line someone will "simplify" later: the Elementor editor itself is
+// post.php?post=ID&action=elementor and fires the same load-post.php hook, so
+// any action other than a plain edit must pass through - or the redirect chases
+// its own tail forever.
+$_GET['action'] = 'elementor';
+dpt_test_eq( $module2->elementor_lock_redirect_url(), '', 'the Elementor editor itself is never redirected (the loop guard)' );
+$_GET['action'] = 'trash';
+dpt_test_eq( $module2->elementor_lock_redirect_url(), '', 'and trashing from the list still works' );
+$_GET['action'] = 'edit';
+dpt_test_ok( '' !== $module2->elementor_lock_redirect_url(), 'while an explicit action=edit is the same as no action' );
+
+// The bypass capability is the lockout-proofing: the person who can turn the
+// toggle off must never be caught by it.
+$GLOBALS['dpt_stub_denied_caps'] = array();
+dpt_test_eq( $module2->elementor_lock_redirect_url(), '', 'a user with the bypass capability keeps the native editor' );
+$GLOBALS['dpt_stub_denied_caps'] = array( 'manage_options' );
+
+// A user who cannot edit the post at all gets WordPress's own permission
+// error, not a redirect into an editor that would refuse them anyway.
+$GLOBALS['dpt_stub_denied_post_caps'] = array( 42 );
+dpt_test_eq( $module2->elementor_lock_redirect_url(), '', 'no edit_post capability, no redirect - WordPress answers' );
+$GLOBALS['dpt_stub_denied_post_caps'] = array();
+
+// A page Elementor documents but that is not built with it stays in Gutenberg.
+$GLOBALS['dpt_stub_posts'][43]               = 'page';
+$GLOBALS['dpt_stub_elementor_documents'][43] = false;
+$_GET['post'] = '43';
+dpt_test_eq( $module2->elementor_lock_redirect_url(), '', 'a non-Elementor page keeps the editor it was made in' );
+
+// A post with no document falls back to the meta for the built-with question,
+// but the redirect URL only ever comes from a document - hand-building one
+// would drop whatever Elementor appends to it. No document, no redirect.
+$GLOBALS['dpt_stub_posts'][44]                          = 'page';
+$GLOBALS['dpt_stub_post_meta'][44]['_elementor_edit_mode'] = 'builder';
+$_GET['post'] = '44';
+dpt_test_ok( $module2->is_built_with_elementor( 44 ), 'the meta fallback still recognises a builder page' );
+dpt_test_eq( $module2->elementor_lock_redirect_url(), '', 'but without a document there is nowhere safe to send it' );
+
+// A site can exempt one post programmatically.
+$_GET['post'] = '42';
+$dpt_test_exempt_42 = function ( $enabled, $post_id ) {
+	return 42 === $post_id ? false : $enabled;
+};
+add_filter( 'dpt_st_elementor_lock_enabled', $dpt_test_exempt_42 );
+dpt_test_eq( $module2->elementor_lock_redirect_url(), '', 'a post the dpt_st_elementor_lock_enabled filter exempts is left alone' );
+remove_filter( 'dpt_st_elementor_lock_enabled', $dpt_test_exempt_42 );
+
+/* ---- the switch button, for users who reach Gutenberg anyway ---- */
+
+// Scoped to body.elementor-editor-active on purpose: both mode spans are
+// always in the DOM, so a selector keyed on them alone would also hide "Edit
+// with Elementor" on pages that are not built with Elementor.
+ob_start();
+$module2->elementor_lock_switch_css();
+$css = ob_get_clean();
+dpt_test_ok( false !== strpos( $css, 'body.elementor-editor-active #elementor-switch-mode' ), 'a locked user loses the switch, in builder mode only' );
+
+$GLOBALS['dpt_stub_denied_caps'] = array();
+ob_start();
+$module2->elementor_lock_switch_css();
+dpt_test_eq( ob_get_clean(), '', 'a user with the bypass capability keeps it' );
+$GLOBALS['dpt_stub_denied_caps'] = array( 'manage_options' );
+
+// A closure rather than __return_false: the harness defines no WP helper
+// functions, and its apply_filters() skips a callback it cannot call.
+$dpt_test_keep_switch = function () {
+	return false;
+};
+add_filter( 'dpt_st_elementor_lock_hide_switch', $dpt_test_keep_switch );
+ob_start();
+$module2->elementor_lock_switch_css();
+dpt_test_eq( ob_get_clean(), '', 'and dpt_st_elementor_lock_hide_switch can keep it for everyone' );
+remove_filter( 'dpt_st_elementor_lock_hide_switch', $dpt_test_keep_switch );
+
+/* ---- edit links point where the redirect would send them ---- */
+
+// One filter covers the row actions, the title links and the admin bar - they
+// all read get_edit_post_link() - so the list never shows a link the redirect
+// would immediately bounce.
+$native = 'https://example.test/wp-admin/post.php?post=42&action=edit';
+dpt_test_eq(
+	$module2->elementor_lock_edit_link( $native, 42 ),
+	'https://example.test/wp-admin/post.php?post=42&action=elementor',
+	'an Elementor page\'s edit link goes straight to Elementor for a locked user'
+);
+dpt_test_eq( $module2->elementor_lock_edit_link( $native, 43 ), $native, 'a non-Elementor page keeps its native link' );
+$GLOBALS['dpt_stub_denied_caps'] = array();
+dpt_test_eq( $module2->elementor_lock_edit_link( $native, 42 ), $native, 'and a bypass user keeps every native link' );
+
+/* ---- Elementor's own editing gate (Role Manager among its rules) ---- */
+
+// A role excluded in Elementor Pro's Role Manager passes edit_post but is
+// refused by the Elementor editor. Redirecting such a user - or rewriting
+// their links, or hiding their switch - strands them on Elementor's
+// permission error with no editor at all, so the lock asks Elementor's own
+// gate and stands down when it refuses. (Codex round-1 P1.)
+$GLOBALS['dpt_stub_denied_caps'] = array( 'manage_options' );
+$_GET = array( 'post' => '42' );
+class_alias( 'DPT_Stub_Elementor_User', 'Elementor\User' );
+dpt_test_ok( '' !== $module2->elementor_lock_redirect_url(), 'with the gate answering yes, the redirect stands' );
+
+$GLOBALS['dpt_stub_elementor_excluded_roles'] = array( 'editor' );
+$GLOBALS['dpt_stub_current_user_roles']       = array( 'editor' );
+dpt_test_eq( $module2->elementor_lock_redirect_url(), '', 'a role Elementor excludes keeps the native editor - no redirect into a refusal' );
+dpt_test_eq( $module2->elementor_lock_edit_link( $native, 42 ), $native, 'keeps its native edit links' );
+ob_start();
+$module2->elementor_lock_switch_css();
+dpt_test_eq( ob_get_clean(), '', 'and keeps the switch - the one door left to a usable editor' );
+$GLOBALS['dpt_stub_elementor_excluded_roles'] = array();
+
+/* ---- the per-post exemption reaches the switch too ---- */
+
+// The advertised dpt_st_elementor_lock_enabled exemption must not be
+// partial: a post it exempts keeps its switch as well as its redirect.
+// (Codex round-1 P2.)
+$dpt_test_exempt_42_again = function ( $enabled, $post_id ) {
+	return 42 === $post_id ? false : $enabled;
+};
+add_filter( 'dpt_st_elementor_lock_enabled', $dpt_test_exempt_42_again );
+ob_start();
+$module2->elementor_lock_switch_css();
+dpt_test_eq( ob_get_clean(), '', 'an exempt post keeps its switch' );
+remove_filter( 'dpt_st_elementor_lock_enabled', $dpt_test_exempt_42_again );
+
+ob_start();
+$module2->elementor_lock_switch_css();
+dpt_test_ok( '' !== ob_get_clean(), 'and with the exemption gone the switch is hidden again' );
+
+/* ---- the toggle wires the hooks, and only the toggle ---- */
+
+$GLOBALS['dpt_stub_filters']  = array();
+$GLOBALS['dpt_stub_is_admin'] = false;
+$GLOBALS['dpt_stub_options']  = array();
+DPT_ST_Settings::save( array( 'elementor_lock' => '1' ) );
+$module3 = new DPT_Site_Tweaks_Module();
+$module3->init();
+dpt_test_ok( dpt_stub_has_filter( 'load-post.php' ), 'the lock on wires the redirect' );
+dpt_test_ok( dpt_stub_has_filter( 'get_edit_post_link' ), 'and the edit-link rewrite' );
+
+$GLOBALS['dpt_stub_filters'] = array();
+DPT_ST_Settings::save( array() );
+$module4 = new DPT_Site_Tweaks_Module();
+$module4->init();
+dpt_test_ok( ! dpt_stub_has_filter( 'load-post.php' ), 'the lock off wires nothing' );
+
 exit( dpt_test_summary() > 0 ? 1 : 0 );

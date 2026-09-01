@@ -48,6 +48,11 @@ class DPT_ST_Settings {
 			// that does - which looks like a broken design rather than like a
 			// setting, so it is off by default and says so on the screen.
 			'elementor_icon_fonts'   => '0', // '1' = do not load Elementor's icon fonts
+			// Sends non-privileged users straight to the Elementor editor for
+			// posts built with Elementor, and hides the "Back to WordPress
+			// Editor" switch from them - the switch is how a client ends up
+			// looking at Gutenberg output instead of their Elementor layout.
+			'elementor_lock'         => '0', // '1' = lock Elementor pages to the Elementor editor
 
 			// Front-end weight that a site built with Elementor rarely needs.
 			'block_library_css'      => '0', // '1' = dequeue the block library stylesheets
@@ -89,6 +94,16 @@ class DPT_ST_Settings {
 	 */
 	public static function svg_capability() {
 		return apply_filters( 'dpt_st_svg_capability', 'manage_options' );
+	}
+
+	/**
+	 * Capability that bypasses the Elementor editor lock. A filter rather than
+	 * a stored option: this store is strictly boolean ('1'/'0' - save() would
+	 * flatten a capability name), and a capability kept out of the database
+	 * cannot be misconfigured into locking administrators out.
+	 */
+	public static function elementor_lock_bypass_cap() {
+		return apply_filters( 'dpt_st_elementor_lock_bypass_cap', 'manage_options' );
 	}
 
 	public static function save( $raw ) {
