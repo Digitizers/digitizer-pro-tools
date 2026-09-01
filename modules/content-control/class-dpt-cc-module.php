@@ -16,6 +16,7 @@ require_once __DIR__ . '/class-dpt-cc-restrictions.php';
 require_once __DIR__ . '/class-dpt-cc-rules.php';
 require_once __DIR__ . '/class-dpt-cc-enforce.php';
 require_once __DIR__ . '/class-dpt-cc-widgets.php';
+require_once __DIR__ . '/class-dpt-cc-restrictions-admin.php';
 
 class DPT_Content_Control_Module extends DPT_Module {
 
@@ -45,6 +46,9 @@ class DPT_Content_Control_Module extends DPT_Module {
 
 	public function install_defaults() {
 		DPT_CC_Settings::install_defaults();
+		if ( false === get_option( DPT_CC_Restrictions::OPTION ) ) {
+			add_option( DPT_CC_Restrictions::OPTION, array() );
+		}
 	}
 
 	public function init() {
@@ -55,6 +59,8 @@ class DPT_Content_Control_Module extends DPT_Module {
 		$this->enforce->init();
 		$widgets = new DPT_CC_Widgets();
 		$widgets->init();
+		$restrictions_admin = new DPT_CC_Restrictions_Admin();
+		$restrictions_admin->init();
 
 		// Whole-site protection - earliest front-end decision.
 		add_action( 'template_redirect', array( $this, 'enforce_site_protection' ), 1 );

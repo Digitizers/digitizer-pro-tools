@@ -69,7 +69,23 @@ class DPT_CC_Admin {
 				<?php esc_html_e( 'Content Control', 'digitizer-pro-tools' ); ?>
 				<span class="dpt-version">v<?php echo esc_html( DPT_VERSION ); ?></span>
 			</h1>
-			<p class="dpt-intro"><?php esc_html_e( 'Protect the whole site behind login and set the default restriction message. Per-page restrictions and per-menu-item visibility are set on each page and menu item; wrap partial content with the [dpt_restrict] shortcode.', 'digitizer-pro-tools' ); ?></p>
+			<?php
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- display routing only.
+			$tab  = ( isset( $_GET['tab'] ) && 'restrictions' === $_GET['tab'] ) ? 'restrictions' : 'settings';
+			$base = admin_url( 'admin.php?page=' . self::PAGE_SLUG );
+			?>
+			<h2 class="nav-tab-wrapper">
+				<a class="nav-tab <?php echo 'settings' === $tab ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url( $base ); ?>"><?php esc_html_e( 'Site protection & defaults', 'digitizer-pro-tools' ); ?></a>
+				<a class="nav-tab <?php echo 'restrictions' === $tab ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url( $base . '&tab=restrictions' ); ?>"><?php esc_html_e( 'Restrictions', 'digitizer-pro-tools' ); ?></a>
+			</h2>
+			<?php
+			if ( 'restrictions' === $tab ) {
+				DPT_CC_Restrictions_Admin::render();
+				echo '</div>';
+				return;
+			}
+			?>
+			<p class="dpt-intro"><?php esc_html_e( 'Protect the whole site behind login and set the default restriction message. Per-page restrictions and per-menu-item visibility are set on each page and menu item; wrap partial content with the [dpt_restrict] shortcode. Global restriction rules live on the Restrictions tab.', 'digitizer-pro-tools' ); ?></p>
 
 			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 				<input type="hidden" name="action" value="dpt_cc_save" />
