@@ -219,21 +219,12 @@ class DPT_CC_Enforce {
 
 		$row = DPT_CC_Restrictions::match( $context );
 		if ( $row && ! DPT_CC_Access::who_allows( $row['who'] ) ) {
-			if ( 'redirect' === $row['protection']['method'] ) {
-				$this->do_redirect( $row['protection']['redirect_type'], $row['protection']['redirect_url'] );
-			}
-			// Only a SUCCESSFUL replacement ends enforcement: a drafted,
-			// trashed or deleted replacement page falls through to the
-			// denial below instead of rendering the restricted output.
-			// (Codex round-3 P1)
-			if ( 'replace' === $row['protection']['method'] && $row['protection']['replacement_page']
-				&& $this->replace_with_page( (int) $row['protection']['replacement_page'] ) ) {
-				return;
-			}
-			if ( 'replace' === $row['protection']['method'] && ! is_singular() ) {
-				// The row's own archive action comes first: an archive it
-				// explicitly redirects or replaces must not collapse into
-				// the generic denial. (Codex round-5 P1)
+			if ( ! is_singular() ) {
+				// A non-singular request is governed by the row's ARCHIVE
+				// behaviour before its singular protection: an archive the
+				// row filters/hides keeps its listing (items handled per
+				// post), and its archive redirect/replacement page wins over
+				// the protection redirect. (Codex round-5/6 P1)
 				if ( 'redirect' === $row['archive_handling'] ) {
 					$this->do_redirect( $row['archive_redirect_type'], $row['archive_redirect_url'] );
 				}
@@ -241,15 +232,35 @@ class DPT_CC_Enforce {
 					&& $this->replace_with_page( (int) $row['archive_page'] ) ) {
 					return;
 				}
-				// filter/hide: when the row also bars the listed posts
-				// individually (an entire-site rule does), per-post handling
-				// already covers the page and a blanket denial would
-				// override the configured behaviour. Only main-query-ONLY
-				// rules - search, blog index, 404 - fall through here.
-				if ( ! empty( $wp_query->posts ) && $this->restriction_for_post( $wp_query->posts[0] ) ) {
+				if ( empty( $wp_query->posts ) || ! $this->restriction_for_post( $wp_query->posts[0] ) ) {
+					// Main-query-only rules (search, blog index, 404) have
+					// no per-post coverage - apply the protection here. Only
+					// a SUCCESSFUL replacement ends enforcement (round-3
+					// P1); a missing page falls through to the denial.
+					if ( 'redirect' === $row['protection']['method'] ) {
+						$this->do_redirect( $row['protection']['redirect_type'], $row['protection']['redirect_url'] );
+					}
+					if ( 'replace' === $row['protection']['method'] && $row['protection']['replacement_page']
+						&& $this->replace_with_page( (int) $row['protection']['replacement_page'] ) ) {
+						return;
+					}
+					$this->deny_main( $row );
+				}
+				// Listed posts are individually barred - fall through to the
+				// per-post archive handling below.
+			} else {
+				if ( 'redirect' === $row['protection']['method'] ) {
+					$this->do_redirect( $row['protection']['redirect_type'], $row['protection']['redirect_url'] );
+				}
+				// Only a SUCCESSFUL replacement ends enforcement: a drafted,
+				// trashed or deleted replacement page falls through to the
+				// content filter's denial message instead of rendering the
+				// restricted output. (Codex round-3 P1)
+				if ( 'replace' === $row['protection']['method'] && $row['protection']['replacement_page']
+					&& $this->replace_with_page( (int) $row['protection']['replacement_page'] ) ) {
 					return;
 				}
-				$this->deny_main( $row );
+				// replace + message: the content filter shows the message.
 			}
 		}
 
