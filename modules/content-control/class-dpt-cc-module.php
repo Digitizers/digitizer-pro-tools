@@ -297,21 +297,49 @@ class DPT_Content_Control_Module extends DPT_Module {
 	public function shortcode_restrict( $atts, $content = '' ) {
 		$atts = shortcode_atts(
 			array(
-				'role'    => '',
-				'show'    => 'logged_in', // logged_in | logged_out | roles
-				'message' => '',
+				'role'           => '',
+				'excluded_roles' => '',
+				'show'           => 'logged_in', // logged_in | logged_out | roles
+				'message'        => '',
+				'inline'         => '',
+				'class'          => '',
 			),
 			$atts,
 			'dpt_restrict'
 		);
 
-		$roles = array_values( array_filter( array_map( 'sanitize_key', preg_split( '/[\s,]+/', (string) $atts['role'] ) ) ) );
-		$visibility = $roles ? 'roles' : DPT_CC_Access::sanitize_visibility( $atts['show'] );
+		$split = static function ( $csv ) {
+			return array_values( array_filter( array_map( 'sanitize_key', preg_split( '/[\s,]+/', (string) $csv ) ) ) );
+		};
+		$roles    = $split( $atts['role'] );
+		$excluded = $split( $atts['excluded_roles'] );
 
-		if ( DPT_CC_Access::can_view( $visibility, $roles ) ) {
+		if ( $excluded ) {
+			// Any logged-in user EXCEPT these roles. Wins over `role` - an
+			// exclusion someone bothered to write is the stricter intent.
+			$allowed = DPT_CC_Access::can_view( 'roles', $excluded, null, 'exclude' );
+		} elseif ( $roles ) {
+			$allowed = DPT_CC_Access::can_view( 'roles', $roles );
+		} else {
+			$allowed = DPT_CC_Access::can_view( DPT_CC_Access::sanitize_visibility( $atts['show'] ) );
+		}
+
+		if ( $allowed ) {
 			return do_shortcode( $content );
 		}
+
 		$message = (string) $atts['message'];
-		return '' === trim( $message ) ? '' : '<div class="dpt-cc-restricted">' . wp_kses_post( $message ) . '</div>';
+		if ( '' === trim( $message ) ) {
+			return '';
+		}
+		$tag     = in_array( strtolower( (string) $atts['inline'] ), array( '1', 'true', 'yes' ), true ) ? 'span' : 'div';
+		$classes = array( 'dpt-cc-restricted' );
+		foreach ( preg_split( '/\s+/', (string) $atts['class'] ) as $c ) {
+			$c = sanitize_html_class( $c );
+			if ( '' !== $c ) {
+				$classes[] = $c;
+			}
+		}
+		return '<' . $tag . ' class="' . esc_attr( implode( ' ', $classes ) ) . '">' . wp_kses_post( $message ) . '</' . $tag . '>';
 	}
 }
