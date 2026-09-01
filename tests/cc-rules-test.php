@@ -74,6 +74,7 @@ dpt_test_ok( DPT_CC_Rules::check( dpt_conds( 'and', dpt_rule( 'content_is_ancest
 $GLOBALS['dpt_stub_post_terms'] = array( 20 => array( 'category' => array( 5 ) ) );
 dpt_test_ok( DPT_CC_Rules::check( dpt_conds( 'and', dpt_rule( 'content_is_post_with_category', array( 'ids' => '5' ) ) ), $ctx_post ), 'post with term' );
 dpt_test_ok( ! DPT_CC_Rules::check( dpt_conds( 'and', dpt_rule( 'content_is_post_with_category', array( 'ids' => '6' ) ) ), $ctx_post ), 'post with other term misses' );
+dpt_test_ok( ! DPT_CC_Rules::check( dpt_conds( 'and', dpt_rule( 'content_is_post_with_category', array( 'ids' => '' ) ) ), $ctx_post ), 'blank IDs match nothing - never "any term" (round-4 P1)' );
 
 /* ---- main-query rules ---- */
 $ctx_main = array( 'type' => 'main', 'post' => null, 'term' => null, 'main' => array( 'is_front_page' => false, 'is_home' => true, 'is_search' => false, 'is_404' => false, 'is_post_type_archive' => array(), 'is_tax' => array() ) );

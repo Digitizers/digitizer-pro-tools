@@ -242,8 +242,15 @@ class DPT_CC_Rules {
 					'category' => $label,
 					'option'   => 'ids',
 					'callback' => static function ( $o, $ctx ) use ( $pt, $tax ) {
+						$ids = self::id_list( $o );
+						if ( ! $ids ) {
+							// has_term( array(), ... ) means "has ANY term" -
+							// a blank IDs field must match nothing instead of
+							// restricting every tagged post. (Codex round-4 P1)
+							return false;
+						}
 						return ! empty( $ctx['post'] ) && $ctx['post']->post_type === $pt
-							&& has_term( self::id_list( $o ), $tax, $ctx['post'] );
+							&& has_term( $ids, $tax, $ctx['post'] );
 					},
 				);
 			}

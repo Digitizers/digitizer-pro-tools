@@ -403,6 +403,7 @@ class DPT_CC_Enforce {
 			return $posts;
 		}
 		$changed = false;
+		$removed = 0;
 		foreach ( $posts as $i => $post ) {
 			if ( ! is_object( $post ) || empty( $post->ID ) ) {
 				continue;
@@ -411,15 +412,39 @@ class DPT_CC_Enforce {
 				continue;
 			}
 			$row = $this->restriction_for_post( $post );
-			if ( $row && 'hide' === $this->handling_for( $row, $is_main, $is_search ) ) {
+			if ( ! $row ) {
+				continue;
+			}
+			$handling = $this->handling_for( $row, $is_main, $is_search );
+			// A redirect cannot happen inside a REST collection, so a
+			// redirect-protected post is withheld from it entirely rather
+			// than leaking title/link/author around a blanked body.
+			// (Codex round-4 P1)
+			if ( 'filter' === $handling && 'redirect' === $row['protection']['method']
+				&& function_exists( 'wp_is_serving_rest_request' ) && wp_is_serving_rest_request() ) {
+				$handling = 'hide';
+			}
+			if ( 'hide' === $handling ) {
 				unset( $posts[ $i ] );
 				$changed = true;
+				++$removed;
 			}
 		}
 		if ( $changed ) {
 			$posts = array_values( $posts );
 			if ( $query && property_exists( $query, 'post_count' ) ) {
 				$query->post_count = count( $posts );
+			}
+			// Totals advertised to pagination and REST headers must not
+			// count rows the viewer will never see. Deep pagination can
+			// still shift - the cost of post-query filtering, shared with
+			// the plugin this mirrors. (Codex round-4 P2)
+			if ( $query && property_exists( $query, 'found_posts' ) && (int) $query->found_posts > 0 ) {
+				$query->found_posts = max( 0, (int) $query->found_posts - $removed );
+				$per                = method_exists( $query, 'get' ) ? (int) $query->get( 'posts_per_page' ) : 0;
+				if ( $per > 0 && property_exists( $query, 'max_num_pages' ) ) {
+					$query->max_num_pages = (int) ceil( $query->found_posts / $per );
+				}
 			}
 		}
 		return $posts;
@@ -452,6 +477,28 @@ class DPT_CC_Enforce {
 	/* --------------------------------------------------------------------- */
 
 	/**
+	 * Resolve a core REST route to (post type, id) - ONLY when the route's
+	 * base belongs to a registered post type. /wp/v2/users/7 or
+	 * /wp/v2/comments/7 must never be judged by post 7's restrictions.
+	 * (Codex round-4 P2)
+	 *
+	 * @param string $route REST route.
+	 * @return array{0:string,1:int} Post type and id, or ('', 0).
+	 */
+	public static function rest_route_target( $route ) {
+		if ( ! preg_match( '#^/wp/v2/([^/]+)/(\d+)$#', (string) $route, $m ) ) {
+			return array( '', 0 );
+		}
+		foreach ( get_post_types( array( 'show_in_rest' => true ), 'objects' ) as $obj ) {
+			$base = ! empty( $obj->rest_base ) ? $obj->rest_base : $obj->name;
+			if ( $base === $m[1] ) {
+				return array( $obj->name, (int) $m[2] );
+			}
+		}
+		return array( '', 0 );
+	}
+
+	/**
 	 * Single-item core routes for a post a redirect-style restriction bars
 	 * are refused outright; replace/message rows are blanked instead by the
 	 * module's rest_prepare filter, and collections are filtered per item.
@@ -461,11 +508,12 @@ class DPT_CC_Enforce {
 			return $result;
 		}
 		$route = is_object( $request ) && method_exists( $request, 'get_route' ) ? $request->get_route() : '';
-		if ( ! preg_match( '#^/wp/v2/[^/]+/(\d+)$#', (string) $route, $m ) ) {
+		list( $type, $post_id ) = self::rest_route_target( (string) $route );
+		if ( ! $post_id ) {
 			return $result;
 		}
-		$post = get_post( (int) $m[1] );
-		if ( ! $post ) {
+		$post = get_post( $post_id );
+		if ( ! $post || $post->post_type !== $type ) {
 			return $result;
 		}
 		$row = $this->restriction_for_post( $post );

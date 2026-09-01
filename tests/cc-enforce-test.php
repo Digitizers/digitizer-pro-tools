@@ -26,6 +26,13 @@ function get_queried_object_id() { return (int) $GLOBALS['dpt_stub_queried_id'];
 function is_front_page() { return (bool) $GLOBALS['dpt_stub_front_page']; }
 function is_home() { return false; }
 function wp_login_url( $redirect = '' ) { return 'https://example.com/site/wp-login.php?redirect_to=' . rawurlencode( $redirect ); }
+function get_post_types( $args = array(), $output = 'names' ) {
+	$o = array(
+		'post' => (object) array( 'name' => 'post', 'rest_base' => 'posts' ),
+		'page' => (object) array( 'name' => 'page', 'rest_base' => 'pages' ),
+	);
+	return 'objects' === $output ? $o : array_keys( $o );
+}
 
 require_once dirname( __DIR__ ) . '/modules/content-control/class-dpt-cc-access.php';
 require_once dirname( __DIR__ ) . '/modules/content-control/class-dpt-cc-restrictions.php';
@@ -56,6 +63,8 @@ require_once dirname( __DIR__ ) . '/modules/content-control/class-dpt-cc-enforce
 class WP_Query {
 	public $posts = array();
 	public $post_count = 0;
+	public $found_posts = 0;
+	public $max_num_pages = 0;
 	public $qv = array();
 	public function __construct( $qv = array() ) { $this->qv = $qv; }
 	public function is_main_query() { return ! empty( $this->qv['main'] ); }
@@ -251,5 +260,31 @@ dpt_test_eq( $out3[0]->ID, 40, 'wp_template row survives - plumbing, not content
 $menu_term = (object) array( 'term_id' => 9, 'taxonomy' => 'nav_menu', 'parent' => 0 );
 $out4 = $enf->filter_terms( array( $menu_term ), array( 'nav_menu' ), array(), null );
 dpt_test_eq( count( $out4 ), 1, 'nav_menu term survives query hiding' );
+
+/* ---- round-4: REST routes resolve against post-type bases only ---- */
+
+dpt_test_eq( DPT_CC_Enforce::rest_route_target( '/wp/v2/posts/7' ), array( 'post', 7 ), 'posts route resolves to the post type' );
+dpt_test_eq( DPT_CC_Enforce::rest_route_target( '/wp/v2/pages/3' ), array( 'page', 3 ), 'pages route resolves too' );
+dpt_test_eq( DPT_CC_Enforce::rest_route_target( '/wp/v2/users/7' ), array( '', 0 ), 'a users route is never judged by post 7' );
+dpt_test_eq( DPT_CC_Enforce::rest_route_target( '/wp/v2/comments/7' ), array( '', 0 ), 'a comments route is ignored' );
+
+/* ---- round-4: redirect rows withheld from REST collections + totals ---- */
+
+DPT_CC_Restrictions::save_all( array( dpt_cc_page_rule_row( 'r_redir', array( 'protection' => array( 'method' => 'redirect' ) ) ) ) );
+$GLOBALS['dpt_stub_rest_request'] = true;
+$qr = new WP_Query( array( 'posts_per_page' => 5 ) );
+$qr->posts = array( $page, $post );
+$qr->post_count = 2;
+$qr->found_posts = 10;
+$outr = $enf->filter_posts( $qr->posts, $qr );
+dpt_test_eq( count( $outr ), 1, 'redirect-protected page withheld from a REST collection' );
+dpt_test_eq( $qr->found_posts, 9, 'found_posts no longer counts the hidden row' );
+dpt_test_eq( $qr->max_num_pages, 2, 'max_num_pages recomputed from the visible total' );
+$GLOBALS['dpt_stub_rest_request'] = false;
+DPT_CC_Restrictions::flush_cache();
+$qn = new WP_Query( array() );
+$qn->posts = array( $page );
+$qn->post_count = 1;
+dpt_test_eq( count( $enf->filter_posts( $qn->posts, $qn ) ), 1, 'outside REST, a redirect row keeps filter handling in lists' );
 
 exit( dpt_test_summary() );
