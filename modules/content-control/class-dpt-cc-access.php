@@ -38,11 +38,27 @@ class DPT_CC_Access {
 	}
 
 	/**
-	 * Core decision: can $user see content governed by ($visibility, $roles)?
+	 * Valid role-match modes: any (login is enough), match (must hold a
+	 * listed role), exclude (any logged-in user EXCEPT the listed roles).
 	 */
-	public static function can_view( $visibility, $roles = array(), $user = null ) {
+	public static function sanitize_role_match( $m ) {
+		return in_array( $m, array( 'any', 'match', 'exclude' ), true ) ? $m : 'match';
+	}
+
+	/**
+	 * Core decision: can $user see content governed by ($visibility, $roles)?
+	 *
+	 * @param string       $visibility public | logged_in | logged_out | roles.
+	 * @param array        $roles      Role slugs, used in 'roles' mode.
+	 * @param WP_User|null $user       Defaults to the current user.
+	 * @param string       $role_match any | match | exclude. Default 'match'
+	 *                                 keeps the long-standing behaviour of
+	 *                                 every existing caller.
+	 */
+	public static function can_view( $visibility, $roles = array(), $user = null, $role_match = 'match' ) {
 		$user       = $user ? $user : wp_get_current_user();
 		$visibility = self::sanitize_visibility( $visibility );
+		$role_match = self::sanitize_role_match( $role_match );
 
 		if ( self::user_can_bypass( $user ) ) {
 			return true;
@@ -62,14 +78,50 @@ class DPT_CC_Access {
 				$allowed = $logged_in;
 				break;
 			case 'roles':
-				$allowed = $logged_in && self::user_has_any_role( $user, $roles );
+				if ( ! $logged_in ) {
+					$allowed = false;
+				} elseif ( 'any' === $role_match ) {
+					$allowed = true;
+				} elseif ( 'exclude' === $role_match ) {
+					$allowed = ! self::user_has_any_role( $user, $roles );
+				} else {
+					$allowed = self::user_has_any_role( $user, $roles );
+				}
 				break;
 			case 'public':
 			default:
 				$allowed = true;
 				break;
 		}
-		return (bool) apply_filters( 'dpt_cc_can_view', $allowed, $visibility, $roles, $user );
+		return (bool) apply_filters( 'dpt_cc_can_view', $allowed, $visibility, $roles, $user, $role_match );
+	}
+
+	/**
+	 * Restriction-style audience check: {status, role_match, roles}.
+	 * Missing or malformed input fails closed - an audience nobody defined
+	 * is an audience nobody joins.
+	 *
+	 * @param array        $who  array( 'status' => logged_in|logged_out,
+	 *                           'role_match' => any|match|exclude,
+	 *                           'roles' => string[] ).
+	 * @param WP_User|null $user Defaults to the current user.
+	 * @return bool
+	 */
+	public static function who_allows( $who, $user = null ) {
+		if ( ! is_array( $who ) || empty( $who['status'] ) || ! in_array( $who['status'], array( 'logged_in', 'logged_out' ), true ) ) {
+			return false;
+		}
+		if ( 'logged_out' === $who['status'] ) {
+			return self::can_view( 'logged_out', array(), $user );
+		}
+		$roles = isset( $who['roles'] ) && is_array( $who['roles'] ) ? $who['roles'] : array();
+		$match = isset( $who['role_match'] ) ? self::sanitize_role_match( $who['role_match'] ) : 'any';
+		// An empty role list cannot mean "no role qualifies" here - the row
+		// simply did not narrow by role - so it collapses to plain login.
+		if ( empty( $roles ) ) {
+			$match = 'any';
+		}
+		return self::can_view( 'roles', $roles, $user, $match );
 	}
 
 	public static function user_has_any_role( $user, $roles ) {

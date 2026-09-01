@@ -4,7 +4,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.33.0
+Stable tag: 1.34.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -331,6 +331,9 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 5. Configure each module you enabled from its own screen. For the Cookie Banner that means reviewing the texts per language and pasting your analytics/marketing snippets in the Scripts tab, then checking the site
 
 == Changelog ==
+
+= 1.34.0 =
+* Content Control learns the standalone plugin's global restrictions: rules that pick content (post types, selected IDs, taxonomies, archives, page templates - AND/OR with an optional group), an audience with any/match/exclude role matching, and a choice of what refusal looks like - redirect to login/home/a URL, replace with a page, or show the message, with per-archive hiding or replacement, forced hiding from search, and teaser excerpts above the notice. Classic widgets gain visibility controls, and the [dpt_restrict] shortcode gains excluded_roles, inline and class. Per-page settings, menu visibility and whole-site protection keep working exactly as before - and a per-page setting always wins over a global rule.
 
 = 1.33.0 =
 * Agent Log recognises the standalone plugin under its new name, Digitizer AI Agent Log. WordPress.org judged the first name too generic to list, so it was renamed before approval. Both names count as the standalone being present, because the earlier build is installed on machines it was tested on - and the notice on the Modules screen names whichever of the two that site actually has, so it never sends anyone looking for a plugin that is not there.
