@@ -248,8 +248,9 @@ class DPT_CC_Enforce {
 				// match no posts, prune nothing, and must fall through to
 				// the denial. Filter handling leaves rows in place, so its
 				// probe reads the intact list. (Codex round-7/8 P1)
-				$covered = ( 'hide' === $row['archive_handling'] && $this->main_query_hid( $row['id'] ) )
-					|| ( ! empty( $wp_query->posts ) && $this->restriction_for_post( $wp_query->posts[0] ) );
+				$first_row = ! empty( $wp_query->posts ) ? $this->restriction_for_post( $wp_query->posts[0] ) : null;
+				$covered   = ( 'hide' === $row['archive_handling'] && $this->main_query_hid( $row['id'] ) )
+					|| ( $first_row && $first_row['id'] === $row['id'] ); // Coverage must come from THIS row, not any row. (Codex round-9 P1)
 				if ( ! $covered ) {
 					// Main-query-only rules (search, blog index, 404) have
 					// no per-post coverage - apply the protection here. Only
