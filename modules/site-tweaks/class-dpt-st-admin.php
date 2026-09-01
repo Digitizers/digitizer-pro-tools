@@ -146,6 +146,7 @@ class DPT_ST_Admin {
 								$this->switch_row( 'elementor_google_fonts', __( 'Disable Elementor Google Fonts', 'digitizer-pro-tools' ), __( 'Stops Elementor loading fonts from Google (privacy/performance). Use only if your fonts are hosted locally.', 'digitizer-pro-tools' ), $o['elementor_google_fonts'] );
 								$this->switch_row( 'elementor_tel_validate', __( 'Validate phone fields (Elementor Pro)', 'digitizer-pro-tools' ), __( 'Rejects malformed numbers in Elementor Pro form <code>tel</code> fields (9-14 digits, optional leading +).', 'digitizer-pro-tools' ), $o['elementor_tel_validate'] );
 								$this->switch_row( 'elementor_icon_fonts', __( 'Do not load Elementor icon fonts', 'digitizer-pro-tools' ), __( 'Drops Font Awesome and eicons - four stylesheets a design that uses no icons never needs. <strong>Check the design first:</strong> a page that does use an icon will show an empty square, which looks like a broken design rather than a setting.', 'digitizer-pro-tools' ), $o['elementor_icon_fonts'] );
+								$this->switch_row( 'elementor_lock', __( 'Lock Elementor pages to the Elementor editor', 'digitizer-pro-tools' ), __( 'Users without the bypass capability are sent from the native WordPress editor straight to Elementor for pages built with Elementor, and the "Back to WordPress Editor" switch is hidden from them - the switch that makes a page render its Gutenberg content instead of the Elementor layout. Administrators are never affected.', 'digitizer-pro-tools' ), $o['elementor_lock'] );
 								?>
 							</table>
 						</div>
