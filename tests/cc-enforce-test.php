@@ -291,4 +291,15 @@ $qn->posts = array( $page );
 $qn->post_count = 1;
 dpt_test_eq( count( $enf->filter_posts( $qn->posts, $qn ) ), 1, 'outside REST, a redirect row keeps filter handling in lists' );
 
+/* ---- round-8 P1: coverage bookkeeping - only rows that pruned count ---- */
+
+$enf3 = new DPT_CC_Enforce();
+DPT_CC_Restrictions::save_all( array( dpt_cc_page_rule_row( 'r_hidearch', array( 'archive_handling' => 'hide' ) ) ) );
+$qa = new WP_Query( array( 'main' => 1 ) );
+$qa->posts = array( $page, $post );
+$qa->post_count = 2;
+$enf3->filter_posts( $qa->posts, $qa );
+dpt_test_ok( $enf3->main_query_hid( 'r_hidearch' ), 'a row that pruned the main listing is recorded' );
+dpt_test_ok( ! $enf3->main_query_hid( 'r_other' ), 'a row that pruned nothing is not recorded' );
+
 exit( dpt_test_summary() );

@@ -153,6 +153,14 @@ class DPT_CC_Enforce {
 		return '';
 	}
 
+	/** @var array<string,bool> Row ids that pruned the current main query. */
+	private $main_hidden_rows = array();
+
+	/** Whether $row_id removed at least one post from the main listing. */
+	public function main_query_hid( $row_id ) {
+		return isset( $this->main_hidden_rows[ $row_id ] );
+	}
+
 	/**
 	 * The HTML shown to a viewer this row refuses: the row's own message
 	 * when it overrides, else the module default chain.
@@ -232,14 +240,15 @@ class DPT_CC_Enforce {
 					&& $this->replace_with_page( (int) $row['archive_page'] ) ) {
 					return;
 				}
-				// Coverage: a hide-handled archive is covered by
-				// construction - the_posts has ALREADY removed the barred
-				// rows, so probing the filtered list would misread an
-				// emptied or unrestricted-first-post archive as uncovered
-				// and wrongly apply the protection. The probe is only sound
-				// for filter handling, which leaves rows in place.
-				// (Codex round-7 P1)
-				$covered = 'hide' === $row['archive_handling']
+				// Coverage: the_posts runs before template_redirect, so a
+				// hide-handled row's barred posts are ALREADY gone - probing
+				// the filtered list would misread an emptied archive. Hide
+				// counts as coverage only when the row really pruned
+				// something: main-only rules (blog index, search, archives)
+				// match no posts, prune nothing, and must fall through to
+				// the denial. Filter handling leaves rows in place, so its
+				// probe reads the intact list. (Codex round-7/8 P1)
+				$covered = ( 'hide' === $row['archive_handling'] && $this->main_query_hid( $row['id'] ) )
 					|| ( ! empty( $wp_query->posts ) && $this->restriction_for_post( $wp_query->posts[0] ) );
 				if ( ! $covered ) {
 					// Main-query-only rules (search, blog index, 404) have
@@ -465,6 +474,12 @@ class DPT_CC_Enforce {
 				unset( $posts[ $i ] );
 				$changed = true;
 				++$removed;
+				if ( $is_main ) {
+					// Remember WHICH rows actually pruned the main listing:
+					// template_redirect's coverage check must not assume a
+					// hide-handled row did any hiding. (Codex round-8 P1)
+					$this->main_hidden_rows[ $row['id'] ] = true;
+				}
 			}
 		}
 		if ( $changed ) {
