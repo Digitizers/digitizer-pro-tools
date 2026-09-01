@@ -18,6 +18,11 @@ class DPT_CC_Enforce {
 		// Late registration keeps setup-time queries out of the filters.
 		add_action( 'init', array( $this, 'register_query_filters' ), 999 );
 		add_filter( 'rest_pre_dispatch', array( $this, 'enforce_rest' ), 10, 3 );
+		// Denied main-query pages whose protection is "replace with message"
+		// but which match no individual post (search, blog index, archives)
+		// get their message through these. (Codex round-2 P1)
+		add_filter( 'the_content', array( $this, 'filter_main_denial_content' ), 999 );
+		add_filter( 'the_excerpt', array( $this, 'filter_main_denial_content' ), 999 );
 	}
 
 	public function register_query_filters() {
@@ -153,6 +158,30 @@ class DPT_CC_Enforce {
 		return '';
 	}
 
+	/** @var array|null Row denying the whole current main query, message-style. */
+	private $main_denial = null;
+
+	/**
+	 * Mark the whole current main request as denied by $row. A "Search
+	 * results" / "Blog index" / archive / 404 rule matches no individual
+	 * post, so the ordinary per-post content filter would sail past it and
+	 * leave the listing visible. (Codex round-2 P1)
+	 */
+	public function deny_main( $row ) {
+		$this->main_denial = $row;
+	}
+
+	public function filter_main_denial_content( $content ) {
+		if ( ! $this->main_denial ) {
+			return $content;
+		}
+		$custom = $this->denial_message( $this->main_denial );
+		if ( '' !== $custom ) {
+			return '<div class="dpt-cc-restricted">' . wp_kses_post( wpautop( $custom ) ) . '</div>';
+		}
+		return DPT_CC_Access::restriction_message( 0 );
+	}
+
 	/* --------------------------------------------------------------------- */
 	/* Main query                                                            */
 	/* --------------------------------------------------------------------- */
@@ -198,7 +227,13 @@ class DPT_CC_Enforce {
 				$this->replace_with_page( (int) $row['protection']['replacement_page'] );
 				return;
 			}
-			// replace + message: the content filter shows the denial message.
+			if ( 'replace' === $row['protection']['method'] && ! is_singular() ) {
+				// Search / blog index / archive / 404 rules match no single
+				// post, so the per-post content filter cannot show the
+				// message - deny the whole page. Singular views re-match
+				// through the queried post's own context. (Codex round-2 P1)
+				$this->deny_main( $row );
+			}
 		}
 
 		// Archive-level handling for restricted posts inside the list.
@@ -248,23 +283,36 @@ class DPT_CC_Enforce {
 		}
 	}
 
-	private function do_redirect( $type, $url ) {
+	/**
+	 * Where a denied request should go. A home or custom destination equal
+	 * to the page being denied would send the browser to itself forever -
+	 * such a target falls back to the login form. (Codex round-2 P1)
+	 */
+	public static function redirect_target( $type, $url ) {
+		$current = untrailingslashit( self::current_request_url() );
+		$to      = '';
 		if ( 'home' === $type ) {
 			$to = home_url( '/' );
 		} elseif ( 'custom' === $type && '' !== $url ) {
-			$host = wp_parse_url( $url, PHP_URL_HOST );
-			if ( $host ) {
-				add_filter(
-					'allowed_redirect_hosts',
-					static function ( $hosts ) use ( $host ) {
-						$hosts[] = $host;
-						return $hosts;
-					}
-				);
-			}
 			$to = $url;
-		} else {
+		}
+		if ( '' === $to || untrailingslashit( $to ) === $current ) {
 			$to = wp_login_url( self::current_request_url() );
+		}
+		return $to;
+	}
+
+	private function do_redirect( $type, $url ) {
+		$to   = self::redirect_target( $type, $url );
+		$host = wp_parse_url( $to, PHP_URL_HOST );
+		if ( $host ) {
+			add_filter(
+				'allowed_redirect_hosts',
+				static function ( $hosts ) use ( $host ) {
+					$hosts[] = $host;
+					return $hosts;
+				}
+			);
 		}
 		wp_safe_redirect( $to );
 		exit;
@@ -302,6 +350,33 @@ class DPT_CC_Enforce {
 	/* Post / term lists                                                     */
 	/* --------------------------------------------------------------------- */
 
+	/**
+	 * Post types whose rows are plumbing, not content: hiding a template,
+	 * a reusable block or a nav item blanks layouts and menus instead of
+	 * protecting anything. (Codex round-2 P1)
+	 */
+	private function post_type_ignored( $type ) {
+		$ignored = (array) apply_filters(
+			'dpt_cc_ignored_post_types',
+			array( 'nav_menu_item', 'wp_template', 'wp_template_part', 'wp_global_styles', 'wp_navigation', 'wp_block', 'oembed_cache', 'revision', 'custom_css', 'customize_changeset', 'elementor_library' )
+		);
+		if ( in_array( $type, $ignored, true ) ) {
+			return true;
+		}
+		return function_exists( 'is_post_type_viewable' ) && ! is_post_type_viewable( $type );
+	}
+
+	private function taxonomy_ignored( $taxonomy ) {
+		$ignored = (array) apply_filters(
+			'dpt_cc_ignored_taxonomies',
+			array( 'nav_menu', 'link_category', 'post_format', 'wp_theme', 'wp_template_part_area' )
+		);
+		if ( in_array( $taxonomy, $ignored, true ) ) {
+			return true;
+		}
+		return function_exists( 'is_taxonomy_viewable' ) && ! is_taxonomy_viewable( $taxonomy );
+	}
+
 	private function query_ignored( $query ) {
 		if ( $query && method_exists( $query, 'get' ) && $query->get( 'ignore_restrictions' ) ) {
 			return true;
@@ -324,6 +399,9 @@ class DPT_CC_Enforce {
 		$changed = false;
 		foreach ( $posts as $i => $post ) {
 			if ( ! is_object( $post ) || empty( $post->ID ) ) {
+				continue;
+			}
+			if ( empty( $post->post_type ) || $this->post_type_ignored( $post->post_type ) ) {
 				continue;
 			}
 			$row = $this->restriction_for_post( $post );
@@ -349,6 +427,9 @@ class DPT_CC_Enforce {
 		foreach ( $terms as $i => $term ) {
 			// get_terms may return ids, slugs or counts - only objects are checked.
 			if ( ! is_object( $term ) || empty( $term->term_id ) ) {
+				continue;
+			}
+			if ( empty( $term->taxonomy ) || $this->taxonomy_ignored( $term->taxonomy ) ) {
 				continue;
 			}
 			$row = $this->restriction_for_term( $term );

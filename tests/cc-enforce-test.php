@@ -25,6 +25,7 @@ $GLOBALS['dpt_stub_front_page'] = false;
 function get_queried_object_id() { return (int) $GLOBALS['dpt_stub_queried_id']; }
 function is_front_page() { return (bool) $GLOBALS['dpt_stub_front_page']; }
 function is_home() { return false; }
+function wp_login_url( $redirect = '' ) { return 'https://example.com/site/wp-login.php?redirect_to=' . rawurlencode( $redirect ); }
 
 require_once dirname( __DIR__ ) . '/modules/content-control/class-dpt-cc-access.php';
 require_once dirname( __DIR__ ) . '/modules/content-control/class-dpt-cc-restrictions.php';
@@ -41,6 +42,9 @@ class DPT_CC_Rules {
 		}
 		if ( 'match_front' === $name ) {
 			return ! empty( $context['main']['is_front_page'] );
+		}
+		if ( 'match_all' === $name ) {
+			return true;
 		}
 		return false;
 	}
@@ -207,5 +211,47 @@ dpt_test_eq( $roww ? $roww['id'] : null, 'r_global', 'without the meta, the glob
 
 $_SERVER['REQUEST_URI'] = '/site/private?x=1';
 dpt_test_eq( DPT_CC_Enforce::current_request_url(), 'https://example.com/site/private?x=1', 'scheme+host from home_url, path from REQUEST_URI - subdirectory not doubled' );
+
+/* ---- round-2 P1: main-query-only restrictions still show their message ---- */
+
+$enf2 = new DPT_CC_Enforce();
+dpt_test_eq( $enf2->filter_main_denial_content( 'body' ), 'body', 'no main denial - content untouched' );
+$enf2->deny_main( DPT_CC_Restrictions::sanitize_row( array(
+	'id'         => 'r_m',
+	'enabled'    => true,
+	'protection' => array( 'method' => 'replace', 'override_message' => true, 'custom_message' => 'Members search.' ),
+) ) );
+$denied = $enf2->filter_main_denial_content( 'body' );
+dpt_test_ok( false !== strpos( $denied, 'Members search.' ), 'denied main query renders the row message' );
+dpt_test_ok( false === strpos( $denied, 'body' ), 'and the original content is gone' );
+
+/* ---- round-2 P1: redirect target never points back at the denied page ---- */
+
+$_SERVER['REQUEST_URI'] = '/site/';
+dpt_test_ok( false !== strpos( DPT_CC_Enforce::redirect_target( 'home', '' ), 'wp-login.php' ), 'redirect-home on the home page falls back to login' );
+$_SERVER['REQUEST_URI'] = '/site/private';
+dpt_test_eq( DPT_CC_Enforce::redirect_target( 'home', '' ), 'https://example.com/site/', 'redirect-home elsewhere goes home' );
+dpt_test_ok( false !== strpos( DPT_CC_Enforce::redirect_target( 'custom', 'https://example.com/site/private' ), 'wp-login.php' ), 'custom target equal to the denied page falls back to login' );
+dpt_test_eq( DPT_CC_Enforce::redirect_target( 'custom', 'https://other.test/x' ), 'https://other.test/x', 'other custom targets pass through' );
+
+/* ---- round-2 P1: internal post types and taxonomies stay out of hiding ---- */
+
+DPT_CC_Restrictions::save_all( array( array(
+	'id'             => 'r_all',
+	'enabled'        => true,
+	'who'            => array( 'status' => 'logged_in', 'role_match' => 'any', 'roles' => array() ),
+	'query_handling' => 'hide',
+	'conditions'     => array( 'operator' => 'and', 'items' => array( array( 'type' => 'rule', 'name' => 'match_all', 'not' => false, 'options' => array() ) ) ),
+) ) );
+$tpl = (object) array( 'ID' => 40, 'post_type' => 'wp_template' );
+$q3  = new WP_Query( array() );
+$q3->posts = array( $tpl, $page );
+$q3->post_count = 2;
+$out3 = $enf->filter_posts( $q3->posts, $q3 );
+dpt_test_eq( count( $out3 ), 1, 'public page hidden by the entire-site rule' );
+dpt_test_eq( $out3[0]->ID, 40, 'wp_template row survives - plumbing, not content' );
+$menu_term = (object) array( 'term_id' => 9, 'taxonomy' => 'nav_menu', 'parent' => 0 );
+$out4 = $enf->filter_terms( array( $menu_term ), array( 'nav_menu' ), array(), null );
+dpt_test_eq( count( $out4 ), 1, 'nav_menu term survives query hiding' );
 
 exit( dpt_test_summary() );
