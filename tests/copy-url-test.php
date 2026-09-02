@@ -50,6 +50,7 @@ require_once dirname( __DIR__ ) . '/modules/copy-url/class-dpt-cu-module.php';
 $module = new DPT_Copy_URL_Module();
 $module->init();
 dpt_test_ok( isset( $GLOBALS['dpt_stub_shortcodes']['digitizer_geturl'] ), 'the legacy shortcode keeps its tag - existing pages resolve it' );
+dpt_test_eq( $GLOBALS['dpt_stub_shortcodes']['digitizer_geturl'], array( 'DPT_CU_Shortcodes', 'current_url_shortcode' ), 'and resolves to the escaped boundary, not the raw builder' );
 dpt_test_ok( isset( $GLOBALS['dpt_stub_shortcodes']['digitizer_copy_url'] ), 'and the widget gets its own' );
 dpt_test_ok( dpt_stub_has_filter( 'wp_enqueue_scripts' ), 'assets register before the head is printed' );
 
@@ -123,6 +124,15 @@ dpt_test_eq(
 	'https://example.test/authors/o%27reilly/',
 	'a literal apostrophe survives, encoded - the address stays the same address'
 );
+
+// The shortcode's return value lands in HTML, where a raw ampersand starts
+// a character reference - /?a=1&copy=x would display © - so the boundary
+// escapes what the builder keeps raw. WordPress escaping downstream is
+// idempotent (double_encode=false), so the Elementor attribute path shows
+// the same bytes. (Codex round-4 P2)
+$_SERVER['REQUEST_URI'] = '/?a=1&copy=x';
+dpt_test_eq( DPT_CU_Shortcodes::current_url(), 'https://example.test/?a=1&copy=x', 'the builder keeps the raw address for attribute consumers' );
+dpt_test_eq( DPT_CU_Shortcodes::current_url_shortcode(), 'https://example.test/?a=1&amp;copy=x', 'the bare shortcode escapes it for the HTML it lands in' );
 
 $_SERVER['REQUEST_URI'] = '/about/';
 

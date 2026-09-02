@@ -13,9 +13,28 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 class DPT_CU_Shortcodes {
 
 	public static function register() {
-		add_shortcode( 'digitizer_geturl', array( __CLASS__, 'current_url' ) );
+		add_shortcode( 'digitizer_geturl', array( __CLASS__, 'current_url_shortcode' ) );
 		add_shortcode( 'digitizer_copy_url', array( __CLASS__, 'copy_widget' ) );
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'register_assets' ) );
+	}
+
+	/**
+	 * [digitizer_geturl] - the address at its output boundary.
+	 *
+	 * A shortcode's return value lands in HTML, and a raw ampersand there
+	 * starts a character reference: /?a=1&copy=x would display as ©
+	 * followed by "=x", so what is shown - and copied - is not the request.
+	 * esc_html() at the boundary keeps the shown bytes the request's bytes.
+	 * The Elementor dynamic-tag path is unharmed: WordPress escaping is
+	 * idempotent (_wp_specialchars() defaults to double_encode=false), so an
+	 * &amp; produced here is not encoded again on the way into a value
+	 * attribute. The raw address stays available to the widget below
+	 * through current_url().
+	 *
+	 * @return string
+	 */
+	public static function current_url_shortcode() {
+		return esc_html( self::current_url() );
 	}
 
 	/**
