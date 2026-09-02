@@ -145,7 +145,32 @@ class DPT_AL_Buffer {
 			$entry['app']       = (string) $app;
 			$entry['user_id']   = (int) $user_id;
 			$entry['fields']    = array_keys( $entry['fields'] );
-			$rows[]             = $entry;
+
+			/**
+			 * Whether one change is worth recording.
+			 *
+			 * Every entry passes here, so a site has one place to silence a
+			 * writer it does not care about - a plugin that rewrites its own
+			 * settings on load, say, which is a real change and an
+			 * uninteresting one. Nothing is filtered out by default: what is
+			 * absent from this log is supposed to mean it did not happen over
+			 * an API, and a default exclusion would quietly make that untrue.
+			 *
+			 * Applied here rather than when the change is first seen, because
+			 * the channel and the application password's name are not known
+			 * until the request ends - and those are most of what a useful
+			 * rule matches on.
+			 *
+			 * @param bool  $record Whether to record it. Default true.
+			 * @param array $entry  The finished entry: type, subtype, id,
+			 *                      action, name, fields, blog_id, logged_at,
+			 *                      channel, app, user_id.
+			 */
+			if ( ! apply_filters( 'dpt_agent_log_record', true, $entry ) ) {
+				continue;
+			}
+
+			$rows[] = $entry;
 		}
 		return $rows;
 	}

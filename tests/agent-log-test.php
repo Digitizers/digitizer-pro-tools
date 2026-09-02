@@ -1810,4 +1810,52 @@ dpt_test_ok( DPT_Agent_Log_Module::standalone_active(), 'the renamed build is se
 dpt_test_ok( false !== strpos( $module->standing_down_reason(), 'Digitizer AI Agent Log' ), 'and now the notice names it instead' );
 dpt_test_ok( false !== strpos( $module->standing_down_reason(), 'Agent Activity' ), 'while still pointing at the menu the standalone actually adds' );
 
+/* ---- silencing a writer the site does not care about ---- */
+
+// A plugin that rewrites its own settings whenever it loads produces a real
+// change - core refuses an identical meta write before the hook ever fires,
+// so anything that reaches the log did alter the row. It is still not a change
+// anybody asked about, and only the site can say which of its writers those
+// are. One filter, over the finished entry.
+$GLOBALS['dpt_stub_filters'] = array();
+DPT_AL_Buffer::reset();
+DPT_AL_Buffer::record( 'post', 'elementor_library', 5, 'updated', 'Default Kit', array( '_elementor_page_settings' ) );
+DPT_AL_Buffer::record( 'post', 'post', 9, 'updated', 'Real edit', array( 'post_title' ) );
+
+dpt_test_eq( count( DPT_AL_Buffer::rows( 'cli', '', 1, 1756108800 ) ), 2, 'with no filter attached both entries are recorded' );
+
+// The entry the filter is handed carries the channel and the application
+// name, which is the whole reason the gate runs at flush and not when the
+// change is first seen: neither is knowable during the request.
+$GLOBALS['dpt_seen'] = array();
+add_filter(
+	'dpt_agent_log_record',
+	function ( $record, $entry ) {
+		$GLOBALS['dpt_seen'][] = $entry;
+		return ( 'elementor_library' === $entry['object_subtype'] ) ? false : $record;
+	}
+);
+
+$rows = DPT_AL_Buffer::rows( 'cli', 'ContentEngine', 1, 1756108800 );
+dpt_test_eq( count( $rows ), 1, 'a filter returning false drops that entry' );
+dpt_test_eq( $rows[0]['object_subtype'], 'post', 'and leaves every other one alone' );
+dpt_test_eq( count( $GLOBALS['dpt_seen'] ), 2, 'the filter is offered every entry, not only the ones that survive' );
+dpt_test_eq( $GLOBALS['dpt_seen'][0]['channel'], 'cli', 'and each one carries the channel' );
+dpt_test_eq( $GLOBALS['dpt_seen'][0]['app'], 'ContentEngine', 'and the application password name' );
+dpt_test_ok( isset( $GLOBALS['dpt_seen'][0]['fields'] ), 'and the field names it touched' );
+
+// A filter that drops everything empties the write entirely rather than
+// writing a row with nothing in it.
+$GLOBALS['dpt_stub_filters'] = array();
+add_filter( 'dpt_agent_log_record', function () { return false; } );
+dpt_test_eq( DPT_AL_Buffer::rows( 'cli', '', 1, 1756108800 ), array(), 'a filter that refuses everything leaves no rows' );
+
+// Anything falsy refuses; the value is not trusted to be a boolean.
+$GLOBALS['dpt_stub_filters'] = array();
+add_filter( 'dpt_agent_log_record', function () { return 0; } );
+dpt_test_eq( DPT_AL_Buffer::rows( 'cli', '', 1, 1756108800 ), array(), 'a falsy non-boolean refuses too' );
+
+$GLOBALS['dpt_stub_filters'] = array();
+DPT_AL_Buffer::reset();
+
 dpt_test_summary();
