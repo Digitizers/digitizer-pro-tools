@@ -65,15 +65,21 @@ class DPT_CU_Shortcodes {
 	 * back to whatever prints the result. urldecode()'s +-to-space rule is
 	 * deliberately not applied either - a literal + in a path is a +.
 	 *
+	 * High bytes come off only in runs that decode to valid UTF-8. A stray
+	 * %FF let loose as a raw byte makes the whole string invalid UTF-8, and
+	 * esc_attr() answers invalid UTF-8 with an empty string - the widget
+	 * would render an empty field instead of the address. A run that does
+	 * not decode cleanly keeps its armour.
+	 *
 	 * @param string $value Raw request URI.
 	 * @return string
 	 */
 	private static function decode_for_display( $value ) {
 		return preg_replace_callback(
-			'/%[0-9A-Fa-f]{2}/',
+			'/(?:%[89A-Fa-f][0-9A-Fa-f])+/',
 			static function ( $m ) {
-				$byte = hexdec( substr( $m[0], 1 ) );
-				return $byte >= 0x80 ? chr( $byte ) : $m[0];
+				$decoded = rawurldecode( $m[0] );
+				return ( 1 === preg_match( '//u', $decoded ) ) ? $decoded : $m[0];
 			},
 			$value
 		);

@@ -89,6 +89,20 @@ dpt_test_eq(
 	'escaped delimiters, literal + and %20 all round-trip untouched'
 );
 
+// A high-byte escape sheds its armour only in a run that decodes to valid
+// UTF-8. Decoding a stray %FF into a raw byte would make the whole string
+// invalid UTF-8 - and esc_attr() answers invalid UTF-8 with an empty
+// string, so the widget would render an empty field instead of the
+// address. (Codex round-2 P2)
+$_SERVER['REQUEST_URI'] = '/about/?value=%FF&mix=%D7%FF';
+dpt_test_eq(
+	DPT_CU_Shortcodes::current_url(),
+	'https://example.test/about/?value=%FF&mix=%D7%FF',
+	'an escape that is not valid UTF-8 keeps its armour, alone or in a run'
+);
+$html = DPT_CU_Shortcodes::copy_widget();
+dpt_test_ok( false !== strpos( $html, 'value="https://example.test/about/?value=%FF' ), 'and the field still carries the address, not an emptied string' );
+
 // Escaped markup stays escaped by the same rule, and *literal* markup - a
 // client that is not a browser can put it in REQUEST_URI - is removed, so
 // the shortcode is safe wherever a page builder interpolates it.
