@@ -4,7 +4,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.35.0
+Stable tag: 1.36.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -230,6 +230,15 @@ Embed the sources WordPress core does not oEmbed on its own, with the [dpt_embed
 * Only http(s) PDF URLs and docs.google.com / drive.google.com links are embedded; anything else is left to core oEmbed
 * Usage: [dpt_embed url="https://example.com/file.pdf" ratio="16:9"]
 
+= Module: Copy URL =
+
+A copy-this-page-address widget as one shortcode (disabled by default; enable it on the Modules screen):
+
+* `[digitizer_copy_url]` renders a read-only field carrying the current page address and a one-click copy button - clicking anywhere on the block copies, the button confirms, and the labels are set per shortcode (`label_copy`, `label_copied`)
+* Copies through the browser clipboard API with a fallback for contexts that lack it; styling inherits the theme's font and colours and is overridable through CSS custom properties
+* `[digitizer_geturl]` prints the current page address on its own, for use as a dynamic value (an Elementor form field's default, for instance). The address is built from the site's canonical home URL - correct behind a reverse proxy - decoded so a Hebrew slug stays readable, with markup-breaking characters stripped
+* Replaces the functions.php snippet and the three-widget Elementor construction (form, absolutely positioned heading, raw HTML script) this used to take
+
 Admin interface is in English with a full Hebrew translation.
 
 == External services ==
@@ -332,6 +341,9 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 5. Configure each module you enabled from its own screen. For the Cookie Banner that means reviewing the texts per language and pasting your analytics/marketing snippets in the Scripts tab, then checking the site
 
 == Changelog ==
+
+= 1.36.0 =
+* New module: Copy URL - the copy-this-page-address widget as one shortcode. [digitizer_copy_url] renders the field-plus-button block (clipboard API with a fallback, theme-inherited styling, per-shortcode labels), and [digitizer_geturl] keeps printing the bare address for dynamic values, exactly as the functions.php snippet did - existing pages keep working, new pages need one shortcode widget instead of three Elementor widgets and a script
 
 = 1.35.0 =
 * Site Tweaks: new "Lock Elementor pages to the Elementor editor" toggle (off by default). Users without the bypass capability are redirected from the native WordPress editor to Elementor for pages built with Elementor, edit links on the post lists and admin bar point straight there, and the "Back to WordPress Editor" switch is hidden from them - the switch that makes a page render its Gutenberg content instead of the Elementor layout. Administrators keep full access, trash/untrash and the Elementor editor itself are never redirected, and deactivating Elementor makes the toggle a harmless no-op. Filters: dpt_st_elementor_lock_bypass_cap, dpt_st_elementor_lock_enabled, dpt_st_elementor_lock_hide_switch
