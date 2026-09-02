@@ -104,7 +104,7 @@ $html = DPT_CU_Shortcodes::copy_widget();
 dpt_test_ok( false !== strpos( $html, 'value="https://example.test/about/?value=%FF' ), 'and the field still carries the address, not an emptied string' );
 
 // Escaped markup stays escaped by the same rule, and *literal* markup - a
-// client that is not a browser can put it in REQUEST_URI - is removed, so
+// client that is not a browser can put it in REQUEST_URI - is encoded, so
 // the shortcode is safe wherever a page builder interpolates it.
 $_SERVER['REQUEST_URI'] = '/p/%22%3E%3Cscript%3E?q="><script>alert(1)</script>';
 $url = DPT_CU_Shortcodes::current_url();
@@ -112,6 +112,17 @@ dpt_test_ok( false !== strpos( $url, '%22%3E%3Cscript%3E' ), 'escaped markup kee
 foreach ( array( '<', '>', '"', "'" ) as $ch ) {
 	dpt_test_ok( false === strpos( $url, $ch ), 'a literal ' . ( '"' === $ch ? 'quote' : $ch ) . ' never survives into the output' );
 }
+
+// Encoded, not deleted: an apostrophe is a legitimate URI character, and
+// /authors/o'reilly/ with the apostrophe removed is a different address
+// than the one the visitor asked to copy. %27 is the same one, wearing
+// armour. (Codex round-3 P2)
+$_SERVER['REQUEST_URI'] = "/authors/o'reilly/";
+dpt_test_eq(
+	DPT_CU_Shortcodes::current_url(),
+	'https://example.test/authors/o%27reilly/',
+	'a literal apostrophe survives, encoded - the address stays the same address'
+);
 
 $_SERVER['REQUEST_URI'] = '/about/';
 

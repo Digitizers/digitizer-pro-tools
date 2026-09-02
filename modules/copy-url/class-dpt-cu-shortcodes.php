@@ -48,12 +48,18 @@ class DPT_CU_Shortcodes {
 			$host .= ':' . $home['port'];
 		}
 		$url = $scheme . '://' . $host . self::decode_for_display( $req );
-		// A literal <, >, " or ' can still arrive in REQUEST_URI from a
-		// client that is not a browser. They are never part of an address
-		// anyone means to copy, and removing them is what keeps the
-		// shortcode safe wherever a page builder interpolates it into
-		// markup - an Elementor form field's value attribute, say.
-		return str_replace( array( '<', '>', '"', "'" ), '', $url );
+		// A literal <, >, " or ' can still arrive in REQUEST_URI - the
+		// apostrophe legitimately (/authors/o'reilly/), the rest from a
+		// client that is not a browser. Encoded rather than removed: %27 is
+		// the same address the visitor requested, a deleted character is a
+		// different one - and the encoding is what keeps the shortcode safe
+		// wherever a page builder interpolates it into markup, an Elementor
+		// form field's value attribute among them.
+		return str_replace(
+			array( '<', '>', '"', "'" ),
+			array( '%3C', '%3E', '%22', '%27' ),
+			$url
+		);
 	}
 
 	/**
