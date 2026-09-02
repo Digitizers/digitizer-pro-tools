@@ -145,6 +145,7 @@ class DPT_AL_Buffer {
 			$entry['app']       = (string) $app;
 			$entry['user_id']   = (int) $user_id;
 			$entry['fields']    = array_keys( $entry['fields'] );
+
 			$rows[]             = $entry;
 		}
 		return $rows;

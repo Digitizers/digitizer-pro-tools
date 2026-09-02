@@ -358,10 +358,51 @@ class DPT_AL_Hooks {
 				// would record there anyway, into a table install_table() was
 				// never run to create. So each group asks the site it is about.
 				if ( self::blog_records() ) {
+					$written = 0;
 					foreach ( $blog_rows as $row ) {
+						/**
+						 * Whether one change is worth recording.
+						 *
+						 * Every entry passes here, so a site has one place to
+						 * silence a writer it does not care about - a plugin
+						 * that rewrites its own settings on load, say, which
+						 * is a real change and an uninteresting one. Nothing
+						 * is filtered out by default: what is absent from
+						 * this log is supposed to mean it did not happen over
+						 * an API, and a default exclusion would quietly make
+						 * that untrue.
+						 *
+						 * Applied here rather than when the change is first
+						 * seen, for two reasons. The channel and the
+						 * application password's name are not known until the
+						 * request ends, and they are most of what a useful
+						 * rule matches on. And this runs inside the site the
+						 * entry belongs to: one CLI or cron request can walk a
+						 * whole network, and a callback reading get_option()
+						 * to decide what to silence has to read the options of
+						 * the site the change happened on, not the site the
+						 * request started in.
+						 *
+						 * @param bool  $record Whether to record it. Default true.
+						 * @param array $entry  The finished entry: object_type,
+						 *                      object_subtype, object_id,
+						 *                      object_name, action, fields,
+						 *                      blog_id, logged_at, channel,
+						 *                      app, user_id.
+						 */
+						if ( ! apply_filters( 'dpt_agent_log_record', true, $row ) ) {
+							continue;
+						}
 						DPT_AL_Store::insert( $row );
+						$written++;
 					}
-					self::maybe_prune();
+					// Pruned only when something was actually written. A
+					// request whose every row was filtered away has changed
+					// nothing here, and stamping the throttle for it would
+					// starve the prune that a real write would have done.
+					if ( $written > 0 ) {
+						self::maybe_prune();
+					}
 				}
 			} finally {
 				// Restored even when a write throws. Leaving a switch on the
