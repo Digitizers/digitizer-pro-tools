@@ -123,6 +123,11 @@ class DPT_Plugin {
 				'class'   => 'DPT_Agent_Log_Module',
 				'default' => '0',
 			),
+			'copy_url' => array(
+				'file'    => DPT_PATH . 'modules/copy-url/class-dpt-cu-module.php',
+				'class'   => 'DPT_Copy_URL_Module',
+				'default' => '0',
+			),
 		);
 		return apply_filters( 'dpt_modules', $modules );
 	}

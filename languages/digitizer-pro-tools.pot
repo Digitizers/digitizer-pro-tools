@@ -2129,3 +2129,9 @@ msgstr ""
 
 msgid "Users without the bypass capability are sent from the native WordPress editor straight to Elementor for pages built with Elementor, and the \"Back to WordPress Editor\" switch is hidden from them - the switch that makes a page render its Gutenberg content instead of the Elementor layout. Administrators are never affected."
 msgstr ""
+
+msgid "Copy URL"
+msgstr ""
+
+msgid "Two shortcodes: [digitizer_copy_url] renders a copy-this-page-address field with a one-click button, and [digitizer_geturl] prints the current page address for use as a dynamic value. Replaces the functions.php snippet and the three-widget Elementor construction around it."
+msgstr ""

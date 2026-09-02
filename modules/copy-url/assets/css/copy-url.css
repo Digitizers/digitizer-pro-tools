@@ -1,0 +1,52 @@
+/**
+ * Copy URL widget. Inherits the theme's font and text colour; every colour
+ * and radius is overridable per site through the --dpt-cu-* custom
+ * properties, so the widget follows a design instead of imposing one.
+ */
+.dpt-copy-url {
+	display: flex;
+	align-items: center;
+	gap: 0.35em;
+	direction: ltr;
+	border: var( --dpt-cu-border, 2px solid currentColor );
+	border-radius: var( --dpt-cu-radius, 2em );
+	background: var( --dpt-cu-background, transparent );
+	padding: 0.25em 0.3em 0.25em 0.25em;
+	cursor: pointer;
+}
+
+.dpt-copy-url-field {
+	flex: 1 1 auto;
+	min-width: 0;
+	border: 0;
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	line-height: 1.4;
+	padding: 0.4em 0.75em;
+	/* The whole block is the click target; the field only displays. */
+	pointer-events: none;
+}
+
+.dpt-copy-url-field:focus {
+	outline: none;
+	box-shadow: none;
+}
+
+.dpt-copy-url-btn {
+	flex: 0 0 auto;
+	border: 0;
+	border-radius: var( --dpt-cu-radius, 2em );
+	background: var( --dpt-cu-button-background, #000 );
+	color: var( --dpt-cu-button-color, #fff );
+	font: inherit;
+	font-weight: 600;
+	line-height: 1.4;
+	padding: 0.4em 1.1em;
+	cursor: pointer;
+	transition: opacity 0.2s;
+}
+
+.dpt-copy-url-btn:hover {
+	opacity: 0.85;
+}
