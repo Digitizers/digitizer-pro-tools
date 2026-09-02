@@ -343,7 +343,7 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 == Changelog ==
 
 = 1.37.0 =
-* Agent Log: a `dpt_agent_log_record` filter, applied to every entry once the channel and the application name are known, so a site can silence a writer it does not care about - a plugin that rewrites its own settings on load, say. Nothing is filtered by default: what is absent from this log is meant to mean it did not happen over an API.
+* Agent Log: a `dpt_agent_log_record` filter, applied to every entry once the channel and the application name are known and inside the site the change happened on, so a site can silence a writer it does not care about - a plugin that rewrites its own settings on load, say. Nothing is filtered by default: what is absent from this log is meant to mean it did not happen over an API.
 
 = 1.36.0 =
 * New module: Copy URL - the copy-this-page-address widget as one shortcode. [digitizer_copy_url] renders the field-plus-button block (clipboard API with a fallback, theme-inherited styling, per-shortcode labels), and [digitizer_geturl] keeps printing the bare address for dynamic values, exactly as the functions.php snippet did - existing pages keep working, new pages need one shortcode widget instead of three Elementor widgets and a script

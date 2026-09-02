@@ -1813,49 +1813,119 @@ dpt_test_ok( false !== strpos( $module->standing_down_reason(), 'Agent Activity'
 /* ---- silencing a writer the site does not care about ---- */
 
 // A plugin that rewrites its own settings whenever it loads produces a real
-// change - core refuses an identical meta write before the hook ever fires,
-// so anything that reaches the log did alter the row. It is still not a change
+// change - core refuses an identical meta write before the hook ever fires, so
+// anything that reaches the log did alter the row. It is still not a change
 // anybody asked about, and only the site can say which of its writers those
-// are. One filter, over the finished entry.
+// are. One filter, over the finished entry, at the moment it would be written.
+$writer = new DPT_AL_Test_Writer();
+DPT_AL_Store::set_writer( $writer );
+$GLOBALS['dpt_stub_options']           = array();
+$GLOBALS['dpt_stub_multisite']         = false;
+$GLOBALS['dpt_stub_rest_request']      = false;
+$GLOBALS['dpt_stub_doing_cron']        = false;
+$GLOBALS['dpt_stub_app_password_uuid'] = null;
+dpt_al_stub_recording();
 $GLOBALS['dpt_stub_filters'] = array();
-DPT_AL_Buffer::reset();
-DPT_AL_Buffer::record( 'post', 'elementor_library', 5, 'updated', 'Default Kit', array( '_elementor_page_settings' ) );
-DPT_AL_Buffer::record( 'post', 'post', 9, 'updated', 'Real edit', array( 'post_title' ) );
 
-dpt_test_eq( count( DPT_AL_Buffer::rows( 'cli', '', 1, 1756108800 ) ), 2, 'with no filter attached both entries are recorded' );
+function dpt_two_changes() {
+	DPT_AL_Buffer::reset();
+	DPT_AL_Hooks::on_option_updated( 'siteurl' );
+	DPT_AL_Hooks::on_plugin_activated( 'akismet/akismet.php' );
+}
+
+$GLOBALS['dpt_stub_doing_cron'] = true;
+$writer->inserted = array();
+dpt_two_changes();
+DPT_AL_Hooks::flush();
+dpt_test_eq( count( $writer->inserted ), 2, 'with no filter attached both changes are written' );
 
 // The entry the filter is handed carries the channel and the application
-// name, which is the whole reason the gate runs at flush and not when the
-// change is first seen: neither is knowable during the request.
+// name, which is one of the two reasons the gate runs at flush: neither is
+// knowable while the request is still running.
 $GLOBALS['dpt_seen'] = array();
 add_filter(
 	'dpt_agent_log_record',
 	function ( $record, $entry ) {
 		$GLOBALS['dpt_seen'][] = $entry;
-		return ( 'elementor_library' === $entry['object_subtype'] ) ? false : $record;
+		return ( 'plugin' === $entry['object_type'] ) ? false : $record;
 	}
 );
 
-$rows = DPT_AL_Buffer::rows( 'cli', 'ContentEngine', 1, 1756108800 );
-dpt_test_eq( count( $rows ), 1, 'a filter returning false drops that entry' );
-dpt_test_eq( $rows[0]['object_subtype'], 'post', 'and leaves every other one alone' );
+$writer->inserted = array();
+dpt_two_changes();
+DPT_AL_Hooks::flush();
+dpt_test_eq( count( $writer->inserted ), 1, 'a filter returning false drops that entry' );
+dpt_test_eq( $writer->inserted[0]['data']['object_type'], 'option', 'and leaves every other one alone' );
 dpt_test_eq( count( $GLOBALS['dpt_seen'] ), 2, 'the filter is offered every entry, not only the ones that survive' );
-dpt_test_eq( $GLOBALS['dpt_seen'][0]['channel'], 'cli', 'and each one carries the channel' );
-dpt_test_eq( $GLOBALS['dpt_seen'][0]['app'], 'ContentEngine', 'and the application password name' );
-dpt_test_ok( isset( $GLOBALS['dpt_seen'][0]['fields'] ), 'and the field names it touched' );
+dpt_test_eq( $GLOBALS['dpt_seen'][0]['channel'], 'cron', 'and each one carries the channel' );
+dpt_test_ok( array_key_exists( 'app', $GLOBALS['dpt_seen'][0] ), 'and the application password name' );
+dpt_test_ok( array_key_exists( 'fields', $GLOBALS['dpt_seen'][0] ), 'and the field names it touched' );
 
-// A filter that drops everything empties the write entirely rather than
-// writing a row with nothing in it.
-$GLOBALS['dpt_stub_filters'] = array();
-add_filter( 'dpt_agent_log_record', function () { return false; } );
-dpt_test_eq( DPT_AL_Buffer::rows( 'cli', '', 1, 1756108800 ), array(), 'a filter that refuses everything leaves no rows' );
-
-// Anything falsy refuses; the value is not trusted to be a boolean.
+// Anything falsy refuses; the value is not trusted to be a boolean. And a
+// request whose every row was filtered away has changed nothing on this site,
+// so it must not stamp the prune throttle - the same rule a poll that changed
+// nothing already follows.
 $GLOBALS['dpt_stub_filters'] = array();
 add_filter( 'dpt_agent_log_record', function () { return 0; } );
-dpt_test_eq( DPT_AL_Buffer::rows( 'cli', '', 1, 1756108800 ), array(), 'a falsy non-boolean refuses too' );
+$writer->inserted = array();
+$writer->queries  = array();
+unset( $GLOBALS['dpt_stub_options']['dpt_agent_log_last_prune'] );
+dpt_two_changes();
+DPT_AL_Hooks::flush();
+dpt_test_eq( $writer->inserted, array(), 'a falsy non-boolean refuses too, and nothing is written' );
+dpt_test_eq( $writer->queries, array(), 'and nothing is pruned' );
+dpt_test_ok( ! isset( $GLOBALS['dpt_stub_options']['dpt_agent_log_last_prune'] ), 'and the prune throttle is not stamped for a request that wrote nothing' );
 
+$GLOBALS['dpt_stub_filters']    = array();
+$GLOBALS['dpt_stub_doing_cron'] = false;
+DPT_AL_Buffer::reset();
+
+// And it runs inside the site the entry belongs to. One CLI or cron request
+// can walk a whole network, and by the time flush() runs the originating site
+// is current again - so a callback that reads get_option() to decide what to
+// silence would apply the first site's policy to every other one. The filter
+// is asked after the switch, which is the only place that answer is right.
+$GLOBALS['wpdb']                    = $writer;
+$GLOBALS['dpt_stub_multisite']     = true;
+$GLOBALS['dpt_stub_doing_cron']    = true;
+$GLOBALS['dpt_stub_current_blog']  = 1;
+$GLOBALS['dpt_stub_switch_stack']  = array();
+$GLOBALS['dpt_stub_switch_calls']  = 0;
+$GLOBALS['dpt_stub_restore_calls'] = 0;
+$GLOBALS['dpt_stub_blog_options']  = array();
+dpt_stub_enter_blog( 1 );
+// Both sites have to be in the state a recording site is in - the module on
+// and the schema stamped - and that state is per site, so it is set inside
+// each one rather than assembled from outside.
+dpt_al_stub_recording();
+
+DPT_AL_Buffer::reset();
+DPT_AL_Hooks::on_option_updated( 'siteurl' );
+switch_to_blog( 2 );
+dpt_al_stub_recording();
+DPT_AL_Hooks::on_option_updated( 'blogname' );
+restore_current_blog();
+
+$GLOBALS['dpt_context'] = array();
 $GLOBALS['dpt_stub_filters'] = array();
+add_filter(
+	'dpt_agent_log_record',
+	function ( $record, $entry ) {
+		$GLOBALS['dpt_context'][ (int) $entry['blog_id'] ] = (int) get_current_blog_id();
+		return $record;
+	}
+);
+
+$writer->inserted = array();
+DPT_AL_Hooks::flush();
+
+dpt_test_eq( $GLOBALS['dpt_context'], array( 1 => 1, 2 => 2 ), 'each entry is offered to the filter inside its own site' );
+dpt_test_eq( count( $writer->inserted ), 2, 'and both are written when the filter keeps them' );
+
+$GLOBALS['dpt_stub_filters']    = array();
+$GLOBALS['dpt_stub_multisite']  = false;
+$GLOBALS['dpt_stub_doing_cron'] = false;
+dpt_stub_enter_blog( 1 );
 DPT_AL_Buffer::reset();
 
 dpt_test_summary();
