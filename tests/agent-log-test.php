@@ -555,6 +555,10 @@ $GLOBALS['dpt_stub_filters'] = array();
 $watched = DPT_AL_Hooks::watched_options();
 dpt_test_ok( in_array( 'siteurl', $watched, true ), 'siteurl is watched' );
 dpt_test_ok( in_array( 'active_plugins', $watched, true ), 'and so is active_plugins' );
+// The tagline sits beside the site name: both are site identity, and both
+// are what Elementor mirrors into its kit - the fold in Buffer::rows() needs
+// the cause on the record for the tagline case just as for the name.
+dpt_test_ok( in_array( 'blogdescription', $watched, true ), 'and the tagline, beside the site name' );
 // updated_option fires for every transient. Without an allowlist the table
 // fills with noise in a day and buries the writes worth seeing.
 dpt_test_ok( ! in_array( '_transient_doing_cron', $watched, true ), 'a transient is not' );
@@ -655,6 +659,138 @@ dpt_test_eq( count( $rows[0]['fields'] ), 4, 'carrying all four field names' );
 foreach ( array( 'post_title', 'rank_math_title', '_elementor_data', 'custom_field' ) as $expected_field ) {
 	dpt_test_ok( in_array( $expected_field, $rows[0]['fields'], true ), "including {$expected_field}" );
 }
+
+/* ---- Elementor's copy of a renamed site into its kit is not a row ---- */
+
+// Elementor mirrors blogname and blogdescription into the active kit
+// (core/kits/manager.php, on update_option_blogname), one update_meta of
+// _elementor_page_settings from inside that action - which core fires before
+// updated_option, so the copy would otherwise land ahead of the option row
+// it was caused by. One agent action, one row.
+$GLOBALS['dpt_stub_posts'][5]                          = array( 'post_type' => 'elementor_library', 'post_title' => 'Default Kit' );
+$GLOBALS['dpt_stub_posts'][77]                         = array( 'post_type' => 'elementor_library', 'post_title' => 'Header' );
+$GLOBALS['dpt_stub_options']['elementor_active_kit']  = 5;
+// The mirror is two writes: Elementor's page settings manager runs
+// wp_update_post() on the kit (a save with no field of its own - the
+// modified date moves) and then writes the meta. Seen on staging as a
+// "Default Kit []" row when only the meta was recognised.
+$kit = (object) array( 'ID' => 5, 'post_type' => 'elementor_library', 'post_title' => 'Default Kit', 'post_status' => 'publish', 'post_modified' => '2026-09-09 14:00:00' );
+$kit_before = (object) array( 'ID' => 5, 'post_type' => 'elementor_library', 'post_title' => 'Default Kit', 'post_status' => 'publish', 'post_modified' => '2026-09-01 00:00:00' );
+$GLOBALS['dpt_stub_doing_actions']                     = array( 'update_option_blogname' );
+DPT_AL_Buffer::reset();
+DPT_AL_Hooks::on_post_saved( 5, $kit, true, $kit_before );
+DPT_AL_Hooks::on_post_meta( 201, 5, '_elementor_page_settings' );
+$GLOBALS['dpt_stub_doing_actions'] = array();
+DPT_AL_Hooks::on_option_updated( 'blogname' );
+$rows = DPT_AL_Buffer::rows( 'cli', '', 0, 1756108800 );
+dpt_test_eq( count( $rows ), 1, 'neither half of the kit copy made inside update_option_blogname is recorded' );
+dpt_test_eq( $rows[0]['object_name'], 'blogname', 'and the option row is what remains' );
+
+$GLOBALS['dpt_stub_doing_actions'] = array( 'update_option_blogdescription' );
+DPT_AL_Buffer::reset();
+DPT_AL_Hooks::on_post_meta( 202, 5, '_elementor_page_settings' );
+$GLOBALS['dpt_stub_doing_actions'] = array();
+DPT_AL_Hooks::on_option_updated( 'blogdescription' );
+dpt_test_eq( count( DPT_AL_Buffer::rows( 'cli', '', 0, 1756108800 ) ), 1, 'the tagline mirrors the same way' );
+
+// The decision is made at the write, not from the request's final shape: an
+// agent that renames the site and also edits the kit on purpose makes two
+// writes to the same meta, which the buffer folds into one field - only the
+// timing tells them apart. The deliberate one happens outside the action.
+$GLOBALS['dpt_stub_doing_actions'] = array( 'update_option_blogname' );
+DPT_AL_Buffer::reset();
+DPT_AL_Hooks::on_post_meta( 203, 5, '_elementor_page_settings' );
+$GLOBALS['dpt_stub_doing_actions'] = array();
+DPT_AL_Hooks::on_option_updated( 'blogname' );
+DPT_AL_Hooks::on_post_meta( 204, 5, '_elementor_page_settings' );
+$rows = DPT_AL_Buffer::rows( 'rest', 'Studio', 5, 1756108800 );
+dpt_test_eq( count( $rows ), 2, 'a deliberate kit edit in the same request as the rename is kept' );
+
+// Outside the action the same write is an agent editing Site Settings
+// through Elementor - a real action, kept.
+DPT_AL_Buffer::reset();
+DPT_AL_Hooks::on_post_meta( 205, 5, '_elementor_page_settings' );
+dpt_test_eq( count( DPT_AL_Buffer::rows( 'rest', 'Studio', 5, 1756108800 ) ), 1, 'a kit settings write on its own is an action and stays' );
+
+// Only the active kit is mirrored into. Another template written from
+// inside the same action is some other plugin's doing, kept.
+$GLOBALS['dpt_stub_doing_actions'] = array( 'update_option_blogname' );
+DPT_AL_Buffer::reset();
+DPT_AL_Hooks::on_post_saved( 77, (object) array( 'ID' => 77, 'post_type' => 'elementor_library', 'post_title' => 'Header' ), true, null );
+DPT_AL_Hooks::on_post_meta( 206, 77, '_elementor_page_settings' );
+$GLOBALS['dpt_stub_doing_actions'] = array();
+DPT_AL_Hooks::on_option_updated( 'blogname' );
+dpt_test_eq( count( DPT_AL_Buffer::rows( 'cli', '', 0, 1756108800 ) ), 2, 'a template that is not the active kit is kept beside the rename' );
+
+// Only the mirror's own two writes. Some other plugin hooked on the same
+// option action that writes a different key on the kit is that plugin's
+// side effect, kept like every other.
+$GLOBALS['dpt_stub_doing_actions'] = array( 'update_option_blogname' );
+DPT_AL_Buffer::reset();
+DPT_AL_Hooks::on_post_meta( 207, 5, '_elementor_data' );
+$GLOBALS['dpt_stub_doing_actions'] = array();
+DPT_AL_Hooks::on_option_updated( 'blogname' );
+dpt_test_eq( count( DPT_AL_Buffer::rows( 'cli', '', 0, 1756108800 ) ), 2, 'a different meta key on the kit, even inside the action, is kept' );
+
+// A save inside the action that changes a real column of the kit is some
+// other callback's doing - Elementor's own mirror save changes none.
+$GLOBALS['dpt_stub_doing_actions'] = array( 'update_option_blogname' );
+DPT_AL_Buffer::reset();
+$kit_retitled = clone $kit;
+$kit_retitled->post_title = 'Renamed Kit';
+DPT_AL_Hooks::on_post_saved( 5, $kit_retitled, true, $kit_before );
+$GLOBALS['dpt_stub_doing_actions'] = array();
+DPT_AL_Hooks::on_option_updated( 'blogname' );
+$rows = DPT_AL_Buffer::rows( 'cli', '', 0, 1756108800 );
+dpt_test_eq( count( $rows ), 2, 'a kit save inside the action that changes a column is kept' );
+dpt_test_eq( $rows[0]['fields'], array( 'post_title' ), 'with the column it changed' );
+
+// The same kit save outside the action is a save like any other.
+DPT_AL_Buffer::reset();
+DPT_AL_Hooks::on_post_saved( 5, $kit, true, $kit_before );
+dpt_test_eq( count( DPT_AL_Buffer::rows( 'rest', 'Studio', 5, 1756108800 ) ), 1, 'the kit post row saved on its own is recorded' );
+
+// Only the two options Elementor mirrors count.
+$GLOBALS['dpt_stub_doing_actions'] = array( 'update_option_siteurl' );
+DPT_AL_Buffer::reset();
+DPT_AL_Hooks::on_post_meta( 208, 5, '_elementor_page_settings' );
+$GLOBALS['dpt_stub_doing_actions'] = array();
+DPT_AL_Hooks::on_option_updated( 'siteurl' );
+dpt_test_eq( count( DPT_AL_Buffer::rows( 'cli', '', 0, 1756108800 ) ), 2, 'a kit write inside some other option action is kept' );
+
+// The option is recorded from its own update_option_{$option} action too,
+// first on it, so a callback after ours that aborts the request (before
+// updated_option) leaves the option row in the buffer beside nothing
+// skipped on its account. Same buffer key, so no second row when
+// updated_option does arrive.
+$GLOBALS['dpt_stub_doing_actions'] = array( 'update_option_blogname' );
+DPT_AL_Buffer::reset();
+DPT_AL_Hooks::on_mirrored_option_updated( 'Old', 'New', 'blogname' );
+DPT_AL_Hooks::on_post_saved( 5, $kit, true, $kit_before );
+DPT_AL_Hooks::on_post_meta( 210, 5, '_elementor_page_settings' );
+$rows = DPT_AL_Buffer::rows( 'cli', '', 0, 1756108800 );
+dpt_test_eq( count( $rows ), 1, 'the option row is in the buffer before the mirror is skipped, without waiting for updated_option' );
+dpt_test_eq( $rows[0]['object_name'], 'blogname', 'and it is the option' );
+$GLOBALS['dpt_stub_doing_actions'] = array();
+DPT_AL_Hooks::on_option_updated( 'blogname' );
+dpt_test_eq( count( DPT_AL_Buffer::rows( 'cli', '', 0, 1756108800 ) ), 1, 'updated_option arriving afterwards adds no second row' );
+
+$GLOBALS['dpt_stub_filters'] = array();
+$GLOBALS['dpt_stub_doing_actions'] = array();
+DPT_AL_Buffer::reset();
+
+// And a site with no active kit on record - Elementor absent, or never
+// set one up - skips nothing.
+unset( $GLOBALS['dpt_stub_options']['elementor_active_kit'] );
+$GLOBALS['dpt_stub_doing_actions'] = array( 'update_option_blogname' );
+DPT_AL_Buffer::reset();
+DPT_AL_Hooks::on_post_meta( 209, 5, '_elementor_page_settings' );
+$GLOBALS['dpt_stub_doing_actions'] = array();
+DPT_AL_Hooks::on_option_updated( 'blogname' );
+dpt_test_eq( count( DPT_AL_Buffer::rows( 'cli', '', 0, 1756108800 ) ), 2, 'with no active kit on record nothing is skipped' );
+unset( $GLOBALS['dpt_stub_posts'][5], $GLOBALS['dpt_stub_posts'][77] );
+DPT_AL_Buffer::reset();
+
 
 // 3. on_post_saved() is silent on a revision, and on an autosave - and test 1
 // above already proves the guard is not simply an always-return.
@@ -840,6 +976,11 @@ $GLOBALS['dpt_stub_filters'] = array();
 $_SERVER['REQUEST_METHOD']   = 'POST';
 DPT_AL_Hooks::init();
 dpt_test_ok( ! empty( $GLOBALS['dpt_stub_filters'] ), 'init() on a real write registers something' );
+foreach ( array( 'blogname', 'blogdescription' ) as $mirrored ) {
+	$reg = isset( $GLOBALS['dpt_stub_filters'][ 'update_option_' . $mirrored ] ) ? $GLOBALS['dpt_stub_filters'][ 'update_option_' . $mirrored ] : array();
+	dpt_test_eq( count( $reg ), 1, "init() records $mirrored from its own update_option_ action as well" );
+	dpt_test_eq( $reg[0]['priority'], PHP_INT_MIN, 'ahead of every other callback on it, so the option row exists before the kit mirror is skipped' );
+}
 
 // A cron run reached over GET - an external scheduler fetching wp-cron.php,
 // which is what most hosts do - must still register. It is a write channel

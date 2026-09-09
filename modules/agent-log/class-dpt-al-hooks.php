@@ -59,6 +59,21 @@ class DPT_AL_Hooks {
 		add_action( 'deactivated_plugin', array( __CLASS__, 'on_plugin_deactivated' ) );
 		add_action( 'switch_theme', array( __CLASS__, 'on_theme_switched' ), 10, 2 );
 		add_action( 'updated_option', array( __CLASS__, 'on_option_updated' ) );
+		// The two options whose kit mirror is skipped below are also recorded
+		// from their own update_option_{$option} action, ahead of every other
+		// callback on it. Core fires that action after the row is written and
+		// updated_option only once every callback on it has returned - so a
+		// callback that aborts the request (Elementor's mirror itself, or
+		// another plugin's) would leave the option changed, its mirror
+		// skipped, and no row at all. Recording first means the option row
+		// exists before anything can be skipped on its account; the buffer
+		// keys on the option name, so the row is the same one updated_option
+		// would have written. First on purpose, and PHP_INT_MIN rather than a
+		// low number: this is not a policy another site should be able to
+		// run before, it is the record of a write that has already happened.
+		foreach ( self::$kit_mirrored_options as $option ) {
+			add_action( 'update_option_' . $option, array( __CLASS__, 'on_mirrored_option_updated' ), PHP_INT_MIN, 3 );
+		}
 
 		// Late on purpose, and for the same reason the update policy hooks
 		// allow_major_auto_core_updates at 9999: the answer that runs last is
@@ -85,6 +100,7 @@ class DPT_AL_Hooks {
 			'siteurl',
 			'home',
 			'blogname',
+			'blogdescription',
 			'users_can_register',
 			'default_role',
 			'permalink_structure',
@@ -159,6 +175,13 @@ class DPT_AL_Hooks {
 		if ( self::is_revision_or_autosave( $post_id ) ) {
 			return;
 		}
+		$fields = self::post_field_diff( $post, $post_before );
+		if ( $update && empty( $fields ) && self::is_kit_mirror_of_option( $post ) ) {
+			// The mirror's wp_update_post() changes no column of the kit - it
+			// only moves the modified date. A save inside the same action that
+			// does change a column is some other callback's doing, kept.
+			return;
+		}
 		$type = ( isset( $post->post_type ) && 'attachment' === $post->post_type ) ? 'attachment' : 'post';
 		DPT_AL_Buffer::record(
 			$type,
@@ -166,7 +189,7 @@ class DPT_AL_Hooks {
 			$post_id,
 			$update ? 'updated' : 'created',
 			isset( $post->post_title ) ? $post->post_title : '',
-			self::post_field_diff( $post, $post_before )
+			$fields
 		);
 	}
 
@@ -207,9 +230,98 @@ class DPT_AL_Hooks {
 		if ( ! $post ) {
 			return;
 		}
+		if ( self::is_kit_mirror_of_option( $post, $meta_key ) ) {
+			return;
+		}
 		$type = ( 'attachment' === $post->post_type ) ? 'attachment' : 'post';
 		DPT_AL_Buffer::record( $type, $post->post_type, $object_id, 'updated', $post->post_title, array( $meta_key ) );
 	}
+
+	/**
+	 * The site-identity options Elementor copies into its active kit.
+	 *
+	 * @var array
+	 */
+	private static $kit_mirrored_options = array( 'blogname', 'blogdescription' );
+
+	/**
+	 * Whether this write to a post is Elementor copying a renamed site into
+	 * its kit, rather than anything the agent asked for.
+	 *
+	 * Elementor mirrors the site name and tagline into the active kit's
+	 * settings (elementor/core/kits/manager.php, on update_option_blogname
+	 * and update_option_blogdescription, each calling
+	 * update_kit_settings_based_on_option()). That reaches WordPress as two
+	 * writes, both seen here: Document::update_settings() goes through the
+	 * page settings manager, whose ajax_before_save_settings() calls
+	 * wp_update_post() on the kit (bumping its modified date - a save with no
+	 * field of its own, seen by on_post_saved()) and whose save_settings_to_db()
+	 * then writes _elementor_page_settings (seen by on_post_meta()). Both are
+	 * real writes, and both are Elementor's reaction, not the agent's action;
+	 * a row for either says nothing the option row does not already say.
+	 * Worse, core fires update_option_{$option} before updated_option, so
+	 * the reaction would reach the buffer ahead of its cause and the log
+	 * would read effect-then-cause.
+	 *
+	 * Decided here, at the moment of the write, and not later from what the
+	 * request's rows look like: an agent that renames the site and also
+	 * edits the kit's settings on purpose in the same request makes two
+	 * writes to the same post, which the buffer folds into one entry -
+	 * indistinguishable after the fact from the echo alone. What does
+	 * distinguish them is *when* each happened. The copy runs inside the
+	 * update_option_{$option} action and nowhere else, and doing_action()
+	 * (wp-includes/plugin.php) answers exactly that question from core's own
+	 * filter stack. The deliberate edit runs outside the action and is
+	 * recorded like any other. Elementor's own guard goes the other way -
+	 * update_kit_settings_based_on_option() returns early while the kit
+	 * is_saving() - so a kit save can never be the thing that is skipped
+	 * here.
+	 *
+	 * Only the mirror's own two writes: the kit's post row saved with no
+	 * column changed (on_post_saved() checks the diff), and the one meta key
+	 * it writes. Another plugin hooked on the same option action that
+	 * changes a real column of the kit, writes some other key on it, or
+	 * writes any other post, is that plugin's side effect, which this log
+	 * keeps as it keeps every other (see the readme: nothing is filtered by
+	 * default, and an entry for a plugin rewriting its own data is true,
+	 * only uninteresting). And only the active kit, the one post Elementor
+	 * mirrors into.
+	 *
+	 * Core has already written the option by the time this is asked:
+	 * update_option() (wp-includes/option.php) updates the row, returns
+	 * false on failure, and only then fires update_option_{$option} - on
+	 * which init() records the option first, ahead of the mirror - and then
+	 * updated_option. So a write skipped here is never left with no option
+	 * row beside it, even when a later callback on the action aborts the
+	 * request before updated_option is reached.
+	 *
+	 * @param object      $post     The post written.
+	 * @param string|null $meta_key The meta key, when the write is a meta
+	 *                              write; null for the post row itself.
+	 * @return bool
+	 */
+	private static function is_kit_mirror_of_option( $post, $meta_key = null ) {
+		if ( ! is_object( $post ) || ! isset( $post->post_type ) || 'elementor_library' !== $post->post_type ) {
+			return false;
+		}
+		if ( null !== $meta_key && '_elementor_page_settings' !== $meta_key ) {
+			return false;
+		}
+		$inside = false;
+		foreach ( self::$kit_mirrored_options as $option ) {
+			if ( doing_action( 'update_option_' . $option ) ) {
+				$inside = true;
+				break;
+			}
+		}
+		if ( ! $inside ) {
+			return false;
+		}
+		// Elementor's default for the option is 0, so a site with no kit
+		// never matches a real post id.
+		return (int) get_option( 'elementor_active_kit', 0 ) === (int) $post->ID;
+	}
+
 
 	public static function on_term_created( $term_id, $tt_id, $taxonomy ) {
 		self::record_term( $term_id, $taxonomy, 'created' );
@@ -282,6 +394,15 @@ class DPT_AL_Hooks {
 			return;
 		}
 		DPT_AL_Buffer::record( 'option', '', 0, 'updated', (string) $option, array( (string) $option ) );
+	}
+
+	/**
+	 * update_option_{$option} passes ( $old_value, $value, $option ); the
+	 * option name is third. See init() for why these two are recorded here
+	 * as well as on updated_option.
+	 */
+	public static function on_mirrored_option_updated( $old_value, $value, $option ) {
+		self::on_option_updated( $option );
 	}
 
 	/**
