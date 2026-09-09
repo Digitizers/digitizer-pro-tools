@@ -382,6 +382,12 @@ function did_action() { return 0; }
 function wp_json_encode( $value, $flags = 0, $depth = 512 ) { return json_encode( $value, $flags, $depth ); }
 function wp_parse_url( $url, $component = -1 ) { return parse_url( $url, $component ); }
 
+// Core's own filter stack, as doing_action() (wp-includes/plugin.php) reads it:
+// the hooks whose callbacks are running right now. A test that wants a write to
+// look like it happened inside update_option_blogname pushes that name here.
+$GLOBALS['dpt_stub_doing_actions'] = array();
+function doing_action( $hook ) { return in_array( $hook, $GLOBALS['dpt_stub_doing_actions'], true ); }
+
 function get_option( $key, $default = false ) {
 	return array_key_exists( $key, $GLOBALS['dpt_stub_options'] ) ? $GLOBALS['dpt_stub_options'][ $key ] : $default;
 }

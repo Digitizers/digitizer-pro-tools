@@ -4,7 +4,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.37.0
+Stable tag: 1.38.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -341,6 +341,10 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 5. Configure each module you enabled from its own screen. For the Cookie Banner that means reviewing the texts per language and pasting your analytics/marketing snippets in the Scripts tab, then checking the site
 
 == Changelog ==
+
+= 1.38.0 =
+* Agent Log: the site tagline (`blogdescription`) is recorded when it changes, beside the site name.
+* Agent Log: Elementor copies the site name and tagline into its active kit whenever they change - a save of the kit's post row with no column changed, and one write of its `_elementor_page_settings`. Neither gets a row of its own next to the option change that caused it - one action, one row. A kit written on its own, together with anything else, or with a real column changed, is recorded as before. The two options are also recorded from their own `update_option_{$option}` action, ahead of every other callback on it, so the option row exists before anything is skipped on its account.
 
 = 1.37.0 =
 * Agent Log: a `dpt_agent_log_record` filter, applied to every entry once the channel and the application name are known and inside the site the change happened on, so a site can silence a writer it does not care about - a plugin that rewrites its own settings on load, say. Nothing is filtered by default: what is absent from this log is meant to mean it did not happen over an API.
