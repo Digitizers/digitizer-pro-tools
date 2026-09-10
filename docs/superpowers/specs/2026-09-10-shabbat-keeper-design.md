@@ -141,9 +141,10 @@ A fixed table `slug => array{ name (translatable), lat, lon, candle_minutes }`:
 | kfar_saba | 18 |
 
 Plus `custom`, which reads `custom_lat`, `custom_lon`, `custom_candle` from
-settings; latitude is clamped to -65..65 so the sun always sets (past the
-polar circles a window would have no start or end and the site would fail
-open). Coordinates are the city centre to three decimals; a kilometre
+settings; clamped to Israel (latitude 29.4..33.4, longitude 34.2..35.9),
+because every time shown is Asia/Jerusalem wall-clock and the holiday set
+is Israel's - a custom point is for a place the list lacks, not another
+country. Coordinates are the city centre to three decimals; a kilometre
 moves sunset by well under a minute.
 
 Havdalah: `42` (default, three medium stars as commonly published in
@@ -277,7 +278,16 @@ a page cache or CDN across a transition.
   correct a CDN's policy from inside one header. The purge below is the
   mechanism; `purge_caches()` ends with `do_action( 'dpt_shabbat_keeper_purge' )`
   on both paths that reach it - the transition and a settings save - so a
-  CDN that caches HTML hooks that, and the readme says so.
+  CDN that caches HTML hooks that, and the readme says so. The Modules
+  screen fires it too when a module is switched on or off.
+- The browser's copy of the mechanism: on front-end pages under the
+  automatic override, an inline script in `wp_footer` carries the next
+  transition timestamp and, when the page is still open past it or was
+  served stale after it, reloads with `?dpt_sk=<transition>` so the origin
+  answers with the current state. A full-page cache or CDN that serves
+  every anonymous hit never lets WordPress see a request, so request-driven
+  WP-Cron may never fire the purge; this covers that case without touching
+  the cache's own policy.
 - A single WP-Cron event `dpt_sk_transition` is scheduled for the next
   transition whenever a front-end request notices none is pending. When it
   fires it does `do_action( 'dpt_shabbat_keeper_transition', $now_closed )`

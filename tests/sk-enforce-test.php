@@ -165,6 +165,23 @@ dpt_test_ok( false !== strpos( $html, 'when the closure is lifted' ), 'force-clo
 dpt_test_ok( false === strpos( DPT_SK_Enforce::banner_html(), 'Havdalah' ), 'force-closed banner does not mention Havdalah' );
 sk_set( array( 'override' => 'auto', 'mode' => 'business' ) );
 
+/* ---- browser-side transition fallback (Codex round-9 P2) ---- */
+$clock = $at( '2026-09-02 12:00' );
+sk_set( array( 'override' => 'auto', 'mode' => 'business' ) );
+sk_anon();
+ob_start(); DPT_SK_Enforce::print_transition_script(); $js = ob_get_clean();
+dpt_test_ok( false !== strpos( $js, 'var t=' . $shabbat['start'] . ',' ), 'script carries the next transition timestamp' );
+dpt_test_ok( false !== strpos( $js, 'dpt_sk' ), 'script reloads with the cache-busting query' );
+sk_set( array( 'override' => 'force_closed' ) );
+sk_anon();
+ob_start(); DPT_SK_Enforce::print_transition_script(); $js = ob_get_clean();
+dpt_test_eq( $js, '', 'no script under a manual override' );
+sk_set( array( 'override' => 'auto' ) );
+$GLOBALS['dpt_stub_is_admin'] = true;
+ob_start(); DPT_SK_Enforce::print_transition_script(); $js = ob_get_clean();
+dpt_test_eq( $js, '', 'no script in wp-admin' );
+$GLOBALS['dpt_stub_is_admin'] = false;
+
 /* ---- transition cron ---- */
 $clock = $at( '2026-09-02 12:00' );
 sk_anon();

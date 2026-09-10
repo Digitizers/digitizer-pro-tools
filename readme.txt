@@ -246,12 +246,12 @@ Admin interface is in English with a full Hebrew translation.
 Closes the site for Shabbat and Israeli holidays without anyone touching it (disabled by default; enable it on the Modules screen):
 
 * Two modes: the whole site answers with a "closed for Shabbat" page, or pages stay readable while purchases and form submissions are refused and a banner says when the site reopens
-* Times are computed on the server: pick a city (Jerusalem 40 minutes, Tel Aviv 18, Haifa 30, Beer Sheva 22 and eleven more) or enter coordinates; Havdalah at 42 or 72 minutes after sunset
+* Times are computed on the server: pick a city (Jerusalem 40 minutes, Tel Aviv 18, Haifa 30, Beer Sheva 22 and eleven more) or enter coordinates anywhere in Israel; Havdalah at 42 or 72 minutes after sunset
 * Covers every Shabbat and the Israeli Yom Tov days - Rosh Hashana, Yom Kippur, Sukkot, Shmini Atzeret, Pesach first and seventh day, Shavuot - and merges adjacent days into one closure
 * Refuses WooCommerce purchases on the server (classic, blocks and the Store API) and submissions from Elementor Pro Forms, Contact Form 7, WPForms and Gravity Forms; optionally hides phone and WhatsApp links
 * The closed page answers with HTTP 503 and Retry-After, so search engines treat it as a temporary outage
 * In closed mode feeds, robots.txt and sitemaps answer 503 like every other page; search engines read that as a temporary outage
-* Known page caches (LiteSpeed, WP Rocket, Breeze, W3 Total Cache, WP Super Cache, WP Fastest Cache, SiteGround) are purged at each transition; a CDN that caches HTML can hook its own purge to the dpt_shabbat_keeper_purge action, which fires at each transition and after every settings save
+* Known page caches (LiteSpeed, WP Rocket, Breeze, W3 Total Cache, WP Super Cache, WP Fastest Cache, SiteGround) are purged at each transition; a CDN that caches HTML can hook its own purge to the dpt_shabbat_keeper_purge action, which fires at each transition, after every settings save and when the module is switched on or off; a small script in every page also reloads it once the transition has passed, so a copy a cache kept too long corrects itself
 * Administrators are never blocked and can preview the closed site with ?dpt_shabbat=preview; a manual override forces the site open or closed
 
 == External services ==

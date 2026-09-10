@@ -27,6 +27,7 @@ final class DPT_SK_Enforce {
 		add_action( 'wp_head', array( __CLASS__, 'print_head_css' ) );
 		add_action( 'wp_body_open', array( __CLASS__, 'print_banner' ) );
 		add_action( 'wp_footer', array( __CLASS__, 'print_banner_fallback' ) );
+		add_action( 'wp_footer', array( __CLASS__, 'print_transition_script' ), 99 );
 		add_action( 'wp', array( __CLASS__, 'ensure_transition_event' ) );
 		add_action( self::CRON_HOOK, array( __CLASS__, 'on_transition' ) );
 	}
@@ -246,6 +247,23 @@ final class DPT_SK_Enforce {
 	}
 
 	/* ---------------- caches ---------------- */
+
+	/**
+	 * The browser's copy of the mechanism: a full-page cache or CDN that serves
+	 * every anonymous hit never lets WordPress see a request, so request-driven
+	 * WP-Cron may never fire the purge. This inline script knows the next
+	 * transition and, when the page is still open past it (or was served stale
+	 * after it), reloads with a cache-busting query so the origin answers with
+	 * the current state. Not printed under a manual override, which has no
+	 * transition, and idle once the reloaded page carries the matching query.
+	 */
+	public static function print_transition_script() {
+		if ( ! self::is_front_request() || 'auto' !== DPT_SK_Settings::get( 'override' ) ) {
+			return;
+		}
+		$t = (int) self::zmanim()->next_transition( self::now() );
+		echo '<script id="dpt-sk-transition">(function(){var t=' . $t . ',n=Math.floor(Date.now()/1000);function q(){try{return new URL(location.href).searchParams.get("dpt_sk");}catch(e){return null;}}function go(){var u;try{u=new URL(location.href);}catch(e){return;}u.searchParams.set("dpt_sk",String(t));location.replace(u.toString());}if(n>=t){if(q()!==String(t)){go();}return;}if(t-n<86400){setTimeout(go,(t-n+2)*1000);}})();</script>';
+	}
 
 	public static function ensure_transition_event() {
 		if ( ! self::is_front_request() ) {

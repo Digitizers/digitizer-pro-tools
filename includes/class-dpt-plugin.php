@@ -248,6 +248,11 @@ class DPT_Plugin {
 		if ( $changed && class_exists( 'DPT_CB_Settings' ) ) {
 			DPT_CB_Settings::purge_page_caches();
 		}
+		if ( $changed ) {
+			// Shabbat Keeper documents this action for CDNs; switching that module
+			// on or off changes every page too.
+			do_action( 'dpt_shabbat_keeper_purge' );
+		}
 	}
 
 	/**

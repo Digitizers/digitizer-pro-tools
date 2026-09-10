@@ -18,8 +18,8 @@ final class DPT_SK_Settings {
 		return array(
 			'mode'              => 'business',
 			'city'              => 'jerusalem',
-			'custom_lat'        => '0',
-			'custom_lon'        => '0',
+			'custom_lat'        => '31.778',
+			'custom_lon'        => '35.235',
 			'custom_candle'     => '18',
 			'havdalah'          => '42',
 			'override'          => 'auto',
@@ -92,10 +92,11 @@ final class DPT_SK_Settings {
 		$city          = isset( $raw['city'] ) ? sanitize_key( $raw['city'] ) : '';
 		$clean['city'] = ( 'custom' === $city || null !== DPT_SK_Cities::get( $city ) ) ? $city : $d['city'];
 
-		// Kept below the polar circles: past them the sun may not set, a window
-		// would have no start or end, and the site would fail open for weeks.
-		$clean['custom_lat']    = (string) self::clamp_float( isset( $raw['custom_lat'] ) ? $raw['custom_lat'] : 0, -65, 65 );
-		$clean['custom_lon']    = (string) self::clamp_float( isset( $raw['custom_lon'] ) ? $raw['custom_lon'] : 0, -180, 180 );
+		// Israel only: every time this module shows is Asia/Jerusalem wall-clock,
+		// and the holiday set is the Israeli one, so a custom point is for a
+		// place the city list lacks, not another country. Eilat to the Golan.
+		$clean['custom_lat']    = (string) self::clamp_float( isset( $raw['custom_lat'] ) ? $raw['custom_lat'] : 31.778, 29.4, 33.4 );
+		$clean['custom_lon']    = (string) self::clamp_float( isset( $raw['custom_lon'] ) ? $raw['custom_lon'] : 35.235, 34.2, 35.9 );
 		$clean['custom_candle'] = (string) max( 0, min( 60, absint( isset( $raw['custom_candle'] ) ? $raw['custom_candle'] : 18 ) ) );
 
 		foreach ( self::BOOLS as $key ) {
