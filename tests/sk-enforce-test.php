@@ -62,6 +62,19 @@ $clock = $shabbat['start'] - 600;
 dpt_test_eq( DPT_SK_Enforce::cache_max_age(), 600, 'ten minutes before candle lighting, the bound is ten minutes' );
 $clock = $at( '2026-09-02 12:00' );
 
+/* ---- send_cache_header ---- */
+sk_anon();
+dpt_test_eq( DPT_SK_Enforce::send_cache_header(), DPT_SK_Enforce::cache_header_for( array() ), 'send_cache_header matches cache_header_for on an anonymous GET' );
+$GLOBALS['dpt_stub_no_user'] = false;
+dpt_test_eq( DPT_SK_Enforce::send_cache_header(), null, 'no cache header for a logged-in visitor' );
+$GLOBALS['dpt_stub_no_user'] = true;
+$_SERVER['REQUEST_METHOD'] = 'POST';
+dpt_test_eq( DPT_SK_Enforce::send_cache_header(), null, 'no cache header on a POST' );
+unset( $_SERVER['REQUEST_METHOD'] );
+$GLOBALS['dpt_stub_is_admin'] = true;
+dpt_test_eq( DPT_SK_Enforce::send_cache_header(), null, 'no cache header in wp-admin' );
+$GLOBALS['dpt_stub_is_admin'] = false;
+
 /* ---- Shabbat noon, business mode, anonymous ---- */
 $clock = $at( '2026-09-05 12:00' );
 sk_anon();
@@ -171,5 +184,17 @@ $fired = array_filter( $GLOBALS['dpt_stub_actions_fired'], function ( $a ) { ret
 dpt_test_eq( count( $fired ), 1, 'transition action fired' );
 dpt_test_eq( array_values( $fired )[0][1], true, 'transition reports now closed' );
 dpt_test_eq( $GLOBALS['dpt_stub_cron'][ DPT_SK_Enforce::CRON_HOOK ], $shabbat['end'] + 30, 'next purge scheduled for Havdalah' );
+
+$GLOBALS['dpt_stub_cron'][ DPT_SK_Enforce::CRON_HOOK ] = 12345;
+DPT_SK_Enforce::on_transition();
+dpt_test_eq( $GLOBALS['dpt_stub_cron'][ DPT_SK_Enforce::CRON_HOOK ], 12345, 'on_transition respects an existing schedule, nothing double-booked' );
+
+/* ---- schedule_next_transition() only under override auto ---- */
+sk_set( array( 'override' => 'force_closed' ) );
+sk_anon();
+$GLOBALS['dpt_stub_cron'] = array();
+DPT_SK_Enforce::ensure_transition_event();
+dpt_test_eq( $GLOBALS['dpt_stub_cron'], array(), 'nothing scheduled under a manual override' );
+sk_set( array( 'override' => 'auto' ) );
 
 exit( dpt_test_summary() );

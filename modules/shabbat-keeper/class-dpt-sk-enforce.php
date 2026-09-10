@@ -244,17 +244,19 @@ final class DPT_SK_Enforce {
 		return max( 60, min( HOUR_IN_SECONDS, self::zmanim()->next_transition( $now ) - $now ) );
 	}
 
+	/** The Cache-Control header sent, or null when nothing was sent. */
 	public static function send_cache_header() {
 		if ( ! self::is_front_request() || is_user_logged_in() ) {
-			return;
+			return null;
 		}
 		if ( isset( $_SERVER['REQUEST_METHOD'] ) && 'GET' !== $_SERVER['REQUEST_METHOD'] ) {
-			return;
+			return null;
 		}
 		$header = self::cache_header_for( headers_list() );
 		if ( null !== $header ) {
 			header( $header );
 		}
+		return $header;
 	}
 
 	/**
@@ -292,6 +294,9 @@ final class DPT_SK_Enforce {
 	}
 
 	private static function schedule_next_transition() {
+		if ( 'auto' !== DPT_SK_Settings::get( 'override' ) ) {
+			return;
+		}
 		if ( wp_next_scheduled( self::CRON_HOOK ) ) {
 			return;
 		}
