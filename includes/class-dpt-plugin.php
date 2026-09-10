@@ -128,6 +128,11 @@ class DPT_Plugin {
 				'class'   => 'DPT_Copy_URL_Module',
 				'default' => '0',
 			),
+			'shabbat_keeper' => array(
+				'file'    => DPT_PATH . 'modules/shabbat-keeper/class-dpt-sk-module.php',
+				'class'   => 'DPT_Shabbat_Keeper_Module',
+				'default' => '0',
+			),
 		);
 		return apply_filters( 'dpt_modules', $modules );
 	}
