@@ -269,7 +269,10 @@ a page cache or CDN across a transition.
   response already carries a `Cache-Control` with a `max-age` or `s-maxage`
   longer than `next_transition - now` (capped at one hour, no floor - the
   seconds that remain, however few), each such value is shortened to it,
-  other directives kept. A response with no
+  as are `stale-while-revalidate` and `stale-if-error`; other directives
+  are kept. All queued `Cache-Control` fields are read together, since the
+  one emitted replaces them all, and a restrictive directive in any of them
+  vetoes the rewrite. A response with no
   `Cache-Control`, or one that forbids caching (`no-store`, `no-cache`,
   `private`) or already asks for less, is left alone: the module never
   declares a page cacheable on its own, because a page that varies by a

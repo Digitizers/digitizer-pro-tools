@@ -163,8 +163,11 @@ final class DPT_SK_Enforce {
 
 	/* ---------------- times for people ---------------- */
 
-	/** End of the current real window, or null (open, or closed only by override/preview). */
+	/** End of the current real window, or null: open, preview outside a window, or force-closed (the calendar does not decide when that ends). */
 	public static function reopens_at() {
+		if ( 'force_closed' === DPT_SK_Settings::get( 'override' ) ) {
+			return null; // The calendar's end is not this closure's end.
+		}
 		$w = self::zmanim()->current_window( self::now() );
 		return $w ? (int) $w['end'] : null;
 	}
@@ -263,11 +266,18 @@ final class DPT_SK_Enforce {
 
 	/**
 	 * The Cache-Control header we would send, or null when none should be
-	 * sent. This only ever *shortens* a lifetime the response already
-	 * carries: a page with no Cache-Control is left alone (WordPress sends
-	 * none by default, and declaring such a page public would let a shared
-	 * cache hand a post-password or cookie-varied body to everyone), and one
-	 * that forbids caching or already asks for less is left alone too.
+	 * sent. This only ever *shortens* lifetimes the response already carries:
+	 * a page with no Cache-Control is left alone (WordPress sends none by
+	 * default, and declaring such a page public would let a shared cache hand
+	 * a post-password or cookie-varied body to everyone), and one that forbids
+	 * caching or already asks for less is left alone too.
+	 *
+	 * Every queued Cache-Control field is read together, because header()
+	 * replaces all of them with the one we emit: a restrictive directive in a
+	 * later field must survive, so it vetoes the rewrite. The lifetimes cut
+	 * are max-age, s-maxage (shared caches prefer it) and the two stale-*
+	 * allowances, which would otherwise let a CDN keep serving the open page
+	 * past candle lighting while the origin answers 503.
 	 *
 	 * @param string[] $sent_headers Headers already queued for the response.
 	 * @return string|null
@@ -277,30 +287,31 @@ final class DPT_SK_Enforce {
 		if ( null === $max ) {
 			return null;
 		}
+		$fields = array();
 		foreach ( $sent_headers as $sent ) {
-			if ( ! preg_match( '/^cache-control:(.*)/i', $sent, $cc ) ) {
-				continue;
+			if ( preg_match( '/^cache-control:(.*)/i', $sent, $cc ) ) {
+				$fields[] = trim( $cc[1] );
 			}
-			if ( preg_match( '/no-store|no-cache|private/i', $cc[1] ) ) {
-				return null;
-			}
-			// Shorten every lifetime directive that is longer than the bound -
-			// max-age for browsers, s-maxage for CDNs and other shared caches,
-			// which prefer s-maxage when both are present. Leave shorter ones.
-			$bound    = (int) $max;
-			$replaced = preg_replace_callback(
-				'/\b(s-maxage|max-age)=(\d+)/i',
-				function ( $m ) use ( $bound ) {
-					return (int) $m[2] > $bound ? $m[1] . '=' . $bound : $m[0];
-				},
-				$cc[1]
-			);
-			if ( $replaced === $cc[1] ) {
-				return null; // No lifetime, or none longer than the bound.
-			}
-			return 'Cache-Control:' . $replaced;
 		}
-		return null;
+		if ( empty( $fields ) ) {
+			return null;
+		}
+		$combined = implode( ', ', $fields );
+		if ( preg_match( '/\b(no-store|no-cache|private)\b/i', $combined ) ) {
+			return null;
+		}
+		$bound    = (int) $max;
+		$replaced = preg_replace_callback(
+			'/\b(s-maxage|max-age|stale-while-revalidate|stale-if-error)=(\d+)/i',
+			function ( $m ) use ( $bound ) {
+				return (int) $m[2] > $bound ? $m[1] . '=' . $bound : $m[0];
+			},
+			$combined
+		);
+		if ( $replaced === $combined ) {
+			return null; // No lifetime, or none longer than the bound.
+		}
+		return 'Cache-Control: ' . $replaced;
 	}
 
 	public static function ensure_transition_event() {

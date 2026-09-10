@@ -59,6 +59,10 @@ dpt_test_eq( DPT_SK_Enforce::cache_header_for( array( 'Cache-Control: public, ma
 dpt_test_eq( DPT_SK_Enforce::cache_header_for( array( 'Cache-Control: public, max-age=30, s-maxage=86400' ) ), 'Cache-Control: public, max-age=30, s-maxage=' . min( HOUR_IN_SECONDS, $shabbat['start'] - $clock ), 'a shorter max-age is kept while a longer s-maxage is shortened' );
 dpt_test_eq( DPT_SK_Enforce::cache_header_for( array( 'Cache-Control: public, s-maxage=86400, stale-while-revalidate=60' ) ), 'Cache-Control: public, s-maxage=' . min( HOUR_IN_SECONDS, $shabbat['start'] - $clock ) . ', stale-while-revalidate=60', 's-maxage alone is shortened, other directives kept' );
 dpt_test_eq( DPT_SK_Enforce::cache_header_for( array( 'Cache-Control: public, max-age=30, s-maxage=30' ) ), null, 'two short lifetimes: nothing to do' );
+dpt_test_eq( DPT_SK_Enforce::cache_header_for( array( 'Cache-Control: public, max-age=86400', 'Cache-Control: private, no-store' ) ), null, 'a restrictive later field vetoes the rewrite (Codex round-6 P1)' );
+dpt_test_eq( DPT_SK_Enforce::cache_header_for( array( 'Cache-Control: public', 'Cache-Control: max-age=86400' ) ), 'Cache-Control: public, max-age=' . min( HOUR_IN_SECONDS, $shabbat['start'] - $clock ), 'several fields are combined into the one emitted' );
+dpt_test_eq( DPT_SK_Enforce::cache_header_for( array( 'Cache-Control: public, max-age=30, stale-while-revalidate=86400, stale-if-error=86400' ) ), 'Cache-Control: public, max-age=30, stale-while-revalidate=' . min( HOUR_IN_SECONDS, $shabbat['start'] - $clock ) . ', stale-if-error=' . min( HOUR_IN_SECONDS, $shabbat['start'] - $clock ), 'stale allowances are capped at the transition too (Codex round-6 P2)' );
+dpt_test_eq( DPT_SK_Enforce::cache_header_for( array( 'Cache-Control: public, max-age=86400, must-revalidate' ) ), 'Cache-Control: public, max-age=' . min( HOUR_IN_SECONDS, $shabbat['start'] - $clock ) . ', must-revalidate', 'must-revalidate is not mistaken for no-cache' );
 dpt_test_eq( DPT_SK_Enforce::cache_header_for( array( 'Cache-Control: no-store, no-cache, must-revalidate' ) ), null, 'no-store is never overridden' );
 dpt_test_eq( DPT_SK_Enforce::cache_header_for( array( 'Cache-Control: private' ) ), null, 'private is never overridden' );
 dpt_test_eq( DPT_SK_Enforce::cache_header_for( array( 'cache-control: public, max-age=30' ) ), null, 'a shorter existing max-age wins' );
@@ -178,6 +182,10 @@ dpt_test_eq( DPT_SK_Enforce::cache_max_age(), null, 'no cache bound under a manu
 $clock = $at( '2026-09-05 12:00' );
 sk_set( array( 'override' => 'force_open' ) );
 dpt_test_ok( ! DPT_SK_Enforce::is_closed(), 'force_open opens Shabbat' );
+sk_set( array( 'override' => 'force_closed', 'mode' => 'business' ) );
+sk_anon();
+dpt_test_eq( DPT_SK_Enforce::reopens_at(), null, 'force_closed during a real window promises no calendar reopening (Codex round-6 P2)' );
+dpt_test_ok( false !== strpos( DPT_SK_Enforce::banner_html(), 'after Havdalah' ), 'banner says after Havdalah while force-closed' );
 sk_set( array( 'override' => 'auto', 'mode' => 'business' ) );
 
 /* ---- transition cron ---- */
