@@ -2135,3 +2135,214 @@ msgstr ""
 
 msgid "Two shortcodes: [digitizer_copy_url] renders a copy-this-page-address field with a one-click button, and [digitizer_geturl] prints the current page address for use as a dynamic value. Replaces the functions.php snippet and the three-widget Elementor construction around it."
 msgstr ""
+
+msgid "Shabbat Keeper"
+msgstr ""
+
+msgid "Closes the site, or only its shop and forms, from candle lighting to Havdalah every Shabbat and Israeli holiday. Times are computed on the server for the city you pick; nothing is sent anywhere."
+msgstr ""
+
+msgid "Jerusalem"
+msgstr ""
+
+msgid "Tel Aviv"
+msgstr ""
+
+msgid "Haifa"
+msgstr ""
+
+msgid "Beer Sheva"
+msgstr ""
+
+msgid "Eilat"
+msgstr ""
+
+msgid "Netanya"
+msgstr ""
+
+msgid "Petah Tikva"
+msgstr ""
+
+msgid "Ashdod"
+msgstr ""
+
+msgid "Bnei Brak"
+msgstr ""
+
+msgid "Modiin"
+msgstr ""
+
+msgid "Safed"
+msgstr ""
+
+msgid "Tiberias"
+msgstr ""
+
+msgid "Rehovot"
+msgstr ""
+
+msgid "Hadera"
+msgstr ""
+
+msgid "Kfar Saba"
+msgstr ""
+
+msgid "Custom location"
+msgstr ""
+
+msgid "The site is closed for Shabbat"
+msgstr ""
+
+msgid "We observe Shabbat and Jewish holidays. The site reopens automatically after Havdalah."
+msgstr ""
+
+#. translators: %s: the day and time the site reopens.
+msgid "The site is closed for Shabbat. Orders and forms reopen at %s."
+msgstr ""
+
+msgid "after Havdalah"
+msgstr ""
+
+#. translators: PHP date format for the reopening moment: weekday name and time.
+msgid "l H:i"
+msgstr ""
+
+#. translators: %s: the day and time the site reopens, or "after Havdalah".
+msgid "The site reopens %s."
+msgstr ""
+
+#. translators: PHP date format for a closure start or end: weekday, day.month, time.
+msgid "D j.n H:i"
+msgstr ""
+
+msgid "Now: closed"
+msgstr ""
+
+msgid "Now: open"
+msgstr ""
+
+msgid "Reopens %s"
+msgstr ""
+
+msgid "Next closing: %s"
+msgstr ""
+
+msgid "Preview the closed site"
+msgstr ""
+
+msgid "Upcoming closures"
+msgstr ""
+
+msgid "From"
+msgstr ""
+
+msgid "Until"
+msgstr ""
+
+msgid "Reason"
+msgstr ""
+
+msgid "Nothing leaves the site: the times are computed here from the city you pick."
+msgstr ""
+
+msgid "Closed - every visitor sees a \"closed for Shabbat\" page"
+msgstr ""
+
+msgid "Open to read, closed for business - pages stay readable; purchases and forms are refused"
+msgstr ""
+
+msgid "Location"
+msgstr ""
+
+msgid "City"
+msgstr ""
+
+msgid "Custom"
+msgstr ""
+
+msgid "Latitude"
+msgstr ""
+
+msgid "Longitude"
+msgstr ""
+
+msgid "Candle lighting, minutes before sunset"
+msgstr ""
+
+msgid "Havdalah"
+msgstr ""
+
+msgid "42 minutes after sunset"
+msgstr ""
+
+msgid "72 minutes after sunset (Rabbeinu Tam)"
+msgstr ""
+
+msgid "Closed page"
+msgstr ""
+
+msgid "Show the reopening time"
+msgstr ""
+
+msgid "Business mode"
+msgstr ""
+
+msgid "Refuse WooCommerce purchases"
+msgstr ""
+
+msgid "Refuse form submissions (Elementor, Contact Form 7, WPForms, Gravity Forms)"
+msgstr ""
+
+msgid "Hide phone and WhatsApp links"
+msgstr ""
+
+msgid "Show a banner at the top of every page"
+msgstr ""
+
+msgid "Banner text"
+msgstr ""
+
+msgid "%s is replaced by the reopening time."
+msgstr ""
+
+msgid "Override"
+msgstr ""
+
+msgid "Automatic (by the calendar)"
+msgstr ""
+
+msgid "Force open"
+msgstr ""
+
+msgid "Force closed"
+msgstr ""
+
+msgid "A forced state ignores the calendar until you switch back to automatic."
+msgstr ""
+
+msgid "Shabbat"
+msgstr ""
+
+msgid "Rosh Hashana I"
+msgstr ""
+
+msgid "Rosh Hashana II"
+msgstr ""
+
+msgid "Yom Kippur"
+msgstr ""
+
+msgid "Sukkot"
+msgstr ""
+
+msgid "Shmini Atzeret"
+msgstr ""
+
+msgid "Pesach"
+msgstr ""
+
+msgid "Seventh day of Pesach"
+msgstr ""
+
+msgid "Shavuot"
+msgstr ""

@@ -2135,3 +2135,214 @@ msgstr "העתקת כתובת"
 
 msgid "Two shortcodes: [digitizer_copy_url] renders a copy-this-page-address field with a one-click button, and [digitizer_geturl] prints the current page address for use as a dynamic value. Replaces the functions.php snippet and the three-widget Elementor construction around it."
 msgstr "שני שורטקודים: [digitizer_copy_url] מציג שדה עם כתובת העמוד הנוכחי וכפתור העתקה בלחיצה אחת, ו-[digitizer_geturl] מדפיס את כתובת העמוד הנוכחי לשימוש כערך דינמי. מחליף את הסניפט מ-functions.php ואת מבנה שלושת הווידג׳טים באלמנטור שנבנה סביבו."
+
+msgid "Shabbat Keeper"
+msgstr "שומר שבת"
+
+msgid "Closes the site, or only its shop and forms, from candle lighting to Havdalah every Shabbat and Israeli holiday. Times are computed on the server for the city you pick; nothing is sent anywhere."
+msgstr "סוגר את האתר, או רק את החנות והטפסים, מהדלקת נרות ועד הבדלה בכל שבת וחג. הזמנים מחושבים בשרת לפי העיר שבחרתם; שום דבר לא נשלח לשום מקום."
+
+msgid "Jerusalem"
+msgstr "ירושלים"
+
+msgid "Tel Aviv"
+msgstr "תל אביב"
+
+msgid "Haifa"
+msgstr "חיפה"
+
+msgid "Beer Sheva"
+msgstr "באר שבע"
+
+msgid "Eilat"
+msgstr "אילת"
+
+msgid "Netanya"
+msgstr "נתניה"
+
+msgid "Petah Tikva"
+msgstr "פתח תקווה"
+
+msgid "Ashdod"
+msgstr "אשדוד"
+
+msgid "Bnei Brak"
+msgstr "בני ברק"
+
+msgid "Modiin"
+msgstr "מודיעין"
+
+msgid "Safed"
+msgstr "צפת"
+
+msgid "Tiberias"
+msgstr "טבריה"
+
+msgid "Rehovot"
+msgstr "רחובות"
+
+msgid "Hadera"
+msgstr "חדרה"
+
+msgid "Kfar Saba"
+msgstr "כפר סבא"
+
+msgid "Custom location"
+msgstr "מיקום מותאם"
+
+msgid "The site is closed for Shabbat"
+msgstr "האתר סגור לשבת"
+
+msgid "We observe Shabbat and Jewish holidays. The site reopens automatically after Havdalah."
+msgstr "אנחנו שומרים שבת וחגי ישראל. האתר ייפתח מחדש אוטומטית לאחר ההבדלה."
+
+#. translators: %s: the day and time the site reopens.
+msgid "The site is closed for Shabbat. Orders and forms reopen at %s."
+msgstr "האתר סגור לשבת. הזמנות וטפסים ייפתחו מחדש ב-%s."
+
+msgid "after Havdalah"
+msgstr "לאחר ההבדלה"
+
+#. translators: PHP date format for the reopening moment: weekday name and time.
+msgid "l H:i"
+msgstr "l H:i"
+
+#. translators: %s: the day and time the site reopens, or "after Havdalah".
+msgid "The site reopens %s."
+msgstr "האתר ייפתח מחדש %s."
+
+#. translators: PHP date format for a closure start or end: weekday, day.month, time.
+msgid "D j.n H:i"
+msgstr "D j.n H:i"
+
+msgid "Now: closed"
+msgstr "עכשיו: סגור"
+
+msgid "Now: open"
+msgstr "עכשיו: פתוח"
+
+msgid "Reopens %s"
+msgstr "ייפתח מחדש %s"
+
+msgid "Next closing: %s"
+msgstr "הסגירה הבאה: %s"
+
+msgid "Preview the closed site"
+msgstr "תצוגה מקדימה של האתר הסגור"
+
+msgid "Upcoming closures"
+msgstr "סגירות קרובות"
+
+msgid "From"
+msgstr "מ־"
+
+msgid "Until"
+msgstr "עד"
+
+msgid "Reason"
+msgstr "סיבה"
+
+msgid "Nothing leaves the site: the times are computed here from the city you pick."
+msgstr "שום דבר לא יוצא מהאתר: הזמנים מחושבים כאן לפי העיר שבחרתם."
+
+msgid "Closed - every visitor sees a \"closed for Shabbat\" page"
+msgstr "סגור - כל מבקר רואה עמוד \"סגור לשבת\""
+
+msgid "Open to read, closed for business - pages stay readable; purchases and forms are refused"
+msgstr "פתוח לקריאה, סגור לעסקים - העמודים נשארים קריאים; רכישות וטפסים נדחים"
+
+msgid "Location"
+msgstr "מיקום"
+
+msgid "City"
+msgstr "עיר"
+
+msgid "Custom"
+msgstr "מותאם"
+
+msgid "Latitude"
+msgstr "קו רוחב"
+
+msgid "Longitude"
+msgstr "קו אורך"
+
+msgid "Candle lighting, minutes before sunset"
+msgstr "הדלקת נרות, דקות לפני השקיעה"
+
+msgid "Havdalah"
+msgstr "הבדלה"
+
+msgid "42 minutes after sunset"
+msgstr "42 דקות אחרי השקיעה"
+
+msgid "72 minutes after sunset (Rabbeinu Tam)"
+msgstr "72 דקות אחרי השקיעה (רבנו תם)"
+
+msgid "Closed page"
+msgstr "עמוד סגור"
+
+msgid "Show the reopening time"
+msgstr "הצגת שעת הפתיחה"
+
+msgid "Business mode"
+msgstr "מצב עסקים"
+
+msgid "Refuse WooCommerce purchases"
+msgstr "חסימת רכישות בווקומרס"
+
+msgid "Refuse form submissions (Elementor, Contact Form 7, WPForms, Gravity Forms)"
+msgstr "חסימת שליחת טפסים (אלמנטור, Contact Form 7, WPForms, Gravity Forms)"
+
+msgid "Hide phone and WhatsApp links"
+msgstr "הסתרת קישורי טלפון ווואטסאפ"
+
+msgid "Show a banner at the top of every page"
+msgstr "הצגת באנר בראש כל עמוד"
+
+msgid "Banner text"
+msgstr "טקסט הבאנר"
+
+msgid "%s is replaced by the reopening time."
+msgstr "%s מוחלף בשעת הפתיחה."
+
+msgid "Override"
+msgstr "עקיפה"
+
+msgid "Automatic (by the calendar)"
+msgstr "אוטומטי (לפי הלוח)"
+
+msgid "Force open"
+msgstr "פתוח בכוח"
+
+msgid "Force closed"
+msgstr "סגור בכוח"
+
+msgid "A forced state ignores the calendar until you switch back to automatic."
+msgstr "מצב כפוי מתעלם מהלוח עד שתחזרו לאוטומטי."
+
+msgid "Shabbat"
+msgstr "שבת"
+
+msgid "Rosh Hashana I"
+msgstr "ראש השנה א׳"
+
+msgid "Rosh Hashana II"
+msgstr "ראש השנה ב׳"
+
+msgid "Yom Kippur"
+msgstr "יום כיפור"
+
+msgid "Sukkot"
+msgstr "סוכות"
+
+msgid "Shmini Atzeret"
+msgstr "שמיני עצרת"
+
+msgid "Pesach"
+msgstr "פסח"
+
+msgid "Seventh day of Pesach"
+msgstr "שביעי של פסח"
+
+msgid "Shavuot"
+msgstr "שבועות"
