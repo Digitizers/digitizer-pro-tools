@@ -250,6 +250,7 @@ Closes the site for Shabbat and Israeli holidays without anyone touching it (dis
 * Covers every Shabbat and the Israeli Yom Tov days - Rosh Hashana, Yom Kippur, Sukkot, Shmini Atzeret, Pesach first and seventh day, Shavuot - and merges adjacent days into one closure
 * Refuses WooCommerce purchases on the server (classic, blocks and the Store API) and submissions from Elementor Pro Forms, Contact Form 7, WPForms and Gravity Forms; optionally hides phone and WhatsApp links
 * The closed page answers with HTTP 503 and Retry-After, so search engines treat it as a temporary outage
+* In closed mode feeds, robots.txt and sitemaps answer 503 like every other page; search engines read that as a temporary outage
 * Page caches are told to expire at the next transition, and known caches are purged when it arrives
 * Administrators are never blocked and can preview the closed site with ?dpt_shabbat=preview; a manual override forces the site open or closed
 

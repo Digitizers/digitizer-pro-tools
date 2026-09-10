@@ -45,7 +45,9 @@ final class DPT_SK_Integrations {
 				add_filter( 'gform_validation', array( __CLASS__, 'gf_refuse' ) );
 				add_filter( 'gform_validation_message', array( __CLASS__, 'gf_message' ), 10, 2 );
 			}
-			add_filter( 'do_shortcode_tag', array( __CLASS__, 'shortcode_markup' ), 10, 2 );
+			if ( function_exists( 'wpcf7' ) || function_exists( 'wpforms' ) || class_exists( 'GFForms' ) ) {
+				add_filter( 'do_shortcode_tag', array( __CLASS__, 'shortcode_markup' ), 10, 2 );
+			}
 		}
 	}
 

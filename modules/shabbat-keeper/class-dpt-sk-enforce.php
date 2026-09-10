@@ -221,10 +221,7 @@ final class DPT_SK_Enforce {
 		if ( ! self::is_front_request() || 'business' !== DPT_SK_Settings::get( 'mode' ) || ! self::applies() ) {
 			return;
 		}
-		$css = '';
-		if ( '1' === DPT_SK_Settings::get( 'banner_on' ) ) {
-			$css .= self::css();
-		}
+		$css = self::css();
 		if ( '1' === DPT_SK_Settings::get( 'hide_contact' ) ) {
 			$css .= 'a[href^="tel:"],a[href*="wa.me"],a[href*="api.whatsapp.com"]{display:none !important}';
 		}
@@ -310,11 +307,8 @@ final class DPT_SK_Enforce {
 		self::schedule_next_transition();
 	}
 
-	/** Best effort, every known page cache; unknown ones can hook the transition action. */
+	/** Best effort, every known page cache; unknown ones can hook the transition action. The object cache is left alone - it is not a page cache, and flushing it would discard unrelated cached data for no benefit here. */
 	public static function purge_caches() {
-		if ( function_exists( 'wp_cache_flush' ) ) {
-			wp_cache_flush();
-		}
 		if ( function_exists( 'rocket_clean_domain' ) ) {
 			rocket_clean_domain(); // WP Rocket.
 		}

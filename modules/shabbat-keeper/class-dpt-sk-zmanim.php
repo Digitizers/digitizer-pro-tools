@@ -133,12 +133,13 @@ final class DPT_SK_Zmanim {
 		return $ts + 7 * DAY_IN_SECONDS; // Unreachable: there is a Shabbat every week.
 	}
 
-	/** 'shabbat', a holiday key, or null for a civil day in Asia/Jerusalem. */
+	/** 'shabbat', 'shabbat+' . a holiday key when both fall the same day, a holiday key alone, or null for a civil day in Asia/Jerusalem. */
 	private function closure_reason( DateTime $day ) {
+		$holiday = DPT_SK_Hebrew_Calendar::holiday_on( (int) $day->format( 'Y' ), (int) $day->format( 'n' ), (int) $day->format( 'j' ) );
 		if ( '6' === $day->format( 'N' ) ) {
-			return 'shabbat';
+			return null === $holiday ? 'shabbat' : 'shabbat+' . $holiday;
 		}
-		return DPT_SK_Hebrew_Calendar::holiday_on( (int) $day->format( 'Y' ), (int) $day->format( 'n' ), (int) $day->format( 'j' ) );
+		return $holiday;
 	}
 
 	private function sunset_of( DateTime $day ) {

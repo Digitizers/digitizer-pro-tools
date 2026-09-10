@@ -38,7 +38,7 @@ dpt_test_eq( $w[0]['end'], $sat_sunset + 42 * 60, 'ends 42 minutes after Saturda
 /* ---- Shabbat + Rosh Hashana 5787 (Sat 12.9, Sun 13.9) merge into one window ---- */
 $w = $z->windows( $at( '2026-09-10 00:00' ), $at( '2026-09-14 23:59' ) );
 dpt_test_eq( count( $w ), 1, 'Shabbat and two days of Rosh Hashana are one window' );
-dpt_test_eq( $w[0]['reason'], 'shabbat+rosh_hashana_2', 'Saturday 12.9 reports as shabbat, Sunday as day two' );
+dpt_test_eq( $w[0]['reason'], 'shabbat+rosh_hashana_1+rosh_hashana_2', 'Saturday 12.9 reports as shabbat+rosh_hashana_1, Sunday as day two' );
 dpt_test_eq( $w[0]['start'], DPT_SK_Sun::sunset( $j['lat'], $j['lon'], 2026, 9, 11 ) - 40 * 60, 'starts Friday 11.9' );
 dpt_test_eq( $w[0]['end'], DPT_SK_Sun::sunset( $j['lat'], $j['lon'], 2026, 9, 13 ) + 42 * 60, 'ends Sunday 13.9 night' );
 

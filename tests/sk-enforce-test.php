@@ -99,6 +99,8 @@ dpt_test_eq( substr_count( $out, 'dpt-sk-banner' ), 1, 'banner printed once even
 sk_set( array( 'banner_on' => '0' ) );
 sk_anon();
 dpt_test_eq( DPT_SK_Enforce::banner_html(), '', 'banner switched off' );
+ob_start(); DPT_SK_Enforce::print_head_css(); $head_no_banner = ob_get_clean();
+dpt_test_ok( false !== strpos( $head_no_banner, 'dpt-sk-card' ), 'closed-screen styles still print in business mode with the banner off' );
 sk_set( array( 'banner_on' => '1' ) );
 
 /* ---- contact CSS ---- */
