@@ -230,7 +230,7 @@ final class DPT_SK_Enforce {
 			return null;
 		}
 		$now = self::now();
-		return max( 60, self::zmanim()->next_transition( $now ) - $now );
+		return max( 60, min( HOUR_IN_SECONDS, self::zmanim()->next_transition( $now ) - $now ) );
 	}
 
 	public static function send_cache_header() {

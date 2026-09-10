@@ -259,18 +259,23 @@ Truth is computed per request, so the only cache problem is HTML stored by
 a page cache or CDN across a transition.
 
 - `send_headers`: when the request is a cacheable front-end GET, send
-  `Cache-Control: public, max-age=N` where N is
-  `min( existing max-age, next_transition - now )`, floored at 60. A CDN or
-  Varnish then expires the page exactly at candle lighting or Havdalah.
+  `Cache-Control: public, max-age=N` where N is `next_transition - now`,
+  capped at one hour and floored at 60 seconds, and never sent when an
+  existing Cache-Control already asks for less or forbids caching
+  (`no-store`, `no-cache`, `private`); the cron purge, not the header, is
+  what makes a transition take effect.
 - A single WP-Cron event `dpt_sk_transition` is scheduled for the next
   transition whenever a front-end request notices none is pending. When it
   fires it does `do_action( 'dpt_shabbat_keeper_transition', $now_closed )`
-  and best-effort purges: `wp_cache_flush()`, `litespeed_purge_all`,
+  and best-effort purges known page caches: `litespeed_purge_all`,
   `rocket_clean_domain()`, `breeze_clear_all_cache`, `w3tc_flush_all`,
-  `wp_cache_clear_cache()` (WP Super Cache). Each guarded by
-  `function_exists`/`has_action`. If cron never runs, the `max-age` header
-  still bounds the damage; if both fail, only the banner or closed screen
-  is stale - refusals are server-side and unaffected.
+  `wp_cache_clear_cache()` (WP Super Cache), `sg_cachepress_purge_cache()`
+  (SiteGround Optimizer) and `wpfc_clear_all_cache()` (WP Fastest Cache).
+  Each guarded by `function_exists`/`has_action`. The object cache is left
+  alone - `wp_cache_flush()` would blow away unrelated cached data for no
+  benefit here. If cron never runs, the `max-age` header still bounds the
+  damage; if both fail, only the banner or closed screen is stale -
+  refusals are server-side and unaffected.
 
 ## Section 3 - administration, catalog, tests, release
 
