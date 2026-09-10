@@ -29,6 +29,10 @@ final class DPT_SK_Integrations {
 			add_filter( 'woocommerce_add_to_cart_validation', array( __CLASS__, 'refuse_add_to_cart' ), 10, 2 );
 			add_action( 'woocommerce_checkout_process', array( __CLASS__, 'refuse_checkout' ) );
 			add_action( 'woocommerce_store_api_cart_errors', array( __CLASS__, 'store_api_errors' ), 10, 2 );
+			// Paying an existing order (/checkout/order-pay/) runs none of the hooks
+			// above: refuse it on the pay page and in the pay handler.
+			add_filter( 'woocommerce_valid_order_statuses_for_payment', array( __CLASS__, 'no_statuses_for_payment' ), 10, 2 );
+			add_action( 'woocommerce_before_pay_action', array( __CLASS__, 'refuse_order_pay' ) );
 		}
 		if ( '1' === DPT_SK_Settings::get( 'block_forms' ) ) {
 			if ( class_exists( '\ElementorPro\Plugin' ) ) {
@@ -100,6 +104,24 @@ final class DPT_SK_Integrations {
 			$errors->add( 'dpt_shabbat_keeper', self::message() );
 		}
 		return $errors;
+	}
+
+	/** No order status may be paid while closed, so order-pay shows "cannot be paid for" instead of a form. */
+	public static function no_statuses_for_payment( $statuses, $order = null ) {
+		return DPT_SK_Enforce::refusals_apply() ? array() : $statuses;
+	}
+
+	/**
+	 * WC_Form_Handler::pay_action() runs this inside its try block and turns
+	 * an exception into an error notice, so a POST that reaches the handler
+	 * anyway stops here before process_payment().
+	 *
+	 * @throws Exception While closed.
+	 */
+	public static function refuse_order_pay( $order = null ) {
+		if ( DPT_SK_Enforce::refusals_apply() ) {
+			throw new Exception( esc_html( self::message() ) );
+		}
 	}
 
 	/* ---------------- forms ---------------- */

@@ -241,7 +241,9 @@ final class DPT_SK_Enforce {
 			return null;
 		}
 		$now = self::now();
-		return max( 60, min( HOUR_IN_SECONDS, self::zmanim()->next_transition( $now ) - $now ) );
+		// The seconds that remain, however few: a floor would let a copy cached
+		// just before candle lighting outlive the transition.
+		return max( 0, min( HOUR_IN_SECONDS, self::zmanim()->next_transition( $now ) - $now ) );
 	}
 
 	/** The Cache-Control header sent, or null when nothing was sent. */

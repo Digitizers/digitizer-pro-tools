@@ -50,6 +50,12 @@ dpt_test_eq( $GLOBALS['dpt_stub_notices'][0][1], 'error', 'refusal is an error n
 $errors = new WP_Error();
 apply_filters( 'woocommerce_store_api_cart_errors', $errors, null );
 dpt_test_ok( in_array( 'dpt_shabbat_keeper', $errors->get_error_codes(), true ), 'Store API gets an error' );
+dpt_test_ok( dpt_stub_has_filter( 'woocommerce_valid_order_statuses_for_payment' ), 'order-pay statuses filter hooked (Codex round-5 P1)' );
+dpt_test_ok( dpt_stub_has_filter( 'woocommerce_before_pay_action' ), 'order-pay handler hooked' );
+dpt_test_eq( apply_filters( 'woocommerce_valid_order_statuses_for_payment', array( 'pending', 'failed' ), null ), array(), 'no order may be paid while closed' );
+$thrown = null;
+try { do_action_stub( 'woocommerce_before_pay_action', null ); } catch ( Exception $e ) { $thrown = $e->getMessage(); }
+dpt_test_ok( is_string( $thrown ) && '' !== $thrown, 'paying an existing order while closed throws the refusal' );
 $link = apply_filters( 'woocommerce_loop_add_to_cart_link', '<a class="button">Add</a>', null );
 dpt_test_ok( false !== strpos( $link, 'dpt-sk-closed' ), 'shop grid button replaced' );
 
@@ -113,6 +119,10 @@ DPT_SK_Enforce::reset();
 $GLOBALS['dpt_stub_notices'] = array();
 dpt_test_eq( apply_filters( 'woocommerce_is_purchasable', true, null ), true, 'purchasable on Wednesday' );
 dpt_test_eq( apply_filters( 'woocommerce_add_to_cart_validation', true, 7 ), true, 'add to cart allowed' );
+dpt_test_eq( apply_filters( 'woocommerce_valid_order_statuses_for_payment', array( 'pending', 'failed' ), null ), array( 'pending', 'failed' ), 'order-pay statuses untouched on Wednesday' );
+$thrown = null;
+try { do_action_stub( 'woocommerce_before_pay_action', null ); } catch ( Exception $e ) { $thrown = $e->getMessage(); }
+dpt_test_eq( $thrown, null, 'paying an existing order on Wednesday is not refused' );
 dpt_test_eq( apply_filters( 'do_shortcode_tag', '<form>cf7</form>', 'contact-form-7', array(), array() ), '<form>cf7</form>', 'form shown on Wednesday' );
 apply_filters( 'woocommerce_checkout_process', null );
 dpt_test_eq( count( $GLOBALS['dpt_stub_notices'] ), 0, 'no checkout notice on Wednesday' );

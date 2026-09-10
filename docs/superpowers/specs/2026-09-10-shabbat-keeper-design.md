@@ -233,7 +233,9 @@ never render the closed screen.
   `woocommerce_add_to_cart_validation` -> `false` with `wc_add_notice`;
   `woocommerce_checkout_process` -> `wc_add_notice( ..., 'error' )`;
   `woocommerce_store_api_cart_errors` adds a `WP_Error` so the block
-  checkout and the Store API refuse.
+  checkout and the Store API refuse; `woocommerce_valid_order_statuses_for_payment`
+  returns no status and `woocommerce_before_pay_action` throws, so an
+  existing order cannot be paid through `/checkout/order-pay/` either.
 
 **Forms**, when `block_forms`. The server refusal is the truth; the
 replaced markup is a courtesy:
@@ -265,8 +267,9 @@ a page cache or CDN across a transition.
 
 - `send_headers`: when the request is an anonymous front-end GET and the
   response already carries a `Cache-Control` with a `max-age` or `s-maxage`
-  longer than `next_transition - now` (capped at one hour, floored at 60
-  seconds), each such value is shortened to it, other directives kept. A response with no
+  longer than `next_transition - now` (capped at one hour, no floor - the
+  seconds that remain, however few), each such value is shortened to it,
+  other directives kept. A response with no
   `Cache-Control`, or one that forbids caching (`no-store`, `no-cache`,
   `private`) or already asks for less, is left alone: the module never
   declares a page cacheable on its own, because a page that varies by a

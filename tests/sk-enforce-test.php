@@ -65,6 +65,10 @@ dpt_test_eq( DPT_SK_Enforce::cache_header_for( array( 'cache-control: public, ma
 dpt_test_eq( DPT_SK_Enforce::cache_header_for( array( 'Cache-Control: public, max-age=99999999' ) ), 'Cache-Control: public, max-age=' . min( HOUR_IN_SECONDS, $shabbat['start'] - $clock ), 'a longer existing max-age is replaced' );
 $clock = $shabbat['start'] - 600;
 dpt_test_eq( DPT_SK_Enforce::cache_max_age(), 600, 'ten minutes before candle lighting, the bound is ten minutes' );
+$clock = $shabbat['start'] - 10;
+DPT_SK_Enforce::reset();
+dpt_test_eq( DPT_SK_Enforce::cache_max_age(), 10, 'ten seconds before candle lighting, the bound is ten seconds - no floor across the transition (Codex round-5 P2)' );
+dpt_test_eq( DPT_SK_Enforce::cache_header_for( array( 'Cache-Control: public, max-age=30' ) ), 'Cache-Control: public, max-age=10', 'a 30-second lifetime is cut to the 10 that remain' );
 $clock = $at( '2026-09-02 12:00' );
 
 /* ---- send_cache_header ---- */
