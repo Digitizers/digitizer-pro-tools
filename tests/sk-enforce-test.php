@@ -172,6 +172,7 @@ sk_anon();
 ob_start(); DPT_SK_Enforce::print_transition_script(); $js = ob_get_clean();
 dpt_test_ok( false !== strpos( $js, 'var t=' . $shabbat['start'] . ',' ), 'script carries the next transition timestamp' );
 dpt_test_ok( false !== strpos( $js, 'dpt_sk' ), 'script reloads with the cache-busting query' );
+dpt_test_ok( false !== strpos( $js, 'setTimeout(go,Math.min(' ) && false === strpos( $js, '86400' ), 'timer is set however far the transition is, capped inside setTimeout range (Codex round-10 P2)' );
 sk_set( array( 'override' => 'force_closed' ) );
 sk_anon();
 ob_start(); DPT_SK_Enforce::print_transition_script(); $js = ob_get_clean();

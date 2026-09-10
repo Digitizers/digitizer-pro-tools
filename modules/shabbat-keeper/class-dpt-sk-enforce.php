@@ -254,7 +254,10 @@ final class DPT_SK_Enforce {
 	 * WP-Cron may never fire the purge. This inline script knows the next
 	 * transition and, when the page is still open past it (or was served stale
 	 * after it), reloads with a cache-busting query so the origin answers with
-	 * the current state. Not printed under a manual override, which has no
+	 * the current state. The timer is always set - a page left open from Sunday
+	 * to Friday must still turn - capped at 2e9 ms (23 days) to stay inside
+	 * setTimeout's 32-bit range; the next transition is never more than a
+	 * week away. Not printed under a manual override, which has no
 	 * transition, and idle once the reloaded page carries the matching query.
 	 */
 	public static function print_transition_script() {
@@ -262,7 +265,7 @@ final class DPT_SK_Enforce {
 			return;
 		}
 		$t = (int) self::zmanim()->next_transition( self::now() );
-		echo '<script id="dpt-sk-transition">(function(){var t=' . $t . ',n=Math.floor(Date.now()/1000);function q(){try{return new URL(location.href).searchParams.get("dpt_sk");}catch(e){return null;}}function go(){var u;try{u=new URL(location.href);}catch(e){return;}u.searchParams.set("dpt_sk",String(t));location.replace(u.toString());}if(n>=t){if(q()!==String(t)){go();}return;}if(t-n<86400){setTimeout(go,(t-n+2)*1000);}})();</script>';
+		echo '<script id="dpt-sk-transition">(function(){var t=' . $t . ',n=Math.floor(Date.now()/1000);function q(){try{return new URL(location.href).searchParams.get("dpt_sk");}catch(e){return null;}}function go(){var u;try{u=new URL(location.href);}catch(e){return;}u.searchParams.set("dpt_sk",String(t));location.replace(u.toString());}if(n>=t){if(q()!==String(t)){go();}return;}setTimeout(go,Math.min((t-n+2)*1000,2e9));})();</script>';
 	}
 
 	public static function ensure_transition_event() {
