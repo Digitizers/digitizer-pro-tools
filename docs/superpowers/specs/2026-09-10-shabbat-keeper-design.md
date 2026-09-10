@@ -187,7 +187,11 @@ message. Unknown keys are dropped.
 unless preview, filtered by `dpt_shabbat_keeper_exempt( bool )`. Exempt
 users never see a block, a banner or a refusal, so an administrator can
 still buy a test product on Shabbat. Preview overrides exemption for that
-one request.
+one request. `applies(): bool` is `is_closed() && ! is_exempt()`, with no
+regard for the kind of request. Commerce and form refusals additionally
+skip cron, WP-CLI and non-AJAX wp-admin requests (`refusals_apply()`,
+filter `dpt_shabbat_keeper_refuse`), so a manager can still build an order
+by hand.
 
 Requests that are never touched, in either mode: `is_admin()`, `DOING_AJAX`,
 `DOING_CRON`, `REST_REQUEST`, WP-CLI, `wp-login.php`, `xmlrpc.php`. The

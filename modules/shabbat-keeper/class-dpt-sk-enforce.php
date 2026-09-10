@@ -82,6 +82,17 @@ final class DPT_SK_Enforce {
 		return self::is_closed() && ! self::is_exempt();
 	}
 
+	/** Closed, not exempt, and a context where refusing a purchase or a form makes sense: not cron, not WP-CLI, not a wp-admin screen (admin-ajax still counts, WooCommerce's front-end add-to-cart can travel through it). */
+	public static function refusals_apply() {
+		if ( ! self::applies() ) {
+			return false;
+		}
+		$context_ok = ! wp_doing_cron()
+			&& ! ( defined( 'WP_CLI' ) && WP_CLI )
+			&& ! ( is_admin() && ! wp_doing_ajax() );
+		return (bool) apply_filters( 'dpt_shabbat_keeper_refuse', $context_ok );
+	}
+
 	/** A visitor-facing page request: not admin, ajax, cron, REST, CLI, XML-RPC or login. */
 	public static function is_front_request() {
 		if ( is_admin() || wp_doing_ajax() || wp_doing_cron() ) {

@@ -4,8 +4,10 @@
  * refusal is the truth; replacing the markup is a courtesy so a visitor
  * is told before trying.
  *
- * Every hook checks DPT_SK_Enforce::applies() - closed and not exempt -
- * and nothing else, so the Store API and AJAX submissions are covered.
+ * Every hook checks DPT_SK_Enforce::refusals_apply() - closed, not exempt,
+ * and a context where a refusal makes sense (not cron, not WP-CLI, not a
+ * non-AJAX wp-admin screen) - so the Store API and AJAX submissions are
+ * covered while a manager can still build an order by hand in wp-admin.
  */
 
 if ( ! defined( 'ABSPATH' ) ) { exit; }
@@ -59,24 +61,24 @@ final class DPT_SK_Integrations {
 	/* ---------------- WooCommerce ---------------- */
 
 	public static function not_purchasable( $purchasable, $product = null ) {
-		return DPT_SK_Enforce::applies() ? false : $purchasable;
+		return DPT_SK_Enforce::refusals_apply() ? false : $purchasable;
 	}
 
 	public static function product_notice() {
-		if ( DPT_SK_Enforce::applies() ) {
+		if ( DPT_SK_Enforce::refusals_apply() ) {
 			echo '<p class="dpt-sk-closed-notice">' . esc_html( self::message() ) . '</p>';
 		}
 	}
 
 	public static function loop_button( $link, $product = null ) {
-		if ( ! DPT_SK_Enforce::applies() ) {
+		if ( ! DPT_SK_Enforce::refusals_apply() ) {
 			return $link;
 		}
 		return '<span class="button dpt-sk-closed">' . esc_html( DPT_SK_Settings::text( 'closed_title' ) ) . '</span>';
 	}
 
 	public static function refuse_add_to_cart( $passed, $product_id = 0 ) {
-		if ( ! DPT_SK_Enforce::applies() ) {
+		if ( ! DPT_SK_Enforce::refusals_apply() ) {
 			return $passed;
 		}
 		if ( function_exists( 'wc_add_notice' ) ) {
@@ -86,13 +88,13 @@ final class DPT_SK_Integrations {
 	}
 
 	public static function refuse_checkout() {
-		if ( DPT_SK_Enforce::applies() && function_exists( 'wc_add_notice' ) ) {
+		if ( DPT_SK_Enforce::refusals_apply() && function_exists( 'wc_add_notice' ) ) {
 			wc_add_notice( self::message(), 'error' );
 		}
 	}
 
 	public static function store_api_errors( $errors, $cart = null ) {
-		if ( DPT_SK_Enforce::applies() && $errors instanceof WP_Error ) {
+		if ( DPT_SK_Enforce::refusals_apply() && $errors instanceof WP_Error ) {
 			$errors->add( 'dpt_shabbat_keeper', self::message() );
 		}
 		return $errors;
@@ -101,27 +103,27 @@ final class DPT_SK_Integrations {
 	/* ---------------- forms ---------------- */
 
 	public static function elementor_refuse( $record, $ajax_handler ) {
-		if ( DPT_SK_Enforce::applies() && is_object( $ajax_handler ) && method_exists( $ajax_handler, 'add_error_message' ) ) {
+		if ( DPT_SK_Enforce::refusals_apply() && is_object( $ajax_handler ) && method_exists( $ajax_handler, 'add_error_message' ) ) {
 			$ajax_handler->add_error_message( self::message() );
 		}
 	}
 
 	public static function elementor_markup( $content, $widget = null ) {
-		if ( DPT_SK_Enforce::applies() && is_object( $widget ) && method_exists( $widget, 'get_name' ) && 'form' === $widget->get_name() ) {
+		if ( DPT_SK_Enforce::refusals_apply() && is_object( $widget ) && method_exists( $widget, 'get_name' ) && 'form' === $widget->get_name() ) {
 			return self::closed_markup();
 		}
 		return $content;
 	}
 
 	public static function cf7_refuse( $result, $tags = array() ) {
-		if ( DPT_SK_Enforce::applies() && is_object( $result ) && method_exists( $result, 'invalidate' ) && ! empty( $tags ) ) {
+		if ( DPT_SK_Enforce::refusals_apply() && is_object( $result ) && method_exists( $result, 'invalidate' ) && ! empty( $tags ) ) {
 			$result->invalidate( reset( $tags ), self::message() );
 		}
 		return $result;
 	}
 
 	public static function wpforms_refuse( $entry, $form_data = array() ) {
-		if ( ! DPT_SK_Enforce::applies() || ! function_exists( 'wpforms' ) ) {
+		if ( ! DPT_SK_Enforce::refusals_apply() || ! function_exists( 'wpforms' ) ) {
 			return;
 		}
 		$id = isset( $form_data['id'] ) ? (int) $form_data['id'] : 0;
@@ -135,18 +137,18 @@ final class DPT_SK_Integrations {
 	}
 
 	public static function gf_refuse( $result ) {
-		if ( DPT_SK_Enforce::applies() && is_array( $result ) ) {
+		if ( DPT_SK_Enforce::refusals_apply() && is_array( $result ) ) {
 			$result['is_valid'] = false;
 		}
 		return $result;
 	}
 
 	public static function gf_message( $message, $form = null ) {
-		return DPT_SK_Enforce::applies() ? '<div class="validation_error">' . esc_html( self::message() ) . '</div>' : $message;
+		return DPT_SK_Enforce::refusals_apply() ? '<div class="validation_error">' . esc_html( self::message() ) . '</div>' : $message;
 	}
 
 	public static function shortcode_markup( $output, $tag = '' ) {
-		if ( DPT_SK_Enforce::applies() && in_array( $tag, self::FORM_SHORTCODES, true ) ) {
+		if ( DPT_SK_Enforce::refusals_apply() && in_array( $tag, self::FORM_SHORTCODES, true ) ) {
 			return self::closed_markup();
 		}
 		return $output;

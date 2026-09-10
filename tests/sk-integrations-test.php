@@ -10,7 +10,9 @@ require_once dirname( __DIR__ ) . '/modules/shabbat-keeper/class-dpt-sk-integrat
 
 if ( ! function_exists( 'add_option' ) ) { function add_option( $k, $v ) { return update_option( $k, $v ); } }
 function wp_date( $format, $ts, $tz = null ) { $d = new DateTime( '@' . $ts ); $d->setTimezone( $tz ? $tz : new DateTimeZone( 'Asia/Jerusalem' ) ); return $d->format( $format ); }
-function wp_doing_ajax() { return false; }
+function wp_doing_ajax() { return (bool) $GLOBALS['dpt_stub_doing_ajax']; }
+$GLOBALS['dpt_stub_doing_ajax'] = false;
+$GLOBALS['dpt_stub_is_admin'] = false; // A visitor-facing request by default; refusals_apply() also checks is_admin().
 $GLOBALS['dpt_stub_notices'] = array();
 function wc_add_notice( $msg, $type = 'success' ) { $GLOBALS['dpt_stub_notices'][] = array( $msg, $type ); }
 
@@ -82,6 +84,29 @@ dpt_test_ok( false !== strpos( DPT_SK_Integrations::message(), '10% off' ), 'mes
 DPT_SK_Settings::save( array( 'banner_text' => '' ) );
 DPT_SK_Enforce::reset();
 
+/* ---- refuse_checkout / product_notice, closed and anonymous ---- */
+$GLOBALS['dpt_stub_notices'] = array();
+apply_filters( 'woocommerce_checkout_process', null );
+dpt_test_eq( count( $GLOBALS['dpt_stub_notices'] ), 1, 'checkout on Shabbat produces one notice' );
+dpt_test_eq( $GLOBALS['dpt_stub_notices'][0][1], 'error', 'checkout refusal is an error notice' );
+ob_start();
+apply_filters( 'woocommerce_single_product_summary', null );
+$product_notice_out = ob_get_clean();
+dpt_test_ok( false !== strpos( $product_notice_out, 'dpt-sk-closed-notice' ), 'product page shows the closed notice' );
+
+/* ---- refusals_apply(): cron, WP-CLI and non-AJAX wp-admin are skipped ---- */
+$GLOBALS['dpt_stub_doing_cron'] = true;
+dpt_test_eq( apply_filters( 'woocommerce_is_purchasable', true, null ), true, 'cron never refuses a purchase' );
+$GLOBALS['dpt_stub_doing_cron'] = false;
+
+$GLOBALS['dpt_stub_is_admin']   = true;
+$GLOBALS['dpt_stub_doing_ajax'] = false;
+dpt_test_eq( apply_filters( 'woocommerce_is_purchasable', true, null ), true, 'a plain wp-admin request never refuses a purchase, so a manager can build an order by hand' );
+$GLOBALS['dpt_stub_doing_ajax'] = true;
+dpt_test_eq( apply_filters( 'woocommerce_is_purchasable', true, null ), false, 'admin-ajax still refuses a purchase' );
+$GLOBALS['dpt_stub_is_admin']   = false;
+$GLOBALS['dpt_stub_doing_ajax'] = false;
+
 /* ---- open, visitor: everything passes through ---- */
 $clock = $at( '2026-09-02 12:00' );
 DPT_SK_Enforce::reset();
@@ -89,6 +114,11 @@ $GLOBALS['dpt_stub_notices'] = array();
 dpt_test_eq( apply_filters( 'woocommerce_is_purchasable', true, null ), true, 'purchasable on Wednesday' );
 dpt_test_eq( apply_filters( 'woocommerce_add_to_cart_validation', true, 7 ), true, 'add to cart allowed' );
 dpt_test_eq( apply_filters( 'do_shortcode_tag', '<form>cf7</form>', 'contact-form-7', array(), array() ), '<form>cf7</form>', 'form shown on Wednesday' );
+apply_filters( 'woocommerce_checkout_process', null );
+dpt_test_eq( count( $GLOBALS['dpt_stub_notices'] ), 0, 'no checkout notice on Wednesday' );
+ob_start();
+apply_filters( 'woocommerce_single_product_summary', null );
+dpt_test_eq( ob_get_clean(), '', 'no product notice on Wednesday' );
 
 /* ---- closed, administrator: exempt ---- */
 $clock = $at( '2026-09-05 12:00' );
