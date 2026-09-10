@@ -263,11 +263,15 @@ time in the site locale.
 Truth is computed per request, so the only cache problem is HTML stored by
 a page cache or CDN across a transition.
 
-- `send_headers`: when the request is a cacheable front-end GET, send
-  `Cache-Control: public, max-age=N` where N is `next_transition - now`,
-  capped at one hour and floored at 60 seconds, and never sent when an
-  existing Cache-Control already asks for less or forbids caching
-  (`no-store`, `no-cache`, `private`); the cron purge, not the header, is
+- `send_headers`: when the request is an anonymous front-end GET and the
+  response already carries a `Cache-Control` with a `max-age` longer than
+  `next_transition - now` (capped at one hour, floored at 60 seconds), that
+  value is shortened to it, other directives kept. A response with no
+  `Cache-Control`, or one that forbids caching (`no-store`, `no-cache`,
+  `private`) or already asks for less, is left alone: the module never
+  declares a page cacheable on its own, because a page that varies by a
+  non-login cookie (a post password) or by HTTP authorization would then be
+  served by a shared cache to everyone. The cron purge, not the header, is
   what makes a transition take effect.
 - A single WP-Cron event `dpt_sk_transition` is scheduled for the next
   transition whenever a front-end request notices none is pending. When it

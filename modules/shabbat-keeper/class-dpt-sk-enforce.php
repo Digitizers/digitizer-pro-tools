@@ -261,8 +261,11 @@ final class DPT_SK_Enforce {
 
 	/**
 	 * The Cache-Control header we would send, or null when none should be
-	 * sent: no bound applies, or something already sent asks for less than
-	 * our bound (no-store, no-cache, private, or a shorter max-age).
+	 * sent. This only ever *shortens* a lifetime the response already
+	 * carries: a page with no Cache-Control is left alone (WordPress sends
+	 * none by default, and declaring such a page public would let a shared
+	 * cache hand a post-password or cookie-varied body to everyone), and one
+	 * that forbids caching or already asks for less is left alone too.
 	 *
 	 * @param string[] $sent_headers Headers already queued for the response.
 	 * @return string|null
@@ -277,13 +280,14 @@ final class DPT_SK_Enforce {
 				continue;
 			}
 			if ( preg_match( '/no-store|no-cache|private/i', $cc[1] ) ) {
-				return null; // Something already asked for less than any positive max-age.
+				return null;
 			}
-			if ( preg_match( '/max-age=(\d+)/i', $cc[1], $m ) && (int) $m[1] <= $max ) {
-				return null; // Something already asked for a shorter life.
+			if ( ! preg_match( '/max-age=(\d+)/i', $cc[1], $m ) || (int) $m[1] <= $max ) {
+				return null;
 			}
+			return 'Cache-Control:' . preg_replace( '/max-age=\d+/i', 'max-age=' . (int) $max, $cc[1] );
 		}
-		return 'Cache-Control: public, max-age=' . (int) $max;
+		return null;
 	}
 
 	public static function ensure_transition_event() {
