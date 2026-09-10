@@ -27,7 +27,6 @@ final class DPT_SK_Enforce {
 		add_action( 'wp_head', array( __CLASS__, 'print_head_css' ) );
 		add_action( 'wp_body_open', array( __CLASS__, 'print_banner' ) );
 		add_action( 'wp_footer', array( __CLASS__, 'print_banner_fallback' ) );
-		add_action( 'send_headers', array( __CLASS__, 'send_cache_header' ) );
 		add_action( 'wp', array( __CLASS__, 'ensure_transition_event' ) );
 		add_action( self::CRON_HOOK, array( __CLASS__, 'on_transition' ) );
 	}
@@ -172,18 +171,28 @@ final class DPT_SK_Enforce {
 		return $w ? (int) $w['end'] : null;
 	}
 
-	/** "Saturday 19:32", or "after Havdalah" when there is no real window. */
+	/**
+	 * "on Saturday 19:32"; "after Havdalah" for a preview outside a window;
+	 * "when the closure is lifted" under force-closed, whose end the calendar
+	 * does not know. Each carries its own preposition so it reads after
+	 * "reopens" in every language.
+	 */
 	public static function reopens_text() {
+		if ( 'force_closed' === DPT_SK_Settings::get( 'override' ) ) {
+			return __( 'when the closure is lifted', 'digitizer-pro-tools' );
+		}
 		$end = self::reopens_at();
 		if ( null === $end ) {
 			return __( 'after Havdalah', 'digitizer-pro-tools' );
 		}
 		/* translators: PHP date format for the reopening moment: weekday name and time. */
-		return wp_date( __( 'l H:i', 'digitizer-pro-tools' ), $end, new DateTimeZone( DPT_SK_Zmanim::TIMEZONE ) );
+		$when = wp_date( __( 'l H:i', 'digitizer-pro-tools' ), $end, new DateTimeZone( DPT_SK_Zmanim::TIMEZONE ) );
+		/* translators: %s: weekday name and time, e.g. "Saturday 19:32". */
+		return sprintf( __( 'on %s', 'digitizer-pro-tools' ), $when );
 	}
 
 	private static function reopens_sentence() {
-		/* translators: %s: the day and time the site reopens, or "after Havdalah". */
+		/* translators: %s: "on Saturday 19:32", "after Havdalah" or "when the closure is lifted". */
 		return sprintf( __( 'The site reopens %s.', 'digitizer-pro-tools' ), self::reopens_text() );
 	}
 
@@ -237,82 +246,6 @@ final class DPT_SK_Enforce {
 	}
 
 	/* ---------------- caches ---------------- */
-
-	/** Seconds until the next transition, or null when nothing should be bounded. */
-	public static function cache_max_age() {
-		if ( 'auto' !== DPT_SK_Settings::get( 'override' ) ) {
-			return null;
-		}
-		$now = self::now();
-		// The seconds that remain, however few: a floor would let a copy cached
-		// just before candle lighting outlive the transition.
-		return max( 0, min( HOUR_IN_SECONDS, self::zmanim()->next_transition( $now ) - $now ) );
-	}
-
-	/** The Cache-Control header sent, or null when nothing was sent. */
-	public static function send_cache_header() {
-		if ( ! self::is_front_request() || is_user_logged_in() ) {
-			return null;
-		}
-		if ( isset( $_SERVER['REQUEST_METHOD'] ) && 'GET' !== $_SERVER['REQUEST_METHOD'] ) {
-			return null;
-		}
-		$header = self::cache_header_for( headers_list() );
-		if ( null !== $header ) {
-			header( $header );
-		}
-		return $header;
-	}
-
-	/**
-	 * The Cache-Control header we would send, or null when none should be
-	 * sent. This only ever *shortens* lifetimes the response already carries:
-	 * a page with no Cache-Control is left alone (WordPress sends none by
-	 * default, and declaring such a page public would let a shared cache hand
-	 * a post-password or cookie-varied body to everyone), and one that forbids
-	 * caching or already asks for less is left alone too.
-	 *
-	 * Every queued Cache-Control field is read together, because header()
-	 * replaces all of them with the one we emit: a restrictive directive in a
-	 * later field must survive, so it vetoes the rewrite. The lifetimes cut
-	 * are max-age, s-maxage (shared caches prefer it) and the two stale-*
-	 * allowances, which would otherwise let a CDN keep serving the open page
-	 * past candle lighting while the origin answers 503.
-	 *
-	 * @param string[] $sent_headers Headers already queued for the response.
-	 * @return string|null
-	 */
-	public static function cache_header_for( array $sent_headers ) {
-		$max = self::cache_max_age();
-		if ( null === $max ) {
-			return null;
-		}
-		$fields = array();
-		foreach ( $sent_headers as $sent ) {
-			if ( preg_match( '/^cache-control:(.*)/i', $sent, $cc ) ) {
-				$fields[] = trim( $cc[1] );
-			}
-		}
-		if ( empty( $fields ) ) {
-			return null;
-		}
-		$combined = implode( ', ', $fields );
-		if ( preg_match( '/\b(no-store|no-cache|private)\b/i', $combined ) ) {
-			return null;
-		}
-		$bound    = (int) $max;
-		$replaced = preg_replace_callback(
-			'/\b(s-maxage|max-age|stale-while-revalidate|stale-if-error)=(\d+)/i',
-			function ( $m ) use ( $bound ) {
-				return (int) $m[2] > $bound ? $m[1] . '=' . $bound : $m[0];
-			},
-			$combined
-		);
-		if ( $replaced === $combined ) {
-			return null; // No lifetime, or none longer than the bound.
-		}
-		return 'Cache-Control: ' . $replaced;
-	}
 
 	public static function ensure_transition_event() {
 		if ( ! self::is_front_request() ) {

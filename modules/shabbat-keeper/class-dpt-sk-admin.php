@@ -152,7 +152,7 @@ final class DPT_SK_Admin {
 						<tr>
 							<th scope="row"><?php esc_html_e( 'Custom', 'digitizer-pro-tools' ); ?></th>
 							<td>
-								<label><?php esc_html_e( 'Latitude', 'digitizer-pro-tools' ); ?> <input type="number" step="0.001" min="-90" max="90" name="dpt_sk[custom_lat]" value="<?php echo esc_attr( $o['custom_lat'] ); ?>" class="small-text" /></label>
+								<label><?php esc_html_e( 'Latitude', 'digitizer-pro-tools' ); ?> <input type="number" step="0.001" min="-65" max="65" name="dpt_sk[custom_lat]" value="<?php echo esc_attr( $o['custom_lat'] ); ?>" class="small-text" /></label>
 								<label><?php esc_html_e( 'Longitude', 'digitizer-pro-tools' ); ?> <input type="number" step="0.001" min="-180" max="180" name="dpt_sk[custom_lon]" value="<?php echo esc_attr( $o['custom_lon'] ); ?>" class="small-text" /></label>
 								<label><?php esc_html_e( 'Candle lighting, minutes before sunset', 'digitizer-pro-tools' ); ?> <input type="number" min="0" max="60" name="dpt_sk[custom_candle]" value="<?php echo esc_attr( $o['custom_candle'] ); ?>" class="small-text" /></label>
 							</td>

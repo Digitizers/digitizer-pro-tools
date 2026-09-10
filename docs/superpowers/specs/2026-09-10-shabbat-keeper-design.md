@@ -141,7 +141,9 @@ A fixed table `slug => array{ name (translatable), lat, lon, candle_minutes }`:
 | kfar_saba | 18 |
 
 Plus `custom`, which reads `custom_lat`, `custom_lon`, `custom_candle` from
-settings. Coordinates are the city centre to three decimals; a kilometre
+settings; latitude is clamped to -65..65 so the sun always sets (past the
+polar circles a window would have no start or end and the site would fail
+open). Coordinates are the city centre to three decimals; a kilometre
 moves sunset by well under a minute.
 
 Havdalah: `42` (default, three medium stars as commonly published in
@@ -169,7 +171,7 @@ module itself is off by default in `dpt_settings['modules']`, like Copy URL.
 | `block_forms` | bool | `1` |
 | `hide_contact` | bool | `0` |
 | `banner_on` | bool | `1` |
-| `banner_text` | text, `%s` = reopening time | "The site is closed for Shabbat. Orders and forms reopen at %s." (Hebrew in catalog) |
+| `banner_text` | text, `%s` = reopening phrase | "The site is closed for Shabbat. Orders and forms reopen %s." (Hebrew in catalog) |
 
 `DPT_SK_Settings::get()` returns the merged array; `sanitize( array )`
 whitelists every enum, clamps numbers, and runs `wp_kses_post` on the
@@ -203,7 +205,9 @@ working; the commerce hooks below cover the Store API on their own.
 On `template_redirect` at priority 0 - before Content Control's whole-site
 protection, which exits at priority 1 - when closed and not exempt:
 
-- `status_header( 503 )`, `Retry-After: <seconds until window end>`,
+- `status_header( 503 )`, `Retry-After: <seconds until window end>` (an hour
+  under force-closed or a preview outside a window, since no calendar end
+  applies),
   `nocache_headers()`. The 503 alone tells search engines the outage is
   temporary; the page also carries `<meta name="robots" content="noindex">`
   so a crawler that ignores the status does not index it as content.
@@ -265,20 +269,14 @@ time in the site locale.
 Truth is computed per request, so the only cache problem is HTML stored by
 a page cache or CDN across a transition.
 
-- `send_headers`: when the request is an anonymous front-end GET and the
-  response already carries a `Cache-Control` with a `max-age` or `s-maxage`
-  longer than `next_transition - now` (capped at one hour, no floor - the
-  seconds that remain, however few), each such value is shortened to it,
-  as are `stale-while-revalidate` and `stale-if-error`; other directives
-  are kept. All queued `Cache-Control` fields are read together, since the
-  one emitted replaces them all, and a restrictive directive in any of them
-  vetoes the rewrite. A response with no
-  `Cache-Control`, or one that forbids caching (`no-store`, `no-cache`,
-  `private`) or already asks for less, is left alone: the module never
-  declares a page cacheable on its own, because a page that varies by a
-  non-login cookie (a post password) or by HTTP authorization would then be
-  served by a shared cache to everyone. The cron purge, not the header, is
-  what makes a transition take effect.
+- No `Cache-Control` is written. An earlier draft shortened whatever
+  lifetime the response already carried; five review rounds each found one
+  more directive or field that made the rewrite wrong (`s-maxage`, a second
+  `Cache-Control` field, `stale-while-revalidate`, `stale-if-error`, their
+  additive lifetimes), which is the mechanism saying an origin cannot
+  correct a CDN's policy from inside one header. The purge below is the
+  mechanism; a CDN that caches HTML needs its purge hooked to the
+  transition action, and the readme says so.
 - A single WP-Cron event `dpt_sk_transition` is scheduled for the next
   transition whenever a front-end request notices none is pending. When it
   fires it does `do_action( 'dpt_shabbat_keeper_transition', $now_closed )`

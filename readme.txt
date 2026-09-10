@@ -251,7 +251,7 @@ Closes the site for Shabbat and Israeli holidays without anyone touching it (dis
 * Refuses WooCommerce purchases on the server (classic, blocks and the Store API) and submissions from Elementor Pro Forms, Contact Form 7, WPForms and Gravity Forms; optionally hides phone and WhatsApp links
 * The closed page answers with HTTP 503 and Retry-After, so search engines treat it as a temporary outage
 * In closed mode feeds, robots.txt and sitemaps answer 503 like every other page; search engines read that as a temporary outage
-* A page that already carries a cache lifetime has it shortened to the next transition (never lengthened, never introduced), and known page caches are purged when the transition arrives
+* Known page caches (LiteSpeed, WP Rocket, Breeze, W3 Total Cache, WP Super Cache, WP Fastest Cache, SiteGround) are purged at each transition; a CDN that caches HTML can hook its own purge to the dpt_shabbat_keeper_transition action
 * Administrators are never blocked and can preview the closed site with ?dpt_shabbat=preview; a manual override forces the site open or closed
 
 == External services ==
@@ -358,7 +358,7 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 == Changelog ==
 
 = 1.39.0 =
-* New module: Shabbat Keeper - closes the site, or only its shop and forms, from candle lighting to Havdalah every Shabbat and Israeli holiday. Times are computed on the server for a chosen city (no external service); WooCommerce purchases and Elementor, Contact Form 7, WPForms and Gravity Forms submissions are refused while closed; the closed page answers 503 with Retry-After; page caches are bounded to the next transition and purged when it comes; administrators are exempt and can preview
+* New module: Shabbat Keeper - closes the site, or only its shop and forms, from candle lighting to Havdalah every Shabbat and Israeli holiday. Times are computed on the server for a chosen city (no external service); WooCommerce purchases and Elementor, Contact Form 7, WPForms and Gravity Forms submissions are refused while closed; the closed page answers 503 with Retry-After; known page caches are purged at each transition; administrators are exempt and can preview
 
 = 1.38.0 =
 * Agent Log: the site tagline (`blogdescription`) is recorded when it changes, beside the site name.

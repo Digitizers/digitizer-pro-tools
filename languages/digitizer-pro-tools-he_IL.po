@@ -2196,18 +2196,25 @@ msgstr "האתר סגור לשבת"
 msgid "We observe Shabbat and Jewish holidays. The site reopens automatically after Havdalah."
 msgstr "אנחנו שומרים שבת וחגי ישראל. האתר ייפתח מחדש אוטומטית לאחר ההבדלה."
 
-#. translators: %s: the day and time the site reopens.
-msgid "The site is closed for Shabbat. Orders and forms reopen at %s."
-msgstr "האתר סגור לשבת. הזמנות וטפסים ייפתחו מחדש ב-%s."
+#. translators: %s: "on Saturday 19:32", "after Havdalah" or "when the closure is lifted".
+msgid "The site is closed for Shabbat. Orders and forms reopen %s."
+msgstr "האתר סגור לשבת. הזמנות וטפסים ייפתחו מחדש %s."
 
 msgid "after Havdalah"
 msgstr "לאחר ההבדלה"
+
+msgid "when the closure is lifted"
+msgstr "כשהסגירה תוסר"
+
+#. translators: %s: weekday name and time, e.g. "Saturday 19:32".
+msgid "on %s"
+msgstr "ב%s"
 
 #. translators: PHP date format for the reopening moment: weekday name and time.
 msgid "l H:i"
 msgstr "l H:i"
 
-#. translators: %s: the day and time the site reopens, or "after Havdalah".
+#. translators: %s: "on Saturday 19:32", "after Havdalah" or "when the closure is lifted".
 msgid "The site reopens %s."
 msgstr "האתר ייפתח מחדש %s."
 

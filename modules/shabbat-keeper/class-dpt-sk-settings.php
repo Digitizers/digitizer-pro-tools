@@ -72,8 +72,8 @@ final class DPT_SK_Settings {
 			case 'closed_message':
 				return __( 'We observe Shabbat and Jewish holidays. The site reopens automatically after Havdalah.', 'digitizer-pro-tools' );
 			case 'banner_text':
-				/* translators: %s: the day and time the site reopens. */
-				return __( 'The site is closed for Shabbat. Orders and forms reopen at %s.', 'digitizer-pro-tools' );
+				/* translators: %s: "on Saturday 19:32", "after Havdalah" or "when the closure is lifted". */
+				return __( 'The site is closed for Shabbat. Orders and forms reopen %s.', 'digitizer-pro-tools' );
 		}
 		return '';
 	}
@@ -90,7 +90,9 @@ final class DPT_SK_Settings {
 		$city          = isset( $raw['city'] ) ? sanitize_key( $raw['city'] ) : '';
 		$clean['city'] = ( 'custom' === $city || null !== DPT_SK_Cities::get( $city ) ) ? $city : $d['city'];
 
-		$clean['custom_lat']    = (string) self::clamp_float( isset( $raw['custom_lat'] ) ? $raw['custom_lat'] : 0, -90, 90 );
+		// Kept below the polar circles: past them the sun may not set, a window
+		// would have no start or end, and the site would fail open for weeks.
+		$clean['custom_lat']    = (string) self::clamp_float( isset( $raw['custom_lat'] ) ? $raw['custom_lat'] : 0, -65, 65 );
 		$clean['custom_lon']    = (string) self::clamp_float( isset( $raw['custom_lon'] ) ? $raw['custom_lon'] : 0, -180, 180 );
 		$clean['custom_candle'] = (string) max( 0, min( 60, absint( isset( $raw['custom_candle'] ) ? $raw['custom_candle'] : 18 ) ) );
 

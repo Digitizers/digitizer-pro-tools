@@ -52,40 +52,13 @@ sk_anon();
 dpt_test_ok( ! DPT_SK_Enforce::is_closed(), 'Wednesday is open' );
 dpt_test_ok( ! DPT_SK_Enforce::should_block(), 'nothing to block on Wednesday' );
 dpt_test_eq( DPT_SK_Enforce::banner_html(), '', 'no banner when open' );
-dpt_test_eq( DPT_SK_Enforce::cache_max_age(), min( HOUR_IN_SECONDS, $shabbat['start'] - $clock ), 'cache lives until candle lighting, capped at an hour' );
-dpt_test_eq( DPT_SK_Enforce::cache_header_for( array() ), null, 'no Cache-Control sent: none introduced (Codex round-2 P1)' );
-dpt_test_eq( DPT_SK_Enforce::cache_header_for( array( 'Cache-Control: public' ) ), null, 'a Cache-Control without a lifetime is left alone' );
-dpt_test_eq( DPT_SK_Enforce::cache_header_for( array( 'Cache-Control: public, max-age=86400, s-maxage=86400' ) ), 'Cache-Control: public, max-age=' . min( HOUR_IN_SECONDS, $shabbat['start'] - $clock ) . ', s-maxage=' . min( HOUR_IN_SECONDS, $shabbat['start'] - $clock ), 'both max-age and s-maxage are shortened (Codex round-3 P2)' );
-dpt_test_eq( DPT_SK_Enforce::cache_header_for( array( 'Cache-Control: public, max-age=30, s-maxage=86400' ) ), 'Cache-Control: public, max-age=30, s-maxage=' . min( HOUR_IN_SECONDS, $shabbat['start'] - $clock ), 'a shorter max-age is kept while a longer s-maxage is shortened' );
-dpt_test_eq( DPT_SK_Enforce::cache_header_for( array( 'Cache-Control: public, s-maxage=86400, stale-while-revalidate=60' ) ), 'Cache-Control: public, s-maxage=' . min( HOUR_IN_SECONDS, $shabbat['start'] - $clock ) . ', stale-while-revalidate=60', 's-maxage alone is shortened, other directives kept' );
-dpt_test_eq( DPT_SK_Enforce::cache_header_for( array( 'Cache-Control: public, max-age=30, s-maxage=30' ) ), null, 'two short lifetimes: nothing to do' );
-dpt_test_eq( DPT_SK_Enforce::cache_header_for( array( 'Cache-Control: public, max-age=86400', 'Cache-Control: private, no-store' ) ), null, 'a restrictive later field vetoes the rewrite (Codex round-6 P1)' );
-dpt_test_eq( DPT_SK_Enforce::cache_header_for( array( 'Cache-Control: public', 'Cache-Control: max-age=86400' ) ), 'Cache-Control: public, max-age=' . min( HOUR_IN_SECONDS, $shabbat['start'] - $clock ), 'several fields are combined into the one emitted' );
-dpt_test_eq( DPT_SK_Enforce::cache_header_for( array( 'Cache-Control: public, max-age=30, stale-while-revalidate=86400, stale-if-error=86400' ) ), 'Cache-Control: public, max-age=30, stale-while-revalidate=' . min( HOUR_IN_SECONDS, $shabbat['start'] - $clock ) . ', stale-if-error=' . min( HOUR_IN_SECONDS, $shabbat['start'] - $clock ), 'stale allowances are capped at the transition too (Codex round-6 P2)' );
-dpt_test_eq( DPT_SK_Enforce::cache_header_for( array( 'Cache-Control: public, max-age=86400, must-revalidate' ) ), 'Cache-Control: public, max-age=' . min( HOUR_IN_SECONDS, $shabbat['start'] - $clock ) . ', must-revalidate', 'must-revalidate is not mistaken for no-cache' );
-dpt_test_eq( DPT_SK_Enforce::cache_header_for( array( 'Cache-Control: no-store, no-cache, must-revalidate' ) ), null, 'no-store is never overridden' );
-dpt_test_eq( DPT_SK_Enforce::cache_header_for( array( 'Cache-Control: private' ) ), null, 'private is never overridden' );
-dpt_test_eq( DPT_SK_Enforce::cache_header_for( array( 'cache-control: public, max-age=30' ) ), null, 'a shorter existing max-age wins' );
-dpt_test_eq( DPT_SK_Enforce::cache_header_for( array( 'Cache-Control: public, max-age=99999999' ) ), 'Cache-Control: public, max-age=' . min( HOUR_IN_SECONDS, $shabbat['start'] - $clock ), 'a longer existing max-age is replaced' );
 $clock = $shabbat['start'] - 600;
-dpt_test_eq( DPT_SK_Enforce::cache_max_age(), 600, 'ten minutes before candle lighting, the bound is ten minutes' );
-$clock = $shabbat['start'] - 10;
-DPT_SK_Enforce::reset();
-dpt_test_eq( DPT_SK_Enforce::cache_max_age(), 10, 'ten seconds before candle lighting, the bound is ten seconds - no floor across the transition (Codex round-5 P2)' );
-dpt_test_eq( DPT_SK_Enforce::cache_header_for( array( 'Cache-Control: public, max-age=30' ) ), 'Cache-Control: public, max-age=10', 'a 30-second lifetime is cut to the 10 that remain' );
 $clock = $at( '2026-09-02 12:00' );
 
-/* ---- send_cache_header ---- */
 sk_anon();
-dpt_test_eq( DPT_SK_Enforce::send_cache_header(), DPT_SK_Enforce::cache_header_for( array() ), 'send_cache_header matches cache_header_for on an anonymous GET' );
 $GLOBALS['dpt_stub_no_user'] = false;
-dpt_test_eq( DPT_SK_Enforce::send_cache_header(), null, 'no cache header for a logged-in visitor' );
 $GLOBALS['dpt_stub_no_user'] = true;
-$_SERVER['REQUEST_METHOD'] = 'POST';
-dpt_test_eq( DPT_SK_Enforce::send_cache_header(), null, 'no cache header on a POST' );
-unset( $_SERVER['REQUEST_METHOD'] );
 $GLOBALS['dpt_stub_is_admin'] = true;
-dpt_test_eq( DPT_SK_Enforce::send_cache_header(), null, 'no cache header in wp-admin' );
 $GLOBALS['dpt_stub_is_admin'] = false;
 
 /* ---- Shabbat noon, business mode, anonymous ---- */
@@ -104,7 +77,6 @@ $pct_banner = DPT_SK_Enforce::banner_html();
 dpt_test_ok( false !== strpos( $pct_banner, '10% off when we reopen at ' ) && false !== strpos( $pct_banner, wp_date( 'H:i', $shabbat['end'] ) ), 'a literal % in banner_text does not fatal sprintf, and %s still gets the reopening time' );
 sk_set( array( 'banner_text' => '' ) );
 sk_anon();
-dpt_test_eq( DPT_SK_Enforce::cache_max_age(), min( HOUR_IN_SECONDS, $shabbat['end'] - $clock ), 'cache lives until Havdalah, capped at an hour' );
 ob_start(); DPT_SK_Enforce::print_banner(); DPT_SK_Enforce::print_banner_fallback(); $out = ob_get_clean();
 dpt_test_eq( substr_count( $out, 'dpt-sk-banner' ), 1, 'banner printed once even with the fallback' );
 
@@ -178,14 +150,14 @@ dpt_test_ok( ! DPT_SK_Enforce::is_preview(), 'preview is for administrators only
 sk_anon();
 sk_set( array( 'override' => 'force_closed' ) );
 dpt_test_ok( DPT_SK_Enforce::is_closed(), 'force_closed closes a Wednesday' );
-dpt_test_eq( DPT_SK_Enforce::cache_max_age(), null, 'no cache bound under a manual override' );
 $clock = $at( '2026-09-05 12:00' );
 sk_set( array( 'override' => 'force_open' ) );
 dpt_test_ok( ! DPT_SK_Enforce::is_closed(), 'force_open opens Shabbat' );
 sk_set( array( 'override' => 'force_closed', 'mode' => 'business' ) );
 sk_anon();
 dpt_test_eq( DPT_SK_Enforce::reopens_at(), null, 'force_closed during a real window promises no calendar reopening (Codex round-6 P2)' );
-dpt_test_ok( false !== strpos( DPT_SK_Enforce::banner_html(), 'after Havdalah' ), 'banner says after Havdalah while force-closed' );
+dpt_test_ok( false !== strpos( DPT_SK_Enforce::banner_html(), 'when the closure is lifted' ), 'banner promises no calendar time while force-closed (Codex round-7 P2)' );
+dpt_test_ok( false === strpos( DPT_SK_Enforce::banner_html(), 'Havdalah' ), 'force-closed banner does not mention Havdalah' );
 sk_set( array( 'override' => 'auto', 'mode' => 'business' ) );
 
 /* ---- transition cron ---- */

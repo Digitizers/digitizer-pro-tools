@@ -47,7 +47,7 @@ dpt_test_eq( $c['mode'], 'business', 'unknown mode falls back' );
 dpt_test_eq( $c['city'], 'jerusalem', 'unknown city falls back' );
 dpt_test_eq( $c['havdalah'], '42', 'unknown havdalah falls back' );
 dpt_test_eq( $c['override'], 'auto', 'unknown override falls back' );
-dpt_test_eq( $c['custom_lat'], '90', 'latitude clamped' );
+dpt_test_eq( $c['custom_lat'], '65', 'latitude clamped below the polar circle (Codex round-7 P2)' );
 dpt_test_eq( $c['custom_lon'], '-180', 'longitude clamped' );
 dpt_test_eq( $c['custom_candle'], '60', 'candle minutes clamped' );
 dpt_test_eq( $c['block_woo'], '1', 'truthy bool is 1' );
