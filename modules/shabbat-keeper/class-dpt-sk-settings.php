@@ -70,7 +70,9 @@ final class DPT_SK_Settings {
 			case 'closed_title':
 				return __( 'The site is closed for Shabbat', 'digitizer-pro-tools' );
 			case 'closed_message':
-				return __( 'We observe Shabbat and Jewish holidays. The site reopens automatically after Havdalah.', 'digitizer-pro-tools' );
+				// The why only; the when is the reopening sentence, which knows about
+				// force-closed. A default that promised Havdalah lied under the override.
+				return __( 'We observe Shabbat and Jewish holidays and close the site for them.', 'digitizer-pro-tools' );
 			case 'banner_text':
 				/* translators: %s: "on Saturday 19:32", "after Havdalah" or "when the closure is lifted". */
 				return __( 'The site is closed for Shabbat. Orders and forms reopen %s.', 'digitizer-pro-tools' );
