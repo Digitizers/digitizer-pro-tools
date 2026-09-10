@@ -114,10 +114,9 @@ Adjacent closure days (Shabbat followed by Yom Tov, Rosh Hashana's two days,
 Yom Tov followed by Shabbat) merge into one window: start of the first, end
 of the last.
 
-Windows are computed per Hebrew-month-sized range and cached in a transient
-keyed by location hash, havdalah minutes and month, for 31 days. The
-computation is microseconds; the cache exists so that a request never does
-sixty sunset calculations.
+Windows are computed per request, no transient: a sixty-day scan is about
+sixty sunset calculations, microseconds each, and a cache would only add a
+place for a stale location to hide.
 
 ### `DPT_SK_Cities`
 
@@ -200,8 +199,9 @@ working; the commerce hooks below cover the Store API on their own.
 On `template_redirect` at priority 1, when closed and not exempt:
 
 - `status_header( 503 )`, `Retry-After: <seconds until window end>`,
-  `nocache_headers()`, `X-Robots-Tag: noindex` is **not** sent - 503 alone
-  tells search engines the outage is temporary.
+  `nocache_headers()`. The 503 alone tells search engines the outage is
+  temporary; the page also carries `<meta name="robots" content="noindex">`
+  so a crawler that ignores the status does not index it as content.
 - Render `views/closed-screen.php` and exit. The view prints the site icon
   when there is one, `closed_title`, `closed_message`, and when
   `closed_show_times` is on, "Reopens Saturday 19:32" in the site locale,
