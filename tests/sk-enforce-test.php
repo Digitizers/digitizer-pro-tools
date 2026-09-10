@@ -199,4 +199,17 @@ DPT_SK_Enforce::ensure_transition_event();
 dpt_test_eq( $GLOBALS['dpt_stub_cron'], array(), 'nothing scheduled under a manual override' );
 sk_set( array( 'override' => 'auto' ) );
 
+/* ---- settings save: memo reset, event dropped, caches purged (Codex round-1 P2) ---- */
+if ( ! function_exists( 'wp_clear_scheduled_hook' ) ) { function wp_clear_scheduled_hook( $hook ) { unset( $GLOBALS['dpt_stub_cron'][ $hook ] ); } }
+$GLOBALS['dpt_stub_purged'] = 0;
+add_action( 'litespeed_purge_all', function () { $GLOBALS['dpt_stub_purged']++; } );
+$GLOBALS['dpt_stub_cron'][ DPT_SK_Enforce::CRON_HOOK ] = 777;
+DPT_SK_Enforce::on_settings_saved();
+dpt_test_ok( ! isset( $GLOBALS['dpt_stub_cron'][ DPT_SK_Enforce::CRON_HOOK ] ), 'saving settings drops the pending transition event' );
+dpt_test_eq( $GLOBALS['dpt_stub_purged'], 1, 'saving settings purges page caches' );
+
+/* ---- the closed-site guard runs before Content Control's priority-1 exit (Codex round-1 P2) ---- */
+DPT_SK_Enforce::register();
+dpt_test_eq( dpt_stub_filter_priority( 'template_redirect', array( 'DPT_SK_Enforce', 'maybe_block' ) ), 0, 'closed-site guard registered at template_redirect priority 0' );
+
 exit( dpt_test_summary() );

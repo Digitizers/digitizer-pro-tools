@@ -200,7 +200,8 @@ working; the commerce hooks below cover the Store API on their own.
 
 ### Closed mode
 
-On `template_redirect` at priority 1, when closed and not exempt:
+On `template_redirect` at priority 0 - before Content Control's whole-site
+protection, which exits at priority 1 - when closed and not exempt:
 
 - `status_header( 503 )`, `Retry-After: <seconds until window end>`,
   `nocache_headers()`. The 503 alone tells search engines the outage is

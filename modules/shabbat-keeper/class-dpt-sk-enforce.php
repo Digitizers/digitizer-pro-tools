@@ -20,7 +20,10 @@ final class DPT_SK_Enforce {
 	private static $banner_printed = false;
 
 	public static function register() {
-		add_action( 'template_redirect', array( __CLASS__, 'maybe_block' ), 1 );
+		// Priority 0: Content Control's whole-site protection exits at priority 1
+		// (redirect or 403) and would otherwise answer first; the Shabbat 503 is
+		// the earlier decision.
+		add_action( 'template_redirect', array( __CLASS__, 'maybe_block' ), 0 );
 		add_action( 'wp_head', array( __CLASS__, 'print_head_css' ) );
 		add_action( 'wp_body_open', array( __CLASS__, 'print_banner' ) );
 		add_action( 'wp_footer', array( __CLASS__, 'print_banner_fallback' ) );
@@ -298,6 +301,17 @@ final class DPT_SK_Enforce {
 			return;
 		}
 		wp_schedule_single_event( self::zmanim()->next_transition( self::now() ) + 30, self::CRON_HOOK );
+	}
+
+	/**
+	 * After a settings save: forget the memo, drop the pending transition event
+	 * (the location may have moved it) and purge page caches, because a mode or
+	 * override change must reach visitors now, not when the cached copy expires.
+	 */
+	public static function on_settings_saved() {
+		self::reset();
+		wp_clear_scheduled_hook( self::CRON_HOOK );
+		self::purge_caches();
 	}
 
 	public static function on_transition() {

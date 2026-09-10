@@ -47,9 +47,7 @@ final class DPT_SK_Admin {
 		// whitelists every field itself.
 		$data = isset( $_POST['dpt_sk'] ) && is_array( $_POST['dpt_sk'] ) ? $_POST['dpt_sk'] : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- Sanitized per field in DPT_SK_Settings::sanitize().
 		DPT_SK_Settings::save( $data );
-		DPT_SK_Enforce::reset();
-		// The location may have changed; the next front-end request schedules the purge afresh.
-		wp_clear_scheduled_hook( DPT_SK_Enforce::CRON_HOOK );
+		DPT_SK_Enforce::on_settings_saved();
 
 		wp_safe_redirect( add_query_arg( array( 'page' => self::PAGE_SLUG, 'dpt_saved' => 1 ), admin_url( 'admin.php' ) ) );
 		exit;
