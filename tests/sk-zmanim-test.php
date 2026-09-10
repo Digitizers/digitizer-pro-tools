@@ -67,4 +67,11 @@ dpt_test_eq( $z->next_transition( $at( '2026-09-02 12:00' ) ), $w[0]['start'], '
 $w = $z->windows( $at( '2026-09-06 12:00' ), $at( '2026-09-06 13:00' ) );
 dpt_test_eq( $w, array(), 'Sunday noon, one hour: no windows' );
 
+/* ---- three-day closure (Rosh Hashana 5785 Thu+Fri, then Shabbat) is not truncated on its first evening ---- */
+$w2 = $z->current_window( $at( '2024-10-02 20:00' ) );
+dpt_test_ok( null !== $w2, 'a three-day run of closure days is a real window on its first evening' );
+dpt_test_eq( $w2['reason'], 'rosh_hashana_1+rosh_hashana_2+shabbat', 'reason spans all three closure days' );
+dpt_test_eq( $w2['start'], DPT_SK_Sun::sunset( $j['lat'], $j['lon'], 2024, 10, 2 ) - 40 * 60, 'starts Wednesday 2.10 evening' );
+dpt_test_eq( $w2['end'], DPT_SK_Sun::sunset( $j['lat'], $j['lon'], 2024, 10, 5 ) + 42 * 60, 'ends Saturday 5.10 night' );
+
 exit( dpt_test_summary() );

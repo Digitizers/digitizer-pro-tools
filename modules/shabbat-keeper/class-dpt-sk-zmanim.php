@@ -39,22 +39,28 @@ final class DPT_SK_Zmanim {
 	 * @return array<int, array{start:int, end:int, reason:string}>
 	 */
 	public function windows( $from_ts, $to_ts ) {
-		// Walk civil days from two days before the range (a window can start
-		// the evening before a closure day that itself precedes the range)
-		// to one day after it.
+		// Walk civil days from four days before the range (a run of holidays
+		// and Shabbat can start several evenings before a closure day that
+		// itself precedes the range) to one day after it, and beyond that
+		// while a run is still open at the boundary - a multi-day closure
+		// (e.g. two days of Rosh Hashana running into Shabbat) must not be
+		// truncated just because it crosses the scan limit.
 		$day = new DateTime( '@' . (int) $from_ts );
 		$day->setTimezone( $this->tz );
 		$day->setTime( 0, 0, 0 );
-		$day->modify( '-2 days' );
+		$day->modify( '-4 days' );
 
 		$limit = new DateTime( '@' . (int) $to_ts );
 		$limit->setTimezone( $this->tz );
 		$limit->setTime( 0, 0, 0 );
 		$limit->modify( '+2 days' );
 
+		$hard_limit = clone $limit;
+		$hard_limit->modify( '+7 days' );
+
 		$runs = array(); // Consecutive closure days: [ [ 'days' => [DateTime...], 'reasons' => [] ], ... ].
 		$open = null;
-		while ( $day <= $limit ) {
+		while ( $day <= $limit || ( null !== $open && $day <= $hard_limit ) ) {
 			$reason = $this->closure_reason( $day );
 			if ( null !== $reason ) {
 				if ( null === $open ) {
