@@ -282,10 +282,21 @@ final class DPT_SK_Enforce {
 			if ( preg_match( '/no-store|no-cache|private/i', $cc[1] ) ) {
 				return null;
 			}
-			if ( ! preg_match( '/max-age=(\d+)/i', $cc[1], $m ) || (int) $m[1] <= $max ) {
-				return null;
+			// Shorten every lifetime directive that is longer than the bound -
+			// max-age for browsers, s-maxage for CDNs and other shared caches,
+			// which prefer s-maxage when both are present. Leave shorter ones.
+			$bound    = (int) $max;
+			$replaced = preg_replace_callback(
+				'/\b(s-maxage|max-age)=(\d+)/i',
+				function ( $m ) use ( $bound ) {
+					return (int) $m[2] > $bound ? $m[1] . '=' . $bound : $m[0];
+				},
+				$cc[1]
+			);
+			if ( $replaced === $cc[1] ) {
+				return null; // No lifetime, or none longer than the bound.
 			}
-			return 'Cache-Control:' . preg_replace( '/max-age=\d+/i', 'max-age=' . (int) $max, $cc[1] );
+			return 'Cache-Control:' . $replaced;
 		}
 		return null;
 	}

@@ -264,9 +264,9 @@ Truth is computed per request, so the only cache problem is HTML stored by
 a page cache or CDN across a transition.
 
 - `send_headers`: when the request is an anonymous front-end GET and the
-  response already carries a `Cache-Control` with a `max-age` longer than
-  `next_transition - now` (capped at one hour, floored at 60 seconds), that
-  value is shortened to it, other directives kept. A response with no
+  response already carries a `Cache-Control` with a `max-age` or `s-maxage`
+  longer than `next_transition - now` (capped at one hour, floored at 60
+  seconds), each such value is shortened to it, other directives kept. A response with no
   `Cache-Control`, or one that forbids caching (`no-store`, `no-cache`,
   `private`) or already asks for less, is left alone: the module never
   declares a page cacheable on its own, because a page that varies by a
