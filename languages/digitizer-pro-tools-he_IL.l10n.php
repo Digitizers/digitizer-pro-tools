@@ -732,7 +732,7 @@ return array (
     'Kfar Saba' => 'כפר סבא',
     'Custom location' => 'מיקום מותאם',
     'The site is closed for Shabbat' => 'האתר סגור לשבת',
-    'We observe Shabbat and Jewish holidays. The site reopens automatically after Havdalah.' => 'אנחנו שומרים שבת וחגי ישראל. האתר ייפתח מחדש אוטומטית לאחר ההבדלה.',
+    'We observe Shabbat and Jewish holidays and close the site for them.' => 'אנחנו שומרים שבת וחגי ישראל וסוגרים את האתר לכבודם.',
     'The site is closed for Shabbat. Orders and forms reopen %s.' => 'האתר סגור לשבת. הזמנות וטפסים ייפתחו מחדש %s.',
     'after Havdalah' => 'לאחר ההבדלה',
     'when the closure is lifted' => 'כשהסגירה תוסר',

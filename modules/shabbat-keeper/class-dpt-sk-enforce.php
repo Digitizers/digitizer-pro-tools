@@ -282,7 +282,13 @@ final class DPT_SK_Enforce {
 		self::schedule_next_transition();
 	}
 
-	/** Best effort, every known page cache; unknown ones can hook the transition action. The object cache is left alone - it is not a page cache, and flushing it would discard unrelated cached data for no benefit here. */
+	/**
+	 * Best effort, every known page cache, then one action for the rest: a CDN
+	 * or an unknown cache hooks dpt_shabbat_keeper_purge and is told on every
+	 * path that changes what visitors should see - the transition and a
+	 * settings save alike. The object cache is left alone: it is not a page
+	 * cache, and flushing it would discard unrelated data for no benefit.
+	 */
 	public static function purge_caches() {
 		if ( function_exists( 'rocket_clean_domain' ) ) {
 			rocket_clean_domain(); // WP Rocket.
@@ -301,5 +307,6 @@ final class DPT_SK_Enforce {
 		}
 		do_action( 'litespeed_purge_all' ); // LiteSpeed Cache.
 		do_action( 'breeze_clear_all_cache' ); // Breeze (Cloudways).
+		do_action( 'dpt_shabbat_keeper_purge' );
 	}
 }

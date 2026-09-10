@@ -157,6 +157,11 @@ sk_set( array( 'override' => 'force_closed', 'mode' => 'business' ) );
 sk_anon();
 dpt_test_eq( DPT_SK_Enforce::reopens_at(), null, 'force_closed during a real window promises no calendar reopening (Codex round-6 P2)' );
 dpt_test_ok( false !== strpos( DPT_SK_Enforce::banner_html(), 'when the closure is lifted' ), 'banner promises no calendar time while force-closed (Codex round-7 P2)' );
+sk_set( array( 'override' => 'force_closed', 'mode' => 'closed' ) );
+sk_anon();
+$html = DPT_SK_Enforce::render_closed_screen();
+dpt_test_ok( false === strpos( $html, 'Havdalah' ), 'force-closed closed screen never mentions Havdalah, default message included (Codex round-8 P2)' );
+dpt_test_ok( false !== strpos( $html, 'when the closure is lifted' ), 'force-closed closed screen says when the closure is lifted' );
 dpt_test_ok( false === strpos( DPT_SK_Enforce::banner_html(), 'Havdalah' ), 'force-closed banner does not mention Havdalah' );
 sk_set( array( 'override' => 'auto', 'mode' => 'business' ) );
 
@@ -191,11 +196,17 @@ sk_set( array( 'override' => 'auto' ) );
 /* ---- settings save: memo reset, event dropped, caches purged (Codex round-1 P2) ---- */
 if ( ! function_exists( 'wp_clear_scheduled_hook' ) ) { function wp_clear_scheduled_hook( $hook ) { unset( $GLOBALS['dpt_stub_cron'][ $hook ] ); } }
 $GLOBALS['dpt_stub_purged'] = 0;
+$GLOBALS['dpt_stub_cdn_purged'] = 0;
 add_action( 'litespeed_purge_all', function () { $GLOBALS['dpt_stub_purged']++; } );
+add_action( 'dpt_shabbat_keeper_purge', function () { $GLOBALS['dpt_stub_cdn_purged']++; } );
 $GLOBALS['dpt_stub_cron'][ DPT_SK_Enforce::CRON_HOOK ] = 777;
 DPT_SK_Enforce::on_settings_saved();
 dpt_test_ok( ! isset( $GLOBALS['dpt_stub_cron'][ DPT_SK_Enforce::CRON_HOOK ] ), 'saving settings drops the pending transition event' );
 dpt_test_eq( $GLOBALS['dpt_stub_purged'], 1, 'saving settings purges page caches' );
+dpt_test_eq( $GLOBALS['dpt_stub_cdn_purged'], 1, 'saving settings fires dpt_shabbat_keeper_purge for CDNs (Codex round-8 P2)' );
+$GLOBALS['dpt_stub_cron'] = array();
+DPT_SK_Enforce::on_transition();
+dpt_test_eq( $GLOBALS['dpt_stub_cdn_purged'], 2, 'a transition fires dpt_shabbat_keeper_purge too' );
 
 /* ---- the closed-site guard runs before Content Control's priority-1 exit (Codex round-1 P2) ---- */
 DPT_SK_Enforce::register();

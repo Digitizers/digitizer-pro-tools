@@ -2193,7 +2193,7 @@ msgstr ""
 msgid "The site is closed for Shabbat"
 msgstr ""
 
-msgid "We observe Shabbat and Jewish holidays. The site reopens automatically after Havdalah."
+msgid "We observe Shabbat and Jewish holidays and close the site for them."
 msgstr ""
 
 #. translators: %s: "on Saturday 19:32", "after Havdalah" or "when the closure is lifted".

@@ -165,7 +165,7 @@ module itself is off by default in `dpt_settings['modules']`, like Copy URL.
 | `havdalah` | `42` \| `72` | `42` |
 | `override` | `auto` \| `force_open` \| `force_closed` | `auto` |
 | `closed_title` | text | "The site is closed for Shabbat" (Hebrew in catalog) |
-| `closed_message` | HTML via `wp_kses_post` | "We observe Shabbat and Jewish holidays. The site reopens automatically after Havdalah." (Hebrew in catalog) |
+| `closed_message` | HTML via `wp_kses_post` | "We observe Shabbat and Jewish holidays and close the site for them." (Hebrew in catalog; the why - the reopening sentence is the when) |
 | `closed_show_times` | bool | `1` |
 | `block_woo` | bool | `1` |
 | `block_forms` | bool | `1` |
@@ -275,8 +275,9 @@ a page cache or CDN across a transition.
   `Cache-Control` field, `stale-while-revalidate`, `stale-if-error`, their
   additive lifetimes), which is the mechanism saying an origin cannot
   correct a CDN's policy from inside one header. The purge below is the
-  mechanism; a CDN that caches HTML needs its purge hooked to the
-  transition action, and the readme says so.
+  mechanism; `purge_caches()` ends with `do_action( 'dpt_shabbat_keeper_purge' )`
+  on both paths that reach it - the transition and a settings save - so a
+  CDN that caches HTML hooks that, and the readme says so.
 - A single WP-Cron event `dpt_sk_transition` is scheduled for the next
   transition whenever a front-end request notices none is pending. When it
   fires it does `do_action( 'dpt_shabbat_keeper_transition', $now_closed )`
