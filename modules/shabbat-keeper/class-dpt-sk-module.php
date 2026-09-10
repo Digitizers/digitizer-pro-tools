@@ -13,8 +13,12 @@ require_once __DIR__ . '/class-dpt-sk-zmanim.php';
 require_once __DIR__ . '/class-dpt-sk-settings.php';
 require_once __DIR__ . '/class-dpt-sk-enforce.php';
 require_once __DIR__ . '/class-dpt-sk-integrations.php';
+require_once __DIR__ . '/class-dpt-sk-admin.php';
 
 class DPT_Shabbat_Keeper_Module extends DPT_Module {
+
+	/** @var DPT_SK_Admin */
+	private $admin;
 
 	public function id() {
 		return 'shabbat_keeper';
@@ -31,9 +35,16 @@ class DPT_Shabbat_Keeper_Module extends DPT_Module {
 	public function init() {
 		DPT_SK_Enforce::register();
 		DPT_SK_Integrations::register();
+		$this->admin = new DPT_SK_Admin();
 	}
 
 	public function install_defaults() {
 		DPT_SK_Settings::install_defaults();
+	}
+
+	public function register_admin_menu( $parent_slug ) {
+		if ( $this->admin ) {
+			$this->admin->register_menu( $parent_slug );
+		}
 	}
 }
