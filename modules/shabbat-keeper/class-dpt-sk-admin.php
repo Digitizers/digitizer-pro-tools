@@ -83,6 +83,11 @@ final class DPT_SK_Admin {
 		$zmanim = DPT_SK_Enforce::zmanim();
 		$next   = array_slice( $zmanim->windows( $now, $now + 70 * DAY_IN_SECONDS ), 0, 7 );
 		$closed = DPT_SK_Enforce::is_closed();
+		// The first window still ahead: under force_open inside a real window
+		// the list starts with that window, whose start is already past.
+		$ahead = array_values( array_filter( $next, function ( $w ) use ( $now ) {
+			return $w['start'] > $now;
+		} ) );
 		/* translators: PHP date format for a closure start or end: weekday, day.month, time. */
 		$fmt = __( 'D j.n H:i', 'digitizer-pro-tools' );
 		?>
@@ -99,8 +104,8 @@ final class DPT_SK_Admin {
 					<strong><?php echo $closed ? esc_html__( 'Now: closed', 'digitizer-pro-tools' ) : esc_html__( 'Now: open', 'digitizer-pro-tools' ); ?></strong>
 					<?php if ( $closed ) : ?>
 						&middot; <?php echo esc_html( sprintf( __( 'Reopens %s', 'digitizer-pro-tools' ), DPT_SK_Enforce::reopens_text() ) ); ?>
-					<?php elseif ( ! empty( $next ) ) : ?>
-						&middot; <?php echo esc_html( sprintf( __( 'Next closing: %s', 'digitizer-pro-tools' ), wp_date( $fmt, $next[0]['start'], $tz ) ) ); ?>
+					<?php elseif ( ! empty( $ahead ) ) : ?>
+						&middot; <?php echo esc_html( sprintf( __( 'Next closing: %s', 'digitizer-pro-tools' ), wp_date( $fmt, $ahead[0]['start'], $tz ) ) ); ?>
 					<?php endif; ?>
 					&middot; <?php echo esc_html( DPT_SK_Settings::location()['name'] ); ?>
 				</p>
