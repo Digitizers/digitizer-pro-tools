@@ -53,6 +53,11 @@ dpt_test_ok( ! DPT_SK_Enforce::is_closed(), 'Wednesday is open' );
 dpt_test_ok( ! DPT_SK_Enforce::should_block(), 'nothing to block on Wednesday' );
 dpt_test_eq( DPT_SK_Enforce::banner_html(), '', 'no banner when open' );
 dpt_test_eq( DPT_SK_Enforce::cache_max_age(), $shabbat['start'] - $clock, 'cache lives until candle lighting' );
+dpt_test_eq( DPT_SK_Enforce::cache_header_for( array() ), 'Cache-Control: public, max-age=' . ( $shabbat['start'] - $clock ), 'cache header when nothing else has spoken' );
+dpt_test_eq( DPT_SK_Enforce::cache_header_for( array( 'Cache-Control: no-store, no-cache, must-revalidate' ) ), null, 'no-store is never overridden' );
+dpt_test_eq( DPT_SK_Enforce::cache_header_for( array( 'Cache-Control: private' ) ), null, 'private is never overridden' );
+dpt_test_eq( DPT_SK_Enforce::cache_header_for( array( 'cache-control: public, max-age=30' ) ), null, 'a shorter existing max-age wins' );
+dpt_test_eq( DPT_SK_Enforce::cache_header_for( array( 'Cache-Control: public, max-age=99999999' ) ), 'Cache-Control: public, max-age=' . ( $shabbat['start'] - $clock ), 'a longer existing max-age is replaced' );
 
 /* ---- Shabbat noon, business mode, anonymous ---- */
 $clock = $at( '2026-09-05 12:00' );

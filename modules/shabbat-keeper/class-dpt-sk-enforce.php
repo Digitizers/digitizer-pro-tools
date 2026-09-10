@@ -240,16 +240,37 @@ final class DPT_SK_Enforce {
 		if ( isset( $_SERVER['REQUEST_METHOD'] ) && 'GET' !== $_SERVER['REQUEST_METHOD'] ) {
 			return;
 		}
+		$header = self::cache_header_for( headers_list() );
+		if ( null !== $header ) {
+			header( $header );
+		}
+	}
+
+	/**
+	 * The Cache-Control header we would send, or null when none should be
+	 * sent: no bound applies, or something already sent asks for less than
+	 * our bound (no-store, no-cache, private, or a shorter max-age).
+	 *
+	 * @param string[] $sent_headers Headers already queued for the response.
+	 * @return string|null
+	 */
+	public static function cache_header_for( array $sent_headers ) {
 		$max = self::cache_max_age();
 		if ( null === $max ) {
-			return;
+			return null;
 		}
-		foreach ( headers_list() as $sent ) {
-			if ( preg_match( '/^cache-control:.*max-age=(\d+)/i', $sent, $m ) && (int) $m[1] <= $max ) {
-				return; // Something already asked for a shorter life.
+		foreach ( $sent_headers as $sent ) {
+			if ( ! preg_match( '/^cache-control:(.*)/i', $sent, $cc ) ) {
+				continue;
+			}
+			if ( preg_match( '/no-store|no-cache|private/i', $cc[1] ) ) {
+				return null; // Something already asked for less than any positive max-age.
+			}
+			if ( preg_match( '/max-age=(\d+)/i', $cc[1], $m ) && (int) $m[1] <= $max ) {
+				return null; // Something already asked for a shorter life.
 			}
 		}
-		header( 'Cache-Control: public, max-age=' . (int) $max );
+		return 'Cache-Control: public, max-age=' . (int) $max;
 	}
 
 	public static function ensure_transition_event() {
