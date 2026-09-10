@@ -12,6 +12,7 @@ require_once __DIR__ . '/class-dpt-sk-cities.php';
 require_once __DIR__ . '/class-dpt-sk-zmanim.php';
 require_once __DIR__ . '/class-dpt-sk-settings.php';
 require_once __DIR__ . '/class-dpt-sk-enforce.php';
+require_once __DIR__ . '/class-dpt-sk-integrations.php';
 
 class DPT_Shabbat_Keeper_Module extends DPT_Module {
 
@@ -29,6 +30,7 @@ class DPT_Shabbat_Keeper_Module extends DPT_Module {
 
 	public function init() {
 		DPT_SK_Enforce::register();
+		DPT_SK_Integrations::register();
 	}
 
 	public function install_defaults() {

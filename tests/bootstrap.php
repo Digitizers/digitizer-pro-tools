@@ -175,14 +175,34 @@ class WP_Error {
 	private $code;
 	private $message;
 	private $data;
+	private $errors = array();
 	public function __construct( $code = '', $message = '', $data = '' ) {
 		$this->code    = $code;
 		$this->message = $message;
 		$this->data    = $data;
+		if ( '' !== $code ) {
+			$this->errors[ $code ][] = $message;
+		}
 	}
 	public function get_error_code() { return $this->code; }
 	public function get_error_message() { return $this->message; }
 	public function get_error_data() { return $this->data; }
+	/**
+	 * Task 6 (Shabbat Keeper integrations) hands the Store API filter an
+	 * empty WP_Error and expects the module to add to it, the way core's
+	 * cart-errors filter does - the single-error constructor above cannot
+	 * represent that, so add() and get_error_codes() fill it in.
+	 */
+	public function add( $code, $message, $data = '' ) {
+		$this->errors[ $code ][] = $message;
+		if ( '' === $this->code ) {
+			$this->code    = $code;
+			$this->message = $message;
+			$this->data    = $data;
+		}
+	}
+	// Returns every error code registered via the constructor or add().
+	public function get_error_codes() { return array_keys( $this->errors ); }
 }
 
 function is_wp_error( $thing ) { return $thing instanceof WP_Error; }
