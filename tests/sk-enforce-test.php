@@ -69,6 +69,12 @@ dpt_test_eq( DPT_SK_Enforce::reopens_at(), $shabbat['end'], 'reopens at Havdalah
 $banner = DPT_SK_Enforce::banner_html();
 dpt_test_ok( false !== strpos( $banner, 'dpt-sk-banner' ), 'banner markup' );
 dpt_test_ok( false !== strpos( $banner, wp_date( 'H:i', $shabbat['end'] ) ), 'banner names the reopening time' );
+sk_set( array( 'banner_text' => '10% off when we reopen at %s' ) );
+sk_anon();
+$pct_banner = DPT_SK_Enforce::banner_html();
+dpt_test_ok( false !== strpos( $pct_banner, '10% off when we reopen at ' ) && false !== strpos( $pct_banner, wp_date( 'H:i', $shabbat['end'] ) ), 'a literal % in banner_text does not fatal sprintf, and %s still gets the reopening time' );
+sk_set( array( 'banner_text' => '' ) );
+sk_anon();
 dpt_test_eq( DPT_SK_Enforce::cache_max_age(), $shabbat['end'] - $clock, 'cache lives until Havdalah' );
 ob_start(); DPT_SK_Enforce::print_banner(); DPT_SK_Enforce::print_banner_fallback(); $out = ob_get_clean();
 dpt_test_eq( substr_count( $out, 'dpt-sk-banner' ), 1, 'banner printed once even with the fallback' );

@@ -176,7 +176,7 @@ final class DPT_SK_Enforce {
 		if ( 'business' !== DPT_SK_Settings::get( 'mode' ) || '1' !== DPT_SK_Settings::get( 'banner_on' ) || ! self::applies() ) {
 			return '';
 		}
-		$text = sprintf( DPT_SK_Settings::text( 'banner_text' ), self::reopens_text() );
+		$text = str_replace( '%s', self::reopens_text(), DPT_SK_Settings::text( 'banner_text' ) );
 		return '<div class="dpt-sk-banner" role="status">' . esc_html( $text ) . '</div>';
 	}
 

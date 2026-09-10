@@ -49,7 +49,7 @@ final class DPT_SK_Integrations {
 
 	/** The one sentence every refusal shows. */
 	public static function message() {
-		return sprintf( DPT_SK_Settings::text( 'banner_text' ), DPT_SK_Enforce::reopens_text() );
+		return str_replace( '%s', DPT_SK_Enforce::reopens_text(), DPT_SK_Settings::text( 'banner_text' ) );
 	}
 
 	public static function closed_markup() {

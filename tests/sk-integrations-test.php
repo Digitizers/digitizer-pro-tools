@@ -75,6 +75,13 @@ $ajax = new class() { public $errors = array(); public function add_error_messag
 do_action_stub( 'elementor_pro/forms/validation', null, $ajax );
 dpt_test_eq( count( $ajax->errors ), 1, 'Elementor submission refused' );
 
+/* ---- a literal % in banner_text does not fatal message() ---- */
+DPT_SK_Settings::save( array( 'banner_text' => '10% off when we reopen at %s' ) );
+DPT_SK_Enforce::reset();
+dpt_test_ok( false !== strpos( DPT_SK_Integrations::message(), '10% off' ), 'message() keeps a literal % in banner_text' );
+DPT_SK_Settings::save( array( 'banner_text' => '' ) );
+DPT_SK_Enforce::reset();
+
 /* ---- open, visitor: everything passes through ---- */
 $clock = $at( '2026-09-02 12:00' );
 DPT_SK_Enforce::reset();
