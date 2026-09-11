@@ -52,12 +52,12 @@ final class DPT_SK_Integrations {
 			if ( function_exists( 'wpcf7' ) || function_exists( 'wpforms' ) || class_exists( 'GFForms' ) ) {
 				add_filter( 'do_shortcode_tag', array( __CLASS__, 'shortcode_markup' ), 10, 2 );
 			}
+		}
 		// Comments are a form too, and wp-comments-post.php never runs
 		// template_redirect, so a form loaded before the closure would post.
 		if ( '1' === DPT_SK_Settings::get( 'block_forms' ) || 'closed' === DPT_SK_Settings::get( 'mode' ) ) {
 			add_filter( 'comments_open', array( __CLASS__, 'comments_closed' ), 10, 2 );
 			add_action( 'pre_comment_on_post', array( __CLASS__, 'refuse_comment' ) );
-		}
 		}
 	}
 

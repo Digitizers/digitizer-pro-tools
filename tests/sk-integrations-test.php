@@ -156,6 +156,14 @@ DPT_SK_Enforce::reset();
 DPT_SK_Integrations::hook_plugins();
 dpt_test_ok( ! dpt_stub_has_filter( 'woocommerce_is_purchasable' ), 'woo not hooked when switched off' );
 dpt_test_ok( ! dpt_stub_has_filter( 'wpcf7_validate' ), 'forms not hooked when switched off' );
+dpt_test_ok( ! dpt_stub_has_filter( 'pre_comment_on_post' ), 'comments not hooked in business mode with forms switched off' );
+$GLOBALS['dpt_stub_filters'] = array();
+add_filter( 'dpt_shabbat_keeper_now', function () use ( &$clock ) { return $clock; } );
+DPT_SK_Settings::save( array( 'mode' => 'closed', 'block_forms' => '0' ) );
+DPT_SK_Enforce::reset();
+DPT_SK_Integrations::hook_plugins();
+dpt_test_ok( dpt_stub_has_filter( 'pre_comment_on_post' ), 'closed mode guards comments even with forms switched off (Codex round-13 P2)' );
+dpt_test_ok( dpt_stub_has_filter( 'comments_open' ), 'closed mode closes comment forms even with forms switched off' );
 
 /* Actions in the harness share the filter registry; run one by hand. */
 function do_action_stub( $tag ) {
