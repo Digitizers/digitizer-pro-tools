@@ -42,6 +42,7 @@ dpt_test_ok( dpt_stub_has_filter( 'wpforms_process_before' ), 'WPForms hooked' )
 dpt_test_ok( dpt_stub_has_filter( 'elementor_pro/forms/validation' ), 'Elementor forms hooked' );
 dpt_test_ok( ! dpt_stub_has_filter( 'gform_validation' ), 'Gravity Forms absent, not hooked' );
 dpt_test_ok( dpt_stub_has_filter( 'do_shortcode_tag' ), 'shortcode markup hooked' );
+dpt_test_ok( dpt_stub_has_filter( 'pre_comment_on_post' ), 'comment posts hooked (Codex round-12 P2)' );
 
 /* ---- closed, visitor ---- */
 dpt_test_eq( apply_filters( 'woocommerce_is_purchasable', true, null ), false, 'nothing purchasable on Shabbat' );
@@ -82,6 +83,11 @@ dpt_test_ok( isset( $GLOBALS['dpt_stub_wpforms']->process->errors[9]['header'] )
 $ajax = new class() { public $errors = array(); public function add_error_message( $m ) { $this->errors[] = $m; } };
 do_action_stub( 'elementor_pro/forms/validation', null, $ajax );
 dpt_test_eq( count( $ajax->errors ), 1, 'Elementor submission refused' );
+if ( ! function_exists( 'wp_die' ) ) { function wp_die( $m = '', $t = '', $a = array() ) { throw new Exception( (string) $m ); } }
+dpt_test_eq( apply_filters( 'comments_open', true, 5 ), false, 'comment forms closed while closed' );
+$died = null;
+try { do_action_stub( 'pre_comment_on_post', 5 ); } catch ( Exception $e ) { $died = $e->getMessage(); }
+dpt_test_ok( is_string( $died ) && '' !== $died, 'a direct comment post dies with the refusal' );
 
 /* ---- a literal % in banner_text does not fatal message() ---- */
 DPT_SK_Settings::save( array( 'banner_text' => '10% off when we reopen at %s' ) );
@@ -124,6 +130,10 @@ $thrown = null;
 try { do_action_stub( 'woocommerce_before_pay_action', null ); } catch ( Exception $e ) { $thrown = $e->getMessage(); }
 dpt_test_eq( $thrown, null, 'paying an existing order on Wednesday is not refused' );
 dpt_test_eq( apply_filters( 'do_shortcode_tag', '<form>cf7</form>', 'contact-form-7', array(), array() ), '<form>cf7</form>', 'form shown on Wednesday' );
+dpt_test_eq( apply_filters( 'comments_open', true, 5 ), true, 'comments open on Wednesday' );
+$died = null;
+try { do_action_stub( 'pre_comment_on_post', 5 ); } catch ( Exception $e ) { $died = $e->getMessage(); }
+dpt_test_eq( $died, null, 'comment post allowed on Wednesday' );
 apply_filters( 'woocommerce_checkout_process', null );
 dpt_test_eq( count( $GLOBALS['dpt_stub_notices'] ), 0, 'no checkout notice on Wednesday' );
 ob_start();

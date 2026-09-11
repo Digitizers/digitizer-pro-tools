@@ -251,6 +251,7 @@ replaced markup is a courtesy:
 | Contact Form 7 | `wpcf7_validate` -> `$result->invalidate()` on the first tag | `do_shortcode_tag` for `contact-form-7` |
 | WPForms | `wpforms_process_before` -> `wpforms()->process->errors[ $id ]['header']` | `do_shortcode_tag` for `wpforms` |
 | Gravity Forms | `gform_validation` -> `is_valid = false`, `validation_message` | `do_shortcode_tag` for `gravityform` |
+| Comments | `pre_comment_on_post` -> `wp_die( message, 503 )` (`wp-comments-post.php` never runs `template_redirect`) | `comments_open` -> false |
 
 Each integration is registered only when its plugin's entry function or
 class exists at `init`. The replacement markup is
@@ -281,7 +282,8 @@ a page cache or CDN across a transition.
   CDN that caches HTML hooks that, and the readme says so. The Modules
   screen fires it too when a module is switched on or off.
 - The browser's copy of the mechanism: on front-end pages under the
-  automatic override, an inline script in `wp_footer` carries the next
+  automatic override, an inline script in `wp_footer` (and at the foot of
+  the closed screen, which exits before `wp_footer`) carries the next
   transition timestamp and, when the page is still open past it or was
   served stale after it, reloads with `?dpt_sk=<transition>` so the origin
   answers with the current state. A full-page cache or CDN that serves

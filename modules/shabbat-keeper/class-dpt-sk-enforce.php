@@ -151,6 +151,7 @@ final class DPT_SK_Enforce {
 		$css     = self::css();
 		$icon    = get_site_icon_url( 128 );
 		$site    = get_bloginfo( 'name' );
+		$script  = self::transition_script();
 		ob_start();
 		include __DIR__ . '/views/closed-screen.php';
 		return (string) ob_get_clean();
@@ -261,11 +262,16 @@ final class DPT_SK_Enforce {
 	 * transition, and idle once the reloaded page carries the matching query.
 	 */
 	public static function print_transition_script() {
+		echo self::transition_script(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Static script with one integer.
+	}
+
+	/** The script above as a string, or '' when it does not apply; the closed screen embeds it too, since that response exits before wp_footer. */
+	public static function transition_script() {
 		if ( ! self::is_front_request() || 'auto' !== DPT_SK_Settings::get( 'override' ) ) {
-			return;
+			return '';
 		}
 		$t = (int) self::zmanim()->next_transition( self::now() );
-		echo '<script id="dpt-sk-transition">(function(){var t=' . $t . ',n=Math.floor(Date.now()/1000);function q(){try{return new URL(location.href).searchParams.get("dpt_sk");}catch(e){return null;}}function go(){var u;try{u=new URL(location.href);}catch(e){return;}u.searchParams.set("dpt_sk",String(t));location.replace(u.toString());}if(n>=t){if(q()!==String(t)){go();}return;}setTimeout(go,Math.min((t-n+2)*1000,2e9));})();</script>';
+		return '<script id="dpt-sk-transition">(function(){var t=' . $t . ',n=Math.floor(Date.now()/1000);function q(){try{return new URL(location.href).searchParams.get("dpt_sk");}catch(e){return null;}}function go(){var u;try{u=new URL(location.href);}catch(e){return;}u.searchParams.set("dpt_sk",String(t));location.replace(u.toString());}if(n>=t){if(q()!==String(t)){go();}return;}setTimeout(go,Math.min((t-n+2)*1000,2e9));})();</script>';
 	}
 
 	public static function ensure_transition_event() {

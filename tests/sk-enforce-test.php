@@ -108,6 +108,7 @@ dpt_test_ok( false !== strpos( $html, 'The site is closed for Shabbat' ), 'close
 dpt_test_ok( false !== strpos( $html, 'dir="rtl"' ), 'closed screen is RTL on an RTL site' );
 dpt_test_ok( false !== strpos( $html, 'Jerusalem' ), 'closed screen names the city' );
 dpt_test_ok( false !== strpos( $html, '<style' ), 'styles inlined' );
+dpt_test_ok( false !== strpos( $html, 'dpt-sk-transition' ) && false !== strpos( $html, 'var t=' . $shabbat['end'] . ',' ), 'closed screen carries the reopening timer (Codex round-12 P2)' );
 
 /* ---- exemptions ---- */
 sk_admin();
@@ -162,6 +163,7 @@ sk_anon();
 $html = DPT_SK_Enforce::render_closed_screen();
 dpt_test_ok( false === strpos( $html, 'Havdalah' ), 'force-closed closed screen never mentions Havdalah, default message included (Codex round-8 P2)' );
 dpt_test_ok( false !== strpos( $html, 'when the closure is lifted' ), 'force-closed closed screen says when the closure is lifted' );
+dpt_test_ok( false === strpos( $html, 'dpt-sk-transition' ), 'no timer on the force-closed screen' );
 dpt_test_ok( false === strpos( DPT_SK_Enforce::banner_html(), 'Havdalah' ), 'force-closed banner does not mention Havdalah' );
 sk_set( array( 'override' => 'auto', 'mode' => 'business' ) );
 

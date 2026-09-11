@@ -52,6 +52,12 @@ final class DPT_SK_Integrations {
 			if ( function_exists( 'wpcf7' ) || function_exists( 'wpforms' ) || class_exists( 'GFForms' ) ) {
 				add_filter( 'do_shortcode_tag', array( __CLASS__, 'shortcode_markup' ), 10, 2 );
 			}
+		// Comments are a form too, and wp-comments-post.php never runs
+		// template_redirect, so a form loaded before the closure would post.
+		if ( '1' === DPT_SK_Settings::get( 'block_forms' ) || 'closed' === DPT_SK_Settings::get( 'mode' ) ) {
+			add_filter( 'comments_open', array( __CLASS__, 'comments_closed' ), 10, 2 );
+			add_action( 'pre_comment_on_post', array( __CLASS__, 'refuse_comment' ) );
+		}
 		}
 	}
 
@@ -125,6 +131,17 @@ final class DPT_SK_Integrations {
 	}
 
 	/* ---------------- forms ---------------- */
+
+	public static function comments_closed( $open, $post_id = 0 ) {
+		return DPT_SK_Enforce::refusals_apply() ? false : $open;
+	}
+
+	/** Runs inside wp_handle_comment_submission(), before the comment is inserted. */
+	public static function refuse_comment( $post_id = 0 ) {
+		if ( DPT_SK_Enforce::refusals_apply() ) {
+			wp_die( esc_html( self::message() ), '', array( 'response' => 503, 'back_link' => true ) );
+		}
+	}
 
 	public static function elementor_refuse( $record, $ajax_handler ) {
 		if ( DPT_SK_Enforce::refusals_apply() && is_object( $ajax_handler ) && method_exists( $ajax_handler, 'add_error_message' ) ) {

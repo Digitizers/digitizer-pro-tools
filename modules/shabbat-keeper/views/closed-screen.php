@@ -26,5 +26,6 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 	<?php endif; ?>
 	<p class="dpt-sk-site"><?php echo esc_html( $site ); ?><?php if ( '' !== $city ) : ?> &middot; <?php echo esc_html( $city ); ?><?php endif; ?></p>
 </main>
+<?php echo $script; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Static script with one integer, built by DPT_SK_Enforce::transition_script(). ?>
 </body>
 </html>
