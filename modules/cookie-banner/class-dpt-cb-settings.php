@@ -723,6 +723,7 @@ class DPT_CB_Settings {
 			sg_cachepress_purge_cache(); // SiteGround Optimizer.
 		}
 		do_action( 'litespeed_purge_all' ); // LiteSpeed Cache (no-op when absent).
+		do_action( 'breeze_clear_all_cache' ); // Breeze (Cloudways), likewise.
 		do_action( 'dpt_cb_purge_caches' ); // Custom hosts/CDNs can hook here.
 	}
 

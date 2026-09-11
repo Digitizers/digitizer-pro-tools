@@ -4,7 +4,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.38.0
+Stable tag: 1.39.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -241,6 +241,19 @@ A copy-this-page-address widget as one shortcode (disabled by default; enable it
 
 Admin interface is in English with a full Hebrew translation.
 
+= Module: Shabbat Keeper =
+
+Closes the site for Shabbat and Israeli holidays without anyone touching it (disabled by default; enable it on the Modules screen):
+
+* Two modes: the whole site answers with a "closed for Shabbat" page, or pages stay readable while purchases and form submissions are refused and a banner says when the site reopens
+* Times are computed on the server: pick a city (Jerusalem 40 minutes, Tel Aviv 18, Haifa 30, Beer Sheva 22 and eleven more) or enter coordinates anywhere in Israel; Havdalah at 42 or 72 minutes after sunset
+* Covers every Shabbat and the Israeli Yom Tov days - Rosh Hashana, Yom Kippur, Sukkot, Shmini Atzeret, Pesach first and seventh day, Shavuot - and merges adjacent days into one closure
+* Refuses WooCommerce purchases on the server (classic, blocks and the Store API) and submissions from Elementor Pro Forms, Contact Form 7, WPForms, Gravity Forms and the comment form; optionally hides phone and WhatsApp links
+* The closed page answers with HTTP 503 and Retry-After, so search engines treat it as a temporary outage
+* In closed mode feeds, robots.txt and sitemaps answer 503 like every other page; search engines read that as a temporary outage
+* Known page caches (LiteSpeed, WP Rocket, Breeze, W3 Total Cache, WP Super Cache, WP Fastest Cache, SiteGround) are purged at each transition; a CDN that caches HTML can hook its own purge to the dpt_shabbat_keeper_purge action, which fires at each transition, after every settings save and when the module is switched on or off; a small script in every page also reloads it once the transition has passed, so a copy a cache kept too long corrects itself
+* Administrators are never blocked and can preview the closed site with ?dpt_shabbat=preview; a manual override forces the site open or closed
+
 == External services ==
 
 This plugin is self-contained: every script, style and font it ships is bundled locally, so no module loads assets from a CDN or a font service. There is no telemetry and no usage tracking. The outside connections it can make are listed below - the first two are made by your server, the third by the visitor's browser and only for content you choose to embed.
@@ -297,6 +310,8 @@ The Embed module - disabled by default - does not contact anything on its own. I
 
 If your site shows a cookie or privacy notice, embedded documents are third-party content and normally belong in it.
 
+**Shabbat Keeper** contacts nothing. Sunset and the Hebrew calendar are computed inside the plugin from the city you choose.
+
 == Frequently Asked Questions ==
 
 = Do I have to use every module? =
@@ -341,6 +356,9 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 5. Configure each module you enabled from its own screen. For the Cookie Banner that means reviewing the texts per language and pasting your analytics/marketing snippets in the Scripts tab, then checking the site
 
 == Changelog ==
+
+= 1.39.0 =
+* New module: Shabbat Keeper - closes the site, or only its shop and forms, from candle lighting to Havdalah every Shabbat and Israeli holiday. Times are computed on the server for a chosen city (no external service); WooCommerce purchases and Elementor, Contact Form 7, WPForms and Gravity Forms submissions are refused while closed; the closed page answers 503 with Retry-After; known page caches are purged at each transition; administrators are exempt and can preview
 
 = 1.38.0 =
 * Agent Log: the site tagline (`blogdescription`) is recorded when it changes, beside the site name.
