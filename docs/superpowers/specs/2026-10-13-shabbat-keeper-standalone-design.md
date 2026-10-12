@@ -1,7 +1,7 @@
 # Shabbat Keeper as a standalone plugin for wordpress.org
 
 **Date:** 2026-10-13
-**Status:** proposed, not approved. Ben chose to do the standalone (2026-10-13); the name and the three defaults under "Decisions that are Ben's" are not confirmed.
+**Status:** approved by Ben, 2026-10-13 ("כן" to the three proposals under "Decisions that are Ben's").
 **Applies to:** a new repository and wordpress.org plugin, plus a small stand-down change to `modules/shabbat-keeper/` in this repository.
 **Source:** the module shipped in Digitizer Pro Tools 1.39.0 (`cb00a55`), designed in `2026-09-10-shabbat-keeper-design.md`. Behaviour is the module's unless this document says otherwise.
 
