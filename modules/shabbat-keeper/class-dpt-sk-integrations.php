@@ -20,9 +20,17 @@ final class DPT_SK_Integrations {
 		add_action( 'init', array( __CLASS__, 'hook_plugins' ), 20 );
 	}
 
-	/** Hook only the plugins that are actually loaded, and only the switches that are on. */
+	/**
+	 * Hook only the plugins that are actually loaded. The two switches belong
+	 * to business mode; closed mode refuses everything, because the closed
+	 * page never answers REST or AJAX, which is where a checkout or a form
+	 * loaded before candle lighting posts.
+	 */
 	public static function hook_plugins() {
-		if ( '1' === DPT_SK_Settings::get( 'block_woo' ) && class_exists( 'WooCommerce' ) ) {
+		$closed = 'closed' === DPT_SK_Settings::get( 'mode' );
+		$woo    = $closed || '1' === DPT_SK_Settings::get( 'block_woo' );
+		$forms  = $closed || '1' === DPT_SK_Settings::get( 'block_forms' );
+		if ( $woo && class_exists( 'WooCommerce' ) ) {
 			add_filter( 'woocommerce_is_purchasable', array( __CLASS__, 'not_purchasable' ), 10, 2 );
 			add_action( 'woocommerce_single_product_summary', array( __CLASS__, 'product_notice' ), 31 );
 			add_filter( 'woocommerce_loop_add_to_cart_link', array( __CLASS__, 'loop_button' ), 10, 2 );
@@ -34,7 +42,7 @@ final class DPT_SK_Integrations {
 			add_filter( 'woocommerce_valid_order_statuses_for_payment', array( __CLASS__, 'no_statuses_for_payment' ), 10, 2 );
 			add_action( 'woocommerce_before_pay_action', array( __CLASS__, 'refuse_order_pay' ) );
 		}
-		if ( '1' === DPT_SK_Settings::get( 'block_forms' ) ) {
+		if ( $forms ) {
 			if ( class_exists( '\ElementorPro\Plugin' ) ) {
 				add_action( 'elementor_pro/forms/validation', array( __CLASS__, 'elementor_refuse' ), 10, 2 );
 				add_filter( 'elementor/widget/render_content', array( __CLASS__, 'elementor_markup' ), 10, 2 );
@@ -55,7 +63,7 @@ final class DPT_SK_Integrations {
 		}
 		// Comments are a form too, and wp-comments-post.php never runs
 		// template_redirect, so a form loaded before the closure would post.
-		if ( '1' === DPT_SK_Settings::get( 'block_forms' ) || 'closed' === DPT_SK_Settings::get( 'mode' ) ) {
+		if ( $forms ) {
 			add_filter( 'comments_open', array( __CLASS__, 'comments_closed' ), 10, 2 );
 			add_action( 'pre_comment_on_post', array( __CLASS__, 'refuse_comment' ) );
 		}
@@ -143,8 +151,18 @@ final class DPT_SK_Integrations {
 		}
 	}
 
+	/**
+	 * Form_Record::validate() passes when the handler's error list is empty,
+	 * and only add_error() fills that list: a message on its own is shown
+	 * while the email, webhook and stored submission still happen. The error
+	 * is keyed to no real field, so the form shows the one sentence once.
+	 */
 	public static function elementor_refuse( $record, $ajax_handler ) {
-		if ( DPT_SK_Enforce::refusals_apply() && is_object( $ajax_handler ) && method_exists( $ajax_handler, 'add_error_message' ) ) {
+		if ( ! DPT_SK_Enforce::refusals_apply() || ! is_object( $ajax_handler ) || ! method_exists( $ajax_handler, 'add_error' ) ) {
+			return;
+		}
+		$ajax_handler->add_error( 'dpt_shabbat_keeper', self::message() );
+		if ( method_exists( $ajax_handler, 'add_error_message' ) ) {
 			$ajax_handler->add_error_message( self::message() );
 		}
 	}

@@ -764,6 +764,8 @@ return array (
     'Closed page' => 'עמוד סגור',
     'Show the reopening time' => 'הצגת שעת הפתיחה',
     'Business mode' => 'מצב עסקים',
+    'These switches apply to business mode. In closed mode, purchases and forms are always refused.' => 'המתגים האלה חלים על מצב עסקים. במצב סגור, רכישות וטפסים נחסמים תמיד.',
+    'The standalone Digitizer Shabbat Keeper plugin is active, so this module is standing down - its settings are on the Shabbat Keeper screen under Settings.' => 'התוסף העצמאי Digitizer Shabbat Keeper פעיל, ולכן המודול הזה נסוג - ההגדרות שלו נמצאות במסך שומר שבת, תחת הגדרות.',
     'Refuse WooCommerce purchases' => 'חסימת רכישות בווקומרס',
     'Refuse form submissions (Elementor, Contact Form 7, WPForms, Gravity Forms)' => 'חסימת שליחת טפסים (אלמנטור, Contact Form 7, WPForms, Gravity Forms)',
     'Hide phone and WhatsApp links' => 'הסתרת קישורי טלפון ווואטסאפ',

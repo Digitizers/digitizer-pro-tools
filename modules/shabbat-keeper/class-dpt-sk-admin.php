@@ -195,6 +195,7 @@ final class DPT_SK_Admin {
 
 				<div class="dpt-panel">
 					<h2><?php esc_html_e( 'Business mode', 'digitizer-pro-tools' ); ?></h2>
+					<p class="description"><?php esc_html_e( 'These switches apply to business mode. In closed mode, purchases and forms are always refused.', 'digitizer-pro-tools' ); ?></p>
 					<table class="form-table"><tbody>
 						<tr><th scope="row"><?php esc_html_e( 'Refuse WooCommerce purchases', 'digitizer-pro-tools' ); ?></th><td><?php $this->switch_field( 'block_woo', $o['block_woo'] ); ?></td></tr>
 						<tr><th scope="row"><?php esc_html_e( 'Refuse form submissions (Elementor, Contact Form 7, WPForms, Gravity Forms)', 'digitizer-pro-tools' ); ?></th><td><?php $this->switch_field( 'block_forms', $o['block_forms'] ); ?></td></tr>
