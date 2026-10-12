@@ -14,7 +14,8 @@ $GLOBALS['dpt_stub_is_admin'] = false;
 $module = new DPT_Shabbat_Keeper_Module();
 
 dpt_test_ok( ! DPT_Shabbat_Keeper_Module::standalone_active(), 'without the standalone plugin the module is in charge' );
-dpt_test_eq( $module->standing_down_reason(), '', 'and has nothing to explain' );
+dpt_test_ok( $module->user_can_toggle(), 'its switch is the Modules screen\'s own business' );
+dpt_test_eq( $module->toggle_denied_reason(), '', 'and it has nothing to explain' );
 
 $GLOBALS['dpt_stub_filters'] = array();
 $module->init();
@@ -30,8 +31,13 @@ if ( ! class_exists( 'Digitizer_Shabbat_Keeper_Core' ) ) {
 }
 
 dpt_test_ok( DPT_Shabbat_Keeper_Module::standalone_active(), 'the standalone plugin is seen by its core class' );
-dpt_test_ok( false !== strpos( $module->standing_down_reason(), 'Digitizer Shabbat Keeper' ), 'the notice names the plugin as the Plugins screen does' );
-dpt_test_ok( false !== strpos( $module->standing_down_reason(), 'Settings' ), 'and says where its settings are' );
+// Locked, not merely silent: a module switched off while the standalone is in
+// charge would stay off after the standalone is removed, and the site would
+// stop closing for Shabbat without anything saying so.
+dpt_test_ok( ! $module->user_can_toggle(), 'the switch is locked while the standalone is in charge' );
+dpt_test_ok( false !== strpos( $module->toggle_denied_reason(), 'Digitizer Shabbat Keeper' ), 'the reason names the plugin as the Plugins screen does' );
+dpt_test_ok( false !== strpos( $module->toggle_denied_reason(), 'Settings' ), 'and says where its settings are' );
+dpt_test_eq( $module->standing_down_reason(), '', 'said once: the locked switch already explains the silence' );
 
 $standing_down = new DPT_Shabbat_Keeper_Module();
 $GLOBALS['dpt_stub_filters'] = array();

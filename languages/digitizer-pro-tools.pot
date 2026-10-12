@@ -2297,7 +2297,7 @@ msgstr ""
 msgid "These switches apply to business mode. In closed mode, purchases and forms are always refused."
 msgstr ""
 
-msgid "The standalone Digitizer Shabbat Keeper plugin is active, so this module is standing down - its settings are on the Shabbat Keeper screen under Settings."
+msgid "The standalone Digitizer Shabbat Keeper plugin is active and does this module's work, so the switch is locked - its settings are on the Shabbat Keeper screen under Settings."
 msgstr ""
 
 msgid "Refuse WooCommerce purchases"

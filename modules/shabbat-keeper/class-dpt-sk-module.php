@@ -43,6 +43,10 @@ class DPT_Shabbat_Keeper_Module extends DPT_Module {
 	 * because it is the one the operator chose to install, and it copied
 	 * this module's settings when it was first activated.
 	 *
+	 * The switch is locked meanwhile. Off would look like tidying up, and
+	 * would mean that deactivating the standalone later leaves a site that
+	 * used to close for Shabbat open, with nothing saying so.
+	 *
 	 * @return bool
 	 */
 	public static function standalone_active() {
@@ -60,13 +64,23 @@ class DPT_Shabbat_Keeper_Module extends DPT_Module {
 	}
 
 	/**
+	 * @return bool
+	 */
+	public function user_can_toggle() {
+		return ! self::standalone_active();
+	}
+
+	/**
+	 * One sentence for both states of a locked switch, on or off; the
+	 * Modules screen shows it under the switch either way.
+	 *
 	 * @return string
 	 */
-	public function standing_down_reason() {
+	public function toggle_denied_reason() {
 		if ( ! self::standalone_active() ) {
 			return '';
 		}
-		return __( 'The standalone Digitizer Shabbat Keeper plugin is active, so this module is standing down - its settings are on the Shabbat Keeper screen under Settings.', 'digitizer-pro-tools' );
+		return __( 'The standalone Digitizer Shabbat Keeper plugin is active and does this module\'s work, so the switch is locked - its settings are on the Shabbat Keeper screen under Settings.', 'digitizer-pro-tools' );
 	}
 
 	public function install_defaults() {

@@ -2297,8 +2297,8 @@ msgstr "מצב עסקים"
 msgid "These switches apply to business mode. In closed mode, purchases and forms are always refused."
 msgstr "המתגים האלה חלים על מצב עסקים. במצב סגור, רכישות וטפסים נחסמים תמיד."
 
-msgid "The standalone Digitizer Shabbat Keeper plugin is active, so this module is standing down - its settings are on the Shabbat Keeper screen under Settings."
-msgstr "התוסף העצמאי Digitizer Shabbat Keeper פעיל, ולכן המודול הזה נסוג - ההגדרות שלו נמצאות במסך שומר שבת, תחת הגדרות."
+msgid "The standalone Digitizer Shabbat Keeper plugin is active and does this module's work, so the switch is locked - its settings are on the Shabbat Keeper screen under Settings."
+msgstr "התוסף העצמאי Digitizer Shabbat Keeper פעיל ועושה את עבודת המודול הזה, ולכן המתג נעול - ההגדרות שלו נמצאות במסך שומר שבת, תחת הגדרות."
 
 msgid "Refuse WooCommerce purchases"
 msgstr "חסימת רכישות בווקומרס"
