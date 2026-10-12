@@ -228,6 +228,20 @@ $GLOBALS['dpt_stub_cron'] = array();
 DPT_SK_Enforce::on_transition();
 dpt_test_eq( $GLOBALS['dpt_stub_cdn_purged'], 2, 'a transition fires dpt_shabbat_keeper_purge too' );
 
+/* ---- WP Super Cache: this site's cache, not the network's ---- */
+// wp_cache_clear_cache() with no blog id prunes the cache tree of every site.
+$GLOBALS['dpt_stub_wpsc'] = array();
+function wp_cache_clear_cache( $blog_id = 0 ) { $GLOBALS['dpt_stub_wpsc'][] = $blog_id; }
+if ( ! function_exists( 'get_current_blog_id' ) ) {
+	function get_current_blog_id() { return 7; }
+}
+DPT_SK_Enforce::purge_caches();
+dpt_test_eq( $GLOBALS['dpt_stub_wpsc'], array( 0 ), 'on a single site WP Super Cache is emptied as a whole' );
+$GLOBALS['dpt_stub_multisite'] = true;
+DPT_SK_Enforce::purge_caches();
+dpt_test_eq( end( $GLOBALS['dpt_stub_wpsc'] ), 7, 'on a network only the current site\'s cache is emptied' );
+$GLOBALS['dpt_stub_multisite'] = false;
+
 /* ---- the closed-site guard runs before Content Control's priority-1 exit (Codex round-1 P2) ---- */
 DPT_SK_Enforce::register();
 dpt_test_eq( dpt_stub_filter_priority( 'template_redirect', array( 'DPT_SK_Enforce', 'maybe_block' ) ), 0, 'closed-site guard registered at template_redirect priority 0' );
