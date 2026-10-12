@@ -4,7 +4,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.39.0
+Stable tag: 1.40.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -356,6 +356,12 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 5. Configure each module you enabled from its own screen. For the Cookie Banner that means reviewing the texts per language and pasting your analytics/marketing snippets in the Scripts tab, then checking the site
 
 == Changelog ==
+
+= 1.40.0 =
+* Shabbat Keeper is now also a plugin of its own, Digitizer Shabbat Keeper. When that plugin is active this module stands down, and its switch on the Modules screen is locked with the reason beside it, so a site never closes twice from two sets of settings and cannot be left with neither by accident. The standalone copies this module's settings the first time it is activated.
+* Shabbat Keeper: an Elementor Pro form submitted during a closure is now stopped. The refusal used to be shown to the visitor while the form's email, webhook and stored submission still ran.
+* Shabbat Keeper: closed mode refuses WooCommerce purchases and form submissions whatever the two business-mode switches say. With a switch off, a checkout or a form already open at candle lighting could still be sent, and the Store API still took orders, on a site showing "closed" to every page view.
+* Shabbat Keeper and Cookie Banner: on a multisite network with WP Super Cache, a cache purge now empties the current site's cache only. It used to empty the cache of every site on the network.
 
 = 1.39.0 =
 * New module: Shabbat Keeper - closes the site, or only its shop and forms, from candle lighting to Havdalah every Shabbat and Israeli holiday. Times are computed on the server for a chosen city (no external service); WooCommerce purchases and Elementor, Contact Form 7, WPForms and Gravity Forms submissions are refused while closed; the closed page answers 503 with Retry-After; known page caches are purged at each transition; administrators are exempt and can preview

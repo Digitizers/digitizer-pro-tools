@@ -80,9 +80,19 @@ dpt_test_eq( count( $cf7->invalid ), 1, 'CF7 submission invalidated' );
 do_action_stub( 'wpforms_process_before', array(), array( 'id' => 9 ) );
 dpt_test_ok( isset( $GLOBALS['dpt_stub_wpforms']->process->errors[9]['header'] ), 'WPForms submission refused' );
 
-$ajax = new class() { public $errors = array(); public function add_error_message( $m ) { $this->errors[] = $m; } };
+/* Elementor Pro's Ajax_Handler keeps two lists, and Form_Record::validate() reads only $errors. */
+$ajax = new class() {
+	public $errors = array();
+	public $messages = array();
+	public function add_error( $field, $m = '' ) { $this->errors[ $field ] = $m; return $this; }
+	public function add_error_message( $m ) { $this->messages[] = $m; return $this; }
+};
 do_action_stub( 'elementor_pro/forms/validation', null, $ajax );
-dpt_test_eq( count( $ajax->errors ), 1, 'Elementor submission refused' );
+dpt_test_eq( count( $ajax->errors ), 1, 'Elementor submission stopped by a validation error, not only a message' );
+dpt_test_eq( count( $ajax->messages ), 1, 'Elementor visitor is told why' );
+$legacy = new class() { public $messages = array(); public function add_error_message( $m ) { $this->messages[] = $m; } };
+do_action_stub( 'elementor_pro/forms/validation', null, $legacy );
+dpt_test_eq( count( $legacy->messages ), 0, 'a handler that cannot be stopped is left alone' );
 if ( ! function_exists( 'wp_die' ) ) { function wp_die( $m = '', $t = '', $a = array() ) { throw new Exception( (string) $m ); } }
 dpt_test_eq( apply_filters( 'comments_open', true, 5 ), false, 'comment forms closed while closed' );
 $died = null;
@@ -159,9 +169,15 @@ dpt_test_ok( ! dpt_stub_has_filter( 'wpcf7_validate' ), 'forms not hooked when s
 dpt_test_ok( ! dpt_stub_has_filter( 'pre_comment_on_post' ), 'comments not hooked in business mode with forms switched off' );
 $GLOBALS['dpt_stub_filters'] = array();
 add_filter( 'dpt_shabbat_keeper_now', function () use ( &$clock ) { return $clock; } );
-DPT_SK_Settings::save( array( 'mode' => 'closed', 'block_forms' => '0' ) );
+DPT_SK_Settings::save( array( 'mode' => 'closed', 'block_woo' => '0', 'block_forms' => '0' ) );
 DPT_SK_Enforce::reset();
 DPT_SK_Integrations::hook_plugins();
+dpt_test_eq( DPT_SK_Settings::get( 'block_woo' ), '0', 'both business switches really are off' );
+dpt_test_ok( dpt_stub_has_filter( 'woocommerce_store_api_cart_errors' ), 'closed mode refuses the Store API even with the WooCommerce switch off' );
+dpt_test_ok( dpt_stub_has_filter( 'woocommerce_checkout_process' ), 'closed mode refuses checkout even with the WooCommerce switch off' );
+dpt_test_ok( dpt_stub_has_filter( 'woocommerce_before_pay_action' ), 'closed mode refuses order payment even with the WooCommerce switch off' );
+dpt_test_ok( dpt_stub_has_filter( 'wpcf7_validate' ), 'closed mode refuses form posts even with the forms switch off' );
+dpt_test_ok( dpt_stub_has_filter( 'elementor_pro/forms/validation' ), 'closed mode refuses Elementor posts even with the forms switch off' );
 dpt_test_ok( dpt_stub_has_filter( 'pre_comment_on_post' ), 'closed mode guards comments even with forms switched off (Codex round-13 P2)' );
 dpt_test_ok( dpt_stub_has_filter( 'comments_open' ), 'closed mode closes comment forms even with forms switched off' );
 

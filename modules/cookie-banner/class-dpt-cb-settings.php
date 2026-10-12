@@ -711,7 +711,9 @@ class DPT_CB_Settings {
 			rocket_clean_domain(); // WP Rocket.
 		}
 		if ( function_exists( 'wp_cache_clear_cache' ) ) {
-			wp_cache_clear_cache(); // WP Super Cache.
+			// WP Super Cache. Without a blog id it empties the cache of the whole
+			// network; one site's banner is not every other site's business.
+			wp_cache_clear_cache( is_multisite() ? get_current_blog_id() : 0 );
 		}
 		if ( function_exists( 'w3tc_flush_all' ) ) {
 			w3tc_flush_all(); // W3 Total Cache.
