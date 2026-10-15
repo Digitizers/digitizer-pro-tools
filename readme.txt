@@ -4,7 +4,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.40.0
+Stable tag: 1.41.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -356,6 +356,10 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 5. Configure each module you enabled from its own screen. For the Cookie Banner that means reviewing the texts per language and pasting your analytics/marketing snippets in the Scripts tab, then checking the site
 
 == Changelog ==
+
+= 1.41.0 =
+* Code Highlighter: code blocks and inline code read left to right on RTL sites. On a Hebrew page they inherited right-to-left: lines aligned right, a trailing `;` or `(` jumped to the start of the line, and the line numbers sat on the wrong side. Enlighter, which the module replaces, renders them left to right.
+* REST Bridge: the three Open Graph names the replaced Digitizer API Extensions plugin published - `rank_math_og_title`, `rank_math_og_description`, `rank_math_og_image` - are registered again, as compatibility names, on posts and pages. Automations written against that plugin still write them, and an unregistered key is dropped by the REST API without an error. They store under their own names as before; Rank Math reads `rank_math_facebook_*`, which each one's description names. The preview lists them under Compatibility names.
 
 = 1.40.0 =
 * Shabbat Keeper is now also a plugin of its own, Digitizer Shabbat Keeper. When that plugin is active this module stands down, and its switch on the Modules screen is locked with the reason beside it, so a site never closes twice from two sets of settings and cannot be left with neither by accident. The standalone copies this module's settings the first time it is activated.
