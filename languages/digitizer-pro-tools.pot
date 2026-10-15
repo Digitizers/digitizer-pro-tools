@@ -2427,3 +2427,21 @@ msgstr ""
 
 msgid "On desktop the buttons share the width of the row equally. Off sizes each one to its text. On mobile they are always full width, one under another."
 msgstr ""
+
+msgid "With the icon, its width and height."
+msgstr ""
+
+msgid "X shape"
+msgstr ""
+
+msgid "Character (in the banner font)"
+msgstr ""
+
+msgid "Icon (bold, the same in every font)"
+msgstr ""
+
+msgid "X opacity (0.1-1)"
+msgstr ""
+
+msgid "1 = full strength. On hover it is always shown in full."
+msgstr ""

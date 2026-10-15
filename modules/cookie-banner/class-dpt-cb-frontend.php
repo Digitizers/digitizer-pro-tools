@@ -411,6 +411,7 @@ class DPT_CB_Frontend {
 		$close_bg_css = $close_bg ? 'background:' . esc_attr( $close_bg ) . ';border-radius:50%;' : 'background:transparent;';
 		$close_size   = (int) $o['close_size'];
 		$close_box    = max( 20, $close_size + 12 );
+		$close_alpha  = self::close_opacity( $o['close_opacity'] );
 		// frontend.css puts the button 8px in from the box's top and its
 		// inline-end side. With no visible title above the message, whatever of
 		// it reaches past the padding would sit on the message's first line.
@@ -546,6 +547,7 @@ class DPT_CB_Frontend {
 				font-size: <?php echo $close_size; ?>px;
 				width: <?php echo $close_box; ?>px;
 				height: <?php echo $close_box; ?>px;
+				opacity: <?php echo $close_alpha; ?>;
 				<?php echo $close_bg_css; ?>
 			}
 			<?php if ( $close_clear > 0 ) : ?>
@@ -715,6 +717,35 @@ class DPT_CB_Frontend {
 	}
 
 	/**
+	 * What the close button shows: the × character, which takes the banner's
+	 * font (light in many Hebrew fonts), or a drawn ×, the same in every font.
+	 * The icon is 1em square, so the size setting is its width and height, and
+	 * it is painted in currentColor, so the colour setting applies to it.
+	 *
+	 * @param string $icon 'text' or 'svg'.
+	 * @return string Fixed markup, nothing from input.
+	 */
+	public static function close_glyph( $icon ) {
+		if ( 'svg' !== $icon ) {
+			return '&times;';
+		}
+		return '<svg class="dpt-cb-close-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M4 4L20 20M20 4L4 20"></path></svg>';
+	}
+
+	/**
+	 * The close button's opacity as a CSS number. Never below 0.1: a button
+	 * that still closes the banner must not become invisible.
+	 *
+	 * @param mixed $value The saved setting.
+	 * @return string
+	 */
+	public static function close_opacity( $value ) {
+		$v = is_numeric( $value ) ? (float) $value : 0.7;
+		$v = max( 0.1, min( 1.0, $v ) );
+		return rtrim( rtrim( number_format( $v, 2, '.', '' ), '0' ), '.' );
+	}
+
+	/**
 	 * The corners of the full-width mobile bar. The edge it is flush with is
 	 * always square; the edge facing the page keeps the box's radius when
 	 * asked to. Physical corners, as the bar's edge is.
@@ -836,7 +867,8 @@ class DPT_CB_Frontend {
 		     role="dialog" aria-labelledby="dpt-cb-title" aria-modal="true">
 			<div class="dpt-cb-box">
 				<?php if ( '1' === $o['show_close'] ) : ?>
-					<button type="button" class="dpt-cb-close" data-dpt-cb-action="reject" aria-label="<?php echo esc_attr( $t['close_aria'] ); ?>">&times;</button>
+					<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Fixed markup from close_glyph(). ?>
+					<button type="button" class="dpt-cb-close" data-dpt-cb-action="reject" aria-label="<?php echo esc_attr( $t['close_aria'] ); ?>"><?php echo self::close_glyph( $o['close_icon'] ); ?></button>
 				<?php endif; ?>
 
 				<div class="dpt-cb-main-view">

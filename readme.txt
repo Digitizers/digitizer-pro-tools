@@ -4,7 +4,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.43.0
+Stable tag: 1.44.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -357,6 +357,12 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 5. Configure each module you enabled from its own screen. For the Cookie Banner that means reviewing the texts per language and pasting your analytics/marketing snippets in the Scripts tab, then checking the site
 
 == Changelog ==
+
+= 1.44.0 =
+* Cookie Banner: the privacy policy link at the end of the message no longer breaks between its words. When it does not fit, it moves to the next line whole.
+* Cookie Banner: two settings for the close button (Typography, Close button). The defaults keep it exactly as it was.
+  * X opacity: 0.7 as before; 1 shows it at full strength. On hover it is always shown in full.
+  * X shape: the character in the banner font, as before, or a bold drawn icon that looks the same in every font and follows the X size and colour.
 
 = 1.43.0 =
 * Cookie Banner: with the title hidden, the message no longer runs under the close button. Its first lines wrap around the button; the rest keep the full width.

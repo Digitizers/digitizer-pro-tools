@@ -808,5 +808,11 @@ return array (
     'With the full-width bar: the corners facing the page keep the corner radius below (the top corners of a bottom bar). The edge against the screen stays square.' => 'עם הפס ברוחב מלא: הפינות שפונות אל הדף שומרות על רדיוס הפינות שמתחת (הפינות העליונות של פס תחתון). הצד שצמוד לקצה המסך נשאר ישר.',
     'Fill the row' => 'מילוי השורה',
     'On desktop the buttons share the width of the row equally. Off sizes each one to its text. On mobile they are always full width, one under another.' => 'בדסקטופ הכפתורים מתחלקים שווה ברוחב השורה. כבוי מתאים כל כפתור לטקסט שלו. במובייל הם תמיד ברוחב מלא, אחד מתחת לשני.',
+    'With the icon, its width and height.' => 'עם האייקון: הרוחב והגובה שלו.',
+    'X shape' => 'צורת ה-X',
+    'Character (in the banner font)' => 'תו (בגופן של הבאנר)',
+    'Icon (bold, the same in every font)' => 'אייקון (עבה, זהה בכל גופן)',
+    'X opacity (0.1-1)' => 'שקיפות ה-X (0.1-1)',
+    '1 = full strength. On hover it is always shown in full.' => '1 = בעוצמה מלאה. במעבר עכבר הוא תמיד מוצג במלואו.',
   ),
 );

@@ -846,7 +846,26 @@ class DPT_CB_Admin {
 			</tr>
 			<tr>
 				<th><label for="dpt_cb_close_size"><?php esc_html_e( 'X size (px)', 'digitizer-pro-tools' ); ?></label></th>
-				<td><input type="number" min="12" max="60" id="dpt_cb_close_size" name="dpt_cb[close_size]" value="<?php echo esc_attr( $o['close_size'] ); ?>" /> px</td>
+				<td>
+					<input type="number" min="12" max="60" id="dpt_cb_close_size" name="dpt_cb[close_size]" value="<?php echo esc_attr( $o['close_size'] ); ?>" /> px
+					<p class="description"><?php esc_html_e( 'With the icon, its width and height.', 'digitizer-pro-tools' ); ?></p>
+				</td>
+			</tr>
+			<tr>
+				<th><label for="dpt_cb_close_icon"><?php esc_html_e( 'X shape', 'digitizer-pro-tools' ); ?></label></th>
+				<td>
+					<select id="dpt_cb_close_icon" name="dpt_cb[close_icon]">
+						<option value="text" <?php selected( $o['close_icon'], 'text' ); ?>><?php esc_html_e( 'Character (in the banner font)', 'digitizer-pro-tools' ); ?></option>
+						<option value="svg" <?php selected( $o['close_icon'], 'svg' ); ?>><?php esc_html_e( 'Icon (bold, the same in every font)', 'digitizer-pro-tools' ); ?></option>
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<th><label for="dpt_cb_close_opacity"><?php esc_html_e( 'X opacity (0.1-1)', 'digitizer-pro-tools' ); ?></label></th>
+				<td>
+					<input type="number" step="0.05" min="0.1" max="1" id="dpt_cb_close_opacity" name="dpt_cb[close_opacity]" value="<?php echo esc_attr( $o['close_opacity'] ); ?>" />
+					<p class="description"><?php esc_html_e( '1 = full strength. On hover it is always shown in full.', 'digitizer-pro-tools' ); ?></p>
+				</td>
 			</tr>
 			<tr>
 				<th><label for="dpt_cb_close_color"><?php esc_html_e( 'X color', 'digitizer-pro-tools' ); ?></label></th>
@@ -1333,7 +1352,7 @@ class DPT_CB_Admin {
 			<p class="description"><?php esc_html_e( 'Updates after saving.', 'digitizer-pro-tools' ); ?></p>
 			<div class="dpt-preview-box" dir="<?php echo esc_attr( $dir ); ?>" style="<?php echo esc_attr( $box_style ); ?>">
 				<?php if ( '1' === $o['show_close'] ) : ?>
-					<span class="dpt-preview-close" style="color:<?php echo esc_attr( $o['close_color'] ?: $text ); ?>;font-size:<?php echo (int) $o['close_size']; ?>px;<?php echo $o['close_bg_color'] ? 'background:' . esc_attr( $o['close_bg_color'] ) . ';border-radius:50%;' : ''; ?>">&times;</span>
+					<span class="dpt-preview-close" style="color:<?php echo esc_attr( $o['close_color'] ?: $text ); ?>;font-size:<?php echo (int) $o['close_size']; ?>px;<?php echo $o['close_bg_color'] ? 'background:' . esc_attr( $o['close_bg_color'] ) . ';border-radius:50%;' : ''; ?>opacity:<?php echo esc_attr( DPT_CB_Frontend::close_opacity( $o['close_opacity'] ) ); ?>;"><?php echo DPT_CB_Frontend::close_glyph( $o['close_icon'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Fixed markup from close_glyph(). ?></span>
 				<?php endif; ?>
 				<?php if ( '1' === $o['title_show'] ) : ?>
 					<h4 style="<?php echo esc_attr( $title_style ); ?>"><?php echo esc_html( $texts['title'] ); ?></h4>
