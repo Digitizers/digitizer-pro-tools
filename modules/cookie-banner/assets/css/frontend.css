@@ -156,6 +156,19 @@
     margin: 0 0 10px;
     line-height: 1.3;
 }
+/* "Show title" off: out of sight, still read by screen readers - the title
+   is what names the dialog (aria-labelledby). */
+#dpt-cb-banner .dpt-cb-title.dpt-cb-sr-only {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    margin: -1px !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+}
 #dpt-cb-banner .dpt-cb-message {
     line-height: 1.5;
 }

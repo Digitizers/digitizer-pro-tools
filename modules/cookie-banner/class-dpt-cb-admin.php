@@ -500,6 +500,13 @@ class DPT_CB_Admin {
 				</td>
 			</tr>
 			<tr>
+				<th><?php esc_html_e( 'Link at the end of the message', 'digitizer-pro-tools' ); ?></th>
+				<td>
+					<?php $this->switch_field( 'policy_inline', $o['policy_inline'] ); ?>
+					<p class="description"><?php esc_html_e( 'Off puts the link on a line of its own under the message.', 'digitizer-pro-tools' ); ?></p>
+				</td>
+			</tr>
+			<tr>
 				<th><label for="dpt_cb_default_lang"><?php esc_html_e( 'Default language', 'digitizer-pro-tools' ); ?></label></th>
 				<td>
 					<select id="dpt_cb_default_lang" name="dpt_cb[default_lang]">
@@ -736,6 +743,17 @@ class DPT_CB_Admin {
 				</td>
 			</tr>
 			<tr>
+				<th><label for="dpt_cb_corner_offset_x"><?php esc_html_e( 'Corner distance from the side (px)', 'digitizer-pro-tools' ); ?></label></th>
+				<td>
+					<input type="number" min="0" id="dpt_cb_corner_offset_x" name="dpt_cb[corner_offset_x]" value="<?php echo esc_attr( $o['corner_offset_x'] ); ?>" /> px
+					<p class="description"><?php esc_html_e( 'Corner positions on desktop: from the left edge for bottom-left, from the right edge for bottom-right.', 'digitizer-pro-tools' ); ?></p>
+				</td>
+			</tr>
+			<tr>
+				<th><label for="dpt_cb_corner_offset_y"><?php esc_html_e( 'Corner distance from the bottom (px)', 'digitizer-pro-tools' ); ?></label></th>
+				<td><input type="number" min="0" id="dpt_cb_corner_offset_y" name="dpt_cb[corner_offset_y]" value="<?php echo esc_attr( $o['corner_offset_y'] ); ?>" /> px</td>
+			</tr>
+			<tr>
 				<th><label for="dpt_cb_max_width_pct"><?php esc_html_e( 'Width on desktop (%)', 'digitizer-pro-tools' ); ?></label></th>
 				<td>
 					<input type="number" min="10" max="100" id="dpt_cb_max_width_pct" name="dpt_cb[max_width_pct]" value="<?php echo esc_attr( $o['max_width_pct'] ); ?>" /> %
@@ -752,6 +770,13 @@ class DPT_CB_Admin {
 			<tr>
 				<th><label for="dpt_cb_max_width_pct_mobile"><?php esc_html_e( 'Width on mobile (%)', 'digitizer-pro-tools' ); ?></label></th>
 				<td><input type="number" min="10" max="100" id="dpt_cb_max_width_pct_mobile" name="dpt_cb[max_width_pct_mobile]" value="<?php echo esc_attr( $o['max_width_pct_mobile'] ); ?>" /> %</td>
+			</tr>
+			<tr>
+				<th><?php esc_html_e( 'Full-width bar on mobile', 'digitizer-pro-tools' ); ?></th>
+				<td>
+					<?php $this->switch_field( 'mobile_full_width', $o['mobile_full_width'] ); ?>
+					<p class="description"><?php esc_html_e( 'Below 640px wide: flush with the edge of the screen, full width, with no margin and no rounded corners. Overrides the two mobile widths above. Not used by the centered position.', 'digitizer-pro-tools' ); ?></p>
+				</td>
 			</tr>
 			<tr>
 				<th><label for="dpt_cb_border_radius"><?php esc_html_e( 'Corner radius (px)', 'digitizer-pro-tools' ); ?></label></th>
@@ -820,14 +845,14 @@ class DPT_CB_Admin {
 		<?php
 	}
 
-	private function tab_typography( $o ) {
-		$aligns = array(
-			'start'   => __( 'Start (right in RTL, left in LTR)', 'digitizer-pro-tools' ),
-			'center'  => __( 'Center', 'digitizer-pro-tools' ),
-			'end'     => __( 'End (left in RTL, right in LTR)', 'digitizer-pro-tools' ),
-			'justify' => __( 'Justify', 'digitizer-pro-tools' ),
-		);
-		$weights = array(
+	/**
+	 * Font weight choices, shared by the title and the buttons. The values
+	 * match DPT_CB_Settings::css_value_allowlists().
+	 *
+	 * @return array
+	 */
+	private function font_weights() {
+		return array(
 			'300' => __( '300 - Light', 'digitizer-pro-tools' ),
 			'400' => __( '400 - Regular', 'digitizer-pro-tools' ),
 			'500' => __( '500 - Medium', 'digitizer-pro-tools' ),
@@ -836,12 +861,29 @@ class DPT_CB_Admin {
 			'800' => __( '800 - Extra-bold', 'digitizer-pro-tools' ),
 			'900' => __( '900 - Black', 'digitizer-pro-tools' ),
 		);
+	}
+
+	private function tab_typography( $o ) {
+		$aligns = array(
+			'start'   => __( 'Start (right in RTL, left in LTR)', 'digitizer-pro-tools' ),
+			'center'  => __( 'Center', 'digitizer-pro-tools' ),
+			'end'     => __( 'End (left in RTL, right in LTR)', 'digitizer-pro-tools' ),
+			'justify' => __( 'Justify', 'digitizer-pro-tools' ),
+		);
+		$weights = $this->font_weights();
 		?>
 		<h2><span class="dashicons dashicons-editor-textcolor"></span> <?php esc_html_e( 'Typography', 'digitizer-pro-tools' ); ?></h2>
 		<p class="description dpt-big-desc"><?php esc_html_e( 'Alignment uses logical values, so "Start" is right for Hebrew/Arabic pages and left for English pages - the same setting fits every language.', 'digitizer-pro-tools' ); ?></p>
 
 		<h3 class="dpt-section-heading"><span class="dashicons dashicons-heading"></span> <?php esc_html_e( 'Title', 'digitizer-pro-tools' ); ?></h3>
 		<table class="form-table dpt-form">
+			<tr>
+				<th><?php esc_html_e( 'Show title', 'digitizer-pro-tools' ); ?></th>
+				<td>
+					<?php $this->switch_field( 'title_show', $o['title_show'] ); ?>
+					<p class="description"><?php esc_html_e( 'Off hides the title from sight. Screen readers still read it, because it is the name of the banner\'s dialog.', 'digitizer-pro-tools' ); ?></p>
+				</td>
+			</tr>
 			<tr>
 				<th><label for="dpt_cb_title_color"><?php esc_html_e( 'Title color', 'digitizer-pro-tools' ); ?></label></th>
 				<td>
@@ -942,6 +984,31 @@ class DPT_CB_Admin {
 		?>
 		<h2><span class="dashicons dashicons-button"></span> <?php esc_html_e( 'Button Design', 'digitizer-pro-tools' ); ?></h2>
 
+		<h3 class="dpt-section-heading"><span class="dashicons dashicons-editor-textcolor"></span> <?php esc_html_e( 'All buttons', 'digitizer-pro-tools' ); ?></h3>
+		<table class="form-table dpt-form">
+			<tr>
+				<th><label for="dpt_cb_btn_height"><?php esc_html_e( 'Height (px)', 'digitizer-pro-tools' ); ?></label></th>
+				<td>
+					<input type="number" min="0" id="dpt_cb_btn_height" name="dpt_cb[btn_height]" value="<?php echo esc_attr( $o['btn_height'] ); ?>" /> px
+					<p class="description"><?php esc_html_e( '0 = as tall as the text and padding make it.', 'digitizer-pro-tools' ); ?></p>
+				</td>
+			</tr>
+			<tr>
+				<th><label for="dpt_cb_btn_font_size"><?php esc_html_e( 'Font size', 'digitizer-pro-tools' ); ?></label></th>
+				<td><input type="number" min="8" max="40" id="dpt_cb_btn_font_size" name="dpt_cb[btn_font_size]" value="<?php echo esc_attr( $o['btn_font_size'] ); ?>" /> px</td>
+			</tr>
+			<tr>
+				<th><label for="dpt_cb_btn_font_weight"><?php esc_html_e( 'Font weight', 'digitizer-pro-tools' ); ?></label></th>
+				<td>
+					<select id="dpt_cb_btn_font_weight" name="dpt_cb[btn_font_weight]">
+						<?php foreach ( $this->font_weights() as $k => $l ) : ?>
+							<option value="<?php echo esc_attr( $k ); ?>" <?php selected( $o['btn_font_weight'], $k ); ?>><?php echo esc_html( $l ); ?></option>
+						<?php endforeach; ?>
+					</select>
+				</td>
+			</tr>
+		</table>
+
 		<h3 class="dpt-section-heading"><span class="dashicons dashicons-yes"></span> <?php esc_html_e( '"Accept all" button', 'digitizer-pro-tools' ); ?></h3>
 		<?php $this->button_style_fields( 'accept', $o, false ); ?>
 
@@ -998,6 +1065,13 @@ class DPT_CB_Admin {
 				<td>
 					<?php $this->switch_field( 'btn_' . $prefix . '_border', isset( $o[ 'btn_' . $prefix . '_border' ] ) ? $o[ 'btn_' . $prefix . '_border' ] : '0' ); ?>
 					<p class="description"><?php esc_html_e( 'Adds a thin border in the text color.', 'digitizer-pro-tools' ); ?></p>
+				</td>
+			</tr>
+			<tr>
+				<th><label><?php esc_html_e( 'Border color', 'digitizer-pro-tools' ); ?></label></th>
+				<td>
+					<input type="text" class="dpt-color" name="dpt_cb[btn_<?php echo esc_attr( $prefix ); ?>_border_color]" value="<?php echo esc_attr( $o[ 'btn_' . $prefix . '_border_color' ] ); ?>" data-default-color="" />
+					<p class="description"><?php esc_html_e( 'Empty = the button\'s text color.', 'digitizer-pro-tools' ); ?></p>
 				</td>
 			</tr>
 			<?php endif; ?>
@@ -1214,9 +1288,14 @@ class DPT_CB_Admin {
 			esc_attr( $o['btn_accept_bg'] ), esc_attr( $o['btn_accept_color'] ), (int) $o['btn_accept_radius'] );
 		$btn_reject_style = sprintf( 'background:%s;color:%s;border-radius:%dpx;',
 			esc_attr( $o['btn_reject_bg'] ), esc_attr( $o['btn_reject_color'] ), (int) $o['btn_reject_radius'] );
-		$settings_border  = isset( $o['btn_settings_border'] ) && '1' === $o['btn_settings_border'] ? 'border:1px solid currentColor;' : '';
+		$settings_border  = isset( $o['btn_settings_border'] ) && '1' === $o['btn_settings_border'] ? 'border:1px solid ' . ( $o['btn_settings_border_color'] ? esc_attr( $o['btn_settings_border_color'] ) : 'currentColor' ) . ';' : '';
+		$btn_size_style   = sprintf( 'font-size:%dpx;font-weight:%s;', max( 8, (int) $o['btn_font_size'] ), esc_attr( $o['btn_font_weight'] ) )
+			. ( (int) $o['btn_height'] > 0 ? 'display:inline-flex;align-items:center;min-height:' . (int) $o['btn_height'] . 'px;' : '' );
 		$btn_settings_style = sprintf( 'background:%s;color:%s;border-radius:%dpx;%s',
 			esc_attr( $o['btn_settings_bg'] ), esc_attr( $o['btn_settings_color'] ), (int) $o['btn_settings_radius'], $settings_border );
+		$btn_accept_style   .= $btn_size_style;
+		$btn_reject_style   .= $btn_size_style;
+		$btn_settings_style .= $btn_size_style;
 		?>
 		<div class="dpt-preview-wrap">
 			<h3><span class="dashicons dashicons-visibility"></span> <?php esc_html_e( 'Preview', 'digitizer-pro-tools' ); ?> <span class="dpt-preview-lang">(<?php echo esc_html( $this->lang_label( $lang ) ); ?>)</span></h3>
@@ -1225,7 +1304,9 @@ class DPT_CB_Admin {
 				<?php if ( '1' === $o['show_close'] ) : ?>
 					<span class="dpt-preview-close" style="color:<?php echo esc_attr( $o['close_color'] ?: $text ); ?>;font-size:<?php echo (int) $o['close_size']; ?>px;<?php echo $o['close_bg_color'] ? 'background:' . esc_attr( $o['close_bg_color'] ) . ';border-radius:50%;' : ''; ?>">&times;</span>
 				<?php endif; ?>
-				<h4 style="<?php echo esc_attr( $title_style ); ?>"><?php echo esc_html( $texts['title'] ); ?></h4>
+				<?php if ( '1' === $o['title_show'] ) : ?>
+					<h4 style="<?php echo esc_attr( $title_style ); ?>"><?php echo esc_html( $texts['title'] ); ?></h4>
+				<?php endif; ?>
 				<div style="<?php echo esc_attr( $content_style ); ?>"><?php echo wp_kses_post( wpautop( $texts['message'] ) ); ?></div>
 				<div class="dpt-preview-buttons">
 					<span class="dpt-preview-btn" style="<?php echo esc_attr( $btn_accept_style ); ?>"><?php echo esc_html( $texts['btn_accept_text'] ); ?></span>

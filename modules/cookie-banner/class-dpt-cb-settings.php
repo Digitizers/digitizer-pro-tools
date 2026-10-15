@@ -34,6 +34,9 @@ class DPT_CB_Settings {
 			// Policy link (shared; WPML/Polylang translate the page per language).
 			'policy_url'         => '',
 			'policy_page_id'     => '0',
+			// The link at the end of the message's last paragraph instead of on a
+			// line of its own.
+			'policy_inline'      => '0',
 
 			// Design - box.
 			'bg_color'           => '#ffffff',
@@ -44,11 +47,18 @@ class DPT_CB_Settings {
 			// so existing sites keep their current appearance until changed.
 			'width_mobile'         => '700',
 			'max_width_pct_mobile' => '100',
+			// Below 640px: a bar flush with the bottom of the screen, full width,
+			// no margin and no rounded corners. Off keeps the floating card.
+			'mobile_full_width'    => '0',
 			// Corner banners are shrink-to-fit, so they take an explicit pixel
 			// width of their own instead of the width/percentage pair. 380 is
 			// what the corner CSS hard-coded before this became configurable,
 			// so existing corner banners keep their exact size.
 			'width_corner'         => '380',
+			// Distance of a corner banner from the side and from the bottom of
+			// the screen, on desktop.
+			'corner_offset_x'      => '20',
+			'corner_offset_y'      => '20',
 
 			// Typography: inherit the site/theme font (default), take Elementor's
 			// primary global font, or set an explicit font stack.
@@ -83,6 +93,9 @@ class DPT_CB_Settings {
 			'title_align'         => 'start',
 			'title_weight'        => '700',
 			'title_margin_bottom' => '10',
+			// Off hides the title from sight only: it still names the dialog
+			// for screen readers (aria-labelledby).
+			'title_show'          => '1',
 			'title_shadow_enabled' => '0',
 			'title_shadow_color'   => '#000000',
 			'title_shadow_blur'    => '4',
@@ -122,6 +135,11 @@ class DPT_CB_Settings {
 			'btn_settings_radius' => '6',
 			'btn_settings_show'   => '1',
 			'btn_settings_border' => '1',
+			'btn_settings_border_color' => '', // Empty = the button's text colour.
+			// Every banner button. Height 0 = as tall as its padding makes it.
+			'btn_height'          => '0',
+			'btn_font_size'       => '14',
+			'btn_font_weight'     => '600',
 
 			// Button "Save preferences".
 			'btn_save_bg'         => '#2563eb',
@@ -411,6 +429,7 @@ class DPT_CB_Settings {
 	public static function css_value_allowlists() {
 		return array(
 			'title_weight'      => array( '300', '400', '500', '600', '700', '800', '900' ),
+			'btn_font_weight'   => array( '300', '400', '500', '600', '700', '800', '900' ),
 			'border_style'      => array( 'solid', 'dashed', 'dotted', 'double' ),
 			'bg_image_size'     => array( 'cover', 'contain', 'auto', '100% 100%' ),
 			'bg_image_repeat'   => array( 'no-repeat', 'repeat', 'repeat-x', 'repeat-y' ),
@@ -627,7 +646,7 @@ class DPT_CB_Settings {
 		$url_fields = array( 'policy_url', 'bg_image_url' );
 
 		// Hex color fields that can be empty.
-		$optional_colors = array( 'title_color', 'content_color', 'close_color', 'close_bg_color' );
+		$optional_colors = array( 'title_color', 'content_color', 'close_color', 'close_bg_color', 'btn_settings_border_color' );
 
 		// Hex color fields required.
 		$color_fields = array(
@@ -647,6 +666,7 @@ class DPT_CB_Settings {
 			'title_shadow_enabled', 'content_shadow_enabled',
 			'show_close',
 			'btn_reject_show', 'btn_settings_show', 'btn_settings_border',
+			'title_show', 'mobile_full_width', 'policy_inline',
 			'float_button_enabled',
 			'cat_functional_enabled', 'cat_analytics_enabled', 'cat_marketing_enabled',
 		);

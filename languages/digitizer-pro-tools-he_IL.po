@@ -1665,6 +1665,45 @@ msgstr "בשימוש עבור הפסים ברוחב מלא והמודאל הממ
 msgid "Corner width on desktop (px)"
 msgstr "רוחב פינה בדסקטופ (px)"
 
+msgid "Show title"
+msgstr "הצגת כותרת"
+
+msgid "Off hides the title from sight. Screen readers still read it, because it is the name of the banner's dialog."
+msgstr "כבוי מסתיר את הכותרת מהעין. קוראי מסך עדיין מקריאים אותה, כי היא השם של חלון הבאנר."
+
+msgid "Corner distance from the side (px)"
+msgstr "מרחק הפינה מהצד (px)"
+
+msgid "Corner positions on desktop: from the left edge for bottom-left, from the right edge for bottom-right."
+msgstr "במיקומי פינה בדסקטופ: מהקצה השמאלי בשמאל למטה, מהקצה הימני בימין למטה."
+
+msgid "Corner distance from the bottom (px)"
+msgstr "מרחק הפינה מהתחתית (px)"
+
+msgid "Full-width bar on mobile"
+msgstr "פס ברוחב מלא במובייל"
+
+msgid "Below 640px wide: flush with the edge of the screen, full width, with no margin and no rounded corners. Overrides the two mobile widths above. Not used by the centered position."
+msgstr "ברוחב מתחת ל-640px: צמוד לקצה המסך, ברוחב מלא, בלי שוליים ובלי פינות מעוגלות. גובר על שני רוחבי המובייל שלמעלה. לא חל על המיקום המרכזי."
+
+msgid "Link at the end of the message"
+msgstr "קישור בסוף ההודעה"
+
+msgid "Off puts the link on a line of its own under the message."
+msgstr "כבוי מציב את הקישור בשורה נפרדת מתחת להודעה."
+
+msgid "All buttons"
+msgstr "כל הכפתורים"
+
+msgid "Height (px)"
+msgstr "גובה (px)"
+
+msgid "0 = as tall as the text and padding make it."
+msgstr "0 = הגובה שהטקסט והריווח קובעים."
+
+msgid "Empty = the button's text color."
+msgstr "ריק = צבע הטקסט של הכפתור."
+
 msgid "Only for the bottom-left / bottom-right corner positions, which sit next to the content instead of stretching across it. Try 380-450px for a compact card."
 msgstr "רק עבור מיקומי הפינה (שמאל למטה / ימין למטה), היושבים לצד התוכן במקום להימתח לרוחבו. נסו 380-450px לכרטיס קומפקטי."
 
