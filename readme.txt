@@ -4,7 +4,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.42.0
+Stable tag: 1.43.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -75,6 +75,7 @@ A multilingual cookie-consent banner:
 * 5 banner positions (bottom/top bar, centered modal, corners), 5 entry animations
 * 4 cookie categories (essential, functional, analytics, marketing) with per-category script blocking until consent (GA, GTM, Facebook Pixel, any snippet)
 * Floating "manage cookies" button so visitors can change preferences at any time
+* Or an ordinary link instead: any link to #dpt-cookie-settings, an element with the class dpt-cb-open, or the [dpt_cookie_settings] shortcode reopens the banner
 * Rich design controls: colors, background image with overlay, typography with shadows, per-button styling, border, page overlay
 * Separate box width for desktop and mobile - a narrow corner card on desktop, full-width on phones
 * Font control: inherit the site font (default), follow Elementor's primary global font, or set a custom font stack
@@ -356,6 +357,14 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 5. Configure each module you enabled from its own screen. For the Cookie Banner that means reviewing the texts per language and pasting your analytics/marketing snippets in the Scripts tab, then checking the site
 
 == Changelog ==
+
+= 1.43.0 =
+* Cookie Banner: with the title hidden, the message no longer runs under the close button. Its first lines wrap around the button; the rest keep the full width.
+* Cookie Banner: three more settings for matching an existing banner. The defaults keep the banner exactly as it was.
+  * Fill the row (Buttons): on desktop the buttons share the width of the row equally.
+  * Round the inner edge of the bar (Design): the full-width mobile bar keeps the corner radius on the edge facing the page.
+  * Link colour for the privacy policy link (Texts). Empty keeps the text colour.
+* Cookie Banner: an ordinary link reopens the banner, so a site can put "cookie settings" in its footer instead of the floating button. Any link to #dpt-cookie-settings or any element with the class dpt-cb-open works; the [dpt_cookie_settings] shortcode prints one; the dpt_cb_open_selector filter changes what counts. Opening the banner, from the link or the floating button, now moves focus into it, and focus returns afterwards.
 
 = 1.42.0 =
 * Cookie Banner: six settings for matching an existing banner's design without custom CSS. The defaults keep the banner exactly as it was.

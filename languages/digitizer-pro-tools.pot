@@ -2403,3 +2403,27 @@ msgstr ""
 
 msgid "Shavuot"
 msgstr ""
+
+msgid "Link color"
+msgstr ""
+
+msgid "Empty = the color of the text around it."
+msgstr ""
+
+msgid "A link that reopens the banner"
+msgstr ""
+
+msgid "Any link to #dpt-cookie-settings, or any element with the class dpt-cb-open, opens the banner so a visitor can change their choice - for example a footer link instead of the floating button. The shortcode prints such a link; text=\"...\" sets its wording."
+msgstr ""
+
+msgid "Round the inner edge of the bar"
+msgstr ""
+
+msgid "With the full-width bar: the corners facing the page keep the corner radius below (the top corners of a bottom bar). The edge against the screen stays square."
+msgstr ""
+
+msgid "Fill the row"
+msgstr ""
+
+msgid "On desktop the buttons share the width of the row equally. Off sizes each one to its text. On mobile they are always full width, one under another."
+msgstr ""

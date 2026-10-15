@@ -4,6 +4,11 @@
  * design (issue #55) - title visibility, the settings button's border colour,
  * corner offsets, a full-width mobile bar, an inline policy link, and button
  * size. Every default must leave the banner exactly as it was.
+ *
+ * Then the follow-ups: room for the close button when the title is hidden
+ * (#57), buttons that fill the row, a rounded inner edge on the full-width
+ * mobile bar and a policy link colour (#58), and an ordinary link that
+ * reopens the banner (#59).
  */
 require_once __DIR__ . '/bootstrap.php';
 
@@ -28,6 +33,29 @@ if ( ! function_exists( 'wpautop' ) ) {
 			$out[] = '<p>' . $p . '</p>';
 		}
 		return implode( "\n", $out ) . "\n";
+	}
+}
+
+$GLOBALS['dpt_stub_shortcodes'] = array();
+if ( ! function_exists( 'add_shortcode' ) ) {
+	function add_shortcode( $tag, $callback ) {
+		$GLOBALS['dpt_stub_shortcodes'][ $tag ] = $callback;
+	}
+}
+if ( ! function_exists( 'shortcode_atts' ) ) {
+	function shortcode_atts( $pairs, $atts, $shortcode = '' ) {
+		$atts = (array) $atts;
+		$out  = array();
+		foreach ( $pairs as $name => $default ) {
+			$out[ $name ] = array_key_exists( $name, $atts ) ? $atts[ $name ] : $default;
+		}
+		return $out;
+	}
+}
+$GLOBALS['dpt_stub_locale'] = 'he_IL';
+if ( ! function_exists( 'get_locale' ) ) {
+	function get_locale() {
+		return $GLOBALS['dpt_stub_locale'];
 	}
 }
 
@@ -177,6 +205,86 @@ dpt_test_eq( dpt_test_cb_rule( $css, '#dpt-cb-banner .dpt-cb-btn' ), 'font-size:
 $o = dpt_test_cb_opts( array( 'btn_font_weight' => '500;}body{display:none' ) );
 dpt_test_eq( dpt_test_cb_rule( dpt_test_cb_css( $frontend, $o ), '#dpt-cb-banner .dpt-cb-btn' ), 'font-size: 14px; font-weight: 600;', 'a weight that is not one of the offered values falls back to the default' );
 
+/* ---- #57: the close button and a hidden title ---- */
+
+$d = DPT_CB_Settings::defaults();
+dpt_test_eq(
+	array( $d['btn_stretch'], $d['mobile_full_width_radius'], $d['policy_link_color'] ),
+	array( '0', '0', '' ),
+	'the follow-up defaults change nothing either: buttons sized to their text, a square full-width bar, a link in the text colour'
+);
+
+$float_sel = '#dpt-cb-banner .dpt-cb-close + .dpt-cb-main-view > .dpt-cb-title.dpt-cb-sr-only + .dpt-cb-message::before';
+$o   = dpt_test_cb_opts( array( 'title_show' => '0', 'padding' => '18', 'close_size' => '22' ) );
+$css = dpt_test_cb_css( $frontend, $o );
+dpt_test_ok( false !== strpos( $css, $float_sel ), 'with the title hidden, the message keeps room for the close button' );
+dpt_test_ok( false !== strpos( $css, '#dpt-cb-banner .dpt-cb-close + .dpt-cb-main-view > .dpt-cb-message:first-child::before' ), 'and so does a language with no title at all' );
+// The button is 22 + 12 = 34px, 8px in from the corner: it reaches 42px into
+// the box, 24px past an 18px padding - the overlap measured in the issue.
+dpt_test_eq(
+	dpt_test_cb_rule( $css, '#dpt-cb-banner .dpt-cb-close + .dpt-cb-main-view > .dpt-cb-message:first-child::before' ),
+	'content: ""; float: right; width: 28px; height: 24px;',
+	'a float as deep as the button reaches past the padding, 4px wider so the text does not touch it'
+);
+dpt_test_ok( false !== strpos( $css, '#dpt-cb-banner[dir="rtl"] .dpt-cb-close + .dpt-cb-main-view > .dpt-cb-message:first-child::before { float: left; }' ) || 1 === preg_match( '/\[dir="rtl"\][^{]*::before\s*\{\s*float: left;\s*\}/', $css ), 'on the left in Hebrew, where the button is' );
+$html = dpt_test_cb_markup( $frontend, $o, 'he', 'rtl' );
+dpt_test_ok( 1 === preg_match( '#<button type="button" class="dpt-cb-close"[^>]*>&times;</button>\s*<div class="dpt-cb-main-view">\s*<h2 id="dpt-cb-title" class="dpt-cb-title dpt-cb-sr-only">[^<]*</h2>\s*<div class="dpt-cb-message">#', $html ), 'the markup is the shape the rule matches: button, then the content, then the hidden title, then the message' );
+$html = dpt_test_cb_markup( $frontend, dpt_test_cb_opts( array() ), 'he', 'rtl' );
+dpt_test_ok( 1 === preg_match( '#<h2 id="dpt-cb-title" class="dpt-cb-title">#', $html ), 'with the title shown it is not .dpt-cb-sr-only, so the rule leaves the message alone' );
+$o = dpt_test_cb_opts( array( 'title_show' => '0', 'padding' => '50', 'close_size' => '22' ) );
+dpt_test_ok( false === strpos( dpt_test_cb_css( $frontend, $o ), '::before' ), 'with a padding deeper than the button, nothing is added' );
+
+/* ---- #58: buttons that fill the row ---- */
+
+$css = dpt_test_cb_css( $frontend, dpt_test_cb_opts( array() ) );
+dpt_test_ok( false === strpos( $css, 'flex: 1 1 0' ), 'off: buttons keep the width of their text' );
+$css = preg_replace( '/\s+/', ' ', dpt_test_cb_css( $frontend, dpt_test_cb_opts( array( 'btn_stretch' => '1' ) ) ) );
+dpt_test_ok( false !== strpos( $css, '@media (min-width: 641px) { #dpt-cb-banner .dpt-cb-main-view .dpt-cb-buttons .dpt-cb-btn { flex: 1 1 0; } }' ), 'on: on desktop the main view\'s buttons share the row equally' );
+
+/* ---- #58: the full-width mobile bar's inner edge ---- */
+
+dpt_test_eq( DPT_CB_Frontend::full_width_radius( 'bottom', 24, false ), '0', 'off: square corners, as in 1.42.0' );
+dpt_test_eq( DPT_CB_Frontend::full_width_radius( 'bottom', 24, true ), '24px 24px 0 0', 'a bottom bar keeps its top corners' );
+dpt_test_eq( DPT_CB_Frontend::full_width_radius( 'top', 24, true ), '0 0 24px 24px', 'a top bar keeps its bottom corners' );
+dpt_test_eq( DPT_CB_Frontend::full_width_radius( 'bottom', 0, true ), '0', 'no radius, nothing to keep' );
+$o      = dpt_test_cb_opts( array( 'position' => 'bottom', 'mobile_full_width' => '1', 'mobile_full_width_radius' => '1', 'border_radius' => '24' ) );
+$css    = dpt_test_cb_css( $frontend, $o );
+dpt_test_ok( false !== strpos( $css, 'border-radius: 24px 24px 0 0 !important;' ), 'and the stylesheet says so' );
+dpt_test_ok( false !== strpos( $css, 'box-shadow:0 10px 40px rgba(0,0,0,0.2);' ), 'the shadow stays as the shadow setting says' );
+$o = dpt_test_cb_opts( array( 'position' => 'center', 'mobile_full_width' => '1', 'mobile_full_width_radius' => '1' ) );
+dpt_test_ok( false === strpos( dpt_test_cb_css( $frontend, $o ), '0 0 !important' ), 'the centered dialog is still left as it is' );
+
+/* ---- #58: the policy link colour ---- */
+
+dpt_test_ok( false === strpos( dpt_test_cb_css( $frontend, dpt_test_cb_opts( array() ) ), '.dpt-cb-policy-inline a' ), 'empty: the link keeps the text colour' );
+$css = preg_replace( '/\s+/', ' ', dpt_test_cb_css( $frontend, dpt_test_cb_opts( array( 'policy_link_color' => '#af8fe2' ) ) ) );
+dpt_test_eq( dpt_test_cb_rule( $css, '#dpt-cb-banner .dpt-cb-policy a, #dpt-cb-banner .dpt-cb-policy-inline a' ), 'color: #af8fe2; opacity: 1;', 'set: the link on its own line and the link inside the message take it, at full strength' );
+
+/* ---- #59: a link that reopens the banner ---- */
+
+dpt_test_eq( DPT_CB_Frontend::open_selector(), 'a[href="#dpt-cookie-settings"], a[href$="#dpt-cookie-settings"], .dpt-cb-open', 'a link to the hash, alone or at the end of a full address, or the class' );
+add_filter( 'dpt_cb_open_selector', function ( $s ) { return $s . ', .footer-cookies'; } );
+dpt_test_ok( '.footer-cookies' === substr( DPT_CB_Frontend::open_selector(), -15 ), 'a site can add its own' );
+$GLOBALS['dpt_stub_filters'] = array();
+
+dpt_test_ok( isset( $GLOBALS['dpt_stub_shortcodes']['dpt_cookie_settings'] ), 'the shortcode is registered' );
+$GLOBALS['dpt_stub_is_admin'] = false; // A page on the site.
+dpt_test_cb_opts( array( 'enabled' => '1' ) );
+dpt_test_eq( $frontend->settings_link_shortcode( array( 'text' => 'Cookie <b>settings</b>' ) ), '<a href="#dpt-cookie-settings" class="dpt-cb-settings-link">Cookie &lt;b&gt;settings&lt;/b&gt;</a>', 'it prints a link to the hash, the text escaped' );
+dpt_test_eq( $frontend->settings_link_shortcode( '' ), '<a href="#dpt-cookie-settings" class="dpt-cb-settings-link">ניהול עוגיות</a>', 'without text, the floating button\'s label in the page\'s language' );
+$GLOBALS['dpt_stub_locale'] = 'en_US';
+dpt_test_eq( $frontend->settings_link_shortcode( array() ), '<a href="#dpt-cookie-settings" class="dpt-cb-settings-link">Manage cookies</a>', 'in English on an English page' );
+$GLOBALS['dpt_stub_locale'] = 'he_IL';
+dpt_test_cb_opts( array( 'enabled' => '0' ) );
+dpt_test_eq( $frontend->settings_link_shortcode( array( 'text' => 'x' ) ), '', 'with the banner off there is nothing to open, so no link' );
+$GLOBALS['dpt_stub_is_admin'] = true;
+
+$js = (string) file_get_contents( dirname( __DIR__ ) . '/modules/cookie-banner/assets/js/frontend.js' );
+dpt_test_ok( false !== strpos( $js, "document.addEventListener('click'" ) && false !== strpos( $js, 'closest(openSelector)' ), 'frontend.js listens on the document, so a link added anywhere works' );
+dpt_test_ok( false !== strpos( $js, 'e.preventDefault();' ) && false !== strpos( $js, 'openFrom(' ), 'it opens the banner instead of following the link' );
+dpt_test_ok( false !== strpos( $js, 'returnFocus();' ) && false !== strpos( $js, "querySelector('.dpt-cb-main-view .dpt-cb-btn')" ), 'focus goes into the dialog and back to the link after the choice' );
+dpt_test_ok( false !== strpos( $js, "window.location.hash === '#' + config.openHash" ), 'a page loaded at #dpt-cookie-settings opens it too' );
+
 /* ---- saving ---- */
 
 $GLOBALS['dpt_stub_options'] = array();
@@ -195,5 +303,11 @@ dpt_test_eq( $saved['btn_settings_border_color'], '', 'a border colour that is n
 dpt_test_eq( $saved['corner_offset_x'], '70', 'and an offset is kept' );
 DPT_CB_Settings::save( array( 'btn_settings_border_color' => '#F2F2F2' ) );
 dpt_test_eq( get_option( DPT_CB_Settings::OPTION )['btn_settings_border_color'], '#F2F2F2', 'a real colour is kept' );
+$GLOBALS['dpt_stub_options'] = array();
+DPT_CB_Settings::save( array( 'btn_stretch' => '1', 'mobile_full_width_radius' => 'on', 'policy_link_color' => 'purple;}' ) );
+$saved = get_option( DPT_CB_Settings::OPTION );
+dpt_test_eq( array( $saved['btn_stretch'], $saved['mobile_full_width_radius'], $saved['policy_link_color'] ), array( '1', '0', '' ), 'the new switches save as switches, and a link colour that is not a colour is dropped' );
+DPT_CB_Settings::save( array( 'policy_link_color' => '#af8fe2' ) );
+dpt_test_eq( get_option( DPT_CB_Settings::OPTION )['policy_link_color'], '#af8fe2', 'a real link colour is kept' );
 
 exit( dpt_test_summary() > 0 ? 1 : 0 );

@@ -37,6 +37,8 @@ class DPT_CB_Settings {
 			// The link at the end of the message's last paragraph instead of on a
 			// line of its own.
 			'policy_inline'      => '0',
+			// Empty = the text colour around it, as before.
+			'policy_link_color'  => '',
 
 			// Design - box.
 			'bg_color'           => '#ffffff',
@@ -50,6 +52,9 @@ class DPT_CB_Settings {
 			// Below 640px: a bar flush with the bottom of the screen, full width,
 			// no margin and no rounded corners. Off keeps the floating card.
 			'mobile_full_width'    => '0',
+			// With the full-width bar: keep the corner radius on the edge that
+			// faces the page (the top corners of a bottom bar). Off squares all four.
+			'mobile_full_width_radius' => '0',
 			// Corner banners are shrink-to-fit, so they take an explicit pixel
 			// width of their own instead of the width/percentage pair. 380 is
 			// what the corner CSS hard-coded before this became configurable,
@@ -140,6 +145,9 @@ class DPT_CB_Settings {
 			'btn_height'          => '0',
 			'btn_font_size'       => '14',
 			'btn_font_weight'     => '600',
+			// On desktop the banner's buttons share the row equally. Off sizes
+			// each to its text.
+			'btn_stretch'         => '0',
 
 			// Button "Save preferences".
 			'btn_save_bg'         => '#2563eb',
@@ -646,7 +654,7 @@ class DPT_CB_Settings {
 		$url_fields = array( 'policy_url', 'bg_image_url' );
 
 		// Hex color fields that can be empty.
-		$optional_colors = array( 'title_color', 'content_color', 'close_color', 'close_bg_color', 'btn_settings_border_color' );
+		$optional_colors = array( 'title_color', 'content_color', 'close_color', 'close_bg_color', 'btn_settings_border_color', 'policy_link_color' );
 
 		// Hex color fields required.
 		$color_fields = array(
@@ -667,6 +675,7 @@ class DPT_CB_Settings {
 			'show_close',
 			'btn_reject_show', 'btn_settings_show', 'btn_settings_border',
 			'title_show', 'mobile_full_width', 'policy_inline',
+			'mobile_full_width_radius', 'btn_stretch',
 			'float_button_enabled',
 			'cat_functional_enabled', 'cat_analytics_enabled', 'cat_marketing_enabled',
 		);
