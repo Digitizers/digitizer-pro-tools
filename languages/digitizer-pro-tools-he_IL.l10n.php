@@ -800,5 +800,13 @@ return array (
     'Pesach' => 'פסח',
     'Seventh day of Pesach' => 'שביעי של פסח',
     'Shavuot' => 'שבועות',
+    'Link color' => 'צבע הקישור',
+    'Empty = the color of the text around it.' => 'ריק = הצבע של הטקסט שסביבו.',
+    'A link that reopens the banner' => 'קישור שפותח את הבאנר מחדש',
+    'Any link to #dpt-cookie-settings, or any element with the class dpt-cb-open, opens the banner so a visitor can change their choice - for example a footer link instead of the floating button. The shortcode prints such a link; text="..." sets its wording.' => 'כל קישור ל-#dpt-cookie-settings, או כל אלמנט עם המחלקה dpt-cb-open, פותח את הבאנר כדי שמבקר יוכל לשנות את הבחירה שלו - למשל קישור בפוטר במקום הכפתור הצף. השורטקוד מדפיס קישור כזה; text="..." קובע את הנוסח שלו.',
+    'Round the inner edge of the bar' => 'עיגול הצד הפנימי של הפס',
+    'With the full-width bar: the corners facing the page keep the corner radius below (the top corners of a bottom bar). The edge against the screen stays square.' => 'עם הפס ברוחב מלא: הפינות שפונות אל הדף שומרות על רדיוס הפינות שמתחת (הפינות העליונות של פס תחתון). הצד שצמוד לקצה המסך נשאר ישר.',
+    'Fill the row' => 'מילוי השורה',
+    'On desktop the buttons share the width of the row equally. Off sizes each one to its text. On mobile they are always full width, one under another.' => 'בדסקטופ הכפתורים מתחלקים שווה ברוחב השורה. כבוי מתאים כל כפתור לטקסט שלו. במובייל הם תמיד ברוחב מלא, אחד מתחת לשני.',
   ),
 );

@@ -507,6 +507,20 @@ class DPT_CB_Admin {
 				</td>
 			</tr>
 			<tr>
+				<th><label for="dpt_cb_policy_link_color"><?php esc_html_e( 'Link color', 'digitizer-pro-tools' ); ?></label></th>
+				<td>
+					<input type="text" class="dpt-color" id="dpt_cb_policy_link_color" name="dpt_cb[policy_link_color]" value="<?php echo esc_attr( $o['policy_link_color'] ); ?>" data-default-color="" />
+					<p class="description"><?php esc_html_e( 'Empty = the color of the text around it.', 'digitizer-pro-tools' ); ?></p>
+				</td>
+			</tr>
+			<tr>
+				<th><?php esc_html_e( 'A link that reopens the banner', 'digitizer-pro-tools' ); ?></th>
+				<td>
+					<code>#dpt-cookie-settings</code> &nbsp; <code>[dpt_cookie_settings]</code>
+					<p class="description"><?php esc_html_e( 'Any link to #dpt-cookie-settings, or any element with the class dpt-cb-open, opens the banner so a visitor can change their choice - for example a footer link instead of the floating button. The shortcode prints such a link; text="..." sets its wording.', 'digitizer-pro-tools' ); ?></p>
+				</td>
+			</tr>
+			<tr>
 				<th><label for="dpt_cb_default_lang"><?php esc_html_e( 'Default language', 'digitizer-pro-tools' ); ?></label></th>
 				<td>
 					<select id="dpt_cb_default_lang" name="dpt_cb[default_lang]">
@@ -779,6 +793,13 @@ class DPT_CB_Admin {
 				</td>
 			</tr>
 			<tr>
+				<th><?php esc_html_e( 'Round the inner edge of the bar', 'digitizer-pro-tools' ); ?></th>
+				<td>
+					<?php $this->switch_field( 'mobile_full_width_radius', $o['mobile_full_width_radius'] ); ?>
+					<p class="description"><?php esc_html_e( 'With the full-width bar: the corners facing the page keep the corner radius below (the top corners of a bottom bar). The edge against the screen stays square.', 'digitizer-pro-tools' ); ?></p>
+				</td>
+			</tr>
+			<tr>
 				<th><label for="dpt_cb_border_radius"><?php esc_html_e( 'Corner radius (px)', 'digitizer-pro-tools' ); ?></label></th>
 				<td><input type="number" min="0" id="dpt_cb_border_radius" name="dpt_cb[border_radius]" value="<?php echo esc_attr( $o['border_radius'] ); ?>" /> px</td>
 			</tr>
@@ -1005,6 +1026,13 @@ class DPT_CB_Admin {
 							<option value="<?php echo esc_attr( $k ); ?>" <?php selected( $o['btn_font_weight'], $k ); ?>><?php echo esc_html( $l ); ?></option>
 						<?php endforeach; ?>
 					</select>
+				</td>
+			</tr>
+			<tr>
+				<th><?php esc_html_e( 'Fill the row', 'digitizer-pro-tools' ); ?></th>
+				<td>
+					<?php $this->switch_field( 'btn_stretch', $o['btn_stretch'] ); ?>
+					<p class="description"><?php esc_html_e( 'On desktop the buttons share the width of the row equally. Off sizes each one to its text. On mobile they are always full width, one under another.', 'digitizer-pro-tools' ); ?></p>
 				</td>
 			</tr>
 		</table>
@@ -1293,6 +1321,9 @@ class DPT_CB_Admin {
 			. ( (int) $o['btn_height'] > 0 ? 'display:inline-flex;align-items:center;min-height:' . (int) $o['btn_height'] . 'px;' : '' );
 		$btn_settings_style = sprintf( 'background:%s;color:%s;border-radius:%dpx;%s',
 			esc_attr( $o['btn_settings_bg'] ), esc_attr( $o['btn_settings_color'] ), (int) $o['btn_settings_radius'], $settings_border );
+		if ( '1' === $o['btn_stretch'] ) {
+			$btn_size_style .= 'flex:1 1 0;text-align:center;';
+		}
 		$btn_accept_style   .= $btn_size_style;
 		$btn_reject_style   .= $btn_size_style;
 		$btn_settings_style .= $btn_size_style;
@@ -1307,7 +1338,14 @@ class DPT_CB_Admin {
 				<?php if ( '1' === $o['title_show'] ) : ?>
 					<h4 style="<?php echo esc_attr( $title_style ); ?>"><?php echo esc_html( $texts['title'] ); ?></h4>
 				<?php endif; ?>
-				<div style="<?php echo esc_attr( $content_style ); ?>"><?php echo wp_kses_post( wpautop( $texts['message'] ) ); ?></div>
+				<?php
+				// The room the site's banner keeps clear of the close button
+				// when no title is shown (see DPT_CB_Frontend::render_inline_css()).
+				$close_clear = ( '1' === $o['show_close'] && ( '1' !== $o['title_show'] || '' === $texts['title'] ) )
+					? max( 0, 8 + max( 20, (int) $o['close_size'] + 12 ) - max( 0, (int) $o['padding'] ) )
+					: 0;
+				?>
+				<div style="<?php echo esc_attr( $content_style ); ?>"><?php if ( $close_clear > 0 ) : ?><span aria-hidden="true" style="<?php echo esc_attr( sprintf( 'float:%s;width:%dpx;height:%dpx;', 'rtl' === $dir ? 'left' : 'right', $close_clear + 4, $close_clear ) ); ?>"></span><?php endif; ?><?php echo wp_kses_post( wpautop( $texts['message'] ) ); ?></div>
 				<div class="dpt-preview-buttons">
 					<span class="dpt-preview-btn" style="<?php echo esc_attr( $btn_accept_style ); ?>"><?php echo esc_html( $texts['btn_accept_text'] ); ?></span>
 					<?php if ( '1' === $o['btn_reject_show'] ) : ?>

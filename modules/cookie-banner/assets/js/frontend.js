@@ -364,6 +364,10 @@
         // but resets automatically so the user is NEVER permanently locked out.
         var isClosing = false;
 
+        // Whatever opened the banner (the floating button, a "cookie
+        // settings" link), so focus can go back to it after the choice.
+        var opener = null;
+
         function showBanner() {
             log('showBanner()');
             isClosing = false;
@@ -424,12 +428,34 @@
             injectConsentedScripts(consent);
             try { document.documentElement.setAttribute('data-dpt-cb-resolved', '1'); } catch(e) {}
             hideBannerInstant();
+            returnFocus();
             // Reset to main view so the next time the banner opens, it shows the main view.
             if (mainView) mainView.style.display = '';
             if (settingsView) settingsView.style.display = 'none';
             dispatchConsentEvent(consent);
             // Auto-release lock after a short window so the float button still works.
             setTimeout(function () { isClosing = false; }, 600);
+        }
+
+        // The banner is a modal dialog: opened on request, focus moves into
+        // it, to its first button, and comes back to the opener afterwards.
+        function openFrom(source) {
+            opener = source || null;
+            isClosing = false;
+            showMainView();
+            showBanner();
+            var first = banner.querySelector('.dpt-cb-main-view .dpt-cb-btn');
+            if (first) {
+                try { first.focus({ preventScroll: true }); } catch (e) { first.focus(); }
+            }
+        }
+
+        function returnFocus() {
+            var target = opener;
+            opener = null;
+            if (target && target.focus && document.body.contains(target)) {
+                try { target.focus({ preventScroll: true }); } catch (e) { target.focus(); }
+            }
         }
 
         function baseConsent() {
@@ -499,9 +525,29 @@
         if (floatBtn) {
             floatBtn.addEventListener('click', function () {
                 log('float button clicked');
-                isClosing = false;
-                showMainView();
-                showBanner();
+                openFrom(floatBtn);
+            });
+        }
+
+        // An ordinary link reopens the banner too - a footer "cookie
+        // settings" link in place of the floating button. Delegated, so a
+        // link a builder or a menu adds anywhere works, cached page or not.
+        var openSelector = config.openSelector || '';
+        if (openSelector) {
+            document.addEventListener('click', function (e) {
+                var match = null;
+                try {
+                    match = e.target && e.target.closest ? e.target.closest(openSelector) : null;
+                } catch (err) {
+                    log('openSelector is not a valid selector', openSelector);
+                    return;
+                }
+                if (!match || banner.contains(match)) return;
+                e.preventDefault();
+                log('opened by a link');
+                // The class may sit on a builder's wrapper around the link;
+                // focus goes back to the link itself.
+                openFrom(e.target.closest('a, button') || match);
             });
         }
 
@@ -533,13 +579,23 @@
         }
 
         window.DPTCB = {
-            open:       function () { isClosing = false; showMainView(); showBanner(); },
+            open:       function () { openFrom(document.activeElement !== document.body ? document.activeElement : null); },
             close:      hideBannerInstant,
             getConsent: readConsent,
             acceptAll:  acceptAll,
             rejectAll:  rejectAll,
             debug:      function () { return buildFullDump(); }
         };
+
+        // Arriving at #dpt-cookie-settings (a link from an email, another
+        // site) opens the banner too. The hash is dropped, so reloading after
+        // the choice does not open it again.
+        if (config.openHash && window.location.hash === '#' + config.openHash) {
+            openFrom(null);
+            try {
+                window.history.replaceState(null, '', window.location.pathname + window.location.search);
+            } catch (e) {}
+        }
 
         log('init() complete - DPTCB ready');
         if (DEBUG) renderDebugPanel();

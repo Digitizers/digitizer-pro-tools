@@ -9,6 +9,16 @@ class DPT_CB_Frontend {
 
 	const CONSENT_COOKIE = 'dpt_consent';
 
+	/** The address a link points at to reopen the banner: #dpt-cookie-settings. */
+	const OPEN_HASH = 'dpt-cookie-settings';
+
+	/**
+	 * What reopens the banner when clicked: a link to the hash (on its own or
+	 * at the end of a full URL, as menus write it), or anything carrying the
+	 * class, for builders that let you set a class but not an address.
+	 */
+	const OPEN_SELECTOR = 'a[href="#dpt-cookie-settings"], a[href$="#dpt-cookie-settings"], .dpt-cb-open';
+
 	public function __construct() {
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue' ) );
 		add_action( 'wp_footer',          array( $this, 'render_banner' ), 99 );
@@ -20,6 +30,42 @@ class DPT_CB_Frontend {
 		add_filter( 'rocket_delay_js_exclusions',         array( $this, 'rocket_exclude_patterns' ) );
 		add_filter( 'rocket_minify_excluded_external_js', array( $this, 'rocket_exclude_files' ) );
 		add_filter( 'rocket_excluded_inline_js_content',  array( $this, 'rocket_exclude_inline' ) );
+		add_shortcode( 'dpt_cookie_settings', array( $this, 'settings_link_shortcode' ) );
+	}
+
+	/**
+	 * [dpt_cookie_settings text="..."] - a link that reopens the banner, for
+	 * a footer or the privacy policy page. Without text it reads like the
+	 * floating button's label, in the page's language.
+	 *
+	 * @param array|string $atts Shortcode attributes.
+	 * @return string
+	 */
+	public function settings_link_shortcode( $atts ) {
+		if ( ! $this->is_active() ) {
+			return ''; // Nothing on the page for it to open.
+		}
+		$atts = shortcode_atts( array( 'text' => '' ), $atts, 'dpt_cookie_settings' );
+		$text = trim( (string) $atts['text'] );
+		if ( '' === $text ) {
+			$texts = DPT_CB_Settings::get_texts( $this->resolve_lang( DPT_CB_Settings::all() ) );
+			$text  = $texts['float_button_aria'];
+		}
+		return '<a href="#' . esc_attr( self::OPEN_HASH ) . '" class="dpt-cb-settings-link">' . esc_html( $text ) . '</a>';
+	}
+
+	/**
+	 * What reopens the banner when clicked, besides the floating button.
+	 *
+	 * @return string A CSS selector; '' turns links off.
+	 */
+	public static function open_selector() {
+		/**
+		 * Filters the CSS selector of the elements that reopen the banner.
+		 *
+		 * @param string $selector Default DPT_CB_Frontend::OPEN_SELECTOR.
+		 */
+		return trim( (string) apply_filters( 'dpt_cb_open_selector', self::OPEN_SELECTOR ) );
 	}
 
 	public function rocket_exclude_files( $excluded ) {
@@ -178,6 +224,8 @@ class DPT_CB_Frontend {
 			'showOnMobile'     => '1' === $o['show_on_mobile'],
 			'blockScripts'     => '1' === $o['block_scripts'],
 			'scripts'          => $scripts,
+			'openSelector'     => self::open_selector(),
+			'openHash'         => self::OPEN_HASH,
 		) );
 	}
 
@@ -363,6 +411,10 @@ class DPT_CB_Frontend {
 		$close_bg_css = $close_bg ? 'background:' . esc_attr( $close_bg ) . ';border-radius:50%;' : 'background:transparent;';
 		$close_size   = (int) $o['close_size'];
 		$close_box    = max( 20, $close_size + 12 );
+		// frontend.css puts the button 8px in from the box's top and its
+		// inline-end side. With no visible title above the message, whatever of
+		// it reaches past the padding would sit on the message's first line.
+		$close_clear  = max( 0, 8 + $close_box - max( 0, (int) $o['padding'] ) );
 
 		// Overlay.
 		$overlay_rgba = $this->hex_to_rgba( $o['overlay_color'], $o['overlay_opacity'] );
@@ -374,6 +426,7 @@ class DPT_CB_Frontend {
 		$btn_height      = max( 0, (int) $o['btn_height'] );
 		$btn_font_size   = max( 8, (int) $o['btn_font_size'] );
 		$btn_font_weight = esc_attr( $o['btn_font_weight'] ); // Allowlisted in DPT_CB_Settings::all().
+		$policy_link_color = $o['policy_link_color'] ? esc_attr( $o['policy_link_color'] ) : '';
 
 		// Float button - desktop + mobile position using offsets.
 		$fb_corner     = $o['float_button_position'];
@@ -410,6 +463,7 @@ class DPT_CB_Frontend {
 				$full_width_edge = 'bottom';
 			}
 		}
+		$full_width_radius = self::full_width_radius( $full_width_edge, (int) $o['border_radius'], '1' === $o['mobile_full_width_radius'] );
 		?>
 		<?php
 		/*
@@ -494,6 +548,32 @@ class DPT_CB_Frontend {
 				height: <?php echo $close_box; ?>px;
 				<?php echo $close_bg_css; ?>
 			}
+			<?php if ( $close_clear > 0 ) : ?>
+			/* No title shown: the close button sits where the message begins.
+			   A float the button's size, on its side, makes the first lines
+			   wrap around it while the rest keep the full width. Matched on
+			   the markup (a button before the content, then a hidden title or
+			   none), so it also covers a language whose title is empty. The
+			   side is physical, as the button's is in each direction. */
+			#dpt-cb-banner .dpt-cb-close + .dpt-cb-main-view > .dpt-cb-title.dpt-cb-sr-only + .dpt-cb-message::before,
+			#dpt-cb-banner .dpt-cb-close + .dpt-cb-main-view > .dpt-cb-message:first-child::before {
+				content: "";
+				float: right;
+				width: <?php echo $close_clear + 4; ?>px;
+				height: <?php echo $close_clear; ?>px;
+			}
+			#dpt-cb-banner[dir="rtl"] .dpt-cb-close + .dpt-cb-main-view > .dpt-cb-title.dpt-cb-sr-only + .dpt-cb-message::before,
+			#dpt-cb-banner[dir="rtl"] .dpt-cb-close + .dpt-cb-main-view > .dpt-cb-message:first-child::before {
+				float: left;
+			}
+			<?php endif; ?>
+			<?php if ( '' !== $policy_link_color ) : ?>
+			#dpt-cb-banner .dpt-cb-policy a,
+			#dpt-cb-banner .dpt-cb-policy-inline a {
+				color: <?php echo $policy_link_color; ?>;
+				opacity: 1;
+			}
+			<?php endif; ?>
 			/* Same selector as frontend.css's base button rule, later in the
 			   page, so these win without !important. */
 			#dpt-cb-banner .dpt-cb-btn {
@@ -503,6 +583,15 @@ class DPT_CB_Frontend {
 				min-height: <?php echo $btn_height; ?>px;
 				<?php endif; ?>
 			}
+			<?php if ( '1' === $o['btn_stretch'] ) : ?>
+			/* Desktop only: below 640px frontend.css already stacks them full
+			   width. The main view only - the settings view has one button. */
+			@media (min-width: 641px) {
+				#dpt-cb-banner .dpt-cb-main-view .dpt-cb-buttons .dpt-cb-btn {
+					flex: 1 1 0;
+				}
+			}
+			<?php endif; ?>
 			<?php if ( $is_corner ) : ?>
 			/* Desktop only: below 640px frontend.css spreads the corner banner
 			   across the screen, and that layout keeps its own spacing. */
@@ -567,8 +656,9 @@ class DPT_CB_Frontend {
 				}
 				<?php if ( '' !== $full_width_edge ) : ?>
 				/* "Full-width bar on mobile": flush with the screen edge, no
-				   margin and no rounded corners. After the sizing rule above,
-				   with the same selector and !important, so it wins. */
+				   margin, and rounded only on the edge facing the page if at
+				   all. After the sizing rule above, with the same selector and
+				   !important, so it wins. */
 				<?php echo $banner_sel; ?> {
 					left: 0 !important;
 					right: 0 !important;
@@ -579,7 +669,7 @@ class DPT_CB_Frontend {
 					max-width: 100% !important;
 					margin-left: 0 !important;
 					margin-right: 0 !important;
-					border-radius: 0 !important;
+					border-radius: <?php echo $full_width_radius; ?> !important;
 				}
 				<?php endif; ?>
 				#dpt-cb-float-button {
@@ -622,6 +712,25 @@ class DPT_CB_Frontend {
 			$message_html = $trimmed . '<p>' . $span . '</p>';
 		}
 		return '<div class="dpt-cb-message">' . $message_html . '</div>';
+	}
+
+	/**
+	 * The corners of the full-width mobile bar. The edge it is flush with is
+	 * always square; the edge facing the page keeps the box's radius when
+	 * asked to. Physical corners, as the bar's edge is.
+	 *
+	 * @param string $edge   'top' or 'bottom' - where the bar sits; '' for none.
+	 * @param int    $radius The box's corner radius in px.
+	 * @param bool   $keep   Whether the inner edge keeps it.
+	 * @return string A border-radius value.
+	 */
+	public static function full_width_radius( $edge, $radius, $keep ) {
+		$r = max( 0, (int) $radius );
+		if ( ! $keep || 0 === $r || '' === $edge ) {
+			return '0';
+		}
+		// top-left top-right bottom-right bottom-left.
+		return 'bottom' === $edge ? "{$r}px {$r}px 0 0" : "0 0 {$r}px {$r}px";
 	}
 
 	/**
