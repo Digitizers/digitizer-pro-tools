@@ -1665,6 +1665,45 @@ msgstr ""
 msgid "Corner width on desktop (px)"
 msgstr ""
 
+msgid "Show title"
+msgstr ""
+
+msgid "Off hides the title from sight. Screen readers still read it, because it is the name of the banner's dialog."
+msgstr ""
+
+msgid "Corner distance from the side (px)"
+msgstr ""
+
+msgid "Corner positions on desktop: from the left edge for bottom-left, from the right edge for bottom-right."
+msgstr ""
+
+msgid "Corner distance from the bottom (px)"
+msgstr ""
+
+msgid "Full-width bar on mobile"
+msgstr ""
+
+msgid "Below 640px wide: flush with the edge of the screen, full width, with no margin and no rounded corners. Overrides the two mobile widths above. Not used by the centered position."
+msgstr ""
+
+msgid "Link at the end of the message"
+msgstr ""
+
+msgid "Off puts the link on a line of its own under the message."
+msgstr ""
+
+msgid "All buttons"
+msgstr ""
+
+msgid "Height (px)"
+msgstr ""
+
+msgid "0 = as tall as the text and padding make it."
+msgstr ""
+
+msgid "Empty = the button's text color."
+msgstr ""
+
 msgid "Only for the bottom-left / bottom-right corner positions, which sit next to the content instead of stretching across it. Try 380-450px for a compact card."
 msgstr ""
 

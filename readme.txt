@@ -4,7 +4,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.41.0
+Stable tag: 1.42.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -356,6 +356,15 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 5. Configure each module you enabled from its own screen. For the Cookie Banner that means reviewing the texts per language and pasting your analytics/marketing snippets in the Scripts tab, then checking the site
 
 == Changelog ==
+
+= 1.42.0 =
+* Cookie Banner: six settings for matching an existing banner's design without custom CSS. The defaults keep the banner exactly as it was.
+  * Show title (Typography): off hides the title from sight. Screen readers still read it, because it names the banner's dialog.
+  * Border colour for the "Settings" button (Buttons). Empty keeps the button's text colour.
+  * Corner distance from the side and from the bottom, for corner positions on desktop (Design). Default 20px.
+  * Full-width bar on mobile (Design): below 640px the banner is flush with the edge of the screen, full width, with no margin and no rounded corners.
+  * Privacy policy link at the end of the message instead of on a line of its own (Texts).
+  * Height, font size and font weight for every banner button (Buttons). Defaults: automatic height, 14px, 600.
 
 = 1.41.0 =
 * Code Highlighter: code blocks and inline code read left to right on RTL sites. On a Hebrew page they inherited right-to-left: lines aligned right, a trailing `;` or `(` jumped to the start of the line, and the line numbers sat on the wrong side. Enlighter, which the module replaces, renders them left to right.

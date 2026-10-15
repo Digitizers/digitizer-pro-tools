@@ -368,7 +368,12 @@ class DPT_CB_Frontend {
 		$overlay_rgba = $this->hex_to_rgba( $o['overlay_color'], $o['overlay_opacity'] );
 
 		// Button styles.
-		$btn_settings_border = ( isset( $o['btn_settings_border'] ) && '1' === $o['btn_settings_border'] ) ? 'border:1px solid currentColor;' : 'border:0;';
+		$btn_border_color    = ! empty( $o['btn_settings_border_color'] ) ? esc_attr( $o['btn_settings_border_color'] ) : 'currentColor';
+		$btn_settings_border = ( isset( $o['btn_settings_border'] ) && '1' === $o['btn_settings_border'] ) ? 'border:1px solid ' . $btn_border_color . ';' : 'border:0;';
+		// Every banner button. A height of 0 leaves it to the padding, as before.
+		$btn_height      = max( 0, (int) $o['btn_height'] );
+		$btn_font_size   = max( 8, (int) $o['btn_font_size'] );
+		$btn_font_weight = esc_attr( $o['btn_font_weight'] ); // Allowlisted in DPT_CB_Settings::all().
 
 		// Float button - desktop + mobile position using offsets.
 		$fb_corner     = $o['float_button_position'];
@@ -391,6 +396,20 @@ class DPT_CB_Frontend {
 		$pos_sel   = '#dpt-cb-banner.dpt-cb-pos-' . preg_replace( '/[^a-z-]/', '', (string) $o['position'] ) . ' .dpt-cb-box';
 		$is_corner      = in_array( $o['position'], array( 'bottom-left', 'bottom-right' ), true );
 		$mobile_margins = self::box_mobile_margins( $o['position'] );
+		$banner_sel     = '#dpt-cb-banner.dpt-cb-pos-' . preg_replace( '/[^a-z-]/', '', (string) $o['position'] );
+		$corner_x       = max( 0, (int) $o['corner_offset_x'] );
+		$corner_y       = max( 0, (int) $o['corner_offset_y'] );
+		$corner_side    = 'bottom-left' === $o['position'] ? 'left' : 'right';
+		// A bar has nothing to be flush with but the edge it sits on; the
+		// centered modal is a dialog, not a bar, and is left alone.
+		$full_width_edge = '';
+		if ( '1' === $o['mobile_full_width'] ) {
+			if ( 'top' === $o['position'] ) {
+				$full_width_edge = 'top';
+			} elseif ( in_array( $o['position'], array( 'bottom', 'bottom-left', 'bottom-right' ), true ) ) {
+				$full_width_edge = 'bottom';
+			}
+		}
 		?>
 		<?php
 		/*
@@ -475,6 +494,25 @@ class DPT_CB_Frontend {
 				height: <?php echo $close_box; ?>px;
 				<?php echo $close_bg_css; ?>
 			}
+			/* Same selector as frontend.css's base button rule, later in the
+			   page, so these win without !important. */
+			#dpt-cb-banner .dpt-cb-btn {
+				font-size: <?php echo $btn_font_size; ?>px;
+				font-weight: <?php echo $btn_font_weight; ?>;
+				<?php if ( $btn_height > 0 ) : ?>
+				min-height: <?php echo $btn_height; ?>px;
+				<?php endif; ?>
+			}
+			<?php if ( $is_corner ) : ?>
+			/* Desktop only: below 640px frontend.css spreads the corner banner
+			   across the screen, and that layout keeps its own spacing. */
+			@media (min-width: 641px) {
+				<?php echo $banner_sel; ?> {
+					<?php echo $corner_side; ?>: <?php echo $corner_x; ?>px;
+					bottom: <?php echo $corner_y; ?>px;
+				}
+			}
+			<?php endif; ?>
 			#dpt-cb-banner .dpt-cb-btn-accept {
 				background: <?php echo esc_attr( $o['btn_accept_bg'] ); ?>;
 				color: <?php echo esc_attr( $o['btn_accept_color'] ); ?>;
@@ -527,6 +565,23 @@ class DPT_CB_Frontend {
 					margin-left: <?php echo $mobile_margins[0]; ?> !important;
 					margin-right: <?php echo $mobile_margins[1]; ?> !important;
 				}
+				<?php if ( '' !== $full_width_edge ) : ?>
+				/* "Full-width bar on mobile": flush with the screen edge, no
+				   margin and no rounded corners. After the sizing rule above,
+				   with the same selector and !important, so it wins. */
+				<?php echo $banner_sel; ?> {
+					left: 0 !important;
+					right: 0 !important;
+					<?php echo $full_width_edge; ?>: 0 !important;
+				}
+				<?php echo $pos_sel; ?> {
+					width: 100% !important;
+					max-width: 100% !important;
+					margin-left: 0 !important;
+					margin-right: 0 !important;
+					border-radius: 0 !important;
+				}
+				<?php endif; ?>
 				#dpt-cb-float-button {
 					width: <?php echo $fb_size_m; ?>px !important;
 					height: <?php echo $fb_size_m; ?>px !important;
@@ -536,6 +591,37 @@ class DPT_CB_Frontend {
 		</style>
 		<?php
 		// phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
+	}
+
+	/**
+	 * The message, and the privacy policy link either on a line of its own
+	 * (as it always was) or at the end of the message's last paragraph.
+	 *
+	 * @param string $message     The message as saved (wpautop'd here).
+	 * @param string $policy_link Resolved policy URL, or '' for none.
+	 * @param string $policy_text The link text.
+	 * @param bool   $inline      Whether the link goes inside the message.
+	 * @return string HTML, escaped.
+	 */
+	public static function message_html( $message, $policy_link, $policy_text, $inline ) {
+		$message_html = wp_kses_post( wpautop( (string) $message ) );
+		if ( '' === (string) $policy_link || '' === trim( (string) $policy_text ) ) {
+			return '<div class="dpt-cb-message">' . $message_html . '</div>';
+		}
+		$a = '<a href="' . esc_url( $policy_link ) . '" target="_blank" rel="noopener">' . esc_html( $policy_text ) . '</a>';
+		if ( ! $inline ) {
+			return '<div class="dpt-cb-message">' . $message_html . '</div>' . "\n" . '<p class="dpt-cb-policy">' . $a . '</p>';
+		}
+		$span    = '<span class="dpt-cb-policy-inline">' . $a . '</span>';
+		$trimmed = rtrim( $message_html );
+		if ( '</p>' === substr( $trimmed, -4 ) ) {
+			$message_html = substr( $trimmed, 0, -4 ) . ' ' . $span . '</p>';
+		} else {
+			// No closing paragraph to join (an empty message, or markup that
+			// does not end in one): the link becomes the message's last paragraph.
+			$message_html = $trimmed . '<p>' . $span . '</p>';
+		}
+		return '<div class="dpt-cb-message">' . $message_html . '</div>';
 	}
 
 	/**
@@ -646,16 +732,13 @@ class DPT_CB_Frontend {
 
 				<div class="dpt-cb-main-view">
 					<?php if ( ! empty( $t['title'] ) ) : ?>
-						<h2 id="dpt-cb-title" class="dpt-cb-title"><?php echo esc_html( $t['title'] ); ?></h2>
+						<?php // Hidden from sight only when switched off: it still names the dialog (aria-labelledby). ?>
+						<h2 id="dpt-cb-title" class="dpt-cb-title<?php echo '1' === $o['title_show'] ? '' : ' dpt-cb-sr-only'; ?>"><?php echo esc_html( $t['title'] ); ?></h2>
 					<?php endif; ?>
-					<div class="dpt-cb-message"><?php echo wp_kses_post( wpautop( $t['message'] ) ); ?></div>
-
 					<?php
-					$policy_link = $this->resolve_policy_link( $o );
-					if ( $policy_link && ! empty( $t['policy_text'] ) ) :
+					// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Built from wp_kses_post(), esc_url() and esc_html() in message_html().
+					echo self::message_html( $t['message'], $this->resolve_policy_link( $o ), $t['policy_text'], '1' === $o['policy_inline'] );
 					?>
-						<p class="dpt-cb-policy"><a href="<?php echo esc_url( $policy_link ); ?>" target="_blank" rel="noopener"><?php echo esc_html( $t['policy_text'] ); ?></a></p>
-					<?php endif; ?>
 
 					<div class="dpt-cb-buttons">
 						<button type="button" class="dpt-cb-btn dpt-cb-btn-accept" data-dpt-cb-action="accept"><?php echo esc_html( $t['btn_accept_text'] ); ?></button>
