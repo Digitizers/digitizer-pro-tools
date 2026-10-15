@@ -3647,8 +3647,8 @@ if ( ! class_exists( 'RankMath' ) ) {
 }
 dpt_test_ok( DPT_RB_Rankmath::active(), 'with Rank Math loaded it is seen' );
 DPT_RB_Rankmath::register();
-dpt_test_eq( count( $GLOBALS['dpt_stub_registered_post_meta']['post'] ), 12, 'all twelve fields land on posts' );
-dpt_test_eq( count( $GLOBALS['dpt_stub_registered_post_meta']['page'] ), 12, 'and on pages, which the old plugin forgot' );
+dpt_test_eq( count( $GLOBALS['dpt_stub_registered_post_meta']['post'] ), 15, 'all twelve fields land on posts, with the three compatibility names' );
+dpt_test_eq( count( $GLOBALS['dpt_stub_registered_post_meta']['page'] ), 15, 'and on pages, which the old plugin forgot' );
 dpt_test_ok( isset( $GLOBALS['dpt_stub_registered_post_meta']['post']['rank_math_focus_keyword'] ), 'including the focus keyword' );
 dpt_test_ok( $GLOBALS['dpt_stub_registered_post_meta']['post']['rank_math_title']['show_in_rest'], 'each visible to REST' );
 
@@ -3656,7 +3656,21 @@ dpt_test_ok( $GLOBALS['dpt_stub_registered_post_meta']['post']['rank_math_title'
 // read rank_math_og_*, so a field registered under that name writes to a
 // meta key nothing reads.
 dpt_test_ok( isset( $GLOBALS['dpt_stub_registered_post_meta']['post']['rank_math_facebook_image'] ), 'the Open Graph image is registered under the key Rank Math actually reads' );
-dpt_test_ok( ! isset( $GLOBALS['dpt_stub_registered_post_meta']['post']['rank_math_og_image'] ), 'and not under the dead key the old plugin used' );
+// The old plugin's rank_math_og_* names are still written by automations
+// built against it (ContentEngine among them). Unregistered meta is dropped by
+// the REST controller without a word, so they stay registered - as
+// compatibility names, each saying which key Rank Math really reads.
+foreach ( array( 'post', 'page' ) as $dpt_pt ) {
+	foreach ( array( 'rank_math_og_title' => 'rank_math_facebook_title', 'rank_math_og_description' => 'rank_math_facebook_description', 'rank_math_og_image' => 'rank_math_facebook_image' ) as $dpt_old => $dpt_real ) {
+		dpt_test_ok( isset( $GLOBALS['dpt_stub_registered_post_meta'][ $dpt_pt ][ $dpt_old ] ), "the old name $dpt_old is still registered on $dpt_pt" );
+		dpt_test_ok( false !== strpos( $GLOBALS['dpt_stub_registered_post_meta'][ $dpt_pt ][ $dpt_old ]['description'], $dpt_real ), "and its description names $dpt_real, the key Rank Math reads" );
+	}
+}
+dpt_test_eq( $GLOBALS['dpt_stub_registered_post_meta']['post']['rank_math_og_title']['type'], 'string', 'a compatibility name keeps the type the old plugin gave it' );
+dpt_test_eq( $GLOBALS['dpt_stub_registered_post_meta']['post']['rank_math_og_title']['auth_callback'], array( 'DPT_RB_Rankmath', 'may_edit_meta' ), 'and the same per-post write check as every other Rank Math key' );
+dpt_test_ok( in_array( 'rank_math_og_image', DPT_RB_Rankmath::keys(), true ), 'the report of registered keys names them, so the preview lists nothing less than the old plugin did' );
+dpt_test_eq( DPT_RB_Rankmath::compat(), array( 'rank_math_og_title', 'rank_math_og_description', 'rank_math_og_image' ), 'and they are reported as compatibility names' );
+dpt_test_eq( count( DPT_RB_Rankmath::keys() ), 15, 'twelve Rank Math keys and three compatibility names' );
 
 // rank_math_robots is a list of directives (e.g. noindex), never a single
 // string - Rank Math's own admin columns read it with FILTER_REQUIRE_ARRAY.
@@ -3782,7 +3796,7 @@ dpt_test_eq( $rm_view, array(), 'none of the twelve survives the view context' )
 $rm_edit = dpt_stub_meta_response( 'post', 31, 'edit' );
 dpt_test_eq( $rm_edit['rank_math_focus_keyword'], 'hebrew seo', 'while an authenticated edit-context read still returns the focus keyword' );
 dpt_test_eq( $rm_edit['rank_math_seo_score'], '81', 'and the score' );
-dpt_test_eq( count( $rm_edit ), 12, 'and all twelve keys are there' );
+dpt_test_eq( count( $rm_edit ), 15, 'and all fifteen keys are there, compatibility names included' );
 
 // The array-typed key needs its item schema as much as it needs its context;
 // without the items core refuses to expose it at all, so the two have to
@@ -3798,6 +3812,7 @@ $info = DPT_RB_Info::payload();
 dpt_test_eq( $info['version'], DPT_VERSION, 'the payload names the plugin version' );
 dpt_test_ok( isset( $info['fields']['post/post'] ), 'lists the fields per object' );
 dpt_test_ok( in_array( 'jet_qna', $info['compat'], true ), 'names the compatibility aliases' );
+dpt_test_ok( in_array( 'rank_math_og_description', $info['compat'], true ), 'the old Rank Math names among them' );
 dpt_test_ok( is_array( $info['skipped'] ), 'reports what discovery passed over' );
 dpt_test_ok( $info['rank_math'], 'and whether Rank Math is here' );
 dpt_test_ok( in_array( '/digitizer/v1/info', $info['routes'], true ), 'while naming its own route' );
@@ -3985,6 +4000,7 @@ dpt_test_eq(
 	array_keys( $GLOBALS['dpt_stub_registered_post_meta']['post'] ),
 	'the preview names every Rank Math key registration really registers'
 );
-dpt_test_eq( count( $dpt_preview['rank_math_fields'] ), 12, 'all twelve of them' );
+dpt_test_eq( count( $dpt_preview['rank_math_fields'] ), 15, 'all fifteen of them' );
+dpt_test_ok( in_array( 'rank_math_og_title', $dpt_preview['compat'], true ), 'and the preview\'s compatibility names include the old Open Graph names' );
 
 exit( dpt_test_summary() > 0 ? 1 : 0 );

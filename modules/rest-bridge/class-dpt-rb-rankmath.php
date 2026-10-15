@@ -13,6 +13,12 @@
  * rank_math_facebook_* instead - and one array field (rank_math_robots)
  * declared as a string.
  *
+ * Those three old names are registered as well, as compatibility names:
+ * automations written against the replaced plugin still write them, and a
+ * key that is not registered is dropped by the REST controller without a
+ * word. They store under their own names, as they always did. Rank Math does
+ * not read them, and each one's description says which key it does read.
+ *
  * @package Digitizer_Pro_Tools
  */
 
@@ -107,11 +113,51 @@ class DPT_RB_Rankmath {
 	}
 
 	/**
-	 * Register them, when there is something to register them for. Rank
-	 * Math itself never calls show_in_rest on these keys, so without this
-	 * they are invisible to the REST API no matter how the rest of the
-	 * bridge is configured.
+	 * The Open Graph names the replaced plugin published, each with the key
+	 * Rank Math really reads. Kept so callers written against that plugin go
+	 * on being heard; never used for anything Rank Math itself renders.
+	 *
+	 * @return array Legacy key => the key Rank Math reads.
 	 */
+	public static function legacy() {
+		return array(
+			'rank_math_og_title'       => 'rank_math_facebook_title',
+			'rank_math_og_description' => 'rank_math_facebook_description',
+			'rank_math_og_image'       => 'rank_math_facebook_image',
+		);
+	}
+
+	/**
+	 * The compatibility names, for the info endpoint's list of them. Empty
+	 * when Rank Math is not here, because nothing is registered then.
+	 *
+	 * @return array
+	 */
+	public static function compat() {
+		return self::active() ? array_keys( self::legacy() ) : array();
+	}
+
+	/**
+	 * Everything register() registers: Rank Math's own keys, then the
+	 * compatibility names, each described.
+	 *
+	 * @return array
+	 */
+	private static function all_fields() {
+		$fields = self::fields();
+		foreach ( self::legacy() as $legacy => $real ) {
+			$fields[ $legacy ] = array(
+				'type'        => 'string',
+				'description' => sprintf(
+					/* translators: %s: the Rank Math meta key that holds this value, e.g. rank_math_facebook_title. */
+					__( 'Compatibility name from the plugin REST Bridge replaces. Rank Math does not read it; it reads %s.', 'digitizer-pro-tools' ),
+					$real
+				),
+			);
+		}
+		return $fields;
+	}
+
 	/**
 	 * The keys this class registers, for a report that has to name them.
 	 *
@@ -122,16 +168,22 @@ class DPT_RB_Rankmath {
 	 * @return array
 	 */
 	public static function keys() {
-		return array_keys( self::fields() );
+		return array_keys( self::all_fields() );
 	}
 
+	/**
+	 * Register them, when there is something to register them for. Rank
+	 * Math itself never calls show_in_rest on these keys, so without this
+	 * they are invisible to the REST API no matter how the rest of the
+	 * bridge is configured.
+	 */
 	public static function register() {
 		if ( ! self::active() ) {
 			return;
 		}
 
 		foreach ( array( 'post', 'page' ) as $post_type ) {
-			foreach ( self::fields() as $key => $field ) {
+			foreach ( self::all_fields() as $key => $field ) {
 				$args = array(
 					'show_in_rest'  => self::show_in_rest( $field['type'] ),
 					'single'        => true,

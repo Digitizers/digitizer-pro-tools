@@ -43,9 +43,14 @@ Five sections:
   the Fields table, because the module records these as names without the
   targets they landed on: the same name can be the site's own field on one post
   type and one of these on another.
-- **Rank Math** — the twelve keys, if Rank Math is active. They are registered
-  as post meta rather than REST fields, so they are deliberately absent from
-  the Fields table.
+- **Rank Math** — fifteen keys, if Rank Math is active: Rank Math's twelve,
+  and the three Open Graph names the old plugin published
+  (`rank_math_og_title`, `rank_math_og_description`, `rank_math_og_image`),
+  which also appear under Compatibility names. Rank Math itself reads
+  `rank_math_facebook_*`; the old names are kept only so callers written
+  against the old plugin are not dropped. They are registered as post meta
+  rather than REST fields, so they are deliberately absent from the Fields
+  table.
 - **Not exposed** — what was skipped and why. **Read this one.** The reasons
   are in English and untranslated on purpose: they quote core's own names and
   are meant for whoever is doing the deployment.

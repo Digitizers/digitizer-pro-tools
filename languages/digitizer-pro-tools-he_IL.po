@@ -2294,6 +2294,11 @@ msgstr "הצגת שעת הפתיחה"
 msgid "Business mode"
 msgstr "מצב עסקים"
 
+#. translators: %s: the Rank Math meta key that holds this value, e.g. rank_math_facebook_title.
+#, php-format
+msgid "Compatibility name from the plugin REST Bridge replaces. Rank Math does not read it; it reads %s."
+msgstr "שם תאימות מהתוסף ש-REST Bridge מחליף. Rank Math לא קורא אותו; הוא קורא את %s."
+
 msgid "These switches apply to business mode. In closed mode, purchases and forms are always refused."
 msgstr "המתגים האלה חלים על מצב עסקים. במצב סגור, רכישות וטפסים נחסמים תמיד."
 

@@ -764,6 +764,7 @@ return array (
     'Closed page' => 'עמוד סגור',
     'Show the reopening time' => 'הצגת שעת הפתיחה',
     'Business mode' => 'מצב עסקים',
+    'Compatibility name from the plugin REST Bridge replaces. Rank Math does not read it; it reads %s.' => 'שם תאימות מהתוסף ש-REST Bridge מחליף. Rank Math לא קורא אותו; הוא קורא את %s.',
     'These switches apply to business mode. In closed mode, purchases and forms are always refused.' => 'המתגים האלה חלים על מצב עסקים. במצב סגור, רכישות וטפסים נחסמים תמיד.',
     'The standalone Digitizer Shabbat Keeper plugin is active and does this module\'s work, so the switch is locked - its settings are on the Shabbat Keeper screen under Settings.' => 'התוסף העצמאי Digitizer Shabbat Keeper פעיל ועושה את עבודת המודול הזה, ולכן המתג נעול - ההגדרות שלו נמצאות במסך שומר שבת, תחת הגדרות.',
     'Refuse WooCommerce purchases' => 'חסימת רכישות בווקומרס',

@@ -78,7 +78,9 @@ class DPT_RB_Info {
 			// site it has never seen has to know a field's type and shape
 			// before it can write to it, and this is where it is told.
 			'fields'    => DPT_RB_Fields::registered(),
-			'compat'    => array_values( DPT_RB_Fields::compat() ),
+			// The Rank Math names the replaced plugin published are
+			// compatibility names too, and are listed with the rest.
+			'compat'    => array_values( array_merge( DPT_RB_Fields::compat(), DPT_RB_Rankmath::compat() ) ),
 			// Discovery's diagnostics first, then registration's - a
 			// registration skip (e.g. jet_qna) only makes sense once
 			// discovery has already been read.
