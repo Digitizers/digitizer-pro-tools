@@ -8,7 +8,8 @@
  * Then the follow-ups: room for the close button when the title is hidden
  * (#57), buttons that fill the row, a rounded inner edge on the full-width
  * mobile bar and a policy link colour (#58), and an ordinary link that
- * reopens the banner (#59).
+ * reopens the banner (#59). And the policy link kept whole (#61), the close
+ * button's opacity and an icon in place of the × character (#62).
  */
 require_once __DIR__ . '/bootstrap.php';
 
@@ -284,6 +285,37 @@ dpt_test_ok( false !== strpos( $js, "document.addEventListener('click'" ) && fal
 dpt_test_ok( false !== strpos( $js, 'e.preventDefault();' ) && false !== strpos( $js, 'openFrom(' ), 'it opens the banner instead of following the link' );
 dpt_test_ok( false !== strpos( $js, 'returnFocus();' ) && false !== strpos( $js, "querySelector('.dpt-cb-main-view .dpt-cb-btn')" ), 'focus goes into the dialog and back to the link after the choice' );
 dpt_test_ok( false !== strpos( $js, "window.location.hash === '#' + config.openHash" ), 'a page loaded at #dpt-cookie-settings opens it too' );
+
+/* ---- #61: the inline policy link stays whole ---- */
+
+$stylesheet = (string) file_get_contents( dirname( __DIR__ ) . '/modules/cookie-banner/assets/css/frontend.css' );
+dpt_test_eq( dpt_test_cb_rule( $stylesheet, '#dpt-cb-banner .dpt-cb-policy-inline a' ), 'white-space: nowrap;', 'the link at the end of the message does not break between "Privacy" and "policy"' );
+
+/* ---- #62: the close button ---- */
+
+$d = DPT_CB_Settings::defaults();
+dpt_test_eq( array( $d['close_opacity'], $d['close_icon'] ), array( '0.7', 'text' ), 'defaults: faded to 0.7 as frontend.css always did, the × character' );
+$o    = dpt_test_cb_opts( array() );
+$css  = dpt_test_cb_css( $frontend, $o );
+$html = dpt_test_cb_markup( $frontend, $o, 'he', 'rtl' );
+dpt_test_ok( false !== strpos( dpt_test_cb_rule( $css, '#dpt-cb-banner .dpt-cb-close' ), 'opacity: 0.7;' ), 'the default opacity is printed as it was' );
+dpt_test_ok( 1 === preg_match( '#<button type="button" class="dpt-cb-close"[^>]*>&times;</button>#', $html ), 'and the button still holds the character' );
+dpt_test_ok( false !== strpos( $stylesheet, '#dpt-cb-banner .dpt-cb-close:hover {' ) && false !== strpos( $stylesheet, "opacity: 1;\n    transform: scale(1.08);" ), 'on hover it is shown in full - a pseudo-class, so it outranks the setting' );
+
+$o    = dpt_test_cb_opts( array( 'close_opacity' => '1', 'close_icon' => 'svg', 'close_size' => '16', 'close_color' => '#1b1a0f' ) );
+$css  = dpt_test_cb_css( $frontend, $o );
+$html = dpt_test_cb_markup( $frontend, $o, 'en', 'ltr' );
+dpt_test_eq( dpt_test_cb_rule( $css, '#dpt-cb-banner .dpt-cb-close' ), 'color: #1b1a0f; font-size: 16px; width: 28px; height: 28px; opacity: 1; background:transparent;', 'the Complianz look: full strength, 16px, the text colour' );
+dpt_test_ok( 1 === preg_match( '#<button type="button" class="dpt-cb-close"[^>]*><svg class="dpt-cb-close-icon"[^>]* width="1em" height="1em"[^>]*stroke="currentColor"[^>]*aria-hidden="true"[^>]*><path d="M4 4L20 20M20 4L4 20"></path></svg></button>#', $html ), 'the icon is a 1em × in currentColor, hidden from screen readers' );
+dpt_test_ok( false !== strpos( $html, 'aria-label="Close"' ), 'the button keeps its name' );
+dpt_test_ok( false !== strpos( $stylesheet, '#dpt-cb-banner .dpt-cb-close .dpt-cb-close-icon {' ), 'the stylesheet sets the icon as a block, so no baseline gap moves it off centre' );
+
+dpt_test_eq( DPT_CB_Frontend::close_opacity( '0' ), '0.1', 'an opacity of 0 would hide a button that still closes the banner: 0.1 at least' );
+dpt_test_eq( DPT_CB_Frontend::close_opacity( '3' ), '1', 'and no more than 1' );
+dpt_test_eq( DPT_CB_Frontend::close_opacity( '0.85' ), '0.85', 'a value between is kept' );
+dpt_test_eq( DPT_CB_Frontend::close_opacity( '1;}body{display:none' ), '0.7', 'something that is not a number falls back to 0.7' );
+$o = dpt_test_cb_opts( array( 'close_icon' => '<script>' ) );
+dpt_test_ok( 1 === preg_match( '#class="dpt-cb-close"[^>]*>&times;</button>#', dpt_test_cb_markup( $frontend, $o, 'he', 'rtl' ) ), 'a shape that is not one of the two falls back to the character' );
 
 /* ---- saving ---- */
 

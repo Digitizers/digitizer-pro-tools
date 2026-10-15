@@ -2427,3 +2427,21 @@ msgstr "מילוי השורה"
 
 msgid "On desktop the buttons share the width of the row equally. Off sizes each one to its text. On mobile they are always full width, one under another."
 msgstr "בדסקטופ הכפתורים מתחלקים שווה ברוחב השורה. כבוי מתאים כל כפתור לטקסט שלו. במובייל הם תמיד ברוחב מלא, אחד מתחת לשני."
+
+msgid "With the icon, its width and height."
+msgstr "עם האייקון: הרוחב והגובה שלו."
+
+msgid "X shape"
+msgstr "צורת ה-X"
+
+msgid "Character (in the banner font)"
+msgstr "תו (בגופן של הבאנר)"
+
+msgid "Icon (bold, the same in every font)"
+msgstr "אייקון (עבה, זהה בכל גופן)"
+
+msgid "X opacity (0.1-1)"
+msgstr "שקיפות ה-X (0.1-1)"
+
+msgid "1 = full strength. On hover it is always shown in full."
+msgstr "1 = בעוצמה מלאה. במעבר עכבר הוא תמיד מוצג במלואו."

@@ -147,6 +147,10 @@
     font-family: inherit;
     z-index: 2;
 }
+#dpt-cb-banner .dpt-cb-close .dpt-cb-close-icon {
+    display: block;
+    pointer-events: none;
+}
 #dpt-cb-banner .dpt-cb-close:hover {
     opacity: 1;
     transform: scale(1.08);
@@ -175,6 +179,9 @@
 #dpt-cb-banner .dpt-cb-message p { margin: 0 0 8px; }
 #dpt-cb-banner .dpt-cb-message p:last-child { margin-bottom: 0; }
 #dpt-cb-banner .dpt-cb-message a { color: inherit; text-decoration: underline; }
+/* At the end of the message the link moves to the next line whole, rather
+   than breaking between its words. */
+#dpt-cb-banner .dpt-cb-policy-inline a { white-space: nowrap; }
 
 #dpt-cb-banner .dpt-cb-policy {
     margin: 10px 0 0;

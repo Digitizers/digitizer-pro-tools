@@ -120,6 +120,11 @@ class DPT_CB_Settings {
 			'close_size'         => '22',
 			'close_color'        => '',
 			'close_bg_color'     => '',
+			// 0.7 is what frontend.css always faded it to; hover still shows it in full.
+			'close_opacity'      => '0.7',
+			// text = the × character in the banner's font; svg = a drawn icon,
+			// the same in every font.
+			'close_icon'         => 'text',
 
 			// Button "Accept".
 			'btn_accept_bg'       => '#16a34a',
@@ -438,6 +443,7 @@ class DPT_CB_Settings {
 		return array(
 			'title_weight'      => array( '300', '400', '500', '600', '700', '800', '900' ),
 			'btn_font_weight'   => array( '300', '400', '500', '600', '700', '800', '900' ),
+			'close_icon'        => array( 'text', 'svg' ),
 			'border_style'      => array( 'solid', 'dashed', 'dotted', 'double' ),
 			'bg_image_size'     => array( 'cover', 'contain', 'auto', '100% 100%' ),
 			'bg_image_repeat'   => array( 'no-repeat', 'repeat', 'repeat-x', 'repeat-y' ),
