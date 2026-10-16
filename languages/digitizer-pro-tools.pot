@@ -2466,3 +2466,12 @@ msgstr ""
 
 msgid "Consent Mode and the WP Consent API are not sent while the banner is off or hidden on mobile: visitors who cannot see the banner could never grant anything."
 msgstr ""
+
+msgid "Cookies to delete when a category is denied"
+msgstr ""
+
+msgid "When a visitor refuses or withdraws a category, these cookies, and the localStorage and sessionStorage keys with the same names, are deleted from the browser, and again on every page while the category stays denied. One name per line or separated by commas; * matches anything, for example _ga_*."
+msgstr ""
+
+msgid "Only this site's own cookies that scripts can read can be deleted: cookies set by other domains, such as .linkedin.com or .doubleclick.net, and cookies marked HttpOnly are out of a page's reach. Analytics and advertising tags do not use HttpOnly. WordPress's login, settings and comment cookies, WooCommerce's cart, session and store-notice data, and the banner's own are never deleted. WooCommerce's order attribution cookies (sbjs_*) are tracking, and can be listed under marketing."
+msgstr ""

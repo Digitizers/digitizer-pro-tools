@@ -251,6 +251,16 @@
         }, 1000);
     }
 
+    /* ============== Deleting a denied category's cookies ============== */
+
+    // The deleting itself lives in the head precheck (window.dptCbPurge), so
+    // that on every page it runs before any tag in <head> can read a cookie
+    // set again. A choice made on this page calls the same code.
+    function purgeDenied(consent) {
+        if (!consent || typeof window.dptCbPurge !== 'function') return;
+        try { window.dptCbPurge(consent); } catch (e) { log('purge failed', e && e.message); }
+    }
+
     function injectConsentedScripts(consent) {
         if (!config.blockScripts || !consent) return;
         var scripts = config.scripts || {};
@@ -489,6 +499,7 @@
             isClosing = true;
             log('finishConsent', consent);
             saveConsent(consent);
+            purgeDenied(consent);
             // Signals before the scripts, so a tag injected now reads the
             // new state on its first hit.
             signalConsentMode(consent);
@@ -673,7 +684,8 @@
     // scripts that read it run before DOMContentLoaded, and must not read an
     // "allow" left over from an older or expired choice. No valid choice
     // sets the API's categories back to deny.
-    signalWpConsentApi(readConsent());
+    var bootConsent = readConsent();
+    signalWpConsentApi(bootConsent);
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
