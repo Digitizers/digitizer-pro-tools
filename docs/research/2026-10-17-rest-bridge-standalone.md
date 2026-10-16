@@ -43,9 +43,18 @@ The only gap is JetEngine. No plugin on WordPress.org is dedicated to putting Je
 
 **For:**
 - **Lead profile.** The people who need JetEngine fields over REST are agencies wiring Crocoblock sites to automations and AI agents. That is the profile ContentEngine and SiteAgent sell to.
-- **Permissions are already where a review wants them.**
-  - Fields are edit-only unless the site opts them in (`public_read` comes from the `view` context).
-  - Writes go through `edit_post_meta` via `map_meta_cap`.
+- **Permissions are mostly where a review wants them.**
+  - A newly discovered field is edit-only: its read is gated by the same capability as its write, unless the site opts it in through the filter.
+  - Six fields are public by design: the triples in `DPT_RB_Schema::$public_legacy`, which the replaced plugin published.
+    - On posts: `reading_time`, `qna`, and the FAQ `title`, answering as `jet_faq_title`.
+    - On the `authors` taxonomy: `author_description`, `author_image` and `linkedin`.
+    - `DPT_RB_Schema::context()` gives them the `view` context, so anonymous callers can read them with no opt-in.
+    - In a standalone they would either go, with the rest of the compatibility surface, or need the same opt-in as any other field.
+  - Writes go through `map_meta_cap`:
+    - `edit_post_meta` for post fields, then `update_post_meta()` / `delete_post_meta()`;
+    - `edit_term_meta` for taxonomy fields, then `update_term_meta()` / `delete_term_meta()`.
+
+    Both paths are review surface.
   - The Elementor POST checks `edit_post` and Elementor's own `User::is_current_user_can_edit()`.
 
 **Against, now:**
