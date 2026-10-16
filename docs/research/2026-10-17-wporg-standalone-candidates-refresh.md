@@ -27,18 +27,21 @@ A cookie banner is the first kind for many Israeli sites, but **not all of them*
 
 The demand is real on sites that load analytics, advertising or other tracking that needs consent. That is most business sites and Digitizer's customers, but it is narrower than every site. This document makes no legal assessment.
 
-## Cookie Banner (Hebrew / Israel): still the lead, but the market has moved
+## Cookie Banner (Hebrew / Israel): still a candidate, with thinner differentiation than expected
 
-The August research found one Israel-specific plugin, with 200 installs. There are now six, all added in the past thirteen months:
+The August research found one Israel-specific banner, with 200 installs. There are now five, all added in the past thirteen months.
 
-| Plugin | Installs | Ratings | Added | Last update | Notes from its own page |
-|---|---|---|---|---|---|
-| atr-cookie-notice | **1,000** | 13 (100%) | 2025-09-14 | 2026-02-08 | Amendment 13 framing, three categories, live preview, Hebrew and English, "Full" vs "Simple" consent modes, cache purge tool |
-| il-privacy-cookie-consent | 200 | 2 (100%) | 2025-12-27 | 2026-07-14 | Script blocking by category, **consent log in the database with CSV export**, privacy policy page generator, cookie table shortcode, focus trap |
-| aviyo-cookie-consent | 50 | 0 | 2025-12-09 | 2026-07-25 | |
-| edigital-cookie-consent | 40 | 0 | 2026-07-14 | 2026-07-23 | |
-| mantaweb-consent-shield | 30 | 0 | 2026-07-19 | 2026-09-21 | |
-| icomm-site-health | 10 | 0 | 2026-09-18 | 2026-10-09 | |
+"Advertises" below means the feature is named in the plugin's own directory page, read through the plugin API on 2026-10-17. It does not mean tested.
+
+| Plugin | Installs | Ratings | Added | Google Consent Mode v2 | Consent log | Multilingual beyond he/en | Notes |
+|---|---|---|---|---|---|---|---|
+| atr-cookie-notice | **1,000** | 13 (100%) | 2025-09-14 | not mentioned | not mentioned | not mentioned | Amendment 13 framing, three categories, live preview, "Full" vs "Simple" modes (blocking vs informational), cache purge tool |
+| il-privacy-cookie-consent | 200 | 2 (100%) | 2025-12-27 | not named (mentions gtag) | **yes**, database with CSV export | mentions WPML and Polylang | Script blocking by category, privacy policy page generator, cookie table shortcode, focus trap |
+| aviyo-cookie-consent ("NB Cookie Consent") | 50 | 0 | 2025-12-09 | **yes**, per category, plus the WP Consent API | mentions a log | mentions WPML and Polylang | Holds enqueued trackers inert until consent, no reload |
+| edigital-cookie-consent | 40 | 0 | 2026-07-14 | **yes** | **yes** | not mentioned | Hebrew page copy, privacy policy generator, "every feature free" |
+| mantaweb-consent-shield | 30 | 0 | 2026-07-19 | **yes** | **yes**, an audit log | not mentioned | Output-buffer blocking of inline scripts, iframes and pixels; compliance checklist; mentions caching |
+
+`icomm-site-health`, which the "amendment 13" search also returns, is a broken-link and site-health tool, not a banner. It is excluded.
 
 Searches:
 
@@ -51,21 +54,24 @@ Searches:
 | cookie consent (global) | 1,315, led by Complianz and CookieYes at 1M each |
 
 **Reading it:**
-- The segment is real and still small: about 1,300 installs across all six plugins.
-- It is fragmented. One plugin leads, at 1,000 installs; nobody has the segment locked.
-- A seventh entrant has to be better on the page, not merely present.
+- **The segment is real and small:** about 1,320 installs across the five banners.
+- **The features are table stakes, not differentiators.** Three plugins that launched in 2025–2026 already advertise Google Consent Mode v2, two advertise a consent log, and all of it is free. Lacking them is a reason not to be chosen; having them is no reason to be chosen.
+- **Installs do not follow features.** The plugins with the fullest feature lists sit at 30 to 50 installs. The leader advertises the fewest of them and has 1,000 installs and 13 ratings. It was first, by three to ten months. In this segment, early entry and ratings have counted for more than the feature list.
+- **What that means for us:** a sixth entrant at feature parity should expect the small plugins' numbers unless something else brings installs. That could be ratings from real users, Digitizer's name among Israeli site owners, or the design quality.
 
-### What the module already has that the Israeli plugins do not advertise
+### What the module has that the competitors' pages do not claim
 
-- **Per-language texts.** The locale is picked per page, so it works with WPML, Polylang and TranslatePress. The competitors offer Hebrew and English, not "any language".
-- **Cache-proof display.** The banner renders hidden, and an inline head check decides whether to show it. Page caches and CDNs never show it to a visitor who has already answered. Built-in WP Rocket and Cloudflare Rocket Loader compatibility.
-- **Design parity with Complianz, by settings alone** (#55 to #62). Elementor's global font, plus a link that reopens the banner (#59).
+None of this is unique by itself. It is a matter of how the plugin page presents it.
+
+- **Any language, not only Hebrew and English.** Per-language texts, with the language picked per page, so it works with WPML, Polylang and TranslatePress. Two competitors mention WPML and Polylang, but the module lets a site add any language by code.
+- **Cache-proof display.** The banner renders hidden, and an inline head check decides whether to show it, so page caches and CDNs never show it to a visitor who has already answered. Built-in WP Rocket and Cloudflare Rocket Loader compatibility. MantaWeb also mentions caching.
+- **Design control that can match an existing banner with settings alone** (#55 to #62), Elementor's global font, and a link that reopens the banner (#59). Nobody else positions on design.
 - **A correct cookie domain** on `.co.il`.
 
-### Gaps to close before submitting
+### What it would need before submitting
 
-1. **Google Consent Mode v2.** The module has none (no `gtag('consent', ...)`), and neither Israeli leader advertises it. Every global plugin has it, and any site running Google Ads or GA4 is asked about it. This is the clearest way to be better on the page.
-2. **A consent log.** il-privacy-cookie-consent stores one and exports CSV. The module stores consent only in the visitor's browser.
+1. **Google Consent Mode v2, and the WP Consent API.** The module has neither (no `gtag('consent', ...)`). Three competitors advertise Consent Mode v2, and aviyo also the WP Consent API. Without them the plugin starts behind.
+2. **A consent log.** Three competitors advertise one. The module stores consent only in the visitor's browser.
    - A log means a database table. That raises the review bar, as it did for Agent Log: `$wpdb->prepare`, retention, uninstall.
    - It must store no raw IP address.
 3. **No legal claims.**
@@ -79,6 +85,8 @@ Searches:
    - **`amendment-13` and `israeli-law`** are an experiment: they may reach the tag archives without ever appearing on the page. Search placement depends mainly on the name, short description and readme text, not on tags.
 
 **Cost:** the same as the other standalones: a mirror of the module with a parity check each session. One thing differs: the banner is the module that changes most often (#55 to #62 in two days). Changes stay module-first, mirrored to the standalone.
+
+Items 1 and 2 are worth building in the DPT module anyway. Digitizer's own client sites run Google Ads and GA4, and Complianz, which the module is replacing on those sites, does both. That value holds whether or not a standalone follows.
 
 ## Other candidates checked
 
@@ -98,6 +106,11 @@ The August research already ruled out Hide Login, Duplicate Post, User Role Edit
 
 ## Recommendation
 
-1. **Cookie Banner as the next standalone**, once it has Google Consent Mode v2. The consent log can follow in the standalone's 1.1, so the first review stays a review of a banner. It is built module-first in DPT and then mirrored.
-2. **Israeli phone validation** after it, as a small, quick one, once #51 is fixed.
-3. **REST Bridge**, revisited after it runs on real client sites.
+1. **Build Google Consent Mode v2 (with the WP Consent API) into the DPT Cookie Banner module now.** Digitizer's client sites need it to replace Complianz, standalone or not. Then decide on the consent log, which is the larger piece.
+2. **The Cookie Banner standalone stays the best candidate, with an honest expectation.**
+   - It is the only module whose searchers are Digitizer's customers.
+   - The segment is small, and its features are table stakes.
+   - Count on installs from ratings and Digitizer's name, not from the feature list.
+   - Submit it once item 1 is in the module.
+3. **Israeli phone validation** after it, as a small, quick one, once #51 is fixed.
+4. **REST Bridge**, revisited after it runs on real client sites.
