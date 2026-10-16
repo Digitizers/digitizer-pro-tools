@@ -306,6 +306,77 @@ class DPT_CB_Frontend {
 		$consent_mode = '1' === $o['consent_mode'] && $this->is_active() && self::signals_possible( $o );
 		?>
 		<script id="dpt-cb-precheck" data-no-defer data-cfasync="false">
+		<?php
+		// Deleting a denied category's cookies, here rather than in
+		// frontend.js: this runs first in <head>, before any tag that could
+		// read a cookie set again, on every page. frontend.js calls the same
+		// window.dptCbPurge for a choice made on the page.
+		$cleanup = self::cleanup_patterns( $o );
+		if ( $cleanup ) :
+			?>
+		(function(){
+			var PATTERNS = <?php echo wp_json_encode( $cleanup ); ?>;
+			var ON = <?php echo wp_json_encode( self::enabled_categories( $o ) ); ?>;
+			// Never deleted, whatever a pattern says: the banner's own choice,
+			// and what WordPress and WooCommerce need for a login or a cart.
+			var PROTECTED = /^(dpt_consent|wordpress_|wp-|wp_|woocommerce_|wc_)/;
+			var re = function (p) { return new RegExp('^' + p.replace(/[.+?^${}()|[\]\\-]/g, '\\$&').replace(/\*/g, '.*') + '$'); };
+			// Every domain a first-party cookie can sit on: host-only, then the
+			// host and each parent down to the registrable domain - where GA
+			// writes - with the same two-part public suffixes frontend.js knows.
+			var domains = function () {
+				var list = [''], host = location.hostname;
+				if (!host || host === 'localhost' || /^\d+\.\d+\.\d+\.\d+$/.test(host)) return list;
+				var parts = host.split('.');
+				if (parts.length < 2) return list;
+				var sfx = ['co', 'com', 'org', 'net', 'gov', 'edu', 'ac'];
+				var base = '.' + (parts.length >= 3 && sfx.indexOf(parts[parts.length - 2]) !== -1 ? parts.slice(-3) : parts.slice(-2)).join('.');
+				for (var i = 0; i < parts.length - 1; i++) {
+					var d = '.' + parts.slice(i).join('.');
+					list.push(d);
+					if (d === base) break;
+				}
+				return list;
+			};
+			// A cookie's path is part of its identity: / and each ancestor of
+			// this page, with and without the trailing slash.
+			var paths = function () {
+				var list = ['/'], acc = '', segs = String(location.pathname || '/').split('/').filter(Boolean);
+				for (var i = 0; i < segs.length; i++) { acc += '/' + segs[i]; list.push(acc, acc + '/'); }
+				return list;
+			};
+			window.dptCbPurge = function (consent) {
+				if (!consent) return;
+				var ds = domains(), ps = paths();
+				// __Secure- and __Host- cookies are deleted only with Secure.
+				var secure = location.protocol === 'https:' ? '; secure' : '';
+				for (var cat in PATTERNS) {
+					if (!PATTERNS.hasOwnProperty(cat) || (consent[cat] && ON[cat])) continue;
+					var regs = PATTERNS[cat].map(re);
+					var hit = function (name) {
+						if (!name || PROTECTED.test(name)) return false;
+						for (var i = 0; i < regs.length; i++) { if (regs[i].test(name)) return true; }
+						return false;
+					};
+					(document.cookie || '').split(';').forEach(function (pair) {
+						var name = pair.split('=')[0].replace(/^\s+|\s+$/g, '');
+						if (!hit(name)) return;
+						ds.forEach(function (d) { ps.forEach(function (p) {
+							document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0; path=' + p + (d ? '; domain=' + d : '') + secure;
+						}); });
+					});
+					['localStorage', 'sessionStorage'].forEach(function (which) {
+						try {
+							// Reading the property throws where storage is blocked.
+							var store = window[which];
+							if (!store) return;
+							for (var i = store.length - 1; i >= 0; i--) { var k = store.key(i); if (hit(k)) store.removeItem(k); }
+						} catch (e) {}
+					});
+				}
+			};
+		})();
+		<?php endif; ?>
 		(function(){
 			<?php if ( $consent_mode ) : ?>
 			// Google Consent Mode v2. First in <head>, so it is in the data
@@ -351,6 +422,8 @@ class DPT_CB_Frontend {
 					}
 					window.gtag('consent', 'update', u);
 				}
+				// A denied category's cookies go before anything after this reads them.
+				if (typeof window.dptCbPurge === 'function') { try { window.dptCbPurge(c); } catch (e) {} }
 				// Mark the document so CSS can hide the banner immediately when it streams in.
 				document.documentElement.setAttribute('data-dpt-cb-resolved', '1');
 			} catch(e) { /* swallow */ }

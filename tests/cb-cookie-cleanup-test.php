@@ -3,9 +3,10 @@
  * Cookie Banner: a denied category's cookies are deleted from the browser
  * (issue #64). Off by default - no patterns, nothing deleted.
  *
- * frontend.js is run for real in Node, with a cookie jar that keeps a
- * cookie's domain the way a browser does, so a delete that misses the
- * domain GA wrote to fails here as it would on the site.
+ * The deleting lives in the head precheck, so it runs before any tag in
+ * <head>. That script is run for real in Node, with a cookie jar that keeps
+ * a cookie's domain and path the way a browser does, so a delete that
+ * misses where GA wrote fails here as it would on the site.
  */
 require_once __DIR__ . '/bootstrap.php';
 
@@ -39,7 +40,10 @@ $saved = get_option( DPT_CB_Settings::OPTION );
 dpt_test_eq( array( $saved['cleanup_analytics'], $saved['cleanup_marketing'] ), array( "_ga\n_ga_*", '' ), 'saved clean, one per line' );
 dpt_test_eq( DPT_CB_Frontend::cleanup_patterns( DPT_CB_Settings::all() ), array( 'analytics' => array( '_ga', '_ga_*' ) ), 'and only categories with patterns reach the page' );
 
-/* ---- frontend.js in Node ---- */
+/* ---- the head precheck in Node ---- */
+
+$GLOBALS['dpt_stub_is_admin'] = false; // A page on the site.
+$GLOBALS['dpt_stub_no_user']  = true;
 
 /**
  * Run frontend.js on www.digitizer.co.il with these cookies, storage and
@@ -58,12 +62,17 @@ function dpt_test_cc_run( $jar, $storage, $choice, $cleanup ) {
 	if ( '' === $node ) {
 		return null;
 	}
-	$config = array(
-		'consentVersion' => '1',
-		'consentDays'    => 180,
-		'categories'     => array( 'functional' => true, 'analytics' => true, 'marketing' => true ),
-		'cleanup'        => $cleanup,
-	);
+	$saved = array();
+	foreach ( $cleanup as $cat => $patterns ) {
+		$saved[ 'cleanup_' . $cat ] = implode( "\n", $patterns );
+	}
+	$GLOBALS['dpt_stub_options'][ DPT_CB_Settings::OPTION ] = $saved;
+	ob_start();
+	( new DPT_CB_Frontend() )->inject_inline_consent_check();
+	$html = (string) ob_get_clean();
+	if ( ! preg_match( '#<script id="dpt-cb-precheck"[^>]*>(.*?)</script>#s', $html, $m ) ) {
+		return array( 'no precheck' => $html );
+	}
 	if ( null !== $choice ) {
 		$jar[] = array( 'dpt_consent', '.digitizer.co.il', json_encode( array_merge( array( 'v' => '1', 'ts' => (int) ( microtime( true ) * 1000 ) ), $choice ) ) );
 	}
@@ -76,6 +85,7 @@ var location = { hostname: 'www.digitizer.co.il', search: '', protocol: 'https:'
 var document = {
   readyState: 'loading',
   addEventListener: function () {},
+  documentElement: { setAttribute: function () {} },
   get cookie() { return jar.map(function (c) { return c[0] + '=' + encodeURIComponent(c[2] || 'v'); }).join('; '); },
   set cookie(s) {
     var parts = s.split(';').map(function (p) { return p.trim(); });
@@ -94,13 +104,13 @@ var document = {
     if (!expired) jar.push([name, domain, value, path]);
   }
 };
-var window = { DPT_CB_CONFIG: __CONFIG__, localStorage: localStorage, sessionStorage: sessionStorage, addEventListener: function () {} };
+var window = { localStorage: localStorage, sessionStorage: sessionStorage, addEventListener: function () {} };
 __SCRIPT__
 process.stdout.write(JSON.stringify({ cookies: jar.map(function (c) { return c[0] + '@' + (c[1] || 'host') + (c[3] !== '/' ? c[3] : ''); }).sort(), storage: Object.keys(store).sort() }));
 JS;
 	$harness = str_replace(
-		array( '__JAR__', '__STORAGE__', '__CONFIG__', '__SCRIPT__' ),
-		array( json_encode( $jar ), json_encode( $storage ), json_encode( $config ), (string) file_get_contents( dirname( __DIR__ ) . '/modules/cookie-banner/assets/js/frontend.js' ) ),
+		array( '__JAR__', '__STORAGE__', '__SCRIPT__' ),
+		array( json_encode( $jar ), json_encode( $storage ), $m[1] ),
 		$harness
 	);
 	$file = tempnam( sys_get_temp_dir(), 'dptcc' ) . '.js';
@@ -127,14 +137,14 @@ $cleanup = array(
 
 $r = dpt_test_cc_run( $jar, $storage, array( 'functional' => true, 'analytics' => false, 'marketing' => true ), $cleanup );
 if ( null === $r ) {
-	echo "SKIP: node not found, frontend.js was not executed\n";
+	echo "SKIP: node not found, the precheck was not executed\n";
 } else {
 	dpt_test_eq(
 		$r['cookies'],
 		array( '_gcl_au@.www.digitizer.co.il', 'dpt_consent@.digitizer.co.il', 'theme_pref@host', 'wp-settings-1@host' ),
 		'analytics denied: _ga, _ga_* and _gid are gone - from the registrable domain and host-only alike - while marketing, granted, keeps its cookie'
 	);
-	dpt_test_eq( $r['storage'], array( 'dpt_consent_v1', 'other_key' ), 'and PostHog\'s localStorage key goes with them; the banner\'s own copy of the choice, which it restores, stays' );
+	dpt_test_eq( $r['storage'], array( 'other_key' ), 'and PostHog\'s localStorage key goes with them' );
 
 	$r = dpt_test_cc_run( $jar, $storage, array( 'functional' => true, 'analytics' => true, 'marketing' => false ), $cleanup );
 	dpt_test_ok( ! in_array( '_gcl_au@.www.digitizer.co.il', $r['cookies'], true ), 'marketing denied: a cookie on the www host\'s own domain is reached too' );
@@ -157,7 +167,13 @@ if ( null === $r ) {
 
 $js = (string) file_get_contents( dirname( __DIR__ ) . '/modules/cookie-banner/assets/js/frontend.js' );
 $finish = substr( $js, (int) strpos( $js, 'function finishConsent' ) );
-dpt_test_ok( false !== strpos( $finish, 'purgeDenied(consent);' ), 'a choice on the page deletes what it denies at once' );
-dpt_test_ok( 1 === preg_match( "/try \\{\\s*(?:\\/\\/[^\\n]*\\s*)*var store = window\\[which\\];/", $js ), 'where storage is blocked, even reading window.localStorage throws - so it is read inside the try, and the banner still starts' );
+dpt_test_ok( false !== strpos( $finish, 'purgeDenied(consent);' ) && false !== strpos( $js, 'window.dptCbPurge(consent);' ), 'a choice on the page deletes what it denies at once, with the same code the head runs' );
+
+$GLOBALS['dpt_stub_options'][ DPT_CB_Settings::OPTION ] = array();
+ob_start();
+( new DPT_CB_Frontend() )->inject_inline_consent_check();
+dpt_test_ok( false === strpos( (string) ob_get_clean(), 'dptCbPurge = function' ), 'with no patterns the head carries no deleting code at all' );
+dpt_test_ok( 1 === preg_match( '/PROTECTED = \/\^\(dpt_consent\|wordpress_\|wp-\|wp_\|woocommerce_\|wc_\)\//', (string) file_get_contents( dirname( __DIR__ ) . '/modules/cookie-banner/class-dpt-cb-frontend.php' ) ), 'WooCommerce\'s wc_ keys (cart hash, fragments) are protected too' );
+dpt_test_ok( 1 === preg_match( "/try \\{\\s*(?:\\/\\/[^\\n]*\\s*)*var store = window\\[which\\];/", (string) file_get_contents( dirname( __DIR__ ) . '/modules/cookie-banner/class-dpt-cb-frontend.php' ) ), 'where storage is blocked, even reading window.localStorage throws - so it is read inside the try, and the page scripts after it still run' );
 
 exit( dpt_test_summary() > 0 ? 1 : 0 );

@@ -253,94 +253,12 @@
 
     /* ============== Deleting a denied category's cookies ============== */
 
-    // Never deleted, whatever a pattern says: the banner's own choice, and
-    // what WordPress and WooCommerce need to keep a visitor logged in or a
-    // cart alive.
-    var PROTECTED = /^(dpt_consent|wordpress_|wp-|wp_|woocommerce_)/;
-
-    function patternRegExp(pattern) {
-        return new RegExp('^' + pattern.replace(/[.+?^${}()|[\]\\-]/g, '\\$&').replace(/\*/g, '.*') + '$');
-    }
-
-    // Every domain a first-party cookie can sit on here: host-only, then the
-    // host and each parent down to the registrable domain - GA writes to the
-    // registrable one (.digitizer.co.il), so a host-only delete misses it.
-    function cookieDomains() {
-        var list = [''];
-        var host = location.hostname;
-        var base = getCookieDomain();
-        if (!host || !base) return list;
-        var parts = host.split('.');
-        for (var i = 0; i < parts.length - 1; i++) {
-            var d = '.' + parts.slice(i).join('.');
-            list.push(d);
-            if (d === base) break;
-        }
-        return list;
-    }
-
-    // A cookie's path is part of its identity, so a delete at / misses one
-    // set for /checkout. Every path a cookie visible here can have: / and
-    // each ancestor of this page, with and without the trailing slash.
-    function cookiePaths() {
-        var list = ['/'];
-        var segs = String(location.pathname || '/').split('/').filter(Boolean);
-        var acc = '';
-        for (var i = 0; i < segs.length; i++) {
-            acc += '/' + segs[i];
-            list.push(acc, acc + '/');
-        }
-        return list;
-    }
-
-    function purgeCategory(cat) {
-        var patterns = (config.cleanup || {})[cat];
-        if (!patterns || !patterns.length) return;
-        var regs = patterns.map(patternRegExp);
-        var matches = function (name) {
-            if (!name || PROTECTED.test(name)) return false;
-            for (var i = 0; i < regs.length; i++) { if (regs[i].test(name)) return true; }
-            return false;
-        };
-        var removed = [];
-        var domains = cookieDomains();
-        var paths = cookiePaths();
-        // __Secure- and __Host- cookies can only be written - deleted too -
-        // with Secure; on HTTPS it is added to every attempt, harmlessly.
-        var secure = location.protocol === 'https:' ? '; secure' : '';
-        (document.cookie || '').split(';').forEach(function (pair) {
-            var name = pair.split('=')[0].replace(/^\s+|\s+$/g, '');
-            if (!matches(name)) return;
-            domains.forEach(function (d) {
-                paths.forEach(function (p) {
-                    document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0; path=' + p + (d ? '; domain=' + d : '') + secure;
-                });
-            });
-            removed.push(name);
-        });
-        ['localStorage', 'sessionStorage'].forEach(function (which) {
-            try {
-                // Reading the property itself throws where storage is
-                // blocked, so it is read inside the try.
-                var store = window[which];
-                if (!store) return;
-                for (var i = store.length - 1; i >= 0; i--) {
-                    var key = store.key(i);
-                    if (matches(key)) { store.removeItem(key); removed.push(key); }
-                }
-            } catch (e) {}
-        });
-        if (removed.length) log('deleted for ' + cat, removed);
-    }
-
-    // Each category the choice leaves denied - refused, withdrawn, or
-    // switched off since - has its cookies deleted. Nothing without a choice:
-    // a first visit has not refused anything yet.
+    // The deleting itself lives in the head precheck (window.dptCbPurge), so
+    // that on every page it runs before any tag in <head> can read a cookie
+    // set again. A choice made on this page calls the same code.
     function purgeDenied(consent) {
-        if (!consent) return;
-        ['functional', 'analytics', 'marketing'].forEach(function (cat) {
-            if (!granted(consent, cat)) purgeCategory(cat);
-        });
+        if (!consent || typeof window.dptCbPurge !== 'function') return;
+        try { window.dptCbPurge(consent); } catch (e) { log('purge failed', e && e.message); }
     }
 
     function injectConsentedScripts(consent) {
@@ -768,9 +686,6 @@
     // sets the API's categories back to deny.
     var bootConsent = readConsent();
     signalWpConsentApi(bootConsent);
-    // And a denied category's cookies go on every page, before the rest of
-    // the page runs: a tag loaded outside the banner may have set them again.
-    purgeDenied(bootConsent);
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
