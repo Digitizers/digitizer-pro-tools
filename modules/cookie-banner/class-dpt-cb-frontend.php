@@ -34,11 +34,41 @@ class DPT_CB_Frontend {
 
 		// The WP Consent API reads two things from the consent plugin: that one
 		// is registered, and which kind of consent it collects. Opt-in: nothing
-		// that needs consent runs before the visitor says yes.
-		if ( '1' === DPT_CB_Settings::get( 'wp_consent_api' ) && defined( 'DPT_BASENAME' ) ) {
+		// that needs consent runs before the visitor says yes. Only with the
+		// banner on - an opt-in manager with no banner would leave every
+		// category denied for good, since nobody could ever say yes.
+		if ( '1' === DPT_CB_Settings::get( 'wp_consent_api' ) && '1' === DPT_CB_Settings::get( 'enabled' ) && defined( 'DPT_BASENAME' ) ) {
 			add_filter( 'wp_consent_api_registered_' . DPT_BASENAME, '__return_true' );
 			add_filter( 'wp_get_consent_type', array( __CLASS__, 'consent_type' ) );
+			add_filter( 'wp_has_consent', array( $this, 'filter_wp_has_consent' ), 10, 3 );
 		}
+	}
+
+	/**
+	 * The banner's own cookie is the truth for wp_has_consent(), not the API's
+	 * mirrored wp_consent_* cookies. Those keep whatever was last written, so
+	 * after a consent version bump or an expired choice they could still say
+	 * "allow" while the banner is asking again - and code that asks in PHP
+	 * runs before frontend.js can correct them.
+	 *
+	 * @param bool   $has_consent  What the API decided.
+	 * @param string $category     The API category asked about.
+	 * @param string $requested_by Who asked.
+	 * @return bool
+	 */
+	public function filter_wp_has_consent( $has_consent, $category = '', $requested_by = '' ) {
+		$banner_category = '';
+		foreach ( self::wp_consent_api_map() as $cat => $api_categories ) {
+			if ( in_array( $category, $api_categories, true ) ) {
+				$banner_category = $cat;
+				break;
+			}
+		}
+		if ( '' === $banner_category ) {
+			return $has_consent; // The API's functional (essential), or not ours.
+		}
+		$consent = $this->get_consent();
+		return is_array( $consent ) && ! empty( $consent[ $banner_category ] );
 	}
 
 	/**

@@ -364,6 +364,11 @@
         if (existing) {
             signalWpConsentApi(existing);
             injectConsentedScripts(existing);
+        } else {
+            // No valid choice - none yet, an older consent version, or an
+            // expired one. The API's mirrored cookies may still hold an old
+            // "allow"; they go back to deny until the visitor answers again.
+            signalWpConsentApi(null);
         }
 
         // The precheck may have resolved from a stale-version consent that
