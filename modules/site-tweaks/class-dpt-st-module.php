@@ -344,7 +344,11 @@ class DPT_Site_Tweaks_Module extends DPT_Module {
 		if ( '' === $value ) {
 			return; // Empty handling is Elementor's "required" job, not ours.
 		}
-		if ( ! preg_match( '/^\+?[0-9]{9,14}$/', $value ) ) {
+		// The separators a person types and Elementor's own field accepts
+		// (052-123-4567, +972.52.123.4567, (03) 123-4567) are not part of the
+		// number: dropped for the check only, so the lead keeps what was typed.
+		$digits = preg_replace( '/[\s\-.()]/', '', $value );
+		if ( ! preg_match( '/^\+?[0-9]{9,14}$/', $digits ) ) {
 			$message = apply_filters(
 				'dpt_st_tel_error_message',
 				__( 'Please enter a valid phone number.', 'digitizer-pro-tools' )

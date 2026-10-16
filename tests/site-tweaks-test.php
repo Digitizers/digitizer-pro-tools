@@ -258,4 +258,28 @@ $module4 = new DPT_Site_Tweaks_Module();
 $module4->init();
 dpt_test_ok( ! dpt_stub_has_filter( 'load-post.php' ), 'the lock off wires nothing' );
 
+/* ---- Elementor phone fields (issue #51) ---- */
+
+// A number typed the way people type them was refused on submit, though the
+// browser and Elementor had both accepted it - and the lead was lost.
+$tel_handler = new class() {
+	public $errors = array();
+	public function add_error( $id, $message ) { $this->errors[ $id ] = $message; }
+};
+$tel = function ( $value ) use ( $module, $tel_handler ) {
+	$tel_handler->errors = array();
+	$module->validate_tel_field( array( 'id' => 'phone', 'value' => $value ), null, $tel_handler );
+	return empty( $tel_handler->errors );
+};
+foreach ( array( '0521234567', '052-123-4567', '+972-52-123-4567', '+972 52 123 4567', '052.123.4567', '(03) 123-4567', '+972521234567' ) as $ok ) {
+	dpt_test_ok( $tel( $ok ), "accepted: $ok" );
+}
+foreach ( array( '12345', '052-123', 'abc-def-ghij', '052/123/4567', '+972-52-123-4567-0000000', '++972521234567' ) as $bad ) {
+	dpt_test_ok( ! $tel( $bad ), "still refused: $bad" );
+}
+dpt_test_ok( $tel( '' ), 'an empty optional phone is left to Elementor\'s "required"' );
+$field = array( 'id' => 'phone', 'value' => '052-123-4567' );
+$module->validate_tel_field( $field, null, $tel_handler );
+dpt_test_eq( $field['value'], '052-123-4567', 'the lead keeps the number as it was typed' );
+
 exit( dpt_test_summary() > 0 ? 1 : 0 );

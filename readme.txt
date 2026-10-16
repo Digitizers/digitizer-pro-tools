@@ -4,7 +4,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.46.0
+Stable tag: 1.46.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -360,6 +360,9 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 5. Configure each module you enabled from its own screen. For the Cookie Banner that means reviewing the texts per language and pasting your analytics/marketing snippets in the Scripts tab, then checking the site
 
 == Changelog ==
+
+= 1.46.1 =
+* Site Tweaks: Elementor phone validation accepts numbers typed with dashes, dots, spaces or brackets (052-123-4567, +972-52-123-4567), as the browser and Elementor already do. The check ignores the separators; the submitted value stays as typed. (#51)
 
 = 1.46.0 =
 * Cookie Banner: a denied category's cookies are deleted from the browser (Categories tab, empty by default).

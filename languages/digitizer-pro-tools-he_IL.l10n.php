@@ -239,7 +239,7 @@ return array (
     'Disable Elementor Google Fonts' => 'השבתת Google Fonts של אלמנטור',
     'Stops Elementor loading fonts from Google (privacy/performance). Use only if your fonts are hosted locally.' => 'מונע מאלמנטור לטעון גופנים מ-Google (פרטיות/ביצועים). יש להשתמש רק אם הגופנים שלך מאוחסנים מקומית.',
     'Validate phone fields (Elementor Pro)' => 'אימות שדות טלפון (Elementor Pro)',
-    'Rejects malformed numbers in Elementor Pro form <code>tel</code> fields (9-14 digits, optional leading +).' => 'דוחה מספרים שגויים בשדות <code>tel</code> של טפסי Elementor Pro (9-14 ספרות, + מוביל אופציונלי).',
+    'Rejects malformed numbers in Elementor Pro form <code>tel</code> fields (9-14 digits, optional leading +; dashes, dots, spaces and brackets between them are fine).' => 'דוחה מספרים שגויים בשדות <code>tel</code> של טפסי Elementor Pro ‏(9-14 ספרות, + מוביל אופציונלי; מקפים, נקודות, רווחים וסוגריים ביניהן תקינים).',
     'Small site-wide tweaks: HTTP security headers, sanitised SVG uploads, hiding the WordPress version, Elementor helpers, and dropping front-end weight an Elementor site does not use. Each tweak is an independent toggle.' => 'התאמות קטנות לאתר: כותרות אבטחה של HTTP, העלאת SVG מנוקה, הסתרת גרסת וורדפרס, עזרים לאלמנטור, והסרת משקל בחזית שאתר אלמנטור לא משתמש בו. כל התאמה היא מתג עצמאי.',
     'You are not allowed to upload SVG files.' => 'אין לך הרשאה להעלות קובצי SVG.',
     'This SVG could not be sanitised and was not uploaded.' => 'לא ניתן היה לנקות את קובץ ה-SVG והוא לא הועלה.',

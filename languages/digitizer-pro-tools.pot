@@ -707,7 +707,7 @@ msgstr ""
 msgid "Validate phone fields (Elementor Pro)"
 msgstr ""
 
-msgid "Rejects malformed numbers in Elementor Pro form <code>tel</code> fields (9-14 digits, optional leading +)."
+msgid "Rejects malformed numbers in Elementor Pro form <code>tel</code> fields (9-14 digits, optional leading +; dashes, dots, spaces and brackets between them are fine)."
 msgstr ""
 
 msgid "Small site-wide tweaks: HTTP security headers, sanitised SVG uploads, hiding the WordPress version, Elementor helpers, and dropping front-end weight an Elementor site does not use. Each tweak is an independent toggle."
