@@ -365,7 +365,7 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 * Cookie Banner: a denied category's cookies are deleted from the browser (Categories tab, empty by default).
   * List the cookie names per category, with * as a wildcard, for example _ga, _ga_*, _gid.
   * When a visitor refuses or withdraws the category, the matching cookies are deleted, and again on every page while it stays denied. They are removed from the host and from each parent domain, where Google Analytics writes them. localStorage and sessionStorage keys with the same names go too.
-  * Only the site's own cookies that scripts can read can be reached: not other domains' cookies, and not HttpOnly ones (analytics and advertising tags do not use HttpOnly). WordPress, WooCommerce and comment cookies and the banner's own are never deleted.
+  * Only the site's own cookies that scripts can read can be reached: not other domains' cookies, and not HttpOnly ones (analytics and advertising tags do not use HttpOnly). WordPress's login, settings and comment cookies, WooCommerce's cart, session and store-notice data, and the banner's own are never deleted. WooCommerce's order attribution cookies (sbjs_*) are tracking and can be listed under marketing.
 
 = 1.45.0 =
 * Cookie Banner: Google Consent Mode v2 (General, off by default).

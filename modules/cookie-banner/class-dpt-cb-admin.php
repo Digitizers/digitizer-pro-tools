@@ -1173,7 +1173,7 @@ class DPT_CB_Admin {
 
 		<h3 class="dpt-section-heading"><span class="dashicons dashicons-trash"></span> <?php esc_html_e( 'Cookies to delete when a category is denied', 'digitizer-pro-tools' ); ?></h3>
 		<p class="description"><?php esc_html_e( 'When a visitor refuses or withdraws a category, these cookies, and the localStorage and sessionStorage keys with the same names, are deleted from the browser, and again on every page while the category stays denied. One name per line or separated by commas; * matches anything, for example _ga_*.', 'digitizer-pro-tools' ); ?></p>
-		<p class="description"><?php esc_html_e( 'Only this site\'s own cookies that scripts can read can be deleted: cookies set by other domains, such as .linkedin.com or .doubleclick.net, and cookies marked HttpOnly are out of a page\'s reach. Analytics and advertising tags do not use HttpOnly. WordPress and WooCommerce cookies, WordPress\'s comment cookies and the banner\'s own are never deleted.', 'digitizer-pro-tools' ); ?></p>
+		<p class="description"><?php esc_html_e( 'Only this site\'s own cookies that scripts can read can be deleted: cookies set by other domains, such as .linkedin.com or .doubleclick.net, and cookies marked HttpOnly are out of a page\'s reach. Analytics and advertising tags do not use HttpOnly. WordPress\'s login, settings and comment cookies, WooCommerce\'s cart, session and store-notice data, and the banner\'s own are never deleted. WooCommerce\'s order attribution cookies (sbjs_*) are tracking, and can be listed under marketing.', 'digitizer-pro-tools' ); ?></p>
 		<table class="form-table dpt-form">
 			<?php
 			$cleanup_rows = array(
