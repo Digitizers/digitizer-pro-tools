@@ -158,6 +158,9 @@ if ( null === $r ) {
 	dpt_test_ok( ! in_array( '_ga_cart@host/shop', $r['cookies'], true ), 'a cookie set for /shop is reached from /shop/checkout/ - a cookie\'s path is part of its identity' );
 	dpt_test_ok( ! in_array( '__Secure-_ga_x@.digitizer.co.il', $r['cookies'], true ), 'and a __Secure- cookie, which a browser lets go only with Secure' );
 
+	$r = dpt_test_cc_run( array( array( '_ga', '.co.il' ), array( '_ga', '.digitizer.co.il' ) ), array(), array( 'analytics' => false ), $cleanup );
+	dpt_test_eq( $r['cookies'], array( 'dpt_consent@.digitizer.co.il' ), 'every parent domain is tried, with no guess where the registrable one is - a cookie scoped higher than the guess is reached too' );
+
 	$r = dpt_test_cc_run( $jar, $storage, null, $cleanup );
 	dpt_test_eq( count( $r['cookies'] ), count( $jar ), 'a first visit, with no choice yet, deletes nothing' );
 

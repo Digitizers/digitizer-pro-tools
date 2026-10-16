@@ -322,20 +322,14 @@ class DPT_CB_Frontend {
 			var PROTECTED = /^(dpt_consent|wordpress_|wp-|wp_|woocommerce_|wc_)/;
 			var re = function (p) { return new RegExp('^' + p.replace(/[.+?^${}()|[\]\\-]/g, '\\$&').replace(/\*/g, '.*') + '$'); };
 			// Every domain a first-party cookie can sit on: host-only, then the
-			// host and each parent down to the registrable domain - where GA
-			// writes - with the same two-part public suffixes frontend.js knows.
+			// host and every parent with two labels or more - GA writes to the
+			// registrable one. No guessing where that is: a delete aimed at a
+			// public suffix (.co.il) is one the browser simply ignores.
 			var domains = function () {
 				var list = [''], host = location.hostname;
 				if (!host || host === 'localhost' || /^\d+\.\d+\.\d+\.\d+$/.test(host)) return list;
 				var parts = host.split('.');
-				if (parts.length < 2) return list;
-				var sfx = ['co', 'com', 'org', 'net', 'gov', 'edu', 'ac'];
-				var base = '.' + (parts.length >= 3 && sfx.indexOf(parts[parts.length - 2]) !== -1 ? parts.slice(-3) : parts.slice(-2)).join('.');
-				for (var i = 0; i < parts.length - 1; i++) {
-					var d = '.' + parts.slice(i).join('.');
-					list.push(d);
-					if (d === base) break;
-				}
+				for (var i = 0; i < parts.length - 1; i++) { list.push('.' + parts.slice(i).join('.')); }
 				return list;
 			};
 			// A cookie's path is part of its identity: / and each ancestor of
