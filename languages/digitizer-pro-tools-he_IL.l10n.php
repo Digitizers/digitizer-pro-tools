@@ -814,5 +814,11 @@ return array (
     'Icon (bold, the same in every font)' => 'אייקון (עבה, זהה בכל גופן)',
     'X opacity (0.1-1)' => 'שקיפות ה-X (0.1-1)',
     '1 = full strength. On hover it is always shown in full.' => '1 = בעוצמה מלאה. במעבר עכבר הוא תמיד מוצג במלואו.',
+    'Google Consent Mode v2' => 'Google Consent Mode v2',
+    'Tells Google tags (Analytics, Ads, Tag Manager) what the visitor allowed: analytics grants analytics storage, marketing grants ad storage, ad user data and ad personalization, functional grants functionality and personalization storage. Everything starts denied until the visitor chooses.' => 'מודיע לתגיות של Google ‏(Analytics, ‏Ads, ‏Tag Manager) מה המבקר אישר: אנליטיקה מאשרת analytics storage, שיווק מאשר ad storage, ‏ad user data ו-ad personalization, ופונקציונליות מאשרת functionality ו-personalization storage. הכול מתחיל כמסורב עד שהמבקר בוחר.',
+    'Google tags pasted in the "Scripts" tab still load only after consent. Google tags added any other way (Site Kit, a GTM plugin, the theme) load at once and follow these signals.' => 'תגיות Google שהודבקו בטאב "סקריפטים" עדיין נטענות רק אחרי הסכמה. תגיות Google שנוספו בכל דרך אחרת (Site Kit, תוסף GTM, ערכת העיצוב) נטענות מיד ופועלות לפי האותות האלה.',
+    'WP Consent API' => 'WP Consent API',
+    'Shares the visitor\'s choice with plugins that read the WP Consent API, such as Site Kit and WooCommerce order attribution.' => 'משתף את הבחירה של המבקר עם תוספים שקוראים את WP Consent API, כמו Site Kit וייחוס ההזמנות של WooCommerce.',
+    'The WP Consent API plugin is not active on this site, so this switch has no effect until it is.' => 'התוסף WP Consent API לא פעיל באתר הזה, ולכן למתג אין השפעה עד שיופעל.',
   ),
 );

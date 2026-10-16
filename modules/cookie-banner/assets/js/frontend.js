@@ -191,6 +191,48 @@
         processInjectQueue();
     }
 
+    // Google Consent Mode v2: the visitor's choice, as the signals each
+    // category grants. The head precheck already set the defaults and any
+    // stored choice; this is for a choice made on this page.
+    function signalConsentMode(consent) {
+        var map = config.consentMode;
+        if (!map) return;
+        var update = {};
+        Object.keys(map).forEach(function (cat) {
+            map[cat].forEach(function (signal) {
+                update[signal] = consent && consent[cat] ? 'granted' : 'denied';
+            });
+        });
+        window.dataLayer = window.dataLayer || [];
+        var gtag = typeof window.gtag === 'function' ? window.gtag : function () { window.dataLayer.push(arguments); };
+        gtag('consent', 'update', update);
+        log('consent mode update', update);
+    }
+
+    // The WP Consent API, for plugins that read it (Site Kit, WooCommerce
+    // order attribution...). Its script may load after this one, so the
+    // signal waits for the page if the API is not there yet.
+    function signalWpConsentApi(consent) {
+        var map = config.wpConsentApi;
+        if (!map) return;
+        var apply = function () {
+            if (typeof window.wp_set_consent !== 'function') return false;
+            window.wp_set_consent('functional', 'allow'); // The essential kind.
+            Object.keys(map).forEach(function (cat) {
+                map[cat].forEach(function (apiCat) {
+                    window.wp_set_consent(apiCat, consent && consent[cat] ? 'allow' : 'deny');
+                });
+            });
+            log('wp consent api set', consent);
+            return true;
+        };
+        if (!apply()) {
+            window.addEventListener('load', function () {
+                if (!apply()) log('wp_set_consent not found - is the WP Consent API plugin active?');
+            });
+        }
+    }
+
     function injectConsentedScripts(consent) {
         if (!config.blockScripts || !consent) return;
         var scripts = config.scripts || {};
@@ -320,6 +362,7 @@
         // Consented snippets are client-injected on every page load (the
         // server never bakes them into cacheable HTML).
         if (existing) {
+            signalWpConsentApi(existing);
             injectConsentedScripts(existing);
         }
 
@@ -425,6 +468,10 @@
             isClosing = true;
             log('finishConsent', consent);
             saveConsent(consent);
+            // Signals before the scripts, so a tag injected now reads the
+            // new state on its first hit.
+            signalConsentMode(consent);
+            signalWpConsentApi(consent);
             injectConsentedScripts(consent);
             try { document.documentElement.setAttribute('data-dpt-cb-resolved', '1'); } catch(e) {}
             hideBannerInstant();

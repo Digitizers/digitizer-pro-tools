@@ -2445,3 +2445,21 @@ msgstr "שקיפות ה-X (0.1-1)"
 
 msgid "1 = full strength. On hover it is always shown in full."
 msgstr "1 = בעוצמה מלאה. במעבר עכבר הוא תמיד מוצג במלואו."
+
+msgid "Google Consent Mode v2"
+msgstr "Google Consent Mode v2"
+
+msgid "Tells Google tags (Analytics, Ads, Tag Manager) what the visitor allowed: analytics grants analytics storage, marketing grants ad storage, ad user data and ad personalization, functional grants functionality and personalization storage. Everything starts denied until the visitor chooses."
+msgstr "מודיע לתגיות של Google ‏(Analytics, ‏Ads, ‏Tag Manager) מה המבקר אישר: אנליטיקה מאשרת analytics storage, שיווק מאשר ad storage, ‏ad user data ו-ad personalization, ופונקציונליות מאשרת functionality ו-personalization storage. הכול מתחיל כמסורב עד שהמבקר בוחר."
+
+msgid "Google tags pasted in the \"Scripts\" tab still load only after consent. Google tags added any other way (Site Kit, a GTM plugin, the theme) load at once and follow these signals."
+msgstr "תגיות Google שהודבקו בטאב \"סקריפטים\" עדיין נטענות רק אחרי הסכמה. תגיות Google שנוספו בכל דרך אחרת (Site Kit, תוסף GTM, ערכת העיצוב) נטענות מיד ופועלות לפי האותות האלה."
+
+msgid "WP Consent API"
+msgstr "WP Consent API"
+
+msgid "Shares the visitor's choice with plugins that read the WP Consent API, such as Site Kit and WooCommerce order attribution."
+msgstr "משתף את הבחירה של המבקר עם תוספים שקוראים את WP Consent API, כמו Site Kit וייחוס ההזמנות של WooCommerce."
+
+msgid "The WP Consent API plugin is not active on this site, so this switch has no effect until it is."
+msgstr "התוסף WP Consent API לא פעיל באתר הזה, ולכן למתג אין השפעה עד שיופעל."

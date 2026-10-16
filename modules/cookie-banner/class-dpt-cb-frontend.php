@@ -31,6 +31,80 @@ class DPT_CB_Frontend {
 		add_filter( 'rocket_minify_excluded_external_js', array( $this, 'rocket_exclude_files' ) );
 		add_filter( 'rocket_excluded_inline_js_content',  array( $this, 'rocket_exclude_inline' ) );
 		add_shortcode( 'dpt_cookie_settings', array( $this, 'settings_link_shortcode' ) );
+
+		// The WP Consent API reads two things from the consent plugin: that one
+		// is registered, and which kind of consent it collects. Opt-in: nothing
+		// that needs consent runs before the visitor says yes.
+		if ( '1' === DPT_CB_Settings::get( 'wp_consent_api' ) && defined( 'DPT_BASENAME' ) ) {
+			add_filter( 'wp_consent_api_registered_' . DPT_BASENAME, '__return_true' );
+			add_filter( 'wp_get_consent_type', array( __CLASS__, 'consent_type' ) );
+		}
+	}
+
+	/**
+	 * The kind of consent the banner collects, for the WP Consent API.
+	 *
+	 * @return string
+	 */
+	public static function consent_type() {
+		return 'optin';
+	}
+
+	/**
+	 * What each banner category grants in Google Consent Mode v2. Every signal
+	 * listed here starts denied; security_storage is not a choice and stays
+	 * granted.
+	 *
+	 * @return array<string,string[]>
+	 */
+	public static function consent_mode_map() {
+		return array(
+			'functional' => array( 'functionality_storage', 'personalization_storage' ),
+			'analytics'  => array( 'analytics_storage' ),
+			'marketing'  => array( 'ad_storage', 'ad_user_data', 'ad_personalization' ),
+		);
+	}
+
+	/**
+	 * Consent Mode's default state, set before any Google tag runs: every
+	 * signal a category grants is denied, and tags wait up to half a second
+	 * for an update from a stored choice.
+	 *
+	 * @return array<string,string|int>
+	 */
+	public static function consent_mode_defaults() {
+		$defaults = array();
+		foreach ( self::consent_mode_map() as $signals ) {
+			foreach ( $signals as $signal ) {
+				$defaults[ $signal ] = 'denied';
+			}
+		}
+		$defaults['security_storage'] = 'granted';
+		$defaults['wait_for_update']  = 500;
+		return $defaults;
+	}
+
+	/**
+	 * What each banner category means in the WP Consent API. The API's own
+	 * "functional" is the essential kind, always allowed.
+	 *
+	 * @return array<string,string[]>
+	 */
+	public static function wp_consent_api_map() {
+		return array(
+			'functional' => array( 'preferences' ),
+			'analytics'  => array( 'statistics', 'statistics-anonymous' ),
+			'marketing'  => array( 'marketing' ),
+		);
+	}
+
+	/**
+	 * Whether the WP Consent API plugin is running here.
+	 *
+	 * @return bool
+	 */
+	public static function wp_consent_api_present() {
+		return function_exists( 'wp_has_consent' );
 	}
 
 	/**
@@ -135,9 +209,22 @@ class DPT_CB_Frontend {
 		}
 		$version = (string) DPT_CB_Settings::get( 'consent_version' );
 		$days    = max( 1, (int) DPT_CB_Settings::get( 'consent_days' ) );
+		// Only with the banner on: with no banner nobody can ever grant, and
+		// every Google tag on the site would stay denied for good.
+		$consent_mode = '1' === DPT_CB_Settings::get( 'consent_mode' ) && $this->is_active();
 		?>
 		<script id="dpt-cb-precheck" data-no-defer data-cfasync="false">
 		(function(){
+			<?php if ( $consent_mode ) : ?>
+			// Google Consent Mode v2. First in <head>, so it is in the data
+			// layer before any Google tag reads it.
+			var CM = <?php echo wp_json_encode( self::consent_mode_map() ); ?>;
+			window.dataLayer = window.dataLayer || [];
+			if (typeof window.gtag !== 'function') { window.gtag = function(){ window.dataLayer.push(arguments); }; }
+			window.gtag('consent', 'default', <?php echo wp_json_encode( self::consent_mode_defaults() ); ?>);
+			<?php else : ?>
+			var CM = null;
+			<?php endif; ?>
 			try {
 				var EXPECTED_V = <?php echo wp_json_encode( $version ); ?>;
 				var MAX_AGE_MS = <?php echo (int) $days; ?> * 864e5;
@@ -156,6 +243,16 @@ class DPT_CB_Frontend {
 				if (String(c.v || '') !== EXPECTED_V) return;
 				// Consent lifetime elapsed (localStorage outlives the cookie).
 				if (!c.ts || (Date.now() - c.ts) > MAX_AGE_MS) return;
+				// A stored choice, so the tags start from it - on a cached page
+				// too, since this runs in the browser.
+				if (CM) {
+					var u = {};
+					for (var cat in CM) {
+						if (!CM.hasOwnProperty(cat)) continue;
+						for (var i = 0; i < CM[cat].length; i++) { u[CM[cat][i]] = c[cat] ? 'granted' : 'denied'; }
+					}
+					window.gtag('consent', 'update', u);
+				}
 				// Mark the document so CSS can hide the banner immediately when it streams in.
 				document.documentElement.setAttribute('data-dpt-cb-resolved', '1');
 			} catch(e) { /* swallow */ }
@@ -226,6 +323,8 @@ class DPT_CB_Frontend {
 			'scripts'          => $scripts,
 			'openSelector'     => self::open_selector(),
 			'openHash'         => self::OPEN_HASH,
+			'consentMode'      => '1' === $o['consent_mode'] ? self::consent_mode_map() : null,
+			'wpConsentApi'     => '1' === $o['wp_consent_api'] ? self::wp_consent_api_map() : null,
 		) );
 	}
 
