@@ -820,5 +820,6 @@ return array (
     'WP Consent API' => 'WP Consent API',
     'Shares the visitor\'s choice with plugins that read the WP Consent API, such as Site Kit and WooCommerce order attribution.' => 'משתף את הבחירה של המבקר עם תוספים שקוראים את WP Consent API, כמו Site Kit וייחוס ההזמנות של WooCommerce.',
     'The WP Consent API plugin is not active on this site, so this switch has no effect until it is.' => 'התוסף WP Consent API לא פעיל באתר הזה, ולכן למתג אין השפעה עד שיופעל.',
+    'Consent Mode and the WP Consent API are not sent while the banner is off or hidden on mobile: visitors who cannot see the banner could never grant anything.' => 'Consent Mode ו-WP Consent API לא נשלחים כשהבאנר כבוי או מוסתר במובייל: מבקרים שלא רואים את הבאנר לא יוכלו לאשר אף פעם.',
   ),
 );

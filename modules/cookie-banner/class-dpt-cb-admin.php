@@ -343,6 +343,9 @@ class DPT_CB_Admin {
 				<td>
 					<?php $this->switch_field( 'wp_consent_api', $o['wp_consent_api'] ); ?>
 					<p class="description"><?php esc_html_e( 'Shares the visitor\'s choice with plugins that read the WP Consent API, such as Site Kit and WooCommerce order attribution.', 'digitizer-pro-tools' ); ?></p>
+					<?php if ( ! DPT_CB_Frontend::signals_possible( $o ) && ( '1' === $o['consent_mode'] || '1' === $o['wp_consent_api'] ) ) : ?>
+						<p class="description"><strong><?php esc_html_e( 'Consent Mode and the WP Consent API are not sent while the banner is off or hidden on mobile: visitors who cannot see the banner could never grant anything.', 'digitizer-pro-tools' ); ?></strong></p>
+					<?php endif; ?>
 					<?php if ( ! DPT_CB_Frontend::wp_consent_api_present() ) : ?>
 						<p class="description"><strong><?php esc_html_e( 'The WP Consent API plugin is not active on this site, so this switch has no effect until it is.', 'digitizer-pro-tools' ); ?></strong></p>
 					<?php endif; ?>

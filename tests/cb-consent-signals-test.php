@@ -132,6 +132,24 @@ if ( null !== $layer ) {
 	echo "SKIP: node not found, the precheck was not executed\n";
 }
 
+/* ---- a category switched off since ---- */
+
+dpt_test_cs_opts( array( 'consent_mode' => '1', 'cat_marketing_enabled' => '0' ) );
+$layer = dpt_test_cs_run( dpt_test_cs_precheck(), dpt_test_cs_cookie( array( 'functional' => true, 'analytics' => true, 'marketing' => true ) ) );
+if ( null !== $layer ) {
+	dpt_test_eq(
+		isset( $layer[1][2] ) ? array( $layer[1][2]['analytics_storage'], $layer[1][2]['ad_storage'], $layer[1][2]['ad_user_data'], $layer[1][2]['ad_personalization'] ) : null,
+		array( 'granted', 'denied', 'denied', 'denied' ),
+		'marketing accepted once, switched off since: its signals stay denied'
+	);
+}
+
+/* ---- hidden on mobile ---- */
+
+dpt_test_cs_opts( array( 'consent_mode' => '1', 'show_on_mobile' => '0' ) );
+dpt_test_ok( false === strpos( dpt_test_cs_precheck(), "gtag('consent', 'default'" ), 'with the banner hidden on phones, phone visitors could never grant: nothing is sent' );
+dpt_test_eq( DPT_CB_Frontend::signals_possible( DPT_CB_Settings::all() ), false, 'one rule for both integrations' );
+
 /* ---- on, but no banner ---- */
 
 dpt_test_cs_opts( array( 'consent_mode' => '1', 'enabled' => '0' ) );
@@ -168,6 +186,11 @@ new DPT_CB_Frontend();
 dpt_test_ok( ! dpt_stub_has_filter( 'wp_get_consent_type' ) && ! dpt_stub_has_filter( 'wp_has_consent' ), 'with the banner off it does not register at all' );
 $GLOBALS['dpt_stub_filters'] = array();
 
+dpt_test_cs_opts( array( 'wp_consent_api' => '1', 'show_on_mobile' => '0' ) );
+new DPT_CB_Frontend();
+dpt_test_ok( ! dpt_stub_has_filter( 'wp_get_consent_type' ), 'nor while the banner is hidden on mobile' );
+$GLOBALS['dpt_stub_filters'] = array();
+
 /* ---- wp_has_consent(): the banner's cookie is the truth ---- */
 
 dpt_test_cs_opts( array( 'wp_consent_api' => '1' ) );
@@ -187,6 +210,9 @@ dpt_test_eq(
 	array( true, true, false, false ),
 	'a valid analytics-only choice: statistics yes, marketing and preferences no'
 );
+$GLOBALS['dpt_stub_options'][ DPT_CB_Settings::OPTION ]['cat_analytics_enabled'] = '0';
+dpt_test_eq( $frontend->filter_wp_has_consent( false, 'statistics' ), false, 'analytics switched off since the choice: statistics no' );
+$GLOBALS['dpt_stub_options'][ DPT_CB_Settings::OPTION ]['cat_analytics_enabled'] = '1';
 $_COOKIE['dpt_consent'] = json_encode( array( 'v' => 'old', 'ts' => $now, 'analytics' => true ) );
 dpt_test_eq( $frontend->filter_wp_has_consent( true, 'statistics' ), false, 'a choice under an older consent version no longer counts' );
 $_COOKIE['dpt_consent'] = json_encode( array( 'v' => '1', 'ts' => $now - 400 * 86400000, 'analytics' => true ) );
@@ -199,8 +225,9 @@ $js = (string) file_get_contents( dirname( __DIR__ ) . '/modules/cookie-banner/a
 $finish = substr( $js, (int) strpos( $js, 'function finishConsent' ) );
 dpt_test_ok( strpos( $finish, 'signalConsentMode(consent);' ) < strpos( $finish, 'injectConsentedScripts(consent);' ), 'a choice on the page is signalled before the consented scripts are injected' );
 dpt_test_ok( false !== strpos( $finish, 'signalWpConsentApi(consent);' ), 'and shared with the WP Consent API' );
-dpt_test_ok( false !== strpos( $js, "window.wp_set_consent(apiCat, consent && consent[cat] ? 'allow' : 'deny');" ), 'each API category is allowed or denied, never left out' );
+dpt_test_ok( false !== strpos( $js, "window.wp_set_consent(apiCat, granted(consent, cat) ? 'allow' : 'deny');" ), 'each API category is allowed or denied, never left out' );
 dpt_test_ok( false !== strpos( $js, "window.addEventListener('load'" ), 'if the API script comes later, the signal waits for it' );
+dpt_test_ok( false !== strpos( $js, 'return !!(consent && consent[cat] && cats[cat]);' ), 'on the page too, a category grants only while it is offered' );
 dpt_test_ok( 1 === preg_match( '/\} else \{[^}]*signalWpConsentApi\(null\);/s', $js ), 'with no valid choice on load, the API\'s categories are set back to deny' );
 
 /* ---- saving ---- */

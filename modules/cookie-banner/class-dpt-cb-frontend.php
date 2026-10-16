@@ -37,7 +37,7 @@ class DPT_CB_Frontend {
 		// that needs consent runs before the visitor says yes. Only with the
 		// banner on - an opt-in manager with no banner would leave every
 		// category denied for good, since nobody could ever say yes.
-		if ( '1' === DPT_CB_Settings::get( 'wp_consent_api' ) && '1' === DPT_CB_Settings::get( 'enabled' ) && defined( 'DPT_BASENAME' ) ) {
+		if ( '1' === DPT_CB_Settings::get( 'wp_consent_api' ) && self::signals_possible( DPT_CB_Settings::all() ) && defined( 'DPT_BASENAME' ) ) {
 			add_filter( 'wp_consent_api_registered_' . DPT_BASENAME, '__return_true' );
 			add_filter( 'wp_get_consent_type', array( __CLASS__, 'consent_type' ) );
 			add_filter( 'wp_has_consent', array( $this, 'filter_wp_has_consent' ), 10, 3 );
@@ -68,7 +68,38 @@ class DPT_CB_Frontend {
 			return $has_consent; // The API's functional (essential), or not ours.
 		}
 		$consent = $this->get_consent();
-		return is_array( $consent ) && ! empty( $consent[ $banner_category ] );
+		$enabled = self::enabled_categories( DPT_CB_Settings::all() );
+		return is_array( $consent ) && ! empty( $consent[ $banner_category ] ) && $enabled[ $banner_category ];
+	}
+
+	/**
+	 * Whether every visitor can reach the banner, which Consent Mode and the
+	 * WP Consent API both assume: they start from "denied" and wait for a
+	 * choice. With the banner off - or hidden on phones - some visitors could
+	 * never make one, and everything would stay denied for them for good. So
+	 * the two are not sent at all then, as with no consent plugin.
+	 *
+	 * @param array $o Settings, as DPT_CB_Settings::all() returns them.
+	 * @return bool
+	 */
+	public static function signals_possible( $o ) {
+		return '1' === $o['enabled'] && '1' === $o['show_on_mobile'];
+	}
+
+	/**
+	 * The banner categories switched on now. A choice stored while a category
+	 * was on grants nothing once it is switched off: it is no longer offered,
+	 * and its scripts no longer load either.
+	 *
+	 * @param array $o Settings.
+	 * @return array<string,bool>
+	 */
+	public static function enabled_categories( $o ) {
+		return array(
+			'functional' => '1' === $o['cat_functional_enabled'],
+			'analytics'  => '1' === $o['cat_analytics_enabled'],
+			'marketing'  => '1' === $o['cat_marketing_enabled'],
+		);
 	}
 
 	/**
@@ -241,7 +272,8 @@ class DPT_CB_Frontend {
 		$days    = max( 1, (int) DPT_CB_Settings::get( 'consent_days' ) );
 		// Only with the banner on: with no banner nobody can ever grant, and
 		// every Google tag on the site would stay denied for good.
-		$consent_mode = '1' === DPT_CB_Settings::get( 'consent_mode' ) && $this->is_active();
+		$o            = DPT_CB_Settings::all();
+		$consent_mode = '1' === $o['consent_mode'] && $this->is_active() && self::signals_possible( $o );
 		?>
 		<script id="dpt-cb-precheck" data-no-defer data-cfasync="false">
 		(function(){
@@ -249,6 +281,7 @@ class DPT_CB_Frontend {
 			// Google Consent Mode v2. First in <head>, so it is in the data
 			// layer before any Google tag reads it.
 			var CM = <?php echo wp_json_encode( self::consent_mode_map() ); ?>;
+			var CM_ON = <?php echo wp_json_encode( self::enabled_categories( $o ) ); ?>;
 			window.dataLayer = window.dataLayer || [];
 			if (typeof window.gtag !== 'function') { window.gtag = function(){ window.dataLayer.push(arguments); }; }
 			window.gtag('consent', 'default', <?php echo wp_json_encode( self::consent_mode_defaults() ); ?>);
@@ -279,7 +312,7 @@ class DPT_CB_Frontend {
 					var u = {};
 					for (var cat in CM) {
 						if (!CM.hasOwnProperty(cat)) continue;
-						for (var i = 0; i < CM[cat].length; i++) { u[CM[cat][i]] = c[cat] ? 'granted' : 'denied'; }
+						for (var i = 0; i < CM[cat].length; i++) { u[CM[cat][i]] = c[cat] && CM_ON[cat] ? 'granted' : 'denied'; }
 					}
 					window.gtag('consent', 'update', u);
 				}
@@ -353,8 +386,8 @@ class DPT_CB_Frontend {
 			'scripts'          => $scripts,
 			'openSelector'     => self::open_selector(),
 			'openHash'         => self::OPEN_HASH,
-			'consentMode'      => '1' === $o['consent_mode'] ? self::consent_mode_map() : null,
-			'wpConsentApi'     => '1' === $o['wp_consent_api'] ? self::wp_consent_api_map() : null,
+			'consentMode'      => '1' === $o['consent_mode'] && self::signals_possible( $o ) ? self::consent_mode_map() : null,
+			'wpConsentApi'     => '1' === $o['wp_consent_api'] && self::signals_possible( $o ) ? self::wp_consent_api_map() : null,
 		) );
 	}
 

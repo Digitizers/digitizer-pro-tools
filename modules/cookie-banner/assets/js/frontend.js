@@ -191,6 +191,13 @@
         processInjectQueue();
     }
 
+    // A category counts only if the visitor allowed it and it is still
+    // offered: switched off since, its stored "yes" grants nothing.
+    function granted(consent, cat) {
+        var cats = config.categories || {};
+        return !!(consent && consent[cat] && cats[cat]);
+    }
+
     // Google Consent Mode v2: the visitor's choice, as the signals each
     // category grants. The head precheck already set the defaults and any
     // stored choice; this is for a choice made on this page.
@@ -200,7 +207,7 @@
         var update = {};
         Object.keys(map).forEach(function (cat) {
             map[cat].forEach(function (signal) {
-                update[signal] = consent && consent[cat] ? 'granted' : 'denied';
+                update[signal] = granted(consent, cat) ? 'granted' : 'denied';
             });
         });
         window.dataLayer = window.dataLayer || [];
@@ -220,7 +227,7 @@
             window.wp_set_consent('functional', 'allow'); // The essential kind.
             Object.keys(map).forEach(function (cat) {
                 map[cat].forEach(function (apiCat) {
-                    window.wp_set_consent(apiCat, consent && consent[cat] ? 'allow' : 'deny');
+                    window.wp_set_consent(apiCat, granted(consent, cat) ? 'allow' : 'deny');
                 });
             });
             log('wp consent api set', consent);

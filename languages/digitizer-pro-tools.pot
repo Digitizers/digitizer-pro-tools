@@ -2463,3 +2463,6 @@ msgstr ""
 
 msgid "The WP Consent API plugin is not active on this site, so this switch has no effect until it is."
 msgstr ""
+
+msgid "Consent Mode and the WP Consent API are not sent while the banner is off or hidden on mobile: visitors who cannot see the banner could never grant anything."
+msgstr ""
