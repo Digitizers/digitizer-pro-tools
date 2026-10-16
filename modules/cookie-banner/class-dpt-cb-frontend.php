@@ -319,7 +319,7 @@ class DPT_CB_Frontend {
 			var ON = <?php echo wp_json_encode( self::enabled_categories( $o ) ); ?>;
 			// Never deleted, whatever a pattern says: the banner's own choice,
 			// and what WordPress and WooCommerce need for a login or a cart.
-			var PROTECTED = /^(dpt_consent|wordpress_|wp-|wp_|woocommerce_|wc_)/;
+			var PROTECTED = /^(dpt_consent|wordpress_|wp-|wp_|woocommerce_|wc_|comment_author)/;
 			var re = function (p) { return new RegExp('^' + p.replace(/[.+?^${}()|[\]\\-]/g, '\\$&').replace(/\*/g, '.*') + '$'); };
 			// Every domain a first-party cookie can sit on: host-only, then the
 			// host and every parent with two labels or more - GA writes to the

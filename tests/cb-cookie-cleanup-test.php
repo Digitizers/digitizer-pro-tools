@@ -151,6 +151,9 @@ if ( null === $r ) {
 	dpt_test_ok( in_array( 'wp-settings-1@host', $r['cookies'], true ), 'but a WordPress cookie is never deleted, even when a pattern matches it' );
 	dpt_test_ok( in_array( 'dpt_consent@.digitizer.co.il', $r['cookies'], true ), 'nor the banner\'s own choice' );
 
+	$r = dpt_test_cc_run( array( array( 'comment_author_abc', '' ), array( 'comment_x', '' ) ), array(), array( 'analytics' => false ), array( 'analytics' => array( 'comment_*' ) ) );
+	dpt_test_eq( $r['cookies'], array( 'comment_author_abc@host', 'dpt_consent@.digitizer.co.il' ), 'a returning commenter keeps the name WordPress remembers, even under comment_*' );
+
 	$extra = array_merge( $jar, array( array( '_ga_cart', '', 'v', '/shop' ), array( '__Secure-_ga_x', '.digitizer.co.il' ) ) );
 	$cleanup_secure = $cleanup;
 	$cleanup_secure['analytics'][] = '__Secure-_ga_*';
@@ -176,7 +179,7 @@ $GLOBALS['dpt_stub_options'][ DPT_CB_Settings::OPTION ] = array();
 ob_start();
 ( new DPT_CB_Frontend() )->inject_inline_consent_check();
 dpt_test_ok( false === strpos( (string) ob_get_clean(), 'dptCbPurge = function' ), 'with no patterns the head carries no deleting code at all' );
-dpt_test_ok( 1 === preg_match( '/PROTECTED = \/\^\(dpt_consent\|wordpress_\|wp-\|wp_\|woocommerce_\|wc_\)\//', (string) file_get_contents( dirname( __DIR__ ) . '/modules/cookie-banner/class-dpt-cb-frontend.php' ) ), 'WooCommerce\'s wc_ keys (cart hash, fragments) are protected too' );
+dpt_test_ok( 1 === preg_match( '/PROTECTED = \/\^\(dpt_consent\|wordpress_\|wp-\|wp_\|woocommerce_\|wc_\|comment_author\)\//', (string) file_get_contents( dirname( __DIR__ ) . '/modules/cookie-banner/class-dpt-cb-frontend.php' ) ), 'WooCommerce\'s wc_ keys (cart hash, fragments) and WordPress\'s comment_author cookies are protected too' );
 dpt_test_ok( 1 === preg_match( "/try \\{\\s*(?:\\/\\/[^\\n]*\\s*)*var store = window\\[which\\];/", (string) file_get_contents( dirname( __DIR__ ) . '/modules/cookie-banner/class-dpt-cb-frontend.php' ) ), 'where storage is blocked, even reading window.localStorage throws - so it is read inside the try, and the page scripts after it still run' );
 
 exit( dpt_test_summary() > 0 ? 1 : 0 );
