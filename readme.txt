@@ -4,7 +4,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.44.0
+Stable tag: 1.45.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -84,6 +84,8 @@ A multilingual cookie-consent banner:
 * Consent version field - bump it to re-prompt all visitors (popular page caches are purged automatically on change)
 * Consent lifetime in days, optional show delay, optional auto-accept on scroll
 * Admin-only live preview (?dpt_cb_preview=1) and debug panel (?dpt_debug=1)
+* Google Consent Mode v2 (optional): defaults set first in <head>, updated from a stored choice before any Google tag runs and on every new choice
+* WP Consent API (optional): the visitor's choice shared with plugins that read it
 * JS API window.DPTCB (open/close/getConsent/acceptAll/rejectAll) and a dpt:consent event
 * WP Rocket and Cloudflare Rocket Loader compatibility built in
 
@@ -357,6 +359,14 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 5. Configure each module you enabled from its own screen. For the Cookie Banner that means reviewing the texts per language and pasting your analytics/marketing snippets in the Scripts tab, then checking the site
 
 == Changelog ==
+
+= 1.45.0 =
+* Cookie Banner: Google Consent Mode v2 (General, off by default).
+  * The defaults (everything a category grants denied; functionality and security storage granted) are set first in <head>, before any Google tag.
+  * A stored choice updates them in the same script, so cached pages work too. A new choice updates them before the consented scripts load.
+  * Mapping: analytics grants analytics storage; marketing grants ad storage, ad user data and ad personalization; functional grants personalization storage. Functionality and security storage, the essential kind, are always granted, as the WP Consent API and Site Kit read the API's functional.
+* Cookie Banner: both are sent only while every visitor can see the banner (on, and shown on mobile), and a category switched off after a visitor accepted it grants nothing.
+* Cookie Banner: WP Consent API (General, off by default). With the WP Consent API plugin active, the banner registers with it as an opt-in consent plugin and shares each choice. Plugins that read the API, such as Site Kit and WooCommerce order attribution, then follow it.
 
 = 1.44.0 =
 * Cookie Banner: the privacy policy link at the end of the message no longer breaks between its words. When it does not fit, it moves to the next line whole.

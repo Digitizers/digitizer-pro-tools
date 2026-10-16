@@ -31,6 +31,150 @@ class DPT_CB_Frontend {
 		add_filter( 'rocket_minify_excluded_external_js', array( $this, 'rocket_exclude_files' ) );
 		add_filter( 'rocket_excluded_inline_js_content',  array( $this, 'rocket_exclude_inline' ) );
 		add_shortcode( 'dpt_cookie_settings', array( $this, 'settings_link_shortcode' ) );
+
+		// The WP Consent API reads two things from the consent plugin: that one
+		// is registered, and which kind of consent it collects. Opt-in: nothing
+		// that needs consent runs before the visitor says yes. Only with the
+		// banner on - an opt-in manager with no banner would leave every
+		// category denied for good, since nobody could ever say yes.
+		if ( '1' === DPT_CB_Settings::get( 'wp_consent_api' ) && self::signals_possible( DPT_CB_Settings::all() ) && defined( 'DPT_BASENAME' ) ) {
+			add_filter( 'wp_consent_api_registered_' . DPT_BASENAME, '__return_true' );
+			add_filter( 'wp_get_consent_type', array( __CLASS__, 'consent_type' ) );
+			add_filter( 'wp_has_consent', array( $this, 'filter_wp_has_consent' ), 10, 3 );
+		}
+	}
+
+	/**
+	 * The banner's own cookie is the truth for wp_has_consent(), not the API's
+	 * mirrored wp_consent_* cookies. Those keep whatever was last written, so
+	 * after a consent version bump or an expired choice they could still say
+	 * "allow" while the banner is asking again - and code that asks in PHP
+	 * runs before frontend.js can correct them.
+	 *
+	 * @param bool   $has_consent  What the API decided.
+	 * @param string $category     The API category asked about.
+	 * @param string $requested_by Who asked.
+	 * @return bool
+	 */
+	public function filter_wp_has_consent( $has_consent, $category = '', $requested_by = '' ) {
+		$banner_category = '';
+		foreach ( self::wp_consent_api_map() as $cat => $api_categories ) {
+			if ( in_array( $category, $api_categories, true ) ) {
+				$banner_category = $cat;
+				break;
+			}
+		}
+		if ( 'functional' === $category ) {
+			// The API's functional is the essential kind, never asked about.
+			// Under opt-in the API would deny it until frontend.js writes its
+			// cookie, which is too late for PHP asking in this request.
+			return true;
+		}
+		if ( '' === $banner_category ) {
+			return $has_consent; // Not a category this banner decides.
+		}
+		$consent = $this->get_consent();
+		$enabled = self::enabled_categories( DPT_CB_Settings::all() );
+		return is_array( $consent ) && ! empty( $consent[ $banner_category ] ) && $enabled[ $banner_category ];
+	}
+
+	/**
+	 * Whether every visitor can reach the banner, which Consent Mode and the
+	 * WP Consent API both assume: they start from "denied" and wait for a
+	 * choice. With the banner off - or hidden on phones - some visitors could
+	 * never make one, and everything would stay denied for them for good. So
+	 * the two are not sent at all then, as with no consent plugin.
+	 *
+	 * @param array $o Settings, as DPT_CB_Settings::all() returns them.
+	 * @return bool
+	 */
+	public static function signals_possible( $o ) {
+		return '1' === $o['enabled'] && '1' === $o['show_on_mobile'];
+	}
+
+	/**
+	 * The banner categories switched on now. A choice stored while a category
+	 * was on grants nothing once it is switched off: it is no longer offered,
+	 * and its scripts no longer load either.
+	 *
+	 * @param array $o Settings.
+	 * @return array<string,bool>
+	 */
+	public static function enabled_categories( $o ) {
+		return array(
+			'functional' => '1' === $o['cat_functional_enabled'],
+			'analytics'  => '1' === $o['cat_analytics_enabled'],
+			'marketing'  => '1' === $o['cat_marketing_enabled'],
+		);
+	}
+
+	/**
+	 * The kind of consent the banner collects, for the WP Consent API.
+	 *
+	 * @return string
+	 */
+	public static function consent_type() {
+		return 'optin';
+	}
+
+	/**
+	 * What each banner category grants in Google Consent Mode v2. Every signal
+	 * listed here starts denied. security_storage and functionality_storage
+	 * are the essential kind and stay granted: that is how the WP Consent API
+	 * and Site Kit read the API's "functional", which is always allowed, so a
+	 * second mapping that denied it would be overwritten by theirs.
+	 *
+	 * @return array<string,string[]>
+	 */
+	public static function consent_mode_map() {
+		return array(
+			'functional' => array( 'personalization_storage' ),
+			'analytics'  => array( 'analytics_storage' ),
+			'marketing'  => array( 'ad_storage', 'ad_user_data', 'ad_personalization' ),
+		);
+	}
+
+	/**
+	 * Consent Mode's default state, set before any Google tag runs: every
+	 * signal a category grants is denied, and tags wait up to half a second
+	 * for an update from a stored choice.
+	 *
+	 * @return array<string,string|int>
+	 */
+	public static function consent_mode_defaults() {
+		$defaults = array();
+		foreach ( self::consent_mode_map() as $signals ) {
+			foreach ( $signals as $signal ) {
+				$defaults[ $signal ] = 'denied';
+			}
+		}
+		$defaults['functionality_storage'] = 'granted';
+		$defaults['security_storage']      = 'granted';
+		$defaults['wait_for_update']  = 500;
+		return $defaults;
+	}
+
+	/**
+	 * What each banner category means in the WP Consent API. The API's own
+	 * "functional" is the essential kind, always allowed.
+	 *
+	 * @return array<string,string[]>
+	 */
+	public static function wp_consent_api_map() {
+		return array(
+			'functional' => array( 'preferences' ),
+			'analytics'  => array( 'statistics', 'statistics-anonymous' ),
+			'marketing'  => array( 'marketing' ),
+		);
+	}
+
+	/**
+	 * Whether the WP Consent API plugin is running here.
+	 *
+	 * @return bool
+	 */
+	public static function wp_consent_api_present() {
+		return function_exists( 'wp_has_consent' );
 	}
 
 	/**
@@ -80,6 +224,9 @@ class DPT_CB_Frontend {
 		$excluded[] = 'dpt_consent';
 		$excluded[] = 'DPT_CB_CONFIG';
 		$excluded[] = 'DPTCB';
+		// The WP Consent API's own script: delayed until an interaction, it
+		// would not be there to receive the visitor's choice.
+		$excluded[] = 'wp-consent-api';
 		return $excluded;
 	}
 
@@ -135,27 +282,57 @@ class DPT_CB_Frontend {
 		}
 		$version = (string) DPT_CB_Settings::get( 'consent_version' );
 		$days    = max( 1, (int) DPT_CB_Settings::get( 'consent_days' ) );
+		// Only with the banner on: with no banner nobody can ever grant, and
+		// every Google tag on the site would stay denied for good.
+		$o            = DPT_CB_Settings::all();
+		$consent_mode = '1' === $o['consent_mode'] && $this->is_active() && self::signals_possible( $o );
 		?>
 		<script id="dpt-cb-precheck" data-no-defer data-cfasync="false">
 		(function(){
+			<?php if ( $consent_mode ) : ?>
+			// Google Consent Mode v2. First in <head>, so it is in the data
+			// layer before any Google tag reads it.
+			var CM = <?php echo wp_json_encode( self::consent_mode_map() ); ?>;
+			var CM_ON = <?php echo wp_json_encode( self::enabled_categories( $o ) ); ?>;
+			window.dataLayer = window.dataLayer || [];
+			if (typeof window.gtag !== 'function') { window.gtag = function(){ window.dataLayer.push(arguments); }; }
+			window.gtag('consent', 'default', <?php echo wp_json_encode( self::consent_mode_defaults() ); ?>);
+			<?php else : ?>
+			var CM = null;
+			<?php endif; ?>
 			try {
 				var EXPECTED_V = <?php echo wp_json_encode( $version ); ?>;
 				var MAX_AGE_MS = <?php echo (int) $days; ?> * 864e5;
-				var raw = null;
-				// Cookie first
+				// Each store is checked on its own, as frontend.js does: a broken
+				// or stale cookie must not hide a valid localStorage copy.
+				var valid = function (raw) {
+					try {
+						var x = raw ? JSON.parse(raw) : null;
+						if (!x || typeof x !== 'object') return null;
+						// Stale consent version - treat as no consent, banner shows again.
+						if (String(x.v || '') !== EXPECTED_V) return null;
+						// Consent lifetime elapsed (localStorage outlives the cookie).
+						if (!x.ts || (Date.now() - x.ts) > MAX_AGE_MS) return null;
+						return x;
+					} catch (e) { return null; }
+				};
 				var m = document.cookie.match(/(?:^|; )dpt_consent=([^;]*)/);
-				if (m) { raw = decodeURIComponent(m[1]); }
-				// Fall back to localStorage
-				if (!raw) {
-					try { raw = localStorage.getItem('dpt_consent_v1'); } catch(e){}
+				var c = null;
+				try { c = valid(m ? decodeURIComponent(m[1]) : null); } catch (e) {}
+				if (!c) {
+					try { c = valid(localStorage.getItem('dpt_consent_v1')); } catch (e) {}
 				}
-				if (!raw) return;
-				var c = JSON.parse(raw);
-				if (!c || typeof c !== 'object') return;
-				// Stale consent version - treat as no consent, banner shows again.
-				if (String(c.v || '') !== EXPECTED_V) return;
-				// Consent lifetime elapsed (localStorage outlives the cookie).
-				if (!c.ts || (Date.now() - c.ts) > MAX_AGE_MS) return;
+				if (!c) return;
+				// A stored choice, so the tags start from it - on a cached page
+				// too, since this runs in the browser.
+				if (CM) {
+					var u = {};
+					for (var cat in CM) {
+						if (!CM.hasOwnProperty(cat)) continue;
+						for (var i = 0; i < CM[cat].length; i++) { u[CM[cat][i]] = c[cat] && CM_ON[cat] ? 'granted' : 'denied'; }
+					}
+					window.gtag('consent', 'update', u);
+				}
 				// Mark the document so CSS can hide the banner immediately when it streams in.
 				document.documentElement.setAttribute('data-dpt-cb-resolved', '1');
 			} catch(e) { /* swallow */ }
@@ -188,7 +365,15 @@ class DPT_CB_Frontend {
 		}
 		$base = DPT_URL . 'modules/cookie-banner/assets/';
 		wp_enqueue_style(  'dpt-cb-frontend', $base . 'css/frontend.css', array(), DPT_VERSION );
-		wp_enqueue_script( 'dpt-cb-frontend', $base . 'js/frontend.js',  array(), DPT_VERSION, true );
+		// After the WP Consent API's script when it is in use, so the banner
+		// corrects any stale state before plugins reading the API run. Only
+		// when the API is really here: a missing dependency would drop the
+		// banner's own script from the page.
+		$deps = array();
+		if ( '1' === DPT_CB_Settings::get( 'wp_consent_api' ) && self::signals_possible( DPT_CB_Settings::all() ) && self::wp_consent_api_present() ) {
+			$deps[] = 'wp-consent-api';
+		}
+		wp_enqueue_script( 'dpt-cb-frontend', $base . 'js/frontend.js',  $deps, DPT_VERSION, true );
 
 		$o    = DPT_CB_Settings::all();
 		$lang = $this->resolve_lang( $o );
@@ -226,6 +411,8 @@ class DPT_CB_Frontend {
 			'scripts'          => $scripts,
 			'openSelector'     => self::open_selector(),
 			'openHash'         => self::OPEN_HASH,
+			'consentMode'      => '1' === $o['consent_mode'] && self::signals_possible( $o ) ? self::consent_mode_map() : null,
+			'wpConsentApi'     => '1' === $o['wp_consent_api'] && self::signals_possible( $o ) ? self::wp_consent_api_map() : null,
 		) );
 	}
 

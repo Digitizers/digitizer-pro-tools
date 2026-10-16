@@ -331,6 +331,27 @@ class DPT_CB_Admin {
 				</td>
 			</tr>
 			<tr>
+				<th><?php esc_html_e( 'Google Consent Mode v2', 'digitizer-pro-tools' ); ?></th>
+				<td>
+					<?php $this->switch_field( 'consent_mode', $o['consent_mode'] ); ?>
+					<p class="description"><?php esc_html_e( 'Tells Google tags (Analytics, Ads, Tag Manager) what the visitor allowed: analytics grants analytics storage, marketing grants ad storage, ad user data and ad personalization, functional grants personalization storage. These start denied until the visitor chooses; functionality and security storage, the essential kind, are always granted.', 'digitizer-pro-tools' ); ?></p>
+					<p class="description"><?php esc_html_e( 'Google tags pasted in the "Scripts" tab still load only after consent. Google tags added any other way (Site Kit, a GTM plugin, the theme) load at once and follow these signals.', 'digitizer-pro-tools' ); ?></p>
+				</td>
+			</tr>
+			<tr>
+				<th><?php esc_html_e( 'WP Consent API', 'digitizer-pro-tools' ); ?></th>
+				<td>
+					<?php $this->switch_field( 'wp_consent_api', $o['wp_consent_api'] ); ?>
+					<p class="description"><?php esc_html_e( 'Shares the visitor\'s choice with plugins that read the WP Consent API, such as Site Kit and WooCommerce order attribution.', 'digitizer-pro-tools' ); ?></p>
+					<?php if ( ! DPT_CB_Frontend::signals_possible( $o ) && ( '1' === $o['consent_mode'] || '1' === $o['wp_consent_api'] ) ) : ?>
+						<p class="description"><strong><?php esc_html_e( 'Consent Mode and the WP Consent API are not sent while the banner is off or hidden on mobile: visitors who cannot see the banner could never grant anything.', 'digitizer-pro-tools' ); ?></strong></p>
+					<?php endif; ?>
+					<?php if ( ! DPT_CB_Frontend::wp_consent_api_present() ) : ?>
+						<p class="description"><strong><?php esc_html_e( 'The WP Consent API plugin is not active on this site, so this switch has no effect until it is.', 'digitizer-pro-tools' ); ?></strong></p>
+					<?php endif; ?>
+				</td>
+			</tr>
+			<tr>
 				<th><label for="dpt_cb_consent_days"><?php esc_html_e( 'Consent lifetime (days)', 'digitizer-pro-tools' ); ?></label></th>
 				<td>
 					<input type="number" min="1" max="730" id="dpt_cb_consent_days" name="dpt_cb[consent_days]" value="<?php echo esc_attr( $o['consent_days'] ); ?>" />

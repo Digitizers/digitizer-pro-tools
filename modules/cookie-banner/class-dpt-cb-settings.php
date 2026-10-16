@@ -22,6 +22,11 @@ class DPT_CB_Settings {
 			'show_on_mobile'     => '1',
 			'auto_accept_scroll' => '0',
 			'block_scripts'      => '1',
+			// Signal the visitor's choice to Google tags (Consent Mode v2) and to
+			// plugins that read the WP Consent API. Off until a site asks for it:
+			// switching Consent Mode on starts every Google tag on "denied".
+			'consent_mode'       => '0',
+			'wp_consent_api'     => '0',
 
 			// Multilingual.
 			'default_lang'       => 'he',
@@ -676,6 +681,7 @@ class DPT_CB_Settings {
 		// Checkbox fields.
 		$checkbox_fields = array(
 			'enabled', 'show_on_mobile', 'auto_accept_scroll', 'block_scripts',
+			'consent_mode', 'wp_consent_api',
 			'box_shadow', 'overlay_enabled',
 			'title_shadow_enabled', 'content_shadow_enabled',
 			'show_close',
