@@ -68,11 +68,11 @@ function dpt_test_cc_run( $jar, $storage, $choice, $cleanup ) {
 		$jar[] = array( 'dpt_consent', '.digitizer.co.il', json_encode( array_merge( array( 'v' => '1', 'ts' => (int) ( microtime( true ) * 1000 ) ), $choice ) ) );
 	}
 	$harness = <<<'JS'
-var jar = __JAR__; // [name, domain, value]
+var jar = __JAR__.map(function (c) { return [c[0], c[1], c[2] || 'v', c[3] || '/']; }); // [name, domain, value, path]
 var store = {}; __STORAGE__.forEach(function (k) { store[k] = 'x'; });
 function mkStorage(o) { return { get length() { return Object.keys(o).length; }, key: function (i) { return Object.keys(o)[i]; }, getItem: function (k) { return k in o ? o[k] : null; }, setItem: function (k, v) { o[k] = String(v); }, removeItem: function (k) { delete o[k]; } }; }
 var localStorage = mkStorage(store), sessionStorage = mkStorage({});
-var location = { hostname: 'www.digitizer.co.il', search: '', protocol: 'https:' };
+var location = { hostname: 'www.digitizer.co.il', search: '', protocol: 'https:', pathname: '/shop/checkout/' };
 var document = {
   readyState: 'loading',
   addEventListener: function () {},
@@ -80,19 +80,23 @@ var document = {
   set cookie(s) {
     var parts = s.split(';').map(function (p) { return p.trim(); });
     var name = parts[0].split('=')[0], value = decodeURIComponent(parts[0].slice(name.length + 1));
-    var domain = '', expired = false;
+    var domain = '', path = '/', expired = false, secure = false;
     parts.slice(1).forEach(function (p) { var kv = p.split('='); var k = kv[0].toLowerCase();
       if (k === 'domain') domain = kv[1].charAt(0) === '.' ? kv[1] : '.' + kv[1];
+      if (k === 'path') path = kv[1];
+      if (k === 'secure') secure = true;
       if (k === 'max-age' && kv[1] === '0') expired = true;
       if (k === 'expires' && new Date(kv[1]) < new Date()) expired = true; });
-    // A browser removes only the cookie with this exact name and domain.
-    jar = jar.filter(function (c) { return !(c[0] === name && c[1] === domain); });
-    if (!expired) jar.push([name, domain, value]);
+    // A browser refuses a __Secure-/__Host- write without Secure, and
+    // removes only the cookie with this exact name, domain and path.
+    if (/^__(Secure|Host)-/.test(name) && !secure) return;
+    jar = jar.filter(function (c) { return !(c[0] === name && c[1] === domain && c[3] === path); });
+    if (!expired) jar.push([name, domain, value, path]);
   }
 };
 var window = { DPT_CB_CONFIG: __CONFIG__, localStorage: localStorage, sessionStorage: sessionStorage, addEventListener: function () {} };
 __SCRIPT__
-process.stdout.write(JSON.stringify({ cookies: jar.map(function (c) { return c[0] + '@' + (c[1] || 'host'); }).sort(), storage: Object.keys(store).sort() }));
+process.stdout.write(JSON.stringify({ cookies: jar.map(function (c) { return c[0] + '@' + (c[1] || 'host') + (c[3] !== '/' ? c[3] : ''); }).sort(), storage: Object.keys(store).sort() }));
 JS;
 	$harness = str_replace(
 		array( '__JAR__', '__STORAGE__', '__CONFIG__', '__SCRIPT__' ),
@@ -137,6 +141,13 @@ if ( null === $r ) {
 	dpt_test_ok( in_array( 'wp-settings-1@host', $r['cookies'], true ), 'but a WordPress cookie is never deleted, even when a pattern matches it' );
 	dpt_test_ok( in_array( 'dpt_consent@.digitizer.co.il', $r['cookies'], true ), 'nor the banner\'s own choice' );
 
+	$extra = array_merge( $jar, array( array( '_ga_cart', '', 'v', '/shop' ), array( '__Secure-_ga_x', '.digitizer.co.il' ) ) );
+	$cleanup_secure = $cleanup;
+	$cleanup_secure['analytics'][] = '__Secure-_ga_*';
+	$r = dpt_test_cc_run( $extra, $storage, array( 'functional' => true, 'analytics' => false, 'marketing' => true ), $cleanup_secure );
+	dpt_test_ok( ! in_array( '_ga_cart@host/shop', $r['cookies'], true ), 'a cookie set for /shop is reached from /shop/checkout/ - a cookie\'s path is part of its identity' );
+	dpt_test_ok( ! in_array( '__Secure-_ga_x@.digitizer.co.il', $r['cookies'], true ), 'and a __Secure- cookie, which a browser lets go only with Secure' );
+
 	$r = dpt_test_cc_run( $jar, $storage, null, $cleanup );
 	dpt_test_eq( count( $r['cookies'] ), count( $jar ), 'a first visit, with no choice yet, deletes nothing' );
 
@@ -147,5 +158,6 @@ if ( null === $r ) {
 $js = (string) file_get_contents( dirname( __DIR__ ) . '/modules/cookie-banner/assets/js/frontend.js' );
 $finish = substr( $js, (int) strpos( $js, 'function finishConsent' ) );
 dpt_test_ok( false !== strpos( $finish, 'purgeDenied(consent);' ), 'a choice on the page deletes what it denies at once' );
+dpt_test_ok( 1 === preg_match( "/try \\{\\s*(?:\\/\\/[^\\n]*\\s*)*var store = window\\[which\\];/", $js ), 'where storage is blocked, even reading window.localStorage throws - so it is read inside the try, and the banner still starts' );
 
 exit( dpt_test_summary() > 0 ? 1 : 0 );

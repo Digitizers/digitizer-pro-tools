@@ -279,6 +279,20 @@
         return list;
     }
 
+    // A cookie's path is part of its identity, so a delete at / misses one
+    // set for /checkout. Every path a cookie visible here can have: / and
+    // each ancestor of this page, with and without the trailing slash.
+    function cookiePaths() {
+        var list = ['/'];
+        var segs = String(location.pathname || '/').split('/').filter(Boolean);
+        var acc = '';
+        for (var i = 0; i < segs.length; i++) {
+            acc += '/' + segs[i];
+            list.push(acc, acc + '/');
+        }
+        return list;
+    }
+
     function purgeCategory(cat) {
         var patterns = (config.cleanup || {})[cat];
         if (!patterns || !patterns.length) return;
@@ -290,16 +304,25 @@
         };
         var removed = [];
         var domains = cookieDomains();
+        var paths = cookiePaths();
+        // __Secure- and __Host- cookies can only be written - deleted too -
+        // with Secure; on HTTPS it is added to every attempt, harmlessly.
+        var secure = location.protocol === 'https:' ? '; secure' : '';
         (document.cookie || '').split(';').forEach(function (pair) {
             var name = pair.split('=')[0].replace(/^\s+|\s+$/g, '');
             if (!matches(name)) return;
             domains.forEach(function (d) {
-                document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0; path=/' + (d ? '; domain=' + d : '');
+                paths.forEach(function (p) {
+                    document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0; path=' + p + (d ? '; domain=' + d : '') + secure;
+                });
             });
             removed.push(name);
         });
-        [window.localStorage, window.sessionStorage].forEach(function (store) {
+        ['localStorage', 'sessionStorage'].forEach(function (which) {
             try {
+                // Reading the property itself throws where storage is
+                // blocked, so it is read inside the try.
+                var store = window[which];
                 if (!store) return;
                 for (var i = store.length - 1; i >= 0; i--) {
                     var key = store.key(i);
