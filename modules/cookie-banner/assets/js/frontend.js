@@ -384,13 +384,7 @@
             // (a store it rejected that readConsent() repaired). The same
             // values, so a second update changes nothing when it did.
             signalConsentMode(existing);
-            signalWpConsentApi(existing);
             injectConsentedScripts(existing);
-        } else {
-            // No valid choice - none yet, an older consent version, or an
-            // expired one. The API's mirrored cookies may still hold an old
-            // "allow"; they go back to deny until the visitor answers again.
-            signalWpConsentApi(null);
         }
 
         // The precheck may have resolved from a stale-version consent that
@@ -674,6 +668,12 @@
         log('init() complete - DPTCB ready');
         if (DEBUG) renderDebugPanel();
     }
+
+    // The WP Consent API is set at once, not at DOM ready: other footer
+    // scripts that read it run before DOMContentLoaded, and must not read an
+    // "allow" left over from an older or expired choice. No valid choice
+    // sets the API's categories back to deny.
+    signalWpConsentApi(readConsent());
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
