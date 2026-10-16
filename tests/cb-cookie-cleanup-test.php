@@ -175,11 +175,16 @@ $js = (string) file_get_contents( dirname( __DIR__ ) . '/modules/cookie-banner/a
 $finish = substr( $js, (int) strpos( $js, 'function finishConsent' ) );
 dpt_test_ok( false !== strpos( $finish, 'purgeDenied(consent);' ) && false !== strpos( $js, 'window.dptCbPurge(consent);' ), 'a choice on the page deletes what it denies at once, with the same code the head runs' );
 
+$GLOBALS['dpt_stub_options'][ DPT_CB_Settings::OPTION ] = array( 'cleanup_analytics' => '_ga', 'enabled' => '0' );
+ob_start();
+( new DPT_CB_Frontend() )->inject_inline_consent_check();
+dpt_test_ok( false === strpos( (string) ob_get_clean(), 'dptCbPurge = function' ), 'with the banner off nothing is deleted: nobody could change the choice that keeps deleting' );
+
 $GLOBALS['dpt_stub_options'][ DPT_CB_Settings::OPTION ] = array();
 ob_start();
 ( new DPT_CB_Frontend() )->inject_inline_consent_check();
 dpt_test_ok( false === strpos( (string) ob_get_clean(), 'dptCbPurge = function' ), 'with no patterns the head carries no deleting code at all' );
-dpt_test_ok( 1 === preg_match( '/PROTECTED = \/\^\(dpt_consent\|wordpress_\|wp-\|wp_\|woocommerce_\|wc_\|comment_author\)\//', (string) file_get_contents( dirname( __DIR__ ) . '/modules/cookie-banner/class-dpt-cb-frontend.php' ) ), 'WooCommerce\'s wc_ keys (cart hash, fragments) and WordPress\'s comment_author cookies are protected too' );
+dpt_test_ok( 1 === preg_match( '/PROTECTED = \/\^\(dpt_consent\|wordpress_\|wp-\|wp_\|woocommerce_\|wc_\|comment_author\|store_notice\)\//', (string) file_get_contents( dirname( __DIR__ ) . '/modules/cookie-banner/class-dpt-cb-frontend.php' ) ), 'WooCommerce\'s wc_ keys (cart hash, fragments), WooCommerce\'s store notice cookie, and WordPress\'s comment_author cookies are protected too' );
 dpt_test_ok( 1 === preg_match( "/try \\{\\s*(?:\\/\\/[^\\n]*\\s*)*var store = window\\[which\\];/", (string) file_get_contents( dirname( __DIR__ ) . '/modules/cookie-banner/class-dpt-cb-frontend.php' ) ), 'where storage is blocked, even reading window.localStorage throws - so it is read inside the try, and the page scripts after it still run' );
 
 exit( dpt_test_summary() > 0 ? 1 : 0 );

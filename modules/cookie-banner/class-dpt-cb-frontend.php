@@ -311,7 +311,9 @@ class DPT_CB_Frontend {
 		// frontend.js: this runs first in <head>, before any tag that could
 		// read a cookie set again, on every page. frontend.js calls the same
 		// window.dptCbPurge for a choice made on the page.
-		$cleanup = self::cleanup_patterns( $o );
+		// Only with the banner on: with it off, nobody could change the choice
+		// that would keep deleting.
+		$cleanup = $this->is_active() ? self::cleanup_patterns( $o ) : array();
 		if ( $cleanup ) :
 			?>
 		(function(){
@@ -319,7 +321,7 @@ class DPT_CB_Frontend {
 			var ON = <?php echo wp_json_encode( self::enabled_categories( $o ) ); ?>;
 			// Never deleted, whatever a pattern says: the banner's own choice,
 			// and what WordPress and WooCommerce need for a login or a cart.
-			var PROTECTED = /^(dpt_consent|wordpress_|wp-|wp_|woocommerce_|wc_|comment_author)/;
+			var PROTECTED = /^(dpt_consent|wordpress_|wp-|wp_|woocommerce_|wc_|comment_author|store_notice)/;
 			var re = function (p) { return new RegExp('^' + p.replace(/[.+?^${}()|[\]\\-]/g, '\\$&').replace(/\*/g, '.*') + '$'); };
 			// Every domain a first-party cookie can sit on: host-only, then the
 			// host and every parent with two labels or more - GA writes to the
