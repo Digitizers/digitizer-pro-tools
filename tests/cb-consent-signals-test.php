@@ -40,7 +40,7 @@ function dpt_test_cs_precheck() {
  * Run the precheck's script in Node with a cookie, and return what it left
  * in window.dataLayer, as [command, type, params] triples. Null without Node.
  */
-function dpt_test_cs_run( $html, $cookie ) {
+function dpt_test_cs_run( $html, $cookie, $local = null ) {
 	static $node = null;
 	if ( null === $node ) {
 		$node = trim( (string) shell_exec( 'command -v node 2>/dev/null' ) );
@@ -49,7 +49,7 @@ function dpt_test_cs_run( $html, $cookie ) {
 		return null;
 	}
 	$harness = 'var window = {}; var document = { cookie: ' . json_encode( $cookie ) . ', documentElement: { setAttribute: function(){} } };'
-		. 'var localStorage = { getItem: function(){ return null; } };'
+		. 'var localStorage = { getItem: function(){ return ' . json_encode( $local ) . '; } };'
 		. $m[1]
 		. ';process.stdout.write(JSON.stringify((window.dataLayer || []).map(function(a){ return Array.prototype.slice.call(a); })));';
 	$file = tempnam( sys_get_temp_dir(), 'dptcs' ) . '.js';
@@ -125,6 +125,11 @@ if ( null !== $layer ) {
 	);
 	$layer = dpt_test_cs_run( $html, dpt_test_cs_cookie( array( 'functional' => true, 'analytics' => true, 'marketing' => true ) ) );
 	dpt_test_eq( isset( $layer[1][2] ) ? array_values( array_unique( array_values( $layer[1][2] ) ) ) : null, array( 'granted' ), 'accept all grants all five' );
+	$ls = json_encode( array( 'v' => '1', 'essential' => true, 'ts' => (int) ( microtime( true ) * 1000 ), 'analytics' => true ) );
+	$layer = dpt_test_cs_run( $html, 'dpt_consent=%7Bbroken', $ls );
+	dpt_test_eq( isset( $layer[1][2]['analytics_storage'] ) ? $layer[1][2]['analytics_storage'] : null, 'granted', 'a broken cookie does not hide a valid localStorage copy' );
+	$layer = dpt_test_cs_run( $html, dpt_test_cs_cookie( array( 'analytics' => false ), 'old' ), $ls );
+	dpt_test_eq( isset( $layer[1][2]['analytics_storage'] ) ? $layer[1][2]['analytics_storage'] : null, 'granted', 'nor does a cookie from an older consent version' );
 	$layer = dpt_test_cs_run( $html, dpt_test_cs_cookie( array( 'analytics' => true ), 'old' ) );
 	dpt_test_eq( count( $layer ), 1, 'a choice made under an older consent version is not used: the visitor is asked again, from denied' );
 } else {
@@ -230,6 +235,7 @@ $fe = new DPT_CB_Frontend();
 dpt_test_ok( in_array( 'wp-consent-api', $fe->rocket_exclude_patterns( array() ), true ), 'and WP Rocket does not delay the API\'s script' );
 $GLOBALS['dpt_stub_filters'] = array();
 dpt_test_ok( false !== strpos( $js, 'return !!(consent && consent[cat] && cats[cat]);' ), 'on the page too, a category grants only while it is offered' );
+dpt_test_ok( false !== strpos( $js, "signalConsentMode(existing);" ), 'a stored choice is applied to Consent Mode on load too, in case the head could not read it' );
 dpt_test_ok( 1 === preg_match( '/\} else \{[^}]*signalWpConsentApi\(null\);/s', $js ), 'with no valid choice on load, the API\'s categories are set back to deny' );
 
 /* ---- saving ---- */

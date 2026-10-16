@@ -380,6 +380,10 @@
         // Consented snippets are client-injected on every page load (the
         // server never bakes them into cacheable HTML).
         if (existing) {
+            // Again here, in case the head precheck could not read the choice
+            // (a store it rejected that readConsent() repaired). The same
+            // values, so a second update changes nothing when it did.
+            signalConsentMode(existing);
             signalWpConsentApi(existing);
             injectConsentedScripts(existing);
         } else {

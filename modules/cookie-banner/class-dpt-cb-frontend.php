@@ -303,21 +303,26 @@ class DPT_CB_Frontend {
 			try {
 				var EXPECTED_V = <?php echo wp_json_encode( $version ); ?>;
 				var MAX_AGE_MS = <?php echo (int) $days; ?> * 864e5;
-				var raw = null;
-				// Cookie first
+				// Each store is checked on its own, as frontend.js does: a broken
+				// or stale cookie must not hide a valid localStorage copy.
+				var valid = function (raw) {
+					try {
+						var x = raw ? JSON.parse(raw) : null;
+						if (!x || typeof x !== 'object') return null;
+						// Stale consent version - treat as no consent, banner shows again.
+						if (String(x.v || '') !== EXPECTED_V) return null;
+						// Consent lifetime elapsed (localStorage outlives the cookie).
+						if (!x.ts || (Date.now() - x.ts) > MAX_AGE_MS) return null;
+						return x;
+					} catch (e) { return null; }
+				};
 				var m = document.cookie.match(/(?:^|; )dpt_consent=([^;]*)/);
-				if (m) { raw = decodeURIComponent(m[1]); }
-				// Fall back to localStorage
-				if (!raw) {
-					try { raw = localStorage.getItem('dpt_consent_v1'); } catch(e){}
+				var c = null;
+				try { c = valid(m ? decodeURIComponent(m[1]) : null); } catch (e) {}
+				if (!c) {
+					try { c = valid(localStorage.getItem('dpt_consent_v1')); } catch (e) {}
 				}
-				if (!raw) return;
-				var c = JSON.parse(raw);
-				if (!c || typeof c !== 'object') return;
-				// Stale consent version - treat as no consent, banner shows again.
-				if (String(c.v || '') !== EXPECTED_V) return;
-				// Consent lifetime elapsed (localStorage outlives the cookie).
-				if (!c.ts || (Date.now() - c.ts) > MAX_AGE_MS) return;
+				if (!c) return;
 				// A stored choice, so the tags start from it - on a cached page
 				// too, since this runs in the browser.
 				if (CM) {
@@ -360,7 +365,15 @@ class DPT_CB_Frontend {
 		}
 		$base = DPT_URL . 'modules/cookie-banner/assets/';
 		wp_enqueue_style(  'dpt-cb-frontend', $base . 'css/frontend.css', array(), DPT_VERSION );
-		wp_enqueue_script( 'dpt-cb-frontend', $base . 'js/frontend.js',  array(), DPT_VERSION, true );
+		// After the WP Consent API's script when it is in use, so the banner
+		// corrects any stale state before plugins reading the API run. Only
+		// when the API is really here: a missing dependency would drop the
+		// banner's own script from the page.
+		$deps = array();
+		if ( '1' === DPT_CB_Settings::get( 'wp_consent_api' ) && self::signals_possible( DPT_CB_Settings::all() ) && self::wp_consent_api_present() ) {
+			$deps[] = 'wp-consent-api';
+		}
+		wp_enqueue_script( 'dpt-cb-frontend', $base . 'js/frontend.js',  $deps, DPT_VERSION, true );
 
 		$o    = DPT_CB_Settings::all();
 		$lang = $this->resolve_lang( $o );
