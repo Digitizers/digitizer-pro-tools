@@ -2473,5 +2473,5 @@ msgstr ""
 msgid "When a visitor refuses or withdraws a category, these cookies, and the localStorage and sessionStorage keys with the same names, are deleted from the browser, and again on every page while the category stays denied. One name per line or separated by commas; * matches anything, for example _ga_*."
 msgstr ""
 
-msgid "Only this site's own cookies can be deleted. Cookies set by other domains, such as .linkedin.com or .doubleclick.net, are out of a page's reach. WordPress and WooCommerce cookies and the banner's own are never deleted."
+msgid "Only this site's own cookies that scripts can read can be deleted: cookies set by other domains, such as .linkedin.com or .doubleclick.net, and cookies marked HttpOnly are out of a page's reach. Analytics and advertising tags do not use HttpOnly. WordPress and WooCommerce cookies, WordPress's comment cookies and the banner's own are never deleted."
 msgstr ""
