@@ -37,7 +37,7 @@ The August research found one Israel-specific banner, with 200 installs. There a
 |---|---|---|---|---|---|---|---|
 | atr-cookie-notice | **1,000** | 13 (100%) | 2025-09-14 | not mentioned | not mentioned | not mentioned | Amendment 13 framing, three categories, live preview, "Full" vs "Simple" modes (blocking vs informational), cache purge tool |
 | il-privacy-cookie-consent | 200 | 2 (100%) | 2025-12-27 | not named (mentions gtag) | **yes**, database with CSV export | mentions WPML and Polylang | Script blocking by category, privacy policy page generator, cookie table shortcode, focus trap |
-| aviyo-cookie-consent ("NB Cookie Consent") | 50 | 0 | 2025-12-09 | **yes**, per category, plus the WP Consent API | unclear: the word appears, no log feature is described | mentions WPML and Polylang | Holds enqueued trackers inert until consent, no reload |
+| aviyo-cookie-consent ("NB Cookie Consent") | 50 | 0 | 2025-12-09 | **yes**, per category, plus the WP Consent API | unclear: the word appears, no log feature is described | free: translatable, ships Hebrew and Russian; **Pro**: per-visitor WPML/Polylang | Holds enqueued trackers inert until consent, no reload |
 | edigital-cookie-consent | 40 | 0 | 2026-07-14 | **yes** | **yes** | not mentioned | Hebrew page copy, privacy policy generator, "every feature free" |
 | mantaweb-consent-shield | 30 | 0 | 2026-07-19 | **yes** | **yes**, an audit log | free: admin catalogues in Hebrew, Arabic and Spanish; **Pro** (paid, not on WordPress.org): per-language banner texts following the locale, with WPML, Polylang or TranslatePress | Output-buffer blocking of inline scripts, iframes and pixels; compliance checklist; mentions caching |
 
@@ -63,7 +63,7 @@ Searches:
 
 None of this is unique by itself. It is a matter of how the plugin page presents it.
 
-- **Any language, not only Hebrew and English.** Per-language texts, with the language picked per page, so it works with WPML, Polylang and TranslatePress. Not unclaimed. il-privacy and aviyo mention WPML and Polylang, and MantaWeb offers locale-selected per-language banner texts in its paid Pro. What the module offers is narrower: this for free, with any language added by code.
+- **Any language, not only Hebrew and English.** Per-language texts, with the language picked per page, so it works with WPML, Polylang and TranslatePress. Not unclaimed. il-privacy mentions WPML and Polylang in its free plugin. aviyo (NB) and MantaWeb offer per-language banner texts only in their paid Pro versions. What the module offers is narrower: this for free, with any language added by code.
 - **Cache-proof display.** The banner renders hidden, and an inline head check decides whether to show it, so page caches and CDNs never show it to a visitor who has already answered. Built-in WP Rocket and Cloudflare Rocket Loader compatibility. MantaWeb also mentions caching.
 - **Design control.** Not uncontested: ATR advertises colours, positions, styling presets, custom CSS and a live preview, and MantaWeb has a Design tab with a live preview.
   - The module's claim is narrower: a site can rebuild a specific existing banner (Complianz, in #55 to #62) with settings alone, with no custom CSS.
