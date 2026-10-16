@@ -236,7 +236,7 @@ dpt_test_ok( in_array( 'wp-consent-api', $fe->rocket_exclude_patterns( array() )
 $GLOBALS['dpt_stub_filters'] = array();
 dpt_test_ok( false !== strpos( $js, 'return !!(consent && consent[cat] && cats[cat]);' ), 'on the page too, a category grants only while it is offered' );
 dpt_test_ok( false !== strpos( $js, "signalConsentMode(existing);" ), 'a stored choice is applied to Consent Mode on load too, in case the head could not read it' );
-$boot = strpos( $js, 'signalWpConsentApi(readConsent());' );
+$boot = strpos( $js, 'var bootConsent = readConsent();' ) !== false ? strpos( $js, 'signalWpConsentApi(bootConsent);' ) : false;
 dpt_test_ok( false !== $boot && $boot < strpos( $js, "document.addEventListener('DOMContentLoaded', init);" ) && false === strpos( substr( $js, (int) strpos( $js, 'function init()' ), (int) $boot - (int) strpos( $js, 'function init()' ) ), 'signalWpConsentApi(existing)' ), 'the API is set as soon as the script runs - from the stored choice, or back to deny without one - not at DOM ready, after other footer scripts' );
 
 /* ---- saving ---- */

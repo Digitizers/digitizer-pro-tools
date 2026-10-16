@@ -4,7 +4,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.45.0
+Stable tag: 1.46.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -86,6 +86,7 @@ A multilingual cookie-consent banner:
 * Admin-only live preview (?dpt_cb_preview=1) and debug panel (?dpt_debug=1)
 * Google Consent Mode v2 (optional): defaults set first in <head>, updated from a stored choice before any Google tag runs and on every new choice
 * WP Consent API (optional): the visitor's choice shared with plugins that read it
+* Deleting a denied category's cookies (optional): listed by name with * wildcards, removed on withdrawal and on every page while denied
 * JS API window.DPTCB (open/close/getConsent/acceptAll/rejectAll) and a dpt:consent event
 * WP Rocket and Cloudflare Rocket Loader compatibility built in
 
@@ -359,6 +360,12 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 5. Configure each module you enabled from its own screen. For the Cookie Banner that means reviewing the texts per language and pasting your analytics/marketing snippets in the Scripts tab, then checking the site
 
 == Changelog ==
+
+= 1.46.0 =
+* Cookie Banner: a denied category's cookies are deleted from the browser (Categories tab, empty by default).
+  * List the cookie names per category, with * as a wildcard, for example _ga, _ga_*, _gid.
+  * When a visitor refuses or withdraws the category, the matching cookies are deleted, and again on every page while it stays denied. They are removed from the host and from each parent domain, where Google Analytics writes them. localStorage and sessionStorage keys with the same names go too.
+  * Only the site's own cookies can be reached. WordPress and WooCommerce cookies and the banner's own are never deleted.
 
 = 1.45.0 =
 * Cookie Banner: Google Consent Mode v2 (General, off by default).

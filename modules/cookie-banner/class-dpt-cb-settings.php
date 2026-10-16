@@ -180,6 +180,12 @@ class DPT_CB_Settings {
 			'cat_functional_enabled' => '1',
 			'cat_analytics_enabled'  => '1',
 			'cat_marketing_enabled'  => '1',
+			// Cookie names (with * wildcards) deleted from the browser when the
+			// category is denied - on withdrawal, and on every page while it
+			// stays denied. Empty: nothing is deleted.
+			'cleanup_functional'     => '',
+			'cleanup_analytics'      => '',
+			'cleanup_marketing'      => '',
 
 			// Scripts per category (placed in <head> only after consent).
 			'scripts_functional' => '',
@@ -460,6 +466,29 @@ class DPT_CB_Settings {
 		);
 	}
 
+	/**
+	 * Cookie name patterns as a site enters them: one per line or comma
+	 * separated, * as a wildcard. A pattern keeps only the characters a
+	 * cookie name is made of here, and must name something - a lone * (every
+	 * cookie on the site) is dropped. Duplicates go.
+	 *
+	 * @param string $value What was entered, or what is stored.
+	 * @return string[]
+	 */
+	public static function cookie_patterns( $value ) {
+		$out = array();
+		foreach ( preg_split( '/[\s,]+/', (string) $value ) as $token ) {
+			if ( '' === $token || ! preg_match( '/^[A-Za-z0-9_.*-]+$/', $token ) ) {
+				continue;
+			}
+			if ( '' === str_replace( '*', '', $token ) ) {
+				continue;
+			}
+			$out[ $token ] = true;
+		}
+		return array_keys( $out );
+	}
+
 	// --- Typography --------------------------------------------------------
 
 	/**
@@ -726,6 +755,8 @@ class DPT_CB_Settings {
 				$clean[ $key ] = sanitize_hex_color( $value ) ?: $defaults[ $key ];
 			} elseif ( in_array( $key, $checkbox_fields, true ) ) {
 				$clean[ $key ] = '1' === $value ? '1' : '0';
+			} elseif ( in_array( $key, array( 'cleanup_functional', 'cleanup_analytics', 'cleanup_marketing' ), true ) ) {
+				$clean[ $key ] = implode( "\n", self::cookie_patterns( $value ) );
 			} else {
 				$clean[ $key ] = sanitize_text_field( $value );
 			}

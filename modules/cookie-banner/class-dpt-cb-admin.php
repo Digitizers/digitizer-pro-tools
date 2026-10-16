@@ -1170,6 +1170,25 @@ class DPT_CB_Admin {
 				<td><?php $this->switch_field( 'cat_marketing_enabled', $o['cat_marketing_enabled'] ); ?></td>
 			</tr>
 		</table>
+
+		<h3 class="dpt-section-heading"><span class="dashicons dashicons-trash"></span> <?php esc_html_e( 'Cookies to delete when a category is denied', 'digitizer-pro-tools' ); ?></h3>
+		<p class="description"><?php esc_html_e( 'When a visitor refuses or withdraws a category, these cookies, and the localStorage and sessionStorage keys with the same names, are deleted from the browser, and again on every page while the category stays denied. One name per line or separated by commas; * matches anything, for example _ga_*.', 'digitizer-pro-tools' ); ?></p>
+		<p class="description"><?php esc_html_e( 'Only this site\'s own cookies can be deleted. Cookies set by other domains, such as .linkedin.com or .doubleclick.net, are out of a page\'s reach. WordPress and WooCommerce cookies and the banner\'s own are never deleted.', 'digitizer-pro-tools' ); ?></p>
+		<table class="form-table dpt-form">
+			<?php
+			$cleanup_rows = array(
+				'functional' => array( __( 'Functional cookies', 'digitizer-pro-tools' ), '' ),
+				'analytics'  => array( __( 'Analytics cookies', 'digitizer-pro-tools' ), '_ga, _ga_*, _gid, ph_*_posthog' ),
+				'marketing'  => array( __( 'Marketing cookies', 'digitizer-pro-tools' ), '_gcl_*, _fbp, li_*' ),
+			);
+			foreach ( $cleanup_rows as $cat => $row ) :
+				?>
+				<tr>
+					<th><label for="dpt_cb_cleanup_<?php echo esc_attr( $cat ); ?>"><?php echo esc_html( $row[0] ); ?></label></th>
+					<td><textarea id="dpt_cb_cleanup_<?php echo esc_attr( $cat ); ?>" name="dpt_cb[cleanup_<?php echo esc_attr( $cat ); ?>]" rows="3" class="large-text code" dir="ltr" placeholder="<?php echo esc_attr( $row[1] ); ?>"><?php echo esc_textarea( $o[ 'cleanup_' . $cat ] ); ?></textarea></td>
+				</tr>
+			<?php endforeach; ?>
+		</table>
 		<?php
 	}
 

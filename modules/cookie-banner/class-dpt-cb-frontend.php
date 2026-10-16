@@ -109,6 +109,24 @@ class DPT_CB_Frontend {
 	}
 
 	/**
+	 * The cookie patterns frontend.js deletes per denied category. Only the
+	 * categories that have any, so a site that set none ships none.
+	 *
+	 * @param array $o Settings.
+	 * @return array<string,string[]>
+	 */
+	public static function cleanup_patterns( $o ) {
+		$out = array();
+		foreach ( array( 'functional', 'analytics', 'marketing' ) as $cat ) {
+			$patterns = DPT_CB_Settings::cookie_patterns( isset( $o[ 'cleanup_' . $cat ] ) ? $o[ 'cleanup_' . $cat ] : '' );
+			if ( $patterns ) {
+				$out[ $cat ] = $patterns;
+			}
+		}
+		return $out;
+	}
+
+	/**
 	 * The kind of consent the banner collects, for the WP Consent API.
 	 *
 	 * @return string
@@ -413,6 +431,7 @@ class DPT_CB_Frontend {
 			'openHash'         => self::OPEN_HASH,
 			'consentMode'      => '1' === $o['consent_mode'] && self::signals_possible( $o ) ? self::consent_mode_map() : null,
 			'wpConsentApi'     => '1' === $o['wp_consent_api'] && self::signals_possible( $o ) ? self::wp_consent_api_map() : null,
+			'cleanup'          => self::cleanup_patterns( $o ),
 		) );
 	}
 

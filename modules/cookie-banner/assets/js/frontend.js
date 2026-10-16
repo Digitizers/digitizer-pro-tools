@@ -251,6 +251,75 @@
         }, 1000);
     }
 
+    /* ============== Deleting a denied category's cookies ============== */
+
+    // Never deleted, whatever a pattern says: the banner's own choice, and
+    // what WordPress and WooCommerce need to keep a visitor logged in or a
+    // cart alive.
+    var PROTECTED = /^(dpt_consent|wordpress_|wp-|wp_|woocommerce_)/;
+
+    function patternRegExp(pattern) {
+        return new RegExp('^' + pattern.replace(/[.+?^${}()|[\]\\-]/g, '\\$&').replace(/\*/g, '.*') + '$');
+    }
+
+    // Every domain a first-party cookie can sit on here: host-only, then the
+    // host and each parent down to the registrable domain - GA writes to the
+    // registrable one (.digitizer.co.il), so a host-only delete misses it.
+    function cookieDomains() {
+        var list = [''];
+        var host = location.hostname;
+        var base = getCookieDomain();
+        if (!host || !base) return list;
+        var parts = host.split('.');
+        for (var i = 0; i < parts.length - 1; i++) {
+            var d = '.' + parts.slice(i).join('.');
+            list.push(d);
+            if (d === base) break;
+        }
+        return list;
+    }
+
+    function purgeCategory(cat) {
+        var patterns = (config.cleanup || {})[cat];
+        if (!patterns || !patterns.length) return;
+        var regs = patterns.map(patternRegExp);
+        var matches = function (name) {
+            if (!name || PROTECTED.test(name)) return false;
+            for (var i = 0; i < regs.length; i++) { if (regs[i].test(name)) return true; }
+            return false;
+        };
+        var removed = [];
+        var domains = cookieDomains();
+        (document.cookie || '').split(';').forEach(function (pair) {
+            var name = pair.split('=')[0].replace(/^\s+|\s+$/g, '');
+            if (!matches(name)) return;
+            domains.forEach(function (d) {
+                document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0; path=/' + (d ? '; domain=' + d : '');
+            });
+            removed.push(name);
+        });
+        [window.localStorage, window.sessionStorage].forEach(function (store) {
+            try {
+                if (!store) return;
+                for (var i = store.length - 1; i >= 0; i--) {
+                    var key = store.key(i);
+                    if (matches(key)) { store.removeItem(key); removed.push(key); }
+                }
+            } catch (e) {}
+        });
+        if (removed.length) log('deleted for ' + cat, removed);
+    }
+
+    // Each category the choice leaves denied - refused, withdrawn, or
+    // switched off since - has its cookies deleted. Nothing without a choice:
+    // a first visit has not refused anything yet.
+    function purgeDenied(consent) {
+        if (!consent) return;
+        ['functional', 'analytics', 'marketing'].forEach(function (cat) {
+            if (!granted(consent, cat)) purgeCategory(cat);
+        });
+    }
+
     function injectConsentedScripts(consent) {
         if (!config.blockScripts || !consent) return;
         var scripts = config.scripts || {};
@@ -489,6 +558,7 @@
             isClosing = true;
             log('finishConsent', consent);
             saveConsent(consent);
+            purgeDenied(consent);
             // Signals before the scripts, so a tag injected now reads the
             // new state on its first hit.
             signalConsentMode(consent);
@@ -673,7 +743,11 @@
     // scripts that read it run before DOMContentLoaded, and must not read an
     // "allow" left over from an older or expired choice. No valid choice
     // sets the API's categories back to deny.
-    signalWpConsentApi(readConsent());
+    var bootConsent = readConsent();
+    signalWpConsentApi(bootConsent);
+    // And a denied category's cookies go on every page, before the rest of
+    // the page runs: a tag loaded outside the banner may have set them again.
+    purgeDenied(bootConsent);
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
