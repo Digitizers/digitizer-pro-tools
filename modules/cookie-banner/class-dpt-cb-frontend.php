@@ -64,8 +64,14 @@ class DPT_CB_Frontend {
 				break;
 			}
 		}
+		if ( 'functional' === $category ) {
+			// The API's functional is the essential kind, never asked about.
+			// Under opt-in the API would deny it until frontend.js writes its
+			// cookie, which is too late for PHP asking in this request.
+			return true;
+		}
 		if ( '' === $banner_category ) {
-			return $has_consent; // The API's functional (essential), or not ours.
+			return $has_consent; // Not a category this banner decides.
 		}
 		$consent = $this->get_consent();
 		$enabled = self::enabled_categories( DPT_CB_Settings::all() );

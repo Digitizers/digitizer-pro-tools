@@ -201,7 +201,7 @@ $GLOBALS['dpt_stub_filters'] = array();
 $now = (int) ( microtime( true ) * 1000 );
 unset( $_COOKIE['dpt_consent'] );
 dpt_test_eq( $frontend->filter_wp_has_consent( true, 'statistics' ), false, 'no choice: an "allow" left in the API\'s own cookies does not count' );
-dpt_test_eq( $frontend->filter_wp_has_consent( true, 'functional' ), true, 'the API\'s functional, the essential kind, is left to the API' );
+dpt_test_eq( $frontend->filter_wp_has_consent( false, 'functional' ), true, 'the API\'s functional, the essential kind, is always allowed - also before frontend.js has written its cookie' );
 dpt_test_eq( $frontend->filter_wp_has_consent( false, 'some-other' ), false, 'and so is a category that is not ours' );
 
 $_COOKIE['dpt_consent'] = json_encode( array( 'v' => '1', 'ts' => $now, 'functional' => false, 'analytics' => true, 'marketing' => false ) );
