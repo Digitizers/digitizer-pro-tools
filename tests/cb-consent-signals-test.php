@@ -84,16 +84,16 @@ if ( null !== $layer ) {
 dpt_test_eq(
 	DPT_CB_Frontend::consent_mode_defaults(),
 	array(
-		'functionality_storage'   => 'denied',
 		'personalization_storage' => 'denied',
 		'analytics_storage'       => 'denied',
 		'ad_storage'              => 'denied',
 		'ad_user_data'            => 'denied',
 		'ad_personalization'      => 'denied',
+		'functionality_storage'   => 'granted',
 		'security_storage'        => 'granted',
 		'wait_for_update'         => 500,
 	),
-	'every signal a category grants starts denied; security storage is granted; tags wait half a second for a stored choice'
+	'every signal a category grants starts denied; functionality and security storage, the essential kind, are granted - as Site Kit reads the API\'s functional; tags wait half a second for a stored choice'
 );
 
 dpt_test_cs_opts( array( 'consent_mode' => '1' ) );
@@ -114,7 +114,6 @@ if ( null !== $layer ) {
 			'consent',
 			'update',
 			array(
-				'functionality_storage'   => 'denied',
 				'personalization_storage' => 'denied',
 				'analytics_storage'       => 'granted',
 				'ad_storage'              => 'denied',
@@ -125,7 +124,7 @@ if ( null !== $layer ) {
 		'analytics allowed grants analytics storage alone'
 	);
 	$layer = dpt_test_cs_run( $html, dpt_test_cs_cookie( array( 'functional' => true, 'analytics' => true, 'marketing' => true ) ) );
-	dpt_test_eq( isset( $layer[1][2] ) ? array_values( array_unique( array_values( $layer[1][2] ) ) ) : null, array( 'granted' ), 'accept all grants all six' );
+	dpt_test_eq( isset( $layer[1][2] ) ? array_values( array_unique( array_values( $layer[1][2] ) ) ) : null, array( 'granted' ), 'accept all grants all five' );
 	$layer = dpt_test_cs_run( $html, dpt_test_cs_cookie( array( 'analytics' => true ), 'old' ) );
 	dpt_test_eq( count( $layer ), 1, 'a choice made under an older consent version is not used: the visitor is asked again, from denied' );
 } else {
@@ -226,7 +225,10 @@ $finish = substr( $js, (int) strpos( $js, 'function finishConsent' ) );
 dpt_test_ok( strpos( $finish, 'signalConsentMode(consent);' ) < strpos( $finish, 'injectConsentedScripts(consent);' ), 'a choice on the page is signalled before the consented scripts are injected' );
 dpt_test_ok( false !== strpos( $finish, 'signalWpConsentApi(consent);' ), 'and shared with the WP Consent API' );
 dpt_test_ok( false !== strpos( $js, "window.wp_set_consent(apiCat, granted(consent, cat) ? 'allow' : 'deny');" ), 'each API category is allowed or denied, never left out' );
-dpt_test_ok( false !== strpos( $js, "window.addEventListener('load'" ), 'if the API script comes later, the signal waits for it' );
+dpt_test_ok( false !== strpos( $js, 'apiPending = { consent: consent };' ) && false !== strpos( $js, 'setInterval(function () {' ), 'if the API script comes later - even only after an interaction - the latest choice waits for it' );
+$fe = new DPT_CB_Frontend();
+dpt_test_ok( in_array( 'wp-consent-api', $fe->rocket_exclude_patterns( array() ), true ), 'and WP Rocket does not delay the API\'s script' );
+$GLOBALS['dpt_stub_filters'] = array();
 dpt_test_ok( false !== strpos( $js, 'return !!(consent && consent[cat] && cats[cat]);' ), 'on the page too, a category grants only while it is offered' );
 dpt_test_ok( 1 === preg_match( '/\} else \{[^}]*signalWpConsentApi\(null\);/s', $js ), 'with no valid choice on load, the API\'s categories are set back to deny' );
 

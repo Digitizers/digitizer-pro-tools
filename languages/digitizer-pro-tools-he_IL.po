@@ -2449,8 +2449,8 @@ msgstr "1 = בעוצמה מלאה. במעבר עכבר הוא תמיד מוצג 
 msgid "Google Consent Mode v2"
 msgstr "Google Consent Mode v2"
 
-msgid "Tells Google tags (Analytics, Ads, Tag Manager) what the visitor allowed: analytics grants analytics storage, marketing grants ad storage, ad user data and ad personalization, functional grants functionality and personalization storage. Everything starts denied until the visitor chooses."
-msgstr "מודיע לתגיות של Google ‏(Analytics, ‏Ads, ‏Tag Manager) מה המבקר אישר: אנליטיקה מאשרת analytics storage, שיווק מאשר ad storage, ‏ad user data ו-ad personalization, ופונקציונליות מאשרת functionality ו-personalization storage. הכול מתחיל כמסורב עד שהמבקר בוחר."
+msgid "Tells Google tags (Analytics, Ads, Tag Manager) what the visitor allowed: analytics grants analytics storage, marketing grants ad storage, ad user data and ad personalization, functional grants personalization storage. These start denied until the visitor chooses; functionality and security storage, the essential kind, are always granted."
+msgstr "מודיע לתגיות של Google ‏(Analytics, ‏Ads, ‏Tag Manager) מה המבקר אישר: אנליטיקה מאשרת analytics storage, שיווק מאשר ad storage, ‏ad user data ו-ad personalization, ופונקציונליות מאשרת personalization storage. אלה מתחילים כמסורבים עד שהמבקר בוחר; functionality storage ו-security storage, הסוג ההכרחי, מאושרים תמיד."
 
 msgid "Google tags pasted in the \"Scripts\" tab still load only after consent. Google tags added any other way (Site Kit, a GTM plugin, the theme) load at once and follow these signals."
 msgstr "תגיות Google שהודבקו בטאב \"סקריפטים\" עדיין נטענות רק אחרי הסכמה. תגיות Google שנוספו בכל דרך אחרת (Site Kit, תוסף GTM, ערכת העיצוב) נטענות מיד ופועלות לפי האותות האלה."

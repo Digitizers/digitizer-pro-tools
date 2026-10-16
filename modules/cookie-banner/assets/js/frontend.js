@@ -217,27 +217,38 @@
     }
 
     // The WP Consent API, for plugins that read it (Site Kit, WooCommerce
-    // order attribution...). Its script may load after this one, so the
-    // signal waits for the page if the API is not there yet.
-    function signalWpConsentApi(consent) {
+    // order attribution...). Its script may run after this one - late in the
+    // page, or only after an interaction when an optimizer delays it - so
+    // the latest choice waits until the API is there, however long that is.
+    var apiPending = null;   // { consent: ... } still to be sent
+    var apiWaiting = null;   // interval while waiting for the API
+    function applyWpConsentApi() {
         var map = config.wpConsentApi;
-        if (!map) return;
-        var apply = function () {
-            if (typeof window.wp_set_consent !== 'function') return false;
-            window.wp_set_consent('functional', 'allow'); // The essential kind.
-            Object.keys(map).forEach(function (cat) {
-                map[cat].forEach(function (apiCat) {
-                    window.wp_set_consent(apiCat, granted(consent, cat) ? 'allow' : 'deny');
-                });
+        if (!map || !apiPending || typeof window.wp_set_consent !== 'function') return false;
+        var consent = apiPending.consent;
+        apiPending = null;
+        window.wp_set_consent('functional', 'allow'); // The essential kind.
+        Object.keys(map).forEach(function (cat) {
+            map[cat].forEach(function (apiCat) {
+                window.wp_set_consent(apiCat, granted(consent, cat) ? 'allow' : 'deny');
             });
-            log('wp consent api set', consent);
-            return true;
-        };
-        if (!apply()) {
-            window.addEventListener('load', function () {
-                if (!apply()) log('wp_set_consent not found - is the WP Consent API plugin active?');
-            });
-        }
+        });
+        log('wp consent api set', consent);
+        return true;
+    }
+    function signalWpConsentApi(consent) {
+        if (!config.wpConsentApi) return;
+        apiPending = { consent: consent };
+        if (applyWpConsentApi() || apiWaiting) return;
+        var tries = 0;
+        apiWaiting = setInterval(function () {
+            tries++;
+            if (applyWpConsentApi() || tries > 600) { // up to ten minutes
+                clearInterval(apiWaiting);
+                apiWaiting = null;
+                if (apiPending) log('wp_set_consent not found - is the WP Consent API plugin active?');
+            }
+        }, 1000);
     }
 
     function injectConsentedScripts(consent) {

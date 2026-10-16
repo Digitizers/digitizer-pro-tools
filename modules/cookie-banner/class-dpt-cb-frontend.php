@@ -119,14 +119,16 @@ class DPT_CB_Frontend {
 
 	/**
 	 * What each banner category grants in Google Consent Mode v2. Every signal
-	 * listed here starts denied; security_storage is not a choice and stays
-	 * granted.
+	 * listed here starts denied. security_storage and functionality_storage
+	 * are the essential kind and stay granted: that is how the WP Consent API
+	 * and Site Kit read the API's "functional", which is always allowed, so a
+	 * second mapping that denied it would be overwritten by theirs.
 	 *
 	 * @return array<string,string[]>
 	 */
 	public static function consent_mode_map() {
 		return array(
-			'functional' => array( 'functionality_storage', 'personalization_storage' ),
+			'functional' => array( 'personalization_storage' ),
 			'analytics'  => array( 'analytics_storage' ),
 			'marketing'  => array( 'ad_storage', 'ad_user_data', 'ad_personalization' ),
 		);
@@ -146,7 +148,8 @@ class DPT_CB_Frontend {
 				$defaults[ $signal ] = 'denied';
 			}
 		}
-		$defaults['security_storage'] = 'granted';
+		$defaults['functionality_storage'] = 'granted';
+		$defaults['security_storage']      = 'granted';
 		$defaults['wait_for_update']  = 500;
 		return $defaults;
 	}
@@ -221,6 +224,9 @@ class DPT_CB_Frontend {
 		$excluded[] = 'dpt_consent';
 		$excluded[] = 'DPT_CB_CONFIG';
 		$excluded[] = 'DPTCB';
+		// The WP Consent API's own script: delayed until an interaction, it
+		// would not be there to receive the visitor's choice.
+		$excluded[] = 'wp-consent-api';
 		return $excluded;
 	}
 

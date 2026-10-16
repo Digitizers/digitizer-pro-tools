@@ -334,7 +334,7 @@ class DPT_CB_Admin {
 				<th><?php esc_html_e( 'Google Consent Mode v2', 'digitizer-pro-tools' ); ?></th>
 				<td>
 					<?php $this->switch_field( 'consent_mode', $o['consent_mode'] ); ?>
-					<p class="description"><?php esc_html_e( 'Tells Google tags (Analytics, Ads, Tag Manager) what the visitor allowed: analytics grants analytics storage, marketing grants ad storage, ad user data and ad personalization, functional grants functionality and personalization storage. Everything starts denied until the visitor chooses.', 'digitizer-pro-tools' ); ?></p>
+					<p class="description"><?php esc_html_e( 'Tells Google tags (Analytics, Ads, Tag Manager) what the visitor allowed: analytics grants analytics storage, marketing grants ad storage, ad user data and ad personalization, functional grants personalization storage. These start denied until the visitor chooses; functionality and security storage, the essential kind, are always granted.', 'digitizer-pro-tools' ); ?></p>
 					<p class="description"><?php esc_html_e( 'Google tags pasted in the "Scripts" tab still load only after consent. Google tags added any other way (Site Kit, a GTM plugin, the theme) load at once and follow these signals.', 'digitizer-pro-tools' ); ?></p>
 				</td>
 			</tr>

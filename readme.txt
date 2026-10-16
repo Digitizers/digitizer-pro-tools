@@ -362,9 +362,9 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 
 = 1.45.0 =
 * Cookie Banner: Google Consent Mode v2 (General, off by default).
-  * The defaults (everything a category grants denied, security storage granted) are set first in <head>, before any Google tag.
+  * The defaults (everything a category grants denied; functionality and security storage granted) are set first in <head>, before any Google tag.
   * A stored choice updates them in the same script, so cached pages work too. A new choice updates them before the consented scripts load.
-  * Mapping: analytics grants analytics storage; marketing grants ad storage, ad user data and ad personalization; functional grants functionality and personalization storage.
+  * Mapping: analytics grants analytics storage; marketing grants ad storage, ad user data and ad personalization; functional grants personalization storage. Functionality and security storage, the essential kind, are always granted, as the WP Consent API and Site Kit read the API's functional.
 * Cookie Banner: both are sent only while every visitor can see the banner (on, and shown on mobile), and a category switched off after a visitor accepted it grants nothing.
 * Cookie Banner: WP Consent API (General, off by default). With the WP Consent API plugin active, the banner registers with it as an opt-in consent plugin and shares each choice. Plugins that read the API, such as Site Kit and WooCommerce order attribution, then follow it.
 
