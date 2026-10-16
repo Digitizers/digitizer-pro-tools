@@ -21,7 +21,11 @@ Install counts are WordPress.org's own buckets.
 
 Six to seven weeks on the directory have brought almost no installs. A listing on its own does not bring traffic. Installs come from people searching for something they must have.
 
-That favours a plugin every site of a kind is obliged to run over one that is nice to have. A cookie banner on an Israeli site after Amendment 13 is the first kind.
+That favours a plugin people go looking for because they believe they need it, over one that is nice to have.
+
+A cookie banner is the first kind for many Israeli sites, but **not all of them**. Amendment 13 sets duties that depend on what an organisation processes and how. It is not a blanket "every site must run a banner" rule (the Privacy Protection Authority's guidance: https://govextra.gov.il/privacy-protection-regulations/privacy-protection-regulations/).
+
+The demand is real on sites that load analytics, advertising or other tracking that needs consent. That is most business sites and Digitizer's customers, but it is narrower than every site. This document makes no legal assessment.
 
 ## Cookie Banner (Hebrew / Israel): still the lead, but the market has moved
 
@@ -67,7 +71,12 @@ Searches:
 3. **No legal claims.**
    - The plugin page may describe what the plugin does: categories, blocking until consent, a reject button as prominent as accept.
    - It should not say "compliant with Amendment 13". The competitors say it; the reviewers and the liability are ours.
-4. **Tags.** The tags the leader uses, so the plugin appears where Israeli sites search: `amendment-13`, `israeli-law`, `cookies`, `consent`, `privacy`.
+4. **Tags.** What was checked:
+   - **What the leader shows:** atr-cookie-notice's directory page shows only `consent`, `cookies` and `privacy`.
+   - **What its readme declares:** the plugin API returns two more, `ammendment-13` (misspelled) and `israeli-law`.
+   - **What that means:** WordPress.org does not show those two on the page. The `israeli-law` tag archive still exists and lists the plugin.
+   - **The three verified ones** (`consent`, `cookies`, `privacy`) are the baseline.
+   - **`amendment-13` and `israeli-law`** are an experiment: they may reach the tag archives without ever appearing on the page. Search placement depends mainly on the name, short description and readme text, not on tags.
 
 **Cost:** the same as the other standalones: a mirror of the module with a parity check each session. One thing differs: the banner is the module that changes most often (#55 to #62 in two days). Changes stay module-first, mirrored to the standalone.
 
