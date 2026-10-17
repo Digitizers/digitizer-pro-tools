@@ -2475,3 +2475,6 @@ msgstr "כשמבקר מסרב לקטגוריה או מבטל את ההסכמה �
 
 msgid "Only this site's own cookies that scripts can read can be deleted: cookies set by other domains, such as .linkedin.com or .doubleclick.net, and cookies marked HttpOnly are out of a page's reach. Analytics and advertising tags do not use HttpOnly. WordPress's login, settings and comment cookies, WooCommerce's cart, session and store-notice data, and the banner's own are never deleted. WooCommerce's order attribution cookies (sbjs_*) are tracking, and can be listed under marketing."
 msgstr "אפשר למחוק רק עוגיות של האתר עצמו שסקריפטים יכולים לקרוא: עוגיות שדומיינים אחרים קבעו, כמו ‎.linkedin.com או ‎.doubleclick.net, ועוגיות שמסומנות HttpOnly, מחוץ להישג ידו של הדף. תגיות אנליטיקה ופרסום לא משתמשות ב-HttpOnly. עוגיות ההתחברות, ההגדרות והתגובות של וורדפרס, נתוני העגלה, הסשן והודעת החנות של WooCommerce, ועוגיות הבאנר עצמו לא נמחקים אף פעם. עוגיות ייחוס ההזמנות של WooCommerce ‏(sbjs_*) הן מעקב, ואפשר לרשום אותן תחת שיווק."
+
+msgid "The standalone Digitizer Cookie Consent plugin is active and does this module's work, so the switch is locked - its settings are under Settings → Cookie Consent."
+msgstr "התוסף הנפרד Digitizer Cookie Consent פעיל ועושה את העבודה של המודול הזה, ולכן המתג נעול - ההגדרות שלו נמצאות תחת הגדרות ← הסכמה לעוגיות."
