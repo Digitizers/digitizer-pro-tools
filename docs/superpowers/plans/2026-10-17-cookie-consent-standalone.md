@@ -6,7 +6,7 @@
 
 **Architecture:**
 - A new public repository, `Digitizers/digitizer-cookie-consent`, with the tooling of `digitizer-shabbat-keeper`.
-- The four module classes are ported by a deterministic rename script, `bin/port-from-dpt.php`. That script is also how later module changes are mirrored.
+- The four module classes are ported by a deterministic rename script, `bin/port-from-dpt.php`. That script is also how later module changes are mirrored: after the first port it writes to `port/`, never over the plugin's own files (Task 2, Step 6).
 - After the port, the standalone-only pieces are added by hand:
   - core lifecycle and import;
   - its own settings screen;
@@ -324,6 +324,11 @@ bin/port-from-dpt.php renames every PHP and JS global the spec lists and keeps t
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ```
 
+- [ ] **Step 6: Retarget the script at `port/` once the first port is committed.** From Task 3 on, `includes/`, `assets/` and `tests/` carry the plugin's own changes (inline output through the core APIs, the import sanitiser, the settings screen, the credit); a re-run that wrote over them would erase those changes. So, after the first port:
+  - the script writes `"$root/port/$to"` instead of `"$root/$to"`, and its header says so;
+  - `port/` is tracked, and excluded from the zip in `.distignore` and `bin/build-zip.sh`;
+  - mirroring a module change is: run the script, read `git diff port/`, apply that diff to the plugin's files by hand, and commit `port/` with it, so the next diff starts from there.
+
 ---
 
 ### Task 3: Inline output through the core APIs
@@ -564,6 +569,7 @@ public static function sanitize_import( array $theirs ) {
     - Likewise where `digitizer_cookie_consent_rtl_langs` is applied: `apply_filters( 'dpt_cb_rtl_langs', $langs )`.
     - After each `do_action( 'digitizer_cookie_consent_purge_caches' )`: `do_action( 'dpt_cb_purge_caches' );`.
     - Tests in `tests/core-test.php`: a callback on `dpt_cb_open_selector` changes `open_selector()`, and one on `dpt_cb_rtl_langs` changes `lang_dir()`.
+  - **Drop the module's upgrade migrations.** `Digitizer_Cookie_Consent_Settings` inherits the module's 1.0.1-era migrations (the 900/95 width reset and the emoji one), gated on DPT's `dpt_db_version`. The standalone never has that option, so they would run on every load and reset a width the site saved. Remove both, with the `$old_version` they read. Test in `tests/core-test.php`: an imported `max_width` survives `all()`.
   - **`deactivate()`** calls `do_action( 'digitizer_cookie_consent_purge_caches' );` on each site. Use the settings class's existing cache-purge helper if it has one (`grep -n "purge" includes/class-digitizer-cookie-consent-settings.php`) and call it directly.
   - **Main file** after the requires:
 
