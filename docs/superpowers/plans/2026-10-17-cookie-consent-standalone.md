@@ -248,6 +248,9 @@ $rename = array(
 	'dpt_current_admin_page()'  => 'self::current_page()',
 	"'dpt-cb-frontend'"         => "'digitizer-cookie-consent'",
 	'DPT_VERSION'               => 'DIGITIZER_COOKIE_CONSENT_VERSION',
+	// The debug panel's visible titles, so a support dump names the plugin.
+	'DPT Cookie Banner Debug'      => 'Digitizer Cookie Consent Debug',
+	'DPT COOKIE BANNER DEBUG DUMP' => 'DIGITIZER COOKIE CONSENT DEBUG DUMP',
 	"'digitizer-pro-tools'"     => "'digitizer-cookie-consent'",
 	'@package Digitizer_Pro_Tools' => '@package Digitizer_Cookie_Consent',
 );
