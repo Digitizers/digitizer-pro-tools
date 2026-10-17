@@ -577,7 +577,21 @@ add_action( 'plugins_loaded', array( 'Digitizer_Cookie_Consent_Core', 'boot' ) )
 <?php endif; ?>
 ```
 
-  and in `assets/css/frontend.css`: `#dpt-cb-banner .dpt-cb-credit { margin: 10px 0 0; font-size: 11px; opacity: .7; text-align: center; } #dpt-cb-banner .dpt-cb-credit a { color: inherit; }`.
+  The setting needs a control. In the admin class's General tab (`tab_general()`), after the "Block scripts until consent" row, add:
+
+```php
+<tr>
+	<th><?php esc_html_e( 'Credit', 'digitizer-cookie-consent' ); ?></th>
+	<td>
+		<?php $this->switch_field( 'credit', $o['credit'] ); ?>
+		<p class="description"><?php esc_html_e( 'Show "Cookie consent by Digitizer" under the buttons', 'digitizer-cookie-consent' ); ?></p>
+	</td>
+</tr>
+```
+
+  Add Hebrew for `Credit` (`קרדיט`) in Task 6. `tests/admin-test.php` (Task 5) asserts that the rendered General tab contains `name="dpt_cb[credit]"`.
+
+  And in `assets/css/frontend.css`: `#dpt-cb-banner .dpt-cb-credit { margin: 10px 0 0; font-size: 11px; opacity: .7; text-align: center; } #dpt-cb-banner .dpt-cb-credit a { color: inherit; }`.
   - **`DPT_BASENAME`** in the WP Consent API registration becomes `plugin_basename( DIGITIZER_COOKIE_CONSENT_FILE )`. Change the `defined( 'DPT_BASENAME' )` check to `defined( 'DIGITIZER_COOKIE_CONSENT_FILE' )`. In `tests/consent-signals-test.php`, the expected filter name becomes `wp_consent_api_registered_digitizer-cookie-consent/digitizer-cookie-consent.php`. Add a `plugin_basename()` stub to the bootstrap if it is missing: `function plugin_basename( $f ) { return basename( dirname( $f ) ) . '/' . basename( $f ); }`.
   - **`uninstall.php`** follows `digitizer-shabbat-keeper/uninstall.php`'s closure-per-site shape, deleting `digitizer_cookie_consent`.
 
@@ -639,7 +653,23 @@ public static function current_page() {
   - `register_menu( $parent_slug )` becomes `add_options_page( __( 'Cookie Consent', 'digitizer-cookie-consent' ), __( 'Cookie Consent', 'digitizer-cookie-consent' ), 'manage_options', 'digitizer-cookie-consent', array( $this, 'render_page' ) )` on `admin_menu`.
   - Every link that pointed at the DPT submenu now points at `options-general.php?page=digitizer-cookie-consent`: the tabs, the redirects after save, and add or remove language. Find them with `grep -n "admin.php?page=\|page=dpt" includes/class-digitizer-cookie-consent-admin.php`.
   - **Copy into `assets/js/admin.js`** the colour picker init and the background-image media picker from `~/Documents/GitHub/digitizer-pro-tools/assets/js/admin.js` (the `.dpt-color` and `dpt_cb[bg_image_*]` parts). Rename `dpt_cb[` to `digitizer_cc[` only if the form's field names changed. They did not, so keep `dpt_cb[`.
-  - **Copy into `assets/css/admin.css`** the rules the screen's markup uses: the switch, tabs, `.dpt-section-heading`, `.dpt-preview-*`, `.dpt-info-box`, `.dpt-big-desc`, `.dpt-version`. Find them with `grep -n "dpt-switch\|dpt-tab\|dpt-section-heading\|dpt-preview\|dpt-info-box\|dpt-big-desc\|dpt-version" ~/Documents/GitHub/digitizer-pro-tools/assets/css/admin.css`.
+  - **Copy into `assets/css/admin.css` every rule the screen's markup needs.** That means layout, panels, forms, actions, the image picker, the language manager, the sidebar, switches, tabs, headings and the preview, not a hand-picked few. Derive the class list from the markup and copy each rule that mentions one:
+
+```bash
+php -r '
+$classes = array();
+preg_match_all("/dpt-[a-z0-9-]+/", file_get_contents("includes/class-digitizer-cookie-consent-admin.php"), $m);
+foreach (array_unique($m[0]) as $c) { if (strpos($c, "dpt-cb-") !== 0) { $classes[] = $c; } }
+$css = file_get_contents(getenv("HOME")."/Documents/GitHub/digitizer-pro-tools/assets/css/admin.css");
+preg_match_all("/([^{}]+)\{([^{}]*)\}/", $css, $rules, PREG_SET_ORDER);
+$out = "";
+foreach ($rules as $r) { foreach ($classes as $c) { if (preg_match("/\\.".preg_quote($c, "/")."(?![a-z0-9-])/", $r[1])) { $out .= trim($r[1])." {".$r[2]."}\n"; break; } } }
+file_put_contents("assets/css/admin.css", $out);
+echo count($classes)." classes\n";'
+grep -c "{" assets/css/admin.css
+```
+
+    Rules inside `@media` blocks are not matched by that regex. Copy the `@media` blocks of `admin.css` that mention any of those classes by hand: `grep -n "@media" ~/Documents/GitHub/digitizer-pro-tools/assets/css/admin.css`. `admin-test.php` asserts that `admin.css` contains `.dpt-layout`, `.dpt-panel`, `.dpt-form`, `.dpt-actions`, `.dpt-image-picker`, `.dpt-lang-manager` and `.dpt-sidebar`.
   - **Enqueue** on `admin_enqueue_scripts` when `$hook === $this->screen_hook()`:
     - `wp_enqueue_style( 'wp-color-picker' )`;
     - `wp_enqueue_media()`;
@@ -719,7 +749,8 @@ php bin/build-i18n.php && msgfmt -o languages/digitizer-cookie-consent-he_IL.mo 
       - "Does it send data anywhere?": no.
       - "Moving from Digitizer Pro Tools?": the settings and visitors' choices come across.
     - Screenshots 1–4, and a 1.0.0 changelog.
-  - **No legal claims.** Check with: `grep -in "complian" readme.txt` must show only the FAQ question.
+  - **No legal claims, in the readme or the UI.** The ported admin says "Not recommended for GDPR - EU law requires active consent." under "Accept on scroll". In Task 7, replace it with "Not recommended: scrolling past the banner is not an explicit choice." and update its Hebrew.
+  - **Checks.** `grep -in "complian" readme.txt` must show only the FAQ question. `grep -rniE "gdpr|complian|amendment 13|EU law" includes/ assets/` must print nothing.
 
 - [ ] **Step 2: Directory assets.**
   - **Banner and icon:** adapt `bin/build-assets.sh` from Shabbat Keeper with the text "Digitizer Cookie Consent" and a cookie motif. The script renders HTML to PNG.
