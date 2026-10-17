@@ -224,8 +224,11 @@ $rename = array(
 	'DPT_CB_Admin'              => 'Digitizer_Cookie_Consent_Admin',
 	"'dpt_cookie_banner'"       => "'digitizer_cookie_consent'",
 	'DPT_CB_CONFIG'             => 'DigitizerCookieConsentConfig',
-	'window.DPTCB'              => 'window.DigitizerCookieConsent',
-	'window.dptCbPurge'         => 'window.digitizerCookieConsentPurge',
+	// strtr() matches the longest key first, so the bare forms below also
+	// cover window.DPTCB, '[DPTCB]' log text, the 'DPTCB' optimizer
+	// exclusion marker, and the tests' dptCbPurge assertions.
+	'DPTCB'                     => 'DigitizerCookieConsent',
+	'dptCbPurge'                => 'digitizerCookieConsentPurge',
 	'dpt_cb_open_selector'      => 'digitizer_cookie_consent_open_selector',
 	'dpt_cb_rtl_langs'          => 'digitizer_cookie_consent_rtl_langs',
 	'dpt_cb_purge_caches'       => 'digitizer_cookie_consent_purge_caches',
@@ -439,15 +442,22 @@ Digitizer_Cookie_Consent_Core::activate( false );
 $o = get_option( 'digitizer_cookie_consent' );
 dpt_test_eq( $o['consent_version'], '7', 'the consent version comes across - a new one would ask every visitor again' );
 dpt_test_eq( array( $o['cleanup_analytics'], $o['btn_stretch'], $o['saved'] ), array( '_ga', '1', '1' ), 'settings come across, and count as saved' );
+// Once: with the plugin's option in place, a changed source is not imported again.
+$GLOBALS['dpt_stub_options']['dpt_cookie_banner']['consent_version'] = '8';
+Digitizer_Cookie_Consent_Core::activate( false );
+dpt_test_eq( get_option( 'digitizer_cookie_consent' )['consent_version'], '7', 'once: a second activation does not import again' );
+
+// A language the site added in the module comes across with its texts.
+$GLOBALS['dpt_stub_options'] = array( 'dpt_cookie_banner' => array( 'languages' => array( 'he', 'en', 'fr' ), 'default_lang' => 'fr', 'texts' => array( 'fr' => array( 'title' => 'Nous utilisons des cookies' ) ) ) );
+Digitizer_Cookie_Consent_Core::activate( false );
+$o = get_option( 'digitizer_cookie_consent' );
+dpt_test_eq( array( $o['languages'], $o['default_lang'], $o['texts']['fr']['title'] ), array( array( 'he', 'en', 'fr' ), 'fr', 'Nous utilisons des cookies' ), 'an added language, its default status and its texts survive the import' );
 // The whole option, not a subset: a reset switch, category or lifetime would change tracking or re-ask visitors.
 $GLOBALS['dpt_stub_options'] = array( 'dpt_cookie_banner' => array( 'block_scripts' => '0', 'cat_marketing_enabled' => '0', 'consent_mode' => '1', 'consent_days' => '365', 'bg_color' => '#123456', 'policy_url' => 'https://example.test/p/' ) );
 Digitizer_Cookie_Consent_Core::activate( false );
 $o = get_option( 'digitizer_cookie_consent' );
 dpt_test_eq( array( $o['block_scripts'], $o['cat_marketing_enabled'], $o['consent_mode'], $o['consent_days'], $o['bg_color'], $o['policy_url'] ), array( '0', '0', '1', '365', '#123456', 'https://example.test/p/' ), 'every setting comes across: switches, categories, Consent Mode, lifetime, design, policy link' );
 dpt_test_ok( isset( $GLOBALS['dpt_stub_options']['dpt_cookie_banner'] ), 'the module\'s option is left alone' );
-$GLOBALS['dpt_stub_options']['dpt_cookie_banner']['consent_version'] = '8';
-Digitizer_Cookie_Consent_Core::activate( false );
-dpt_test_eq( get_option( 'digitizer_cookie_consent' )['consent_version'], '7', 'once: a second activation does not import again' );
 
 /* A fresh site: defaults, not saved. */
 $GLOBALS['dpt_stub_options'] = array();
@@ -479,7 +489,38 @@ exit( dpt_test_summary() > 0 ? 1 : 0 );
 
 - [ ] **Step 3: Implement the core.** Model it on `~/Documents/GitHub/digitizer-shabbat-keeper/includes/class-digitizer-shabbat-keeper-core.php` (`boot`, `load_textdomain`, `activate`, `seed_site`, `on_each_site`, `import_from_dpt`, `deactivate`), with these differences:
   - **`boot()`** seeds a site with no option, then `new Digitizer_Cookie_Consent_Frontend();`. Under `is_admin()` it calls `new Digitizer_Cookie_Consent_Admin();`. It hooks `load_textdomain` to `init`, and the first-save notice (Task 5) through the admin class.
-  - **`import_from_dpt()`** copies `get_option( self::DPT_OPTION )` through the settings sanitizer, then sets `$clean['saved'] = '1'` and `add_option()`s it. The module's texts live under `texts`; the sanitizer already handles them. Then copy `consent_version` explicitly, if the sanitizer leaves it alone: `$clean['consent_version'] = sanitize_text_field( $theirs['consent_version'] )`.
+  - **`import_from_dpt()` needs an import-specific sanitiser.** `save()` deliberately ignores `languages` (it is managed by add or remove language), and its `sanitize_texts()` keeps texts only for languages already in the destination. Fed through `save()`, a migrated site's added language (say `fr`) and its texts would be lost.
+    - Refactor the body of `Digitizer_Cookie_Consent_Settings::save()` into `public static function sanitize( array $raw, array $base ): array`. It returns the clean option and does not write it. `save()` becomes `update_option( self::OPTION, self::sanitize( $raw, self::all() ) )` plus its existing cache purge.
+    - Add `Digitizer_Cookie_Consent_Settings::sanitize_import( array $theirs ): array`:
+
+```php
+public static function sanitize_import( array $theirs ) {
+	$base  = self::defaults();
+	$langs = array();
+	foreach ( (array) ( $theirs['languages'] ?? array() ) as $code ) {
+		$code = self::normalize_lang_code( (string) $code );
+		if ( $code && ! in_array( $code, $langs, true ) ) {
+			$langs[] = $code;
+		}
+	}
+	if ( $langs ) {
+		$base['languages'] = $langs;
+		$base['texts']     = array();
+		foreach ( $langs as $code ) {
+			$base['texts'][ $code ] = self::default_texts( $code );
+		}
+	}
+	// Texts are sanitised against $base, which now holds every source language.
+	$clean = self::sanitize( $theirs, $base );
+	$clean['languages'] = $base['languages'];
+	if ( isset( $theirs['default_lang'] ) && in_array( $theirs['default_lang'], $clean['languages'], true ) ) {
+		$clean['default_lang'] = $theirs['default_lang'];
+	}
+	return $clean;
+}
+```
+
+    - `import_from_dpt()` calls `sanitize_import( get_option( self::DPT_OPTION ) )`, sets `$clean['saved'] = '1'` and `add_option()`s it.
   - **Legacy hooks (spec: "The module's hooks keep working").**
     - In `Digitizer_Cookie_Consent_Frontend::open_selector()`, after the new filter:
       `$selector = (string) apply_filters( 'dpt_cb_open_selector', $selector );`
