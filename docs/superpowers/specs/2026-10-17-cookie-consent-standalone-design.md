@@ -95,15 +95,22 @@ The CSS contract the module documents still holds: values are sanitised at assig
 - **Deactivation** purges page caches through the existing purge action, so cached pages stop carrying the banner.
 - **`uninstall.php`** deletes the option on every site of a network, in Shabbat Keeper's closure-per-site shape. Visitors' own consent cookies stay in their browsers; nothing server-side can delete them.
 
-**Settings follow a site that moves from Digitizer Pro Tools.** On activation, when `digitizer_cookie_consent` does not exist and `dpt_cookie_banner` does, the module's values are copied through `sanitize`:
-- the texts for every language;
-- the scripts;
-- the cookie-cleanup patterns;
-- the consent version.
+**Settings follow a site that moves from Digitizer Pro Tools.**
+- **When it runs:** on activation, if `digitizer_cookie_consent` does not exist and `dpt_cookie_banner` does.
+- **What it copies:** **the whole module option**, through the same sanitiser `save()` uses. That is every setting the plugin recognises:
+  - the switch, script blocking, the categories, Consent Mode and the WP Consent API;
+  - the policy link, the consent lifetime and the consent version;
+  - every design value;
+  - the texts for each language, the scripts and the cleanup patterns.
+- **Why all of it:**
+  - A subset would change which tracking runs on the day of the switch.
+  - A shorter lifetime would ask visitors again early.
+  - A new consent version would ask every visitor again.
+- **Once, one way:** the module's option is left alone.
 
-The import is one way and runs once. The module's option is left alone.
-
-The consent version comes across too. This matters: a changed version would re-ask every visitor.
+**The module's hooks keep working for site code that uses them.**
+- The plugin fires its own prefixed hooks first. Then, for compatibility, it runs the module's: `apply_filters( 'dpt_cb_open_selector', … )` and `apply_filters( 'dpt_cb_rtl_langs', … )` on the value, and `do_action( 'dpt_cb_purge_caches' )` after its own purge action.
+- The plugin defines nothing under these names; it only calls them, so a site's existing customisation (a reopen selector, an RTL language, an external cache purge) survives the switch.
 
 ## Digitizer Pro Tools stands down
 

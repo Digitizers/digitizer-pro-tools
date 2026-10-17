@@ -439,6 +439,11 @@ Digitizer_Cookie_Consent_Core::activate( false );
 $o = get_option( 'digitizer_cookie_consent' );
 dpt_test_eq( $o['consent_version'], '7', 'the consent version comes across - a new one would ask every visitor again' );
 dpt_test_eq( array( $o['cleanup_analytics'], $o['btn_stretch'], $o['saved'] ), array( '_ga', '1', '1' ), 'settings come across, and count as saved' );
+// The whole option, not a subset: a reset switch, category or lifetime would change tracking or re-ask visitors.
+$GLOBALS['dpt_stub_options'] = array( 'dpt_cookie_banner' => array( 'block_scripts' => '0', 'cat_marketing_enabled' => '0', 'consent_mode' => '1', 'consent_days' => '365', 'bg_color' => '#123456', 'policy_url' => 'https://example.test/p/' ) );
+Digitizer_Cookie_Consent_Core::activate( false );
+$o = get_option( 'digitizer_cookie_consent' );
+dpt_test_eq( array( $o['block_scripts'], $o['cat_marketing_enabled'], $o['consent_mode'], $o['consent_days'], $o['bg_color'], $o['policy_url'] ), array( '0', '0', '1', '365', '#123456', 'https://example.test/p/' ), 'every setting comes across: switches, categories, Consent Mode, lifetime, design, policy link' );
 dpt_test_ok( isset( $GLOBALS['dpt_stub_options']['dpt_cookie_banner'] ), 'the module\'s option is left alone' );
 $GLOBALS['dpt_stub_options']['dpt_cookie_banner']['consent_version'] = '8';
 Digitizer_Cookie_Consent_Core::activate( false );
@@ -475,6 +480,12 @@ exit( dpt_test_summary() > 0 ? 1 : 0 );
 - [ ] **Step 3: Implement the core.** Model it on `~/Documents/GitHub/digitizer-shabbat-keeper/includes/class-digitizer-shabbat-keeper-core.php` (`boot`, `load_textdomain`, `activate`, `seed_site`, `on_each_site`, `import_from_dpt`, `deactivate`), with these differences:
   - **`boot()`** seeds a site with no option, then `new Digitizer_Cookie_Consent_Frontend();`. Under `is_admin()` it calls `new Digitizer_Cookie_Consent_Admin();`. It hooks `load_textdomain` to `init`, and the first-save notice (Task 5) through the admin class.
   - **`import_from_dpt()`** copies `get_option( self::DPT_OPTION )` through the settings sanitizer, then sets `$clean['saved'] = '1'` and `add_option()`s it. The module's texts live under `texts`; the sanitizer already handles them. Then copy `consent_version` explicitly, if the sanitizer leaves it alone: `$clean['consent_version'] = sanitize_text_field( $theirs['consent_version'] )`.
+  - **Legacy hooks (spec: "The module's hooks keep working").**
+    - In `Digitizer_Cookie_Consent_Frontend::open_selector()`, after the new filter:
+      `$selector = (string) apply_filters( 'dpt_cb_open_selector', $selector );`
+    - Likewise where `digitizer_cookie_consent_rtl_langs` is applied: `apply_filters( 'dpt_cb_rtl_langs', $langs )`.
+    - After each `do_action( 'digitizer_cookie_consent_purge_caches' )`: `do_action( 'dpt_cb_purge_caches' );`.
+    - Tests in `tests/core-test.php`: a callback on `dpt_cb_open_selector` changes `open_selector()`, and one on `dpt_cb_rtl_langs` changes `lang_dir()`.
   - **`deactivate()`** calls `do_action( 'digitizer_cookie_consent_purge_caches' );` on each site. Use the settings class's existing cache-purge helper if it has one (`grep -n "purge" includes/class-digitizer-cookie-consent-settings.php`) and call it directly.
   - **Main file** after the requires:
 
