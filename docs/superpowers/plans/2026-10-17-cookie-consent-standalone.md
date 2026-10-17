@@ -234,10 +234,14 @@ $rename = array(
 	'dpt_cb_purge_caches'       => 'digitizer_cookie_consent_purge_caches',
 	'dpt_cb_preview'            => 'digitizer_cc_preview',
 	'dpt_debug'                 => 'digitizer_cc_debug',
-	'admin_post_dpt_cb_'        => 'admin_post_digitizer_cc_',
-	"'dpt_cb_save'"             => "'digitizer_cc_save'",
-	"'dpt_cb_add_lang'"         => "'digitizer_cc_add_lang'",
-	"'dpt_cb_remove_lang'"      => "'digitizer_cc_remove_lang'",
+	// Bare, so the admin_post_* hooks, the forms' value="..." and the nonce
+	// actions all move together - a form posting to an old action would
+	// reach no handler.
+	'dpt_cb_save'               => 'digitizer_cc_save',
+	'dpt_cb_add_lang'           => 'digitizer_cc_add_lang',
+	'dpt_cb_remove_lang'        => 'digitizer_cc_remove_lang',
+	// A Digitizer Pro Tools core helper; the plugin carries its own (Task 5).
+	'dpt_current_admin_page()'  => 'self::current_page()',
 	"'dpt-cb-frontend'"         => "'digitizer-cookie-consent'",
 	'DPT_VERSION'               => 'DIGITIZER_COOKIE_CONSENT_VERSION',
 	"'digitizer-pro-tools'"     => "'digitizer-cookie-consent'",
@@ -249,7 +253,7 @@ foreach ( $map as $from => $to ) {
 	$code = strtr( $code, $rename );
 	// Every DPT_ identifier the spec renames must be gone; DPT_BASENAME is
 	// replaced in Task 4, DPT_ in comments is allowed.
-	foreach ( array( 'DPT_CB_', 'DPTCB', 'dptCbPurge', "'dpt_cookie_banner'", 'DPT_URL', 'DPT_VERSION' ) as $left ) {
+	foreach ( array( 'DPT_CB_', 'DPTCB', 'dptCbPurge', "'dpt_cookie_banner'", 'DPT_URL', 'DPT_VERSION', 'dpt_current_admin_page', 'dpt_cb_save', 'dpt_cb_add_lang', 'dpt_cb_remove_lang' ) as $left ) {
 		if ( false !== strpos( $code, $left ) ) { fwrite( STDERR, "$to still contains $left\n" ); exit( 1 ); }
 	}
 	@mkdir( dirname( "$root/$to" ), 0777, true );
@@ -452,6 +456,13 @@ $GLOBALS['dpt_stub_options'] = array( 'dpt_cookie_banner' => array( 'languages' 
 Digitizer_Cookie_Consent_Core::activate( false );
 $o = get_option( 'digitizer_cookie_consent' );
 dpt_test_eq( array( $o['languages'], $o['default_lang'], $o['texts']['fr']['title'] ), array( array( 'he', 'en', 'fr' ), 'fr', 'Nous utilisons des cookies' ), 'an added language, its default status and its texts survive the import' );
+
+// Stored snippets survive an activation by a user without unfiltered_html.
+$GLOBALS['dpt_stub_no_user'] = true; // current_user_can() answers false for everything, unfiltered_html included
+$GLOBALS['dpt_stub_options'] = array( 'dpt_cookie_banner' => array( 'scripts_analytics' => '<script>gtag("config","G-X");</script>' ) );
+Digitizer_Cookie_Consent_Core::activate( false );
+dpt_test_eq( get_option( 'digitizer_cookie_consent' )['scripts_analytics'], '<script>gtag("config","G-X");</script>', 'the site\'s tracking snippet comes across intact, whoever activates' );
+$GLOBALS['dpt_stub_no_user'] = false;
 // The whole option, not a subset: a reset switch, category or lifetime would change tracking or re-ask visitors.
 $GLOBALS['dpt_stub_options'] = array( 'dpt_cookie_banner' => array( 'block_scripts' => '0', 'cat_marketing_enabled' => '0', 'consent_mode' => '1', 'consent_days' => '365', 'bg_color' => '#123456', 'policy_url' => 'https://example.test/p/' ) );
 Digitizer_Cookie_Consent_Core::activate( false );
@@ -512,6 +523,16 @@ public static function sanitize_import( array $theirs ) {
 	}
 	// Texts are sanitised against $base, which now holds every source language.
 	$clean = self::sanitize( $theirs, $base );
+	// The stored snippets were checked when they were saved. sanitize() runs
+	// them through wp_kses_post() for a user without unfiltered_html - a
+	// network site admin, or a site with DISALLOW_UNFILTERED_HTML - which
+	// would strip their <script> tags and silently change the site's
+	// tracking. The import keeps them exactly as stored.
+	foreach ( array( 'scripts_functional', 'scripts_analytics', 'scripts_marketing' ) as $key ) {
+		if ( isset( $theirs[ $key ] ) && is_string( $theirs[ $key ] ) ) {
+			$clean[ $key ] = $theirs[ $key ];
+		}
+	}
 	$clean['languages'] = $base['languages'];
 	if ( isset( $theirs['default_lang'] ) && in_array( $theirs['default_lang'], $clean['languages'], true ) ) {
 		$clean['default_lang'] = $theirs['default_lang'];
@@ -590,11 +611,25 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - [ ] **Step 2: Run it to see it fail.** Command: `php tests/admin-test.php`.
 
 - [ ] **Step 3: Implement.**
+  - **The DPT core helper.** The port turned `dpt_current_admin_page()` into `self::current_page()`. Add it to the admin class (a read-only screen check, as in DPT):
+
+```php
+public static function current_page() {
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only screen check, not a state change.
+	if ( ! isset( $_GET['page'] ) || ! is_scalar( $_GET['page'] ) ) {
+		return '';
+	}
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only screen check, not a state change.
+	return sanitize_key( wp_unslash( $_GET['page'] ) );
+}
+```
+
+    Set `const PAGE_SLUG = 'digitizer-cookie-consent';`. `admin-test.php` asserts that `maybe_show_notices()` runs without a fatal when `$_GET['page']` is the slug.
   - `register_menu( $parent_slug )` becomes `add_options_page( __( 'Cookie Consent', 'digitizer-cookie-consent' ), __( 'Cookie Consent', 'digitizer-cookie-consent' ), 'manage_options', 'digitizer-cookie-consent', array( $this, 'render_page' ) )` on `admin_menu`.
   - Every link that pointed at the DPT submenu now points at `options-general.php?page=digitizer-cookie-consent`: the tabs, the redirects after save, and add or remove language. Find them with `grep -n "admin.php?page=\|page=dpt" includes/class-digitizer-cookie-consent-admin.php`.
   - **Copy into `assets/js/admin.js`** the colour picker init and the background-image media picker from `~/Documents/GitHub/digitizer-pro-tools/assets/js/admin.js` (the `.dpt-color` and `dpt_cb[bg_image_*]` parts). Rename `dpt_cb[` to `digitizer_cc[` only if the form's field names changed. They did not, so keep `dpt_cb[`.
   - **Copy into `assets/css/admin.css`** the rules the screen's markup uses: the switch, tabs, `.dpt-section-heading`, `.dpt-preview-*`, `.dpt-info-box`, `.dpt-big-desc`, `.dpt-version`. Find them with `grep -n "dpt-switch\|dpt-tab\|dpt-section-heading\|dpt-preview\|dpt-info-box\|dpt-big-desc\|dpt-version" ~/Documents/GitHub/digitizer-pro-tools/assets/css/admin.css`.
-  - **Enqueue** on `admin_enqueue_scripts` when `$hook === $this->screen_hook`:
+  - **Enqueue** on `admin_enqueue_scripts` when `$hook === $this->screen_hook()`:
     - `wp_enqueue_style( 'wp-color-picker' )`;
     - `wp_enqueue_media()`;
     - `wp_enqueue_style( 'digitizer-cookie-consent-admin', … )`;
