@@ -707,8 +707,8 @@ msgstr "מונע מאלמנטור לטעון גופנים מ-Google (פרטיו�
 msgid "Validate phone fields (Elementor Pro)"
 msgstr "אימות שדות טלפון (Elementor Pro)"
 
-msgid "Rejects malformed numbers in Elementor Pro form <code>tel</code> fields (9-14 digits, optional leading +)."
-msgstr "דוחה מספרים שגויים בשדות <code>tel</code> של טפסי Elementor Pro (9-14 ספרות, + מוביל אופציונלי)."
+msgid "Rejects malformed numbers in Elementor Pro form <code>tel</code> fields (9-14 digits, optional leading +; dashes, dots, spaces and brackets between them are fine)."
+msgstr "דוחה מספרים שגויים בשדות <code>tel</code> של טפסי Elementor Pro ‏(9-14 ספרות, + מוביל אופציונלי; מקפים, נקודות, רווחים וסוגריים ביניהן תקינים)."
 
 msgid "Small site-wide tweaks: HTTP security headers, sanitised SVG uploads, hiding the WordPress version, Elementor helpers, and dropping front-end weight an Elementor site does not use. Each tweak is an independent toggle."
 msgstr "התאמות קטנות לאתר: כותרות אבטחה של HTTP, העלאת SVG מנוקה, הסתרת גרסת וורדפרס, עזרים לאלמנטור, והסרת משקל בחזית שאתר אלמנטור לא משתמש בו. כל התאמה היא מתג עצמאי."
