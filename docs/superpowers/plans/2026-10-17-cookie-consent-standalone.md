@@ -414,6 +414,7 @@ public static function precheck_css() {
   - **Printing the precheck style in time.** Keep the hook at `wp_head` priority 1. Core prints enqueued styles at `wp_head` priority 8 (`wp_print_styles`), so a handle enqueued at 1 is printed at 8, still in `<head>` and long before the banner in the footer.
   - **The design CSS.** `render_inline_css( $o )` becomes `design_css( $o )` and returns the CSS string (`ob_start()` around the existing block, minus `<style id="dpt-cb-inline-css">` and `</style>`). `enqueue()` calls `wp_add_inline_style( 'digitizer-cookie-consent', $this->design_css( $o ) )` after enqueueing the stylesheet. `render_banner()` no longer prints CSS.
   - **The floating button.** In `render_float_button()`, delete the `onclick="..."` attribute and the `$inline_open` variable. `frontend.js` already binds `#dpt-cb-float-button`; check with `grep -n "floatBtn.addEventListener" assets/js/frontend.js`.
+  - **The design test.** `tests/design-test.php`'s `dpt_test_cb_css()` calls `render_inline_css()` by reflection. Make it `return $frontend->design_css( $o );`.
   - **The test harnesses.** In `tests/consent-signals-test.php` and `tests/cookie-cleanup-test.php`, replace the regex `#<script id="dpt-cb-precheck"[^>]*>(.*?)</script>#s` with `#<script id="digitizer-cookie-consent-precheck"[^>]*>(.*?)</script>#s`.
 
 - [ ] **Step 5: Run all tests.** Command: `for f in tests/*-test.php; do php "$f" || exit 1; done`. Expected: all pass.
@@ -509,7 +510,7 @@ dpt_test_ok( ! isset( $GLOBALS['dpt_stub_options']['digitizer_cookie_consent'] )
 exit( dpt_test_summary() > 0 ? 1 : 0 );
 ```
 
-- [ ] **Step 2: Run it to see it fail.** Command: `php tests/core-test.php`. Expected: fatal, `Class "Digitizer_Cookie_Consent_Core" not found`.
+- [ ] **Step 2: Run it to see it fail.** Command: `php tests/core-test.php`. Expected: fatal, `Class "Digitizer_Cookie_Consent_Core" not found`. Add to `tests/bootstrap.php` any lifecycle stubs the run reports missing: `add_option()` (refusing an existing name, as core does), `delete_option()`, `get_sites()`, `switch_to_blog()`, `restore_current_blog()`, `get_bloginfo()`, `wp_slash()`, `esc_html_e()`, `get_locale()`.
 
 - [ ] **Step 3: Implement the core.** Model it on `~/Documents/GitHub/digitizer-shabbat-keeper/includes/class-digitizer-shabbat-keeper-core.php` (`boot`, `load_textdomain`, `activate`, `seed_site`, `on_each_site`, `import_from_dpt`, `deactivate`), with these differences:
   - **`boot()`** seeds a site with no option, then `new Digitizer_Cookie_Consent_Frontend();`. Under `is_admin()` it calls `new Digitizer_Cookie_Consent_Admin();`. It hooks `load_textdomain` to `init`, and the first-save notice (Task 5) through the admin class.
@@ -535,7 +536,9 @@ public static function sanitize_import( array $theirs ) {
 		}
 	}
 	// Texts are sanitised against $base, which now holds every source language.
-	$clean = self::sanitize( $theirs, $base );
+	// sanitize() unslashes request data; a database value is not slashed, so
+	// it is slashed first, or "C:\docs" in a text would lose its backslash.
+	$clean = self::sanitize( wp_slash( $theirs ), $base );
 	// The stored snippets were checked when they were saved. sanitize() runs
 	// them through wp_kses_post() for a user without unfiltered_html - a
 	// network site admin, or a site with DISALLOW_UNFILTERED_HTML - which
@@ -814,7 +817,7 @@ gh pr comment --body "@codex review"
 
 - [ ] **Step 2: Run it to see it fail.**
 
-- [ ] **Step 3: Implement**, copying `modules/shabbat-keeper/class-dpt-sk-module.php`'s `standalone_active()`, `user_can_toggle()`, `toggle_denied_reason()` and the early returns in `init()` and `register_admin_menu()`.
+- [ ] **Step 3: Implement**, copying `modules/shabbat-keeper/class-dpt-sk-module.php`'s `standalone_active()`, `user_can_toggle()`, `toggle_denied_reason()` and the early return in `init()`. `register_admin_menu()` keeps its existing `$this->admin` guard and gets no standalone check: an `init()` that returned early never set `$this->admin`, and the copied test expects a module initialised before the standalone appeared to still add its submenu.
   - **Reason:** `The standalone Digitizer Cookie Consent plugin is active and does this module's work, so the switch is locked - its settings are under Settings → Cookie Consent.`
   - **Hebrew:** `התוסף הנפרד Digitizer Cookie Consent פעיל ועושה את העבודה של המודול הזה, ולכן המתג נעול - ההגדרות שלו נמצאות תחת הגדרות ← הסכמה לעוגיות.`
   - Add the pair to `.pot`, `.po` and `.l10n.php`, then `msgfmt`.
