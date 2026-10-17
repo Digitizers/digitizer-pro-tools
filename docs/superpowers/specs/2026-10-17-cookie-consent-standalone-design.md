@@ -1,11 +1,10 @@
 # Cookie Banner as a standalone plugin for wordpress.org
 
 **Date:** 2026-10-17
-**Status:** Ben approved two decisions on 2026-10-17, replying "כן" to the proposal in chat:
-- the name and slug;
-- dropping the `window.DPTCB` alias.
+**Status:** approved by Ben, 2026-10-17.
+- "כן" to the name and slug, and to dropping the `window.DPTCB` alias.
+- "מאשר" to the spec as written, including its two defaults: Hebrew bundled, and an opt-in credit.
 
-The spec as a whole awaits his review.
 **Applies to:** a new repository and wordpress.org plugin, plus a stand-down change to `modules/cookie-banner/` in this repository.
 **Source:** the module as of Digitizer Pro Tools 1.46.1 (`39d2d69`). Behaviour is the module's unless this document says otherwise.
 **Why this one:** [`docs/research/2026-10-17-wporg-standalone-candidates-refresh.md`](../../research/2026-10-17-wporg-standalone-candidates-refresh.md). It is the only module whose searchers are Digitizer's customers. The Israeli segment is small, its features are table stakes, and installs will come from ratings and Digitizer's name rather than from the feature list.
