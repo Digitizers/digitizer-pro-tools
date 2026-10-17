@@ -219,6 +219,10 @@ $rename = array(
 	"dirname( __DIR__ ) . '/modules/cookie-banner/assets/js/frontend.js'"     => "dirname( __DIR__ ) . '/assets/js/frontend.js'",
 	"dirname( __DIR__ ) . '/modules/cookie-banner/assets/css/frontend.css'"   => "dirname( __DIR__ ) . '/assets/css/frontend.css'",
 	"DPT_URL . 'modules/cookie-banner/assets/'" => "DIGITIZER_COOKIE_CONSENT_URL . 'assets/'",
+	// WP Rocket's file exclusion is a literal path, not DPT_URL: without
+	// this the standalone's script is not excluded and can be deferred
+	// behind scripts that read the WP Consent API.
+	"'digitizer-pro-tools/modules/cookie-banner/assets/js/frontend.js'" => "'digitizer-cookie-consent/assets/js/frontend.js'",
 	'DPT_CB_Settings'           => 'Digitizer_Cookie_Consent_Settings',
 	'DPT_CB_Frontend'           => 'Digitizer_Cookie_Consent_Frontend',
 	'DPT_CB_Admin'              => 'Digitizer_Cookie_Consent_Admin',
@@ -253,7 +257,7 @@ foreach ( $map as $from => $to ) {
 	$code = strtr( $code, $rename );
 	// Every DPT_ identifier the spec renames must be gone; DPT_BASENAME is
 	// replaced in Task 4, DPT_ in comments is allowed.
-	foreach ( array( 'DPT_CB_', 'DPTCB', 'dptCbPurge', "'dpt_cookie_banner'", 'DPT_URL', 'DPT_VERSION', 'dpt_current_admin_page', 'dpt_cb_save', 'dpt_cb_add_lang', 'dpt_cb_remove_lang' ) as $left ) {
+	foreach ( array( 'DPT_CB_', 'DPTCB', 'dptCbPurge', "'dpt_cookie_banner'", 'DPT_URL', 'DPT_VERSION', 'dpt_current_admin_page', 'dpt_cb_save', 'dpt_cb_add_lang', 'dpt_cb_remove_lang', 'modules/cookie-banner' ) as $left ) {
 		if ( false !== strpos( $code, $left ) ) { fwrite( STDERR, "$to still contains $left\n" ); exit( 1 ); }
 	}
 	@mkdir( dirname( "$root/$to" ), 0777, true );
@@ -299,6 +303,12 @@ foreach ( array( "'dpt_consent'", "'dpt_consent_v1'", "'dpt:consent'" ) as $kept
 	dpt_test_ok( false !== strpos( $js, $kept ), "kept for sites moving from Digitizer Pro Tools: $kept" );
 }
 dpt_test_ok( false === strpos( $js, 'DPTCB' ), 'no window.DPTCB alias' );
+require_once dirname( __DIR__ ) . '/includes/class-digitizer-cookie-consent-settings.php';
+require_once dirname( __DIR__ ) . '/includes/class-digitizer-cookie-consent-frontend.php';
+if ( ! function_exists( 'do_action' ) ) { function do_action( $t ) {} }
+if ( ! function_exists( 'add_shortcode' ) ) { function add_shortcode( $t, $c ) {} }
+$fe = new Digitizer_Cookie_Consent_Frontend();
+dpt_test_ok( in_array( 'digitizer-cookie-consent/assets/js/frontend.js', $fe->rocket_exclude_files( array() ), true ), 'WP Rocket excludes the plugin\'s own script path, not the module\'s' );
 ```
 
 - [ ] **Step 5: Commit.**
@@ -603,6 +613,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
   - `admin.js` and `admin.css` are enqueued only when `$hook === Digitizer_Cookie_Consent_Admin::screen_hook()`;
   - `admin.js` contains `.wpColorPicker()` on `.dpt-color`, and `wp.media` for `bg_image_url`;
   - the notice shows while `saved` is `'0'`, and not once it is `'1'`;
+  - the notice does not show to a user without `manage_options` (`$GLOBALS['dpt_stub_no_user'] = true`);
   - `preview_url()` contains `_wpnonce=`;
   - the front end shows the forced preview only when `wp_verify_nonce()` passes (stub it to return the global `$GLOBALS['dpt_stub_nonce_ok']`).
 
@@ -635,7 +646,7 @@ public static function current_page() {
     - `wp_enqueue_style( 'digitizer-cookie-consent-admin', … )`;
     - `wp_enqueue_script( 'digitizer-cookie-consent-admin', …, array( 'jquery', 'wp-color-picker' ), …, true )`.
   - **Row link:** `add_filter( 'plugin_action_links_' . plugin_basename( DIGITIZER_COOKIE_CONSENT_FILE ), … )`.
-  - **Notice:** on `admin_notices`, on the `plugins` and `dashboard` screens only, when `saved` is `'0'`: "Digitizer Cookie Consent is showing the banner with its default texts. Review the texts and categories." It links to the screen.
+  - **Notice:** on `admin_notices`, on the `plugins` and `dashboard` screens only, for users with `current_user_can( 'manage_options' )` only (an editor on the Dashboard has no settings to review), when `saved` is `'0'`: "Digitizer Cookie Consent is showing the banner with its default texts. Review the texts and categories." It links to the screen.
   - **Preview:** `preview_url()` returns `wp_nonce_url( home_url( '/?digitizer_cc_preview=1' ), 'digitizer_cc_preview' )`. On the front end, the preview check becomes `isset( $_GET['digitizer_cc_preview'] ) && current_user_can( 'manage_options' ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ?? '' ) ), 'digitizer_cc_preview' )`.
 
 - [ ] **Step 4: Run all tests.** Expected: all pass.
