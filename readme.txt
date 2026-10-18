@@ -4,7 +4,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.47.0
+Stable tag: 1.47.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -360,6 +360,9 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 5. Configure each module you enabled from its own screen. For the Cookie Banner that means reviewing the texts per language and pasting your analytics/marketing snippets in the Scripts tab, then checking the site
 
 == Changelog ==
+
+= 1.47.1 =
+* Cookie Banner: while the standalone Digitizer Cookie Consent plugin is active, the module keeps its old names working: the [dpt_cookie_settings] shortcode and the dpt_cb_open_selector, dpt_cb_rtl_langs and dpt_cb_purge_caches hooks reach the standalone, which wordpress.org requires to use only its own full prefix.
 
 = 1.47.0 =
 * Cookie Banner: stands down when the standalone Digitizer Cookie Consent plugin is active. The module's switch is locked and says where the plugin's settings are. The plugin imports the module's settings and keeps visitors' choices.

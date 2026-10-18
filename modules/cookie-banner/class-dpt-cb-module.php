@@ -49,10 +49,48 @@ class DPT_Cookie_Banner_Module extends DPT_Module {
 
 	public function init() {
 		if ( self::standalone_active() ) {
+			self::bridge_legacy_names();
 			return;
 		}
 		new DPT_CB_Frontend();
 		$this->admin = new DPT_CB_Admin();
+	}
+
+	/**
+	 * The standalone uses only its own full prefix, as wordpress.org
+	 * requires. Site code written against this module's names - its
+	 * shortcode, filters and cache-purge action - keeps working: they are
+	 * carried over to the standalone's here.
+	 */
+	public static function bridge_legacy_names() {
+		add_filter(
+			'digitizer_cookie_consent_open_selector',
+			function ( $selector ) {
+				return apply_filters( 'dpt_cb_open_selector', $selector );
+			}
+		);
+		add_filter(
+			'digitizer_cookie_consent_rtl_langs',
+			function ( $langs ) {
+				return apply_filters( 'dpt_cb_rtl_langs', $langs );
+			}
+		);
+		add_action(
+			'digitizer_cookie_consent_purge_caches',
+			function () {
+				do_action( 'dpt_cb_purge_caches' );
+			}
+		);
+		add_shortcode(
+			'dpt_cookie_settings',
+			function ( $atts, $content = '' ) {
+				global $shortcode_tags;
+				if ( empty( $shortcode_tags['digitizer_cookie_consent_settings'] ) || ! is_callable( $shortcode_tags['digitizer_cookie_consent_settings'] ) ) {
+					return '';
+				}
+				return call_user_func( $shortcode_tags['digitizer_cookie_consent_settings'], $atts, $content, 'digitizer_cookie_consent_settings' );
+			}
+		);
 	}
 
 	/**

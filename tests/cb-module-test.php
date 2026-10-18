@@ -2,7 +2,7 @@
 require_once __DIR__ . '/bootstrap.php';
 require_once dirname( __DIR__ ) . '/includes/class-dpt-module.php';
 if ( ! function_exists( 'do_action' ) ) { function do_action( $t ) {} }
-if ( ! function_exists( 'add_shortcode' ) ) { function add_shortcode( $t, $c ) {} }
+if ( ! function_exists( 'add_shortcode' ) ) { function add_shortcode( $t, $c ) { $GLOBALS['shortcode_tags'][ $t ] = $c; } }
 require_once dirname( __DIR__ ) . '/modules/cookie-banner/class-dpt-cb-module.php';
 
 $GLOBALS['dpt_stub_is_admin'] = false;
@@ -42,8 +42,23 @@ dpt_test_ok( false !== strpos( $module->toggle_denied_reason(), 'Settings' ), 'a
 
 $standing_down = new DPT_Cookie_Banner_Module();
 $GLOBALS['dpt_stub_filters'] = array();
+$GLOBALS['shortcode_tags'] = array();
 $standing_down->init();
-dpt_test_eq( $GLOBALS['dpt_stub_filters'], array(), 'and the module registers nothing at all' );
+dpt_test_ok( ! dpt_stub_has_filter( 'wp_footer' ) && ! dpt_stub_has_filter( 'wp_head' ) && ! dpt_stub_has_filter( 'admin_post_dpt_cb_save' ), 'and the module registers no banner, precheck or settings screen' );
+
+// The standalone, for wp.org, uses only its own full prefix. Site code written
+// against the module's names keeps working: the module bridges them.
+add_filter( 'dpt_cb_open_selector', function ( $sel ) { return $sel . ', .legacy-open'; } );
+dpt_test_ok( '.legacy-open' === substr( (string) apply_filters( 'digitizer_cookie_consent_open_selector', '.dpt-cb-open' ), -12 ), 'a callback on dpt_cb_open_selector still changes what reopens the banner' );
+add_filter( 'dpt_cb_rtl_langs', function ( $langs ) { $langs[] = 'ckb'; return $langs; } );
+dpt_test_ok( in_array( 'ckb', (array) apply_filters( 'digitizer_cookie_consent_rtl_langs', array( 'he' ) ), true ), 'and one on dpt_cb_rtl_langs still adds an RTL language' );
+dpt_test_ok( dpt_stub_has_filter( 'digitizer_cookie_consent_purge_caches' ), 'the standalone\'s cache purge fires dpt_cb_purge_caches too' );
+$GLOBALS['shortcode_tags']['digitizer_cookie_consent_settings'] = function ( $atts ) { return 'standalone link: ' . ( is_array( $atts ) && isset( $atts['text'] ) ? $atts['text'] : '' ); };
+dpt_test_ok( isset( $GLOBALS['shortcode_tags']['dpt_cookie_settings'] ), '[dpt_cookie_settings] is still registered' );
+dpt_test_eq( call_user_func( $GLOBALS['shortcode_tags']['dpt_cookie_settings'], array( 'text' => 'Cookies' ) ), 'standalone link: Cookies', 'and prints the standalone\'s link' );
+unset( $GLOBALS['shortcode_tags']['digitizer_cookie_consent_settings'] );
+dpt_test_eq( call_user_func( $GLOBALS['shortcode_tags']['dpt_cookie_settings'], array() ), '', 'without the standalone\'s shortcode, it prints nothing rather than failing' );
+$GLOBALS['dpt_stub_filters'] = array();
 
 // No settings screen of its own either: one banner, one place to configure it.
 $GLOBALS['dpt_stub_submenus'] = 0;
