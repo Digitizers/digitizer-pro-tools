@@ -1360,3 +1360,24 @@ function wp_slash( $value ) {
 // A REST callback's return value passes straight through: there is no
 // transport for it to be prepared for here.
 function rest_ensure_response( $v ) { return $v; }
+
+if ( ! function_exists( 'wp_kses' ) ) {
+	/** Keeps allowlisted tags with allowlisted attributes, drops other tags (their text stays). */
+	function wp_kses( $html, $allowed ) {
+		return preg_replace_callback(
+			'#<(/?)([a-zA-Z0-9]+)([^>]*)>#',
+			function ( $m ) use ( $allowed ) {
+				$tag = strtolower( $m[2] );
+				if ( ! isset( $allowed[ $tag ] ) ) { return ''; }
+				if ( '/' === $m[1] ) { return '</' . $m[2] . '>'; }
+				preg_match_all( '#([a-zA-Z:-]+)="([^"]*)"#', $m[3], $attrs, PREG_SET_ORDER );
+				$keep = '';
+				foreach ( $attrs as $a ) {
+					if ( isset( $allowed[ $tag ][ strtolower( $a[1] ) ] ) ) { $keep .= ' ' . $a[1] . '="' . $a[2] . '"'; }
+				}
+				return '<' . $m[2] . $keep . '>';
+			},
+			(string) $html
+		);
+	}
+}

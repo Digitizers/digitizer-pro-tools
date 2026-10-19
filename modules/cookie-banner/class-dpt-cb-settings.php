@@ -560,17 +560,48 @@ class DPT_CB_Settings {
 	 *
 	 * @return string
 	 */
+	/**
+	 * A family name as unquoted CSS: each word an identifier. A word that
+	 * starts with a digit ("Source Sans 3") or holds an ASCII character an
+	 * identifier cannot ("Font.Name") gets CSS hex escapes ("\\33 "), which
+	 * read the same as the quoted name.
+	 *
+	 * @param string $family One family name, without quotes.
+	 * @return string
+	 */
+	public static function css_family_name( $family ) {
+		$words = preg_split( '/\s+/u', trim( (string) $family ), -1, PREG_SPLIT_NO_EMPTY );
+		foreach ( $words as $w => $word ) {
+			$chars = preg_split( '//u', $word, -1, PREG_SPLIT_NO_EMPTY );
+			$out   = '';
+			foreach ( $chars as $i => $c ) {
+				$escape = 1 === strlen( $c ) && ! preg_match( '/[A-Za-z0-9_-]/', $c );
+				if ( ctype_digit( $c ) && ( 0 === $i || ( 1 === $i && '-' === $chars[0] ) ) ) {
+					$escape = true;
+				}
+				$out .= $escape ? '\\' . dechex( ord( $c ) ) . ' ' : $c;
+			}
+			$words[ $w ] = $out;
+		}
+		return implode( ' ', $words );
+	}
+
 	public static function font_family_css() {
 		$mode = (string) self::get( 'font_family' );
 
+		// Family names are printed unquoted, as CSS identifiers (see
+		// css_family_name()): the value is escaped for output, which would
+		// turn quotes into entities.
 		if ( 'custom' === $mode ) {
-			return self::sanitize_font_family( self::get( 'font_family_custom' ) );
+			$stack = str_replace( array( '"', "'" ), '', self::sanitize_font_family( self::get( 'font_family_custom' ) ) );
+			$names = array_filter( array_map( 'trim', explode( ',', $stack ) ), 'strlen' );
+			return implode( ', ', array_map( array( __CLASS__, 'css_family_name' ), $names ) );
 		}
 		if ( 'elementor' === $mode ) {
-			$font = self::elementor_primary_font();
-			// Quote the family name and keep a generic fallback, so a missing
-			// Elementor font degrades to the browser default rather than nothing.
-			return ( '' !== $font ) ? '"' . $font . '", sans-serif' : '';
+			$font = self::css_family_name( str_replace( array( '"', "'" ), '', self::elementor_primary_font() ) );
+			// Keep a generic fallback, so a missing Elementor font degrades to
+			// the browser default rather than nothing.
+			return ( '' !== $font ) ? $font . ', sans-serif' : '';
 		}
 		return ''; // inherit - emit no font-family at all.
 	}
@@ -721,6 +752,25 @@ class DPT_CB_Settings {
 			'cat_functional_enabled', 'cat_analytics_enabled', 'cat_marketing_enabled',
 		);
 
+		// Number fields: [ min, max ] as the form shows them; null is no upper
+		// bound, and a float minimum makes the field a decimal.
+		$numbers = array(
+			'consent_days' => array( 1, 730 ), 'consent_version' => array( 1, null ), 'show_delay' => array( 0, 120 ),
+			'overlay_opacity' => array( 0.0, 1 ), 'bg_image_overlay_opacity' => array( 0.0, 1 ), 'close_opacity' => array( 0.1, 1 ),
+			'width' => array( 200, null ), 'width_corner' => array( 200, null ), 'width_mobile' => array( 200, null ),
+			'max_width_pct' => array( 10, 100 ), 'max_width_pct_mobile' => array( 10, 100 ),
+			'corner_offset_x' => array( 0, null ), 'corner_offset_y' => array( 0, null ),
+			'border_radius' => array( 0, null ), 'padding' => array( 0, null ), 'border_width' => array( 0, null ),
+			'close_size' => array( 12, 60 ), 'title_font_size' => array( 10, 80 ), 'title_margin_bottom' => array( 0, null ),
+			'title_shadow_blur' => array( 0, 40 ), 'title_shadow_y' => array( -20, 20 ),
+			'content_font_size' => array( 10, 40 ), 'content_shadow_blur' => array( 0, 40 ), 'content_shadow_y' => array( -20, 20 ),
+			'btn_height' => array( 0, null ), 'btn_font_size' => array( 8, 40 ),
+			'btn_accept_radius' => array( 0, null ), 'btn_reject_radius' => array( 0, null ), 'btn_settings_radius' => array( 0, null ), 'btn_save_radius' => array( 0, null ),
+			'float_offset_x' => array( 0, 500 ), 'float_offset_y' => array( 0, 500 ), 'float_offset_x_mobile' => array( 0, 500 ), 'float_offset_y_mobile' => array( 0, 500 ),
+			'float_button_size' => array( 30, 100 ), 'float_button_size_mobile' => array( 30, 100 ),
+		);
+		$numbers = array_intersect_key( $numbers, $defaults );
+
 		foreach ( $raw as $key => $raw_value ) {
 			if ( 'texts' === $key ) {
 				$clean['texts'] = self::sanitize_texts( $raw_value, $clean );
@@ -757,6 +807,20 @@ class DPT_CB_Settings {
 				$clean[ $key ] = '1' === $value ? '1' : '0';
 			} elseif ( in_array( $key, array( 'cleanup_functional', 'cleanup_analytics', 'cleanup_marketing' ), true ) ) {
 				$clean[ $key ] = implode( "\n", self::cookie_patterns( $value ) );
+			} elseif ( isset( $numbers[ $key ] ) ) {
+				// Blank or not a number is the default; anything else is held
+				// to the bounds the form shows. A blank width would otherwise
+				// become max-width:0 and hide the banner, and a blank consent
+				// version would be read differently by the precheck and by
+				// frontend.js.
+				list( $min, $max ) = $numbers[ $key ];
+				if ( ! is_numeric( $value ) ) {
+					$clean[ $key ] = $defaults[ $key ];
+				} else {
+					$n = is_float( $min ) ? (float) $value : (int) $value;
+					$n = max( $min, null === $max ? $n : min( $max, $n ) );
+					$clean[ $key ] = (string) $n;
+				}
 			} else {
 				$clean[ $key ] = sanitize_text_field( $value );
 			}
