@@ -446,6 +446,30 @@ class DPT_CB_Frontend {
 		return true;
 	}
 
+	/**
+	 * Where the consent cookie is written. By default (null) frontend.js
+	 * writes it on the parent domain, so one choice covers www, the apex and
+	 * the site's other subdomains - as Digitizer Pro Tools always has. Sites
+	 * that are independent of their sibling subdomains return '' for a
+	 * host-only cookie, or name the domain themselves:
+	 *
+	 *   add_filter( 'dpt_cb_cookie_domain', '__return_empty_string' );
+	 *
+	 * @return string|null
+	 */
+	public static function cookie_domain() {
+		$domain = apply_filters( 'dpt_cb_cookie_domain', null );
+		if ( null === $domain ) {
+			return null;
+		}
+		$domain = strtolower( trim( (string) $domain ) );
+		if ( '' === $domain ) {
+			return '';
+		}
+		// Anything that is not a domain name falls back to the default.
+		return preg_match( '/^\.?[a-z0-9-]+(\.[a-z0-9-]+)+$/', $domain ) ? $domain : null;
+	}
+
 	public function enqueue() {
 		if ( ! $this->is_active() ) {
 			return;
@@ -498,6 +522,7 @@ class DPT_CB_Frontend {
 			'scripts'          => $scripts,
 			'openSelector'     => self::open_selector(),
 			'openHash'         => self::OPEN_HASH,
+			'cookieDomain'     => self::cookie_domain(),
 			'consentMode'      => '1' === $o['consent_mode'] && self::signals_possible( $o ) ? self::consent_mode_map() : null,
 			'wpConsentApi'     => '1' === $o['wp_consent_api'] && self::signals_possible( $o ) ? self::wp_consent_api_map() : null,
 			'cleanup'          => self::cleanup_patterns( $o ),
@@ -664,9 +689,10 @@ class DPT_CB_Frontend {
 				$ov_layer = "linear-gradient({$rgba},{$rgba}),";
 			}
 			$bg_image_css = sprintf(
-				"background-image:%s url('%s');background-size:%s;background-position:%s;background-repeat:%s;",
+				'background-image:%s url(%s);background-size:%s;background-position:%s;background-repeat:%s;',
 				$ov_layer,
-				esc_url( $o['bg_image_url'] ),
+				// Unquoted url(): the characters it cannot hold are percent-encoded.
+				strtr( esc_url( str_replace( ' ', '%20', (string) $o['bg_image_url'] ) ), array( '(' => '%28', ')' => '%29', "'" => '%27', '"' => '%22' ) ),
 				esc_attr( $o['bg_image_size'] ),
 				esc_attr( $o['bg_image_position'] ),
 				esc_attr( $o['bg_image_repeat'] )
@@ -757,7 +783,6 @@ class DPT_CB_Frontend {
 		 *
 		 * Anything added to this block must keep that contract.
 		 */
-		// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- CSS context; values sanitized at assignment, see above.
 		?>
 		<style id="dpt-cb-inline-css">
 			#dpt-cb-overlay { background: <?php echo esc_attr( $overlay_rgba ); ?>; }
@@ -772,58 +797,58 @@ class DPT_CB_Frontend {
 			   this exact font. */
 			#dpt-cb-banner, #dpt-cb-banner *,
 			#dpt-cb-float-button, #dpt-cb-float-button * {
-				font-family: <?php echo $font_family; // Already sanitized to a bare font stack. ?> !important;
+				font-family: <?php echo esc_attr( $font_family ); ?> !important;
 			}
 			<?php endif; ?>
 			#dpt-cb-banner .dpt-cb-box {
 				background-color: <?php echo esc_attr( $o['bg_color'] ); ?>;
-				color: <?php echo $text_color; ?>;
-				max-width: <?php echo (int) $o['width']; ?>px;
-				border-radius: <?php echo (int) $o['border_radius']; ?>px;
-				padding: <?php echo (int) $o['padding']; ?>px;
-				width: <?php echo (int) $o['max_width_pct']; ?>%;
-				<?php echo $bg_image_css; ?>
-				<?php echo $border_css; ?>
-				<?php echo $box_shadow_css; ?>
+				color: <?php echo esc_attr( $text_color ); ?>;
+				max-width: <?php echo absint( $o['width'] ); ?>px;
+				border-radius: <?php echo absint( $o['border_radius'] ); ?>px;
+				padding: <?php echo absint( $o['padding'] ); ?>px;
+				width: <?php echo absint( $o['max_width_pct'] ); ?>%;
+				<?php echo esc_attr( $bg_image_css ); ?>
+				<?php echo esc_attr( $border_css ); ?>
+				<?php echo esc_attr( $box_shadow_css ); ?>
 			}
 			/* Authoritative desktop sizing for the active position. Needed
 			   because frontend.css pins the corner box to a fixed 380px with
 			   !important, which would otherwise ignore the width setting. */
-			<?php echo $pos_sel; ?> {
+			<?php echo esc_attr( $pos_sel ); ?> {
 			<?php if ( $is_corner ) : ?>
 				/* A corner banner is shrink-to-fit (only bottom/left|right are
 				   set), so a percentage width has nothing to resolve against -
 				   it takes its own explicit pixel width, capped to the viewport.
 				   Kept separate from the width/percentage pair so switching
 				   positions does not overwrite either setting. */
-				width: <?php echo (int) $o['width_corner']; ?>px !important;
+				width: <?php echo absint( $o['width_corner'] ); ?>px !important;
 				max-width: 95vw !important;
 			<?php else : ?>
-				max-width: <?php echo (int) $o['width']; ?>px !important;
-				width: <?php echo (int) $o['max_width_pct']; ?>% !important;
+				max-width: <?php echo absint( $o['width'] ); ?>px !important;
+				width: <?php echo absint( $o['max_width_pct'] ); ?>% !important;
 			<?php endif; ?>
 			}
 			#dpt-cb-banner .dpt-cb-title {
-				color: <?php echo $title_color; ?>;
-				font-size: <?php echo $title_size; ?>px;
-				text-align: <?php echo $title_align; ?>;
-				font-weight: <?php echo $title_weight; ?>;
-				margin: 0 0 <?php echo $title_mb; ?>px;
-				<?php echo $title_shadow; ?>
+				color: <?php echo esc_attr( $title_color ); ?>;
+				font-size: <?php echo esc_attr( $title_size ); ?>px;
+				text-align: <?php echo esc_attr( $title_align ); ?>;
+				font-weight: <?php echo esc_attr( $title_weight ); ?>;
+				margin: 0 0 <?php echo esc_attr( $title_mb ); ?>px;
+				<?php echo esc_attr( $title_shadow ); ?>
 			}
 			#dpt-cb-banner .dpt-cb-message {
-				color: <?php echo $content_color; ?>;
-				font-size: <?php echo $content_size; ?>px;
-				text-align: <?php echo $content_align; ?>;
-				<?php echo $content_shadow; ?>
+				color: <?php echo esc_attr( $content_color ); ?>;
+				font-size: <?php echo esc_attr( $content_size ); ?>px;
+				text-align: <?php echo esc_attr( $content_align ); ?>;
+				<?php echo esc_attr( $content_shadow ); ?>
 			}
 			#dpt-cb-banner .dpt-cb-close {
-				color: <?php echo $close_color; ?>;
-				font-size: <?php echo $close_size; ?>px;
-				width: <?php echo $close_box; ?>px;
-				height: <?php echo $close_box; ?>px;
-				opacity: <?php echo $close_alpha; ?>;
-				<?php echo $close_bg_css; ?>
+				color: <?php echo esc_attr( $close_color ); ?>;
+				font-size: <?php echo esc_attr( $close_size ); ?>px;
+				width: <?php echo esc_attr( $close_box ); ?>px;
+				height: <?php echo esc_attr( $close_box ); ?>px;
+				opacity: <?php echo esc_attr( $close_alpha ); ?>;
+				<?php echo esc_attr( $close_bg_css ); ?>
 			}
 			<?php if ( $close_clear > 0 ) : ?>
 			/* No title shown: the close button sits where the message begins.
@@ -836,8 +861,8 @@ class DPT_CB_Frontend {
 			#dpt-cb-banner .dpt-cb-close + .dpt-cb-main-view > .dpt-cb-message:first-child::before {
 				content: "";
 				float: right;
-				width: <?php echo $close_clear + 4; ?>px;
-				height: <?php echo $close_clear; ?>px;
+				width: <?php echo esc_attr( $close_clear + 4 ); ?>px;
+				height: <?php echo esc_attr( $close_clear ); ?>px;
 			}
 			#dpt-cb-banner[dir="rtl"] .dpt-cb-close + .dpt-cb-main-view > .dpt-cb-title.dpt-cb-sr-only + .dpt-cb-message::before,
 			#dpt-cb-banner[dir="rtl"] .dpt-cb-close + .dpt-cb-main-view > .dpt-cb-message:first-child::before {
@@ -847,17 +872,17 @@ class DPT_CB_Frontend {
 			<?php if ( '' !== $policy_link_color ) : ?>
 			#dpt-cb-banner .dpt-cb-policy a,
 			#dpt-cb-banner .dpt-cb-policy-inline a {
-				color: <?php echo $policy_link_color; ?>;
+				color: <?php echo esc_attr( $policy_link_color ); ?>;
 				opacity: 1;
 			}
 			<?php endif; ?>
 			/* Same selector as frontend.css's base button rule, later in the
 			   page, so these win without !important. */
 			#dpt-cb-banner .dpt-cb-btn {
-				font-size: <?php echo $btn_font_size; ?>px;
-				font-weight: <?php echo $btn_font_weight; ?>;
+				font-size: <?php echo esc_attr( $btn_font_size ); ?>px;
+				font-weight: <?php echo esc_attr( $btn_font_weight ); ?>;
 				<?php if ( $btn_height > 0 ) : ?>
-				min-height: <?php echo $btn_height; ?>px;
+				min-height: <?php echo esc_attr( $btn_height ); ?>px;
 				<?php endif; ?>
 			}
 			<?php if ( '1' === $o['btn_stretch'] ) : ?>
@@ -873,44 +898,44 @@ class DPT_CB_Frontend {
 			/* Desktop only: below 640px frontend.css spreads the corner banner
 			   across the screen, and that layout keeps its own spacing. */
 			@media (min-width: 641px) {
-				<?php echo $banner_sel; ?> {
-					<?php echo $corner_side; ?>: <?php echo $corner_x; ?>px;
-					bottom: <?php echo $corner_y; ?>px;
+				<?php echo esc_attr( $banner_sel ); ?> {
+					<?php echo esc_attr( $corner_side ); ?>: <?php echo esc_attr( $corner_x ); ?>px;
+					bottom: <?php echo esc_attr( $corner_y ); ?>px;
 				}
 			}
 			<?php endif; ?>
 			#dpt-cb-banner .dpt-cb-btn-accept {
 				background: <?php echo esc_attr( $o['btn_accept_bg'] ); ?>;
 				color: <?php echo esc_attr( $o['btn_accept_color'] ); ?>;
-				border-radius: <?php echo (int) $o['btn_accept_radius']; ?>px;
+				border-radius: <?php echo absint( $o['btn_accept_radius'] ); ?>px;
 				border: 0;
 			}
 			#dpt-cb-banner .dpt-cb-btn-accept:hover { background: <?php echo esc_attr( $o['btn_accept_hover_bg'] ); ?>; }
 			#dpt-cb-banner .dpt-cb-btn-reject {
 				background: <?php echo esc_attr( $o['btn_reject_bg'] ); ?>;
 				color: <?php echo esc_attr( $o['btn_reject_color'] ); ?>;
-				border-radius: <?php echo (int) $o['btn_reject_radius']; ?>px;
+				border-radius: <?php echo absint( $o['btn_reject_radius'] ); ?>px;
 				border: 0;
 			}
 			#dpt-cb-banner .dpt-cb-btn-reject:hover { background: <?php echo esc_attr( $o['btn_reject_hover_bg'] ); ?>; }
 			#dpt-cb-banner .dpt-cb-btn-settings {
 				background: <?php echo esc_attr( $o['btn_settings_bg'] ); ?>;
 				color: <?php echo esc_attr( $o['btn_settings_color'] ); ?>;
-				border-radius: <?php echo (int) $o['btn_settings_radius']; ?>px;
-				<?php echo $btn_settings_border; ?>
+				border-radius: <?php echo absint( $o['btn_settings_radius'] ); ?>px;
+				<?php echo esc_attr( $btn_settings_border ); ?>
 			}
 			#dpt-cb-banner .dpt-cb-btn-save {
 				background: <?php echo esc_attr( $o['btn_save_bg'] ); ?>;
 				color: <?php echo esc_attr( $o['btn_save_color'] ); ?>;
-				border-radius: <?php echo (int) $o['btn_save_radius']; ?>px;
+				border-radius: <?php echo absint( $o['btn_save_radius'] ); ?>px;
 				border: 0;
 			}
 			#dpt-cb-float-button {
 				background: <?php echo esc_attr( $o['float_button_bg'] ); ?>;
 				color: <?php echo esc_attr( $o['float_button_color'] ); ?>;
-				width: <?php echo $fb_size_d; ?>px;
-				height: <?php echo $fb_size_d; ?>px;
-				<?php echo $fb_pos_d; ?>
+				width: <?php echo esc_attr( $fb_size_d ); ?>px;
+				height: <?php echo esc_attr( $fb_size_d ); ?>px;
+				<?php echo esc_attr( $fb_pos_d ); ?>
 			}
 			@media (max-width: 640px) {
 				/* Same selector shape and !important as the position rules in
@@ -918,9 +943,9 @@ class DPT_CB_Frontend {
 				   configured mobile size wins on later source order. On mobile
 				   the corner banner is stretched to left/right:10px, so it is no
 				   longer shrink-to-fit and a percentage width resolves normally. */
-				<?php echo $pos_sel; ?> {
-					max-width: <?php echo (int) $o['width_mobile']; ?>px !important;
-					width: <?php echo (int) $o['max_width_pct_mobile']; ?>% !important;
+				<?php echo esc_attr( $pos_sel ); ?> {
+					max-width: <?php echo absint( $o['width_mobile'] ); ?>px !important;
+					width: <?php echo absint( $o['max_width_pct_mobile'] ); ?>% !important;
 					/* frontend.css stretches the mobile container to
 					   left:10px/right:10px, so a box narrower than 100% would
 					   sit against its left edge - a bottom-right banner would
@@ -928,36 +953,35 @@ class DPT_CB_Frontend {
 					   Keep the box on the side its position names. Physical
 					   margins on purpose: the position names are physical, so
 					   they must not flip with the RTL/LTR text direction. */
-					margin-left: <?php echo $mobile_margins[0]; ?> !important;
-					margin-right: <?php echo $mobile_margins[1]; ?> !important;
+					margin-left: <?php echo esc_attr( $mobile_margins[0] ); ?> !important;
+					margin-right: <?php echo esc_attr( $mobile_margins[1] ); ?> !important;
 				}
 				<?php if ( '' !== $full_width_edge ) : ?>
 				/* "Full-width bar on mobile": flush with the screen edge, no
 				   margin, and rounded only on the edge facing the page if at
 				   all. After the sizing rule above, with the same selector and
 				   !important, so it wins. */
-				<?php echo $banner_sel; ?> {
+				<?php echo esc_attr( $banner_sel ); ?> {
 					left: 0 !important;
 					right: 0 !important;
-					<?php echo $full_width_edge; ?>: 0 !important;
+					<?php echo esc_attr( $full_width_edge ); ?>: 0 !important;
 				}
-				<?php echo $pos_sel; ?> {
+				<?php echo esc_attr( $pos_sel ); ?> {
 					width: 100% !important;
 					max-width: 100% !important;
 					margin-left: 0 !important;
 					margin-right: 0 !important;
-					border-radius: <?php echo $full_width_radius; ?> !important;
+					border-radius: <?php echo esc_attr( $full_width_radius ); ?> !important;
 				}
 				<?php endif; ?>
 				#dpt-cb-float-button {
-					width: <?php echo $fb_size_m; ?>px !important;
-					height: <?php echo $fb_size_m; ?>px !important;
-					<?php echo $fb_pos_m; ?>
+					width: <?php echo esc_attr( $fb_size_m ); ?>px !important;
+					height: <?php echo esc_attr( $fb_size_m ); ?>px !important;
+					<?php echo esc_attr( $fb_pos_m ); ?>
 				}
 			}
 		</style>
 		<?php
-		// phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
 	}
 
 	/**
@@ -1089,6 +1113,25 @@ class DPT_CB_Frontend {
 	 * Inline SVG icon (stroke follows the text color). Self-contained -
 	 * no icon font or Elementor dependency.
 	 */
+	/**
+	 * The tags and attributes the built-in icons use, for wp_kses().
+	 *
+	 * @return array
+	 */
+	public static function svg_allowed_html() {
+		$shape = array( 'd' => true, 'x' => true, 'y' => true, 'x1' => true, 'y1' => true, 'x2' => true, 'y2' => true, 'width' => true, 'height' => true, 'rx' => true, 'ry' => true );
+		return array(
+			'svg'  => array(
+				'class' => true, 'xmlns' => true, 'viewbox' => true, 'width' => true, 'height' => true, 'fill' => true,
+				'stroke' => true, 'stroke-width' => true, 'stroke-linecap' => true, 'stroke-linejoin' => true,
+				'aria-hidden' => true, 'focusable' => true,
+			),
+			'path' => $shape,
+			'line' => $shape,
+			'rect' => $shape,
+		);
+	}
+
 	private function icon( $name ) {
 		$attrs = 'class="dpt-cb-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"';
 		$icons = array(
@@ -1109,7 +1152,7 @@ class DPT_CB_Frontend {
 	 * @param string $name Icon key.
 	 */
 	private function print_icon( $name ) {
-		echo $this->icon( $name ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Hardcoded SVG from the map in icon().
+		echo wp_kses( $this->icon( $name ), self::svg_allowed_html() );
 	}
 
 	private function render_banner_markup( $o, $t, $lang, $dir ) {
@@ -1139,11 +1182,10 @@ class DPT_CB_Frontend {
 		     dir="<?php echo esc_attr( $dir ); ?>"
 		     lang="<?php echo esc_attr( str_replace( '_', '-', $lang ) ); ?>"
 		     <?php if ( $preview_mode ) : ?>data-force-open="1"<?php endif; ?>
-		     role="dialog" aria-labelledby="dpt-cb-title" aria-modal="true">
+		     role="dialog" aria-labelledby="dpt-cb-title">
 			<div class="dpt-cb-box">
 				<?php if ( '1' === $o['show_close'] ) : ?>
-					<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Fixed markup from close_glyph(). ?>
-					<button type="button" class="dpt-cb-close" data-dpt-cb-action="reject" aria-label="<?php echo esc_attr( $t['close_aria'] ); ?>"><?php echo self::close_glyph( $o['close_icon'] ); ?></button>
+					<button type="button" class="dpt-cb-close" data-dpt-cb-action="reject" aria-label="<?php echo esc_attr( $t['close_aria'] ); ?>"><?php echo wp_kses( self::close_glyph( $o['close_icon'] ), self::svg_allowed_html() ); ?></button>
 				<?php endif; ?>
 
 				<div class="dpt-cb-main-view">
@@ -1152,8 +1194,7 @@ class DPT_CB_Frontend {
 						<h2 id="dpt-cb-title" class="dpt-cb-title<?php echo '1' === $o['title_show'] ? '' : ' dpt-cb-sr-only'; ?>"><?php echo esc_html( $t['title'] ); ?></h2>
 					<?php endif; ?>
 					<?php
-					// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Built from wp_kses_post(), esc_url() and esc_html() in message_html().
-					echo self::message_html( $t['message'], $this->resolve_policy_link( $o ), $t['policy_text'], '1' === $o['policy_inline'] );
+					echo wp_kses_post( self::message_html( $t['message'], $this->resolve_policy_link( $o ), $t['policy_text'], '1' === $o['policy_inline'] ) );
 					?>
 
 					<div class="dpt-cb-buttons">
@@ -1168,7 +1209,7 @@ class DPT_CB_Frontend {
 				</div>
 
 				<div class="dpt-cb-settings-view" style="display:none;">
-					<h3 class="dpt-cb-settings-title"><?php echo esc_html( $t['settings_view_title'] ); ?></h3>
+					<h3 class="dpt-cb-settings-title" tabindex="-1"><?php echo esc_html( $t['settings_view_title'] ); ?></h3>
 
 					<div class="dpt-cb-category">
 						<div class="dpt-cb-category-head">
@@ -1181,8 +1222,8 @@ class DPT_CB_Frontend {
 					<?php if ( '1' === $o['cat_functional_enabled'] ) : ?>
 					<div class="dpt-cb-category">
 						<div class="dpt-cb-category-head">
-							<span class="dpt-cb-category-name"><?php $this->print_icon( 'sliders' ); ?> <?php echo esc_html( $t['cat_functional_name'] ); ?></span>
-							<label class="dpt-cb-toggle"><input type="checkbox" data-dpt-cb-cat="functional" /><span class="dpt-cb-toggle-slider"></span></label>
+							<span class="dpt-cb-category-name" id="dpt-cb-cat-name-functional"><?php $this->print_icon( 'sliders' ); ?> <?php echo esc_html( $t['cat_functional_name'] ); ?></span>
+							<label class="dpt-cb-toggle"><input type="checkbox" data-dpt-cb-cat="functional" aria-labelledby="dpt-cb-cat-name-functional" /><span class="dpt-cb-toggle-slider"></span></label>
 						</div>
 						<p class="dpt-cb-category-desc"><?php echo wp_kses_post( $t['cat_functional_desc'] ); ?></p>
 					</div>
@@ -1191,8 +1232,8 @@ class DPT_CB_Frontend {
 					<?php if ( '1' === $o['cat_analytics_enabled'] ) : ?>
 					<div class="dpt-cb-category">
 						<div class="dpt-cb-category-head">
-							<span class="dpt-cb-category-name"><?php $this->print_icon( 'chart' ); ?> <?php echo esc_html( $t['cat_analytics_name'] ); ?></span>
-							<label class="dpt-cb-toggle"><input type="checkbox" data-dpt-cb-cat="analytics" /><span class="dpt-cb-toggle-slider"></span></label>
+							<span class="dpt-cb-category-name" id="dpt-cb-cat-name-analytics"><?php $this->print_icon( 'chart' ); ?> <?php echo esc_html( $t['cat_analytics_name'] ); ?></span>
+							<label class="dpt-cb-toggle"><input type="checkbox" data-dpt-cb-cat="analytics" aria-labelledby="dpt-cb-cat-name-analytics" /><span class="dpt-cb-toggle-slider"></span></label>
 						</div>
 						<p class="dpt-cb-category-desc"><?php echo wp_kses_post( $t['cat_analytics_desc'] ); ?></p>
 					</div>
@@ -1201,8 +1242,8 @@ class DPT_CB_Frontend {
 					<?php if ( '1' === $o['cat_marketing_enabled'] ) : ?>
 					<div class="dpt-cb-category">
 						<div class="dpt-cb-category-head">
-							<span class="dpt-cb-category-name"><?php $this->print_icon( 'megaphone' ); ?> <?php echo esc_html( $t['cat_marketing_name'] ); ?></span>
-							<label class="dpt-cb-toggle"><input type="checkbox" data-dpt-cb-cat="marketing" /><span class="dpt-cb-toggle-slider"></span></label>
+							<span class="dpt-cb-category-name" id="dpt-cb-cat-name-marketing"><?php $this->print_icon( 'megaphone' ); ?> <?php echo esc_html( $t['cat_marketing_name'] ); ?></span>
+							<label class="dpt-cb-toggle"><input type="checkbox" data-dpt-cb-cat="marketing" aria-labelledby="dpt-cb-cat-name-marketing" /><span class="dpt-cb-toggle-slider"></span></label>
 						</div>
 						<p class="dpt-cb-category-desc"><?php echo wp_kses_post( $t['cat_marketing_desc'] ); ?></p>
 					</div>

@@ -1392,7 +1392,7 @@ class DPT_CB_Admin {
 			<p class="description"><?php esc_html_e( 'Updates after saving.', 'digitizer-pro-tools' ); ?></p>
 			<div class="dpt-preview-box" dir="<?php echo esc_attr( $dir ); ?>" style="<?php echo esc_attr( $box_style ); ?>">
 				<?php if ( '1' === $o['show_close'] ) : ?>
-					<span class="dpt-preview-close" style="color:<?php echo esc_attr( $o['close_color'] ?: $text ); ?>;font-size:<?php echo (int) $o['close_size']; ?>px;<?php echo $o['close_bg_color'] ? 'background:' . esc_attr( $o['close_bg_color'] ) . ';border-radius:50%;' : ''; ?>opacity:<?php echo esc_attr( DPT_CB_Frontend::close_opacity( $o['close_opacity'] ) ); ?>;"><?php echo DPT_CB_Frontend::close_glyph( $o['close_icon'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Fixed markup from close_glyph(). ?></span>
+					<span class="dpt-preview-close" style="color:<?php echo esc_attr( $o['close_color'] ?: $text ); ?>;font-size:<?php echo absint( $o['close_size'] ); ?>px;<?php echo esc_attr( $o['close_bg_color'] ? 'background:' . $o['close_bg_color'] . ';border-radius:50%;' : '' ); ?>opacity:<?php echo esc_attr( DPT_CB_Frontend::close_opacity( $o['close_opacity'] ) ); ?>;"><?php echo wp_kses( DPT_CB_Frontend::close_glyph( $o['close_icon'] ), DPT_CB_Frontend::svg_allowed_html() ); ?></span>
 				<?php endif; ?>
 				<?php if ( '1' === $o['title_show'] ) : ?>
 					<h4 style="<?php echo esc_attr( $title_style ); ?>"><?php echo esc_html( $texts['title'] ); ?></h4>

@@ -288,6 +288,7 @@
     box-shadow: 0 1px 2px rgba(0,0,0,0.2);
 }
 .dpt-cb-toggle input:checked + .dpt-cb-toggle-slider { background: #16a34a; }
+.dpt-cb-toggle input:focus-visible + .dpt-cb-toggle-slider { outline: 2px solid #2563eb; outline-offset: 2px; }
 #dpt-cb-banner[dir="ltr"] .dpt-cb-toggle input:checked + .dpt-cb-toggle-slider:before { transform: translateX(20px); }
 #dpt-cb-banner[dir="rtl"] .dpt-cb-toggle input:checked + .dpt-cb-toggle-slider:before { transform: translateX(-20px); }
 
@@ -346,3 +347,6 @@
     #dpt-cb-banner .dpt-cb-buttons { flex-direction: column; }
     #dpt-cb-banner .dpt-cb-btn { width: 100%; text-align: center; }
 }
+
+/* Focus lands on the heading when the preferences view opens; it is not a control. */
+#dpt-cb-banner .dpt-cb-settings-title:focus { outline: none; }

@@ -2,6 +2,16 @@
     'use strict';
 
     $(function () {
+        // Each switch's text is its row's heading, not its own label: name it
+        // by that heading, or a screen reader announces an unlabeled checkbox.
+        $('.dpt-switch input[type="checkbox"]').each(function (i) {
+            var $th = $(this).closest('tr').children('th').first();
+            if (!$th.length || this.hasAttribute('aria-labelledby')) return;
+            var id = $th.attr('id') || 'dpt-switch-label-' + i;
+            $th.attr('id', id);
+            this.setAttribute('aria-labelledby', id);
+        });
+
         if ($.fn.wpColorPicker) {
             $('.dpt-color').wpColorPicker();
         }

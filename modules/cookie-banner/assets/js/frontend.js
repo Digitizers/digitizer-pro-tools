@@ -21,6 +21,9 @@
     /* ============== Storage ============== */
 
     function getCookieDomain() {
+        // The dpt_cb_cookie_domain filter: '' is host-only,
+        // a domain is used as given, null (the default) guesses the parent.
+        if (typeof config.cookieDomain === 'string') return config.cookieDomain;
         var host = location.hostname;
         if (!host || host === 'localhost' || /^\d+\.\d+\.\d+\.\d+$/.test(host)) return '';
         var parts = host.split('.');
@@ -51,6 +54,17 @@
                 '; path=/' +
                 '; samesite=lax' + secure;
             var domain = getCookieDomain();
+            // A copy of the same name elsewhere - on the parent domain from
+            // before a switch to host-only, or host-only from before the
+            // reverse - is sent alongside, and the server and getCookie() may
+            // read it instead. Expire every other copy first.
+            var gone = name + '=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; samesite=lax' + secure;
+            var labels = String(location.hostname || '').split('.');
+            if (domain) document.cookie = gone;
+            for (var i = 0; i < labels.length - 1; i++) {
+                var parent = '.' + labels.slice(i).join('.');
+                if (parent !== domain) document.cookie = gone + '; domain=' + parent;
+            }
             if (domain) {
                 document.cookie = base + '; domain=' + domain;
             }
@@ -60,7 +74,9 @@
             // is not in our short list) the browser silently rejects it -
             // fall back to a host-only cookie so the server can still read
             // the consent.
-            if (getCookie(name) !== value) {
+            if (!domain) {
+                document.cookie = base;
+            } else if (getCookie(name) !== value) {
                 document.cookie = base;
                 log('cookie domain write not verified, host-only fallback', domain);
             }
@@ -167,12 +183,17 @@
                 s.text = node.text || node.textContent || '';
                 if (s.src) {
                     injectWaiting = true;
-                    var proceed = function () {
+                    // Listeners, not onload/onerror: the snippet's own
+                    // handlers, copied from its attributes, still run.
+                    var resumed = false;
+                    var resume = function () {
+                        if (resumed) return;
+                        resumed = true;
                         injectWaiting = false;
                         processInjectQueue();
                     };
-                    s.onload = proceed;
-                    s.onerror = proceed;
+                    s.addEventListener('load', resume);
+                    s.addEventListener('error', resume);
                     target.appendChild(s);
                     return; // resume from onload/onerror
                 }
@@ -416,6 +437,7 @@
             document.documentElement.removeAttribute('data-dpt-cb-resolved');
             var delayMs = Math.max(0, (config.showDelay || 0) * 1000);
             var revealBanner = function () {
+                if (readConsent()) return;  // chosen early, through a link or the floating button
                 banner.classList.remove('dpt-cb-hidden');
                 if (overlay) overlay.classList.remove('dpt-cb-hidden');
                 banner.classList.add('dpt-cb-entering');
@@ -484,6 +506,11 @@
             // Re-enable buttons in the settings view in case they were disabled.
             var btns = settingsView ? settingsView.querySelectorAll('[data-dpt-cb-action]') : [];
             for (var i = 0; i < btns.length; i++) btns[i].style.pointerEvents = '';
+            // The button that opened this view is now hidden; without this,
+            // focus falls to the page and the next Tab leaves the banner.
+            var title = settingsView ? settingsView.querySelector('.dpt-cb-settings-title') : null;
+            var first = title || (catInputs.length ? catInputs[0] : null);
+            if (first) { try { first.focus(); } catch (e) {} }
         }
 
         function dispatchConsentEvent(consent) {
@@ -498,6 +525,11 @@
             }
             isClosing = true;
             log('finishConsent', consent);
+            // A snippet already running on this page cannot be unloaded: when
+            // its category is withdrawn, reload so that code stops at once.
+            var withdrawn = ['functional', 'analytics', 'marketing'].some(function (cat) {
+                return injectedCats[cat] && !consent[cat];
+            });
             saveConsent(consent);
             purgeDenied(consent);
             // Signals before the scripts, so a tag injected now reads the
@@ -512,6 +544,11 @@
             if (mainView) mainView.style.display = '';
             if (settingsView) settingsView.style.display = 'none';
             dispatchConsentEvent(consent);
+            if (withdrawn) {
+                log('a running category was withdrawn - reloading');
+                try { location.reload(); } catch (e) {}
+                return;
+            }
             // Auto-release lock after a short window so the float button still works.
             setTimeout(function () { isClosing = false; }, 600);
         }
