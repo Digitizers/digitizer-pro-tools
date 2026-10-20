@@ -183,6 +183,7 @@
     box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 }
 .dpt-switch input:checked + .dpt-switch-slider { background: #16a34a; }
+.dpt-switch input:focus-visible + .dpt-switch-slider { outline: 2px solid #2271b1; outline-offset: 2px; }
 .dpt-switch input:checked + .dpt-switch-slider:before { transform: translateX(22px); }
 body.rtl .dpt-switch input:checked + .dpt-switch-slider:before { transform: translateX(-22px); }
 

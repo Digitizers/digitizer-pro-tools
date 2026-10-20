@@ -4,7 +4,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.47.2
+Stable tag: 1.47.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -360,6 +360,10 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 5. Configure each module you enabled from its own screen. For the Cookie Banner that means reviewing the texts per language and pasting your analytics/marketing snippets in the Scripts tab, then checking the site
 
 == Changelog ==
+
+= 1.47.3 =
+* Cookie Banner: a tall banner - long texts, or the preferences list on a short or landscape screen - stays on screen and scrolls inside itself. A corner banner raised from the bottom leaves room for its offset.
+* A focused switch on the Digitizer settings screens shows a focus ring.
 
 = 1.47.2 =
 * Cookie Banner: the fixes the standalone Digitizer Cookie Consent got in review. Screen readers name each category switch and each settings switch; the banner no longer claims to be modal; focus moves into the preferences view, and a focused toggle shows a ring. A delayed banner stays away after an early choice. Withdrawing a category whose snippet already runs reloads the page so that code stops. A blank or out-of-range number in the settings falls back to its default or the form's bound. The consent cookie's domain can be set with the dpt_cb_cookie_domain filter ('' for host-only), and a copy left on another domain is expired. An injected snippet keeps its own onload. Every value in the inline CSS is escaped where it is printed. (#72)

@@ -132,4 +132,11 @@ dpt_test_ok( false === strpos( $out, '&quot;' ) && false === strpos( $out, '&#03
 $svg = DPT_CB_Frontend::svg_allowed_html();
 dpt_test_ok( isset( $svg['svg']['viewbox'], $svg['path']['d'] ), 'icons are printed through wp_kses() with an SVG allowlist' );
 
+/* A tall banner stays on screen; a focused settings switch shows a ring. */
+dpt_test_ok( 1 === preg_match( '/#dpt-cb-banner \.dpt-cb-box \{[^}]*max-height: calc\(100dvh - 40px\);[^}]*overflow-y: auto;/', $css ), 'the box is held to the viewport and scrolls inside it' );
+$GLOBALS['dpt_stub_options'] = array( DPT_CB_Settings::OPTION => array_merge( $base, array( 'position' => 'bottom-right', 'corner_offset_y' => '60' ) ) );
+dpt_test_ok( false !== strpos( dpt_test_rf_css( DPT_CB_Settings::all() ), 'max-height: calc(100dvh - 80px);' ), 'a corner box raised from the bottom leaves room for its offset' );
+$admin_css = (string) file_get_contents( dirname( __DIR__ ) . '/assets/css/admin.css' );
+dpt_test_ok( 1 === preg_match( '/\.dpt-switch input:focus-visible \+ \.dpt-switch-slider\s*\{[^}]*outline:/', $admin_css ), 'a focused settings switch shows a focus ring' );
+
 exit( dpt_test_summary() > 0 ? 1 : 0 );
