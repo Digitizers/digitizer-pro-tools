@@ -902,6 +902,10 @@ class DPT_CB_Frontend {
 					<?php echo esc_attr( $corner_side ); ?>: <?php echo esc_attr( $corner_x ); ?>px;
 					bottom: <?php echo esc_attr( $corner_y ); ?>px;
 				}
+				<?php echo esc_attr( $pos_sel ); ?> {
+					max-height: calc(100vh - <?php echo absint( $corner_y + 20 ); ?>px);
+					max-height: calc(100dvh - <?php echo absint( $corner_y + 20 ); ?>px);
+				}
 			}
 			<?php endif; ?>
 			#dpt-cb-banner .dpt-cb-btn-accept {

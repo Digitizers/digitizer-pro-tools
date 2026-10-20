@@ -112,6 +112,13 @@
     line-height: 1.5;
     width: 100%;
     max-width: 700px;
+    /* Long texts or the preferences list never run off a short screen: the
+       box stays inside the viewport and scrolls. 100vh first, for browsers
+       without dvh. */
+    max-height: calc(100vh - 40px);
+    max-height: calc(100dvh - 40px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
 }
 
 /* Inline SVG icons */

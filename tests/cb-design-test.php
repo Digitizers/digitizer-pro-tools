@@ -145,7 +145,7 @@ dpt_test_ok( false === strpos( dpt_test_cb_css( $frontend, $o ), '#f2f2f2' ), 'a
 
 $o   = dpt_test_cb_opts( array( 'position' => 'bottom-left', 'corner_offset_x' => '70', 'corner_offset_y' => '30' ) );
 $css = preg_replace( '/\s+/', ' ', dpt_test_cb_css( $frontend, $o ) );
-dpt_test_ok( false !== strpos( $css, '@media (min-width: 641px) { #dpt-cb-banner.dpt-cb-pos-bottom-left { left: 70px; bottom: 30px; } }' ), 'bottom-left: 70px from the left and 30px from the bottom, on desktop only' );
+dpt_test_ok( false !== strpos( $css, '@media (min-width: 641px) { #dpt-cb-banner.dpt-cb-pos-bottom-left { left: 70px; bottom: 30px; } #dpt-cb-banner.dpt-cb-pos-bottom-left .dpt-cb-box { max-height: calc(100vh - 50px); max-height: calc(100dvh - 50px); } }' ), 'bottom-left: 70px from the left and 30px from the bottom, on desktop only' );
 $o   = dpt_test_cb_opts( array( 'position' => 'bottom-right', 'corner_offset_x' => '70', 'corner_offset_y' => '30' ) );
 $css = preg_replace( '/\s+/', ' ', dpt_test_cb_css( $frontend, $o ) );
 dpt_test_ok( false !== strpos( $css, '#dpt-cb-banner.dpt-cb-pos-bottom-right { right: 70px; bottom: 30px; }' ), 'bottom-right measures from the right - physical, not flipped by RTL' );
