@@ -4,7 +4,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.47.3
+Stable tag: 1.47.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -360,6 +360,9 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 5. Configure each module you enabled from its own screen. For the Cookie Banner that means reviewing the texts per language and pasting your analytics/marketing snippets in the Scripts tab, then checking the site
 
 == Changelog ==
+
+= 1.47.4 =
+* Content Control: posts a restriction hides from a list are left out before the query is paged, so result counts and page numbers count only what the visitor can see. Very large lists (over 1,000 matches, adjustable with the dpt_cc_prefilter_limit filter) keep hiding per page as before.
 
 = 1.47.3 =
 * Cookie Banner: a tall banner - long texts, or the preferences list on a short or landscape screen - stays on screen and scrolls inside itself. A corner banner raised from the bottom leaves room for its offset.

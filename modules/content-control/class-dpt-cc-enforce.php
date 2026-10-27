@@ -21,6 +21,8 @@ class DPT_CC_Enforce {
 	}
 
 	public function register_query_filters() {
+		// Late, so the pre-pass sees the query other plugins have shaped.
+		add_action( 'pre_get_posts', array( $this, 'prefilter_query' ), 9999 );
 		add_filter( 'the_posts', array( $this, 'filter_posts' ), 10, 2 );
 		add_filter( 'get_terms', array( $this, 'filter_terms' ), 10, 4 );
 	}
@@ -434,6 +436,108 @@ class DPT_CC_Enforce {
 		return (bool) apply_filters( 'dpt_cc_query_ignored', false, $query );
 	}
 
+	/**
+	 * Whether a post in a list is withheld from this viewer.
+	 *
+	 * @param object $post      Post-like object.
+	 * @param bool   $is_main   The list is the main query.
+	 * @param bool   $is_search The list is a search.
+	 */
+	private function hides( $post, $is_main, $is_search ) {
+		if ( ! is_object( $post ) || empty( $post->ID ) ) {
+			return false;
+		}
+		if ( empty( $post->post_type ) || $this->post_type_ignored( $post->post_type ) ) {
+			return false;
+		}
+		$row = $this->restriction_for_post( $post );
+		if ( ! $row ) {
+			return false;
+		}
+		$handling = $this->handling_for( $row, $is_main, $is_search );
+		// A redirect cannot happen inside a REST collection, so a
+		// redirect-protected post is withheld from it entirely rather
+		// than leaking title/link/author around a blanked body.
+		// (Codex round-4 P1)
+		if ( 'filter' === $handling && 'redirect' === $row['protection']['method'] && self::doing_rest() ) {
+			$handling = 'hide';
+		}
+		return 'hide' === $handling;
+	}
+
+	/**
+	 * Exclude hidden posts in SQL, before pagination, so found_posts and
+	 * max_num_pages count only what the viewer can see. Hiding after the
+	 * query (filter_posts) can correct totals for the current page only:
+	 * 20 hidden matches at 10 per page left page 1 empty yet advertising
+	 * 10 results. (#44)
+	 *
+	 * The rules are PHP callbacks, not SQL, so the query's own candidates
+	 * are fetched as ids - unpaged, uncounted - and judged one by one.
+	 * Above the cap (filter dpt_cc_prefilter_limit) the pass stands down
+	 * and filter_posts alone hides, as before.
+	 *
+	 * @param WP_Query $query The query about to run.
+	 */
+	public function prefilter_query( $query ) {
+		if ( ! is_object( $query ) || ! method_exists( $query, 'get' ) || ! method_exists( $query, 'set' ) ) {
+			return;
+		}
+		if ( $this->enforcement_off() || $this->query_ignored( $query ) || ! DPT_CC_Restrictions::enabled() ) {
+			return;
+		}
+		$is_main   = method_exists( $query, 'is_main_query' ) && $query->is_main_query();
+		$is_search = method_exists( $query, 'is_search' ) && $query->is_search();
+		// The singular main query belongs to template_redirect. (Codex round-1 P1)
+		if ( $is_main && method_exists( $query, 'is_singular' ) && $query->is_singular() ) {
+			return;
+		}
+		$limit = max( 0, (int) apply_filters( 'dpt_cc_prefilter_limit', 1000, $query ) );
+		if ( 0 === $limit ) {
+			return;
+		}
+		$candidates = new WP_Query(
+			array_merge(
+				(array) $query->query_vars,
+				array(
+					'fields'              => 'ids',
+					'posts_per_page'      => $limit + 1,
+					'paged'               => 1,
+					'offset'              => '',
+					'nopaging'            => false,
+					'no_found_rows'       => true,
+					'ignore_sticky_posts' => true,
+					'ignore_restrictions' => true,
+				)
+			)
+		);
+		$ids = array_map( 'intval', (array) $candidates->posts );
+		if ( ! $ids || count( $ids ) > $limit ) {
+			return;
+		}
+		if ( function_exists( '_prime_post_caches' ) ) {
+			_prime_post_caches( $ids, true, true );
+		}
+		$hidden = array();
+		foreach ( $ids as $id ) {
+			if ( $this->hides( get_post( $id ), $is_main, $is_search ) ) {
+				$hidden[] = $id;
+			}
+		}
+		if ( ! $hidden ) {
+			return;
+		}
+		// WP_Query ignores post__not_in whenever post__in is set.
+		$in = array_map( 'intval', (array) $query->get( 'post__in' ) );
+		if ( array_filter( $in ) ) {
+			$left = array_values( array_diff( $in, $hidden ) );
+			$query->set( 'post__in', $left ? $left : array( 0 ) );
+			return;
+		}
+		$not_in = array_map( 'intval', (array) $query->get( 'post__not_in' ) );
+		$query->set( 'post__not_in', array_values( array_unique( array_merge( array_filter( $not_in ), $hidden ) ) ) );
+	}
+
 	public function filter_posts( $posts, $query = null ) {
 		if ( empty( $posts ) || ! is_array( $posts ) || $this->enforcement_off() || $this->query_ignored( $query ) ) {
 			return $posts;
@@ -449,25 +553,7 @@ class DPT_CC_Enforce {
 		$changed = false;
 		$removed = 0;
 		foreach ( $posts as $i => $post ) {
-			if ( ! is_object( $post ) || empty( $post->ID ) ) {
-				continue;
-			}
-			if ( empty( $post->post_type ) || $this->post_type_ignored( $post->post_type ) ) {
-				continue;
-			}
-			$row = $this->restriction_for_post( $post );
-			if ( ! $row ) {
-				continue;
-			}
-			$handling = $this->handling_for( $row, $is_main, $is_search );
-			// A redirect cannot happen inside a REST collection, so a
-			// redirect-protected post is withheld from it entirely rather
-			// than leaking title/link/author around a blanked body.
-			// (Codex round-4 P1)
-			if ( 'filter' === $handling && 'redirect' === $row['protection']['method'] && self::doing_rest() ) {
-				$handling = 'hide';
-			}
-			if ( 'hide' === $handling ) {
+			if ( $this->hides( $post, $is_main, $is_search ) ) {
 				unset( $posts[ $i ] );
 				$changed = true;
 				++$removed;
@@ -479,9 +565,9 @@ class DPT_CC_Enforce {
 				$query->post_count = count( $posts );
 			}
 			// Totals advertised to pagination and REST headers must not
-			// count rows the viewer will never see. Deep pagination can
-			// still shift - the cost of post-query filtering, shared with
-			// the plugin this mirrors. (Codex round-4 P2)
+			// count rows the viewer will never see. Only rows the pre-pass
+			// could not exclude reach here (over the cap, sticky posts), so
+			// deep pagination can still shift in those cases. (Codex round-4 P2)
 			if ( $query && property_exists( $query, 'found_posts' ) && (int) $query->found_posts > 0 ) {
 				$query->found_posts = max( 0, (int) $query->found_posts - $removed );
 				$per                = method_exists( $query, 'get' ) ? (int) $query->get( 'posts_per_page' ) : 0;

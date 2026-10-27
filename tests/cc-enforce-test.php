@@ -67,12 +67,27 @@ class WP_Query {
 	public $found_posts = 0;
 	public $max_num_pages = 0;
 	public $qv = array();
-	public function __construct( $qv = array() ) { $this->qv = $qv; }
+	public function __construct( $qv = array() ) {
+		$this->qv = $qv;
+		// The pre-pass candidate query: answer from the scripted id list,
+		// honouring the row cap it asks for.
+		if ( isset( $qv['fields'] ) && 'ids' === $qv['fields'] ) {
+			$GLOBALS['dpt_stub_candidate_args'] = $qv;
+			$ids = (array) $GLOBALS['dpt_stub_candidates'];
+			if ( isset( $qv['post__in'] ) && $qv['post__in'] ) {
+				$ids = array_values( array_intersect( $ids, $qv['post__in'] ) );
+			}
+			$this->posts = array_slice( $ids, 0, (int) $qv['posts_per_page'] );
+		}
+	}
+	public function set( $k, $v ) { $this->qv[ $k ] = $v; }
 	public function is_main_query() { return ! empty( $this->qv['main'] ); }
 	public function is_search() { return ! empty( $this->qv['s'] ); }
 	public function is_singular() { return ! empty( $this->qv['singular'] ); }
 	public function get( $k, $d = '' ) { return isset( $this->qv[ $k ] ) ? $this->qv[ $k ] : $d; }
+	public $query_vars = array();
 }
+$GLOBALS['dpt_stub_candidates'] = array();
 
 function dpt_cc_page_rule_row( $id, $extra = array() ) {
 	return array_merge( array(
@@ -290,5 +305,76 @@ $qn = new WP_Query( array() );
 $qn->posts = array( $page );
 $qn->post_count = 1;
 dpt_test_eq( count( $enf->filter_posts( $qn->posts, $qn ) ), 1, 'outside REST, a redirect row keeps filter handling in lists' );
+
+/* ---- #44: hiding happens before SQL pagination, so totals are true ---- */
+
+DPT_CC_Restrictions::save_all( array( dpt_cc_page_rule_row( 'r_pages', array( 'query_handling' => 'hide', 'archive_handling' => 'filter', 'show_in_search' => false ) ) ) );
+DPT_CC_Restrictions::flush_cache();
+$GLOBALS['dpt_stub_posts'] = array();
+$cands = array();
+for ( $i = 101; $i <= 120; $i++ ) { $GLOBALS['dpt_stub_posts'][ $i ] = 'page'; $cands[] = $i; } // 20 restricted
+for ( $i = 201; $i <= 205; $i++ ) { $GLOBALS['dpt_stub_posts'][ $i ] = 'post'; $cands[] = $i; }  // 5 visible
+$GLOBALS['dpt_stub_candidates'] = $cands;
+
+$qp = new WP_Query( array( 'posts_per_page' => 10, 'paged' => 2, 'post__not_in' => array( 999 ) ) );
+$qp->query_vars = $qp->qv;
+$enf->prefilter_query( $qp );
+$not_in = (array) $qp->get( 'post__not_in' );
+dpt_test_eq( count( $not_in ), 21, 'all 20 restricted matches are excluded in SQL, beside the caller\'s own exclusion' );
+dpt_test_ok( in_array( 999, $not_in, true ) && in_array( 101, $not_in, true ) && ! in_array( 201, $not_in, true ), 'visible posts stay; the caller\'s exclusion is kept' );
+$ca = $GLOBALS['dpt_stub_candidate_args'];
+dpt_test_ok( ! empty( $ca['ignore_restrictions'] ) && ! empty( $ca['no_found_rows'] ) && 1 === (int) $ca['paged'] && '' === $ca['offset'], 'the candidate pass is unpaged, uncounted and exempt from itself' );
+dpt_test_ok( ! isset( $ca['post__not_in'] ) || array( 999 ) === $ca['post__not_in'], 'the candidate pass sees the caller\'s own query' );
+
+// post__in wins over post__not_in in WP_Query, so the exclusion is subtracted from it.
+$qin = new WP_Query( array( 'post__in' => array( 101, 201 ) ) );
+$qin->query_vars = $qin->qv;
+$enf->prefilter_query( $qin );
+dpt_test_eq( array_values( (array) $qin->get( 'post__in' ) ), array( 201 ), 'post__in loses the restricted id' );
+$qin2 = new WP_Query( array( 'post__in' => array( 101, 102 ) ) );
+$qin2->query_vars = $qin2->qv;
+$enf->prefilter_query( $qin2 );
+dpt_test_eq( (array) $qin2->get( 'post__in' ), array( 0 ), 'a post__in of only restricted ids matches nothing, never everything' );
+
+// Main archive with filter handling: nothing is excluded, the items are filtered in place.
+$qma = new WP_Query( array( 'main' => 1 ) );
+$qma->query_vars = $qma->qv;
+$enf->prefilter_query( $qma );
+dpt_test_eq( array_filter( (array) $qma->get( 'post__not_in' ) ), array(), 'a filtering archive excludes nothing' );
+// ...but its search hides while show_in_search is off.
+$qms = new WP_Query( array( 'main' => 1, 's' => 'x' ) );
+$qms->query_vars = $qms->qv;
+$enf->prefilter_query( $qms );
+dpt_test_eq( count( (array) $qms->get( 'post__not_in' ) ), 20, 'search excludes the restricted matches' );
+
+// Singular main, ignore_restrictions, administrators: untouched.
+foreach ( array(
+	'singular main query' => array( 'main' => 1, 'singular' => 1 ),
+	'ignore_restrictions' => array( 'ignore_restrictions' => true ),
+) as $label => $qv ) {
+	$GLOBALS['dpt_stub_candidate_args'] = null;
+	$qx = new WP_Query( $qv );
+	$qx->query_vars = $qx->qv;
+	$enf->prefilter_query( $qx );
+	dpt_test_ok( null === $GLOBALS['dpt_stub_candidate_args'] && array() === array_filter( (array) $qx->get( 'post__not_in' ) ), "$label: no pre-pass" );
+}
+$GLOBALS['dpt_stub_user'] = (object) array( 'ID' => 1, 'roles' => array( 'administrator' ) );
+$GLOBALS['dpt_stub_candidate_args'] = null;
+$qa = new WP_Query( array() );
+$qa->query_vars = $qa->qv;
+$enf->prefilter_query( $qa );
+dpt_test_ok( null === $GLOBALS['dpt_stub_candidate_args'], 'administrators: no pre-pass' );
+$GLOBALS['dpt_stub_user'] = (object) array( 'ID' => 0, 'roles' => array() );
+DPT_CC_Restrictions::flush_cache();
+
+// Over the cap the pre-pass stands down; the_posts still hides per page.
+add_filter( 'dpt_cc_prefilter_limit', function () { return 10; } );
+$qc = new WP_Query( array() );
+$qc->query_vars = $qc->qv;
+$enf->prefilter_query( $qc );
+dpt_test_eq( array_filter( (array) $qc->get( 'post__not_in' ) ), array(), 'more candidates than the cap: no exclusion, post-query hiding remains' );
+dpt_test_eq( (int) $GLOBALS['dpt_stub_candidate_args']['posts_per_page'], 11, 'the candidate pass reads one past the cap, no more' );
+$GLOBALS['dpt_stub_filters'] = array();
+$GLOBALS['dpt_stub_candidates'] = array();
 
 exit( dpt_test_summary() );
