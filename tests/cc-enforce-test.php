@@ -374,6 +374,12 @@ $qc->query_vars = $qc->qv;
 $enf->prefilter_query( $qc );
 dpt_test_eq( array_filter( (array) $qc->get( 'post__not_in' ) ), array(), 'more candidates than the cap: no exclusion, post-query hiding remains' );
 dpt_test_eq( (int) $GLOBALS['dpt_stub_candidate_args']['posts_per_page'], 11, 'the candidate pass reads one past the cap, no more' );
+// WP_Query lets these override posts_per_page after pre_get_posts. (PR #76 Codex P2)
+$qo = new WP_Query( array( 'posts_per_archive_page' => -1, 'showposts' => 3, 'posts_per_rss' => 5 ) );
+$qo->query_vars = $qo->qv;
+$enf->prefilter_query( $qo );
+$ca = $GLOBALS['dpt_stub_candidate_args'];
+dpt_test_eq( array( (int) $ca['posts_per_archive_page'], (int) $ca['showposts'], (int) $ca['posts_per_rss'] ), array( 11, 11, 11 ), 'archive, legacy and feed page sizes are held to the cap too' );
 $GLOBALS['dpt_stub_filters'] = array();
 $GLOBALS['dpt_stub_candidates'] = array();
 

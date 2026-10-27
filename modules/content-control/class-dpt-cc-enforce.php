@@ -496,18 +496,24 @@ class DPT_CC_Enforce {
 		if ( 0 === $limit ) {
 			return;
 		}
+		// posts_per_archive_page, showposts and posts_per_rss override
+		// posts_per_page inside WP_Query, so all of them carry the cap.
+		// (PR #76 Codex P2)
 		$candidates = new WP_Query(
 			array_merge(
 				(array) $query->query_vars,
 				array(
-					'fields'              => 'ids',
-					'posts_per_page'      => $limit + 1,
-					'paged'               => 1,
-					'offset'              => '',
-					'nopaging'            => false,
-					'no_found_rows'       => true,
-					'ignore_sticky_posts' => true,
-					'ignore_restrictions' => true,
+					'fields'                 => 'ids',
+					'posts_per_page'         => $limit + 1,
+					'posts_per_archive_page' => $limit + 1,
+					'showposts'              => $limit + 1,
+					'posts_per_rss'          => $limit + 1,
+					'paged'                  => 1,
+					'offset'                 => '',
+					'nopaging'               => false,
+					'no_found_rows'          => true,
+					'ignore_sticky_posts'    => true,
+					'ignore_restrictions'    => true,
 				)
 			)
 		);
