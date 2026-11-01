@@ -128,6 +128,11 @@ class DPT_Plugin {
 				'class'   => 'DPT_Copy_URL_Module',
 				'default' => '0',
 			),
+			'utm_passthrough' => array(
+				'file'    => DPT_PATH . 'modules/utm-passthrough/class-dpt-utm-module.php',
+				'class'   => 'DPT_UTM_Passthrough_Module',
+				'default' => '0',
+			),
 			'shabbat_keeper' => array(
 				'file'    => DPT_PATH . 'modules/shabbat-keeper/class-dpt-sk-module.php',
 				'class'   => 'DPT_Shabbat_Keeper_Module',

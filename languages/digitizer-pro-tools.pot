@@ -2175,6 +2175,12 @@ msgstr ""
 msgid "Two shortcodes: [digitizer_copy_url] renders a copy-this-page-address field with a one-click button, and [digitizer_geturl] prints the current page address for use as a dynamic value. Replaces the functions.php snippet and the three-widget Elementor construction around it."
 msgstr ""
 
+msgid "UTM Passthrough"
+msgstr ""
+
+msgid "A visitor who arrives with utm_* parameters keeps them on the site's internal links, so the campaign reaches the form or the checkout. Runs in the browser, stores nothing, and leaves external links, downloads, the admin and add-to-cart links alone. Replaces the snippet pasted into the site header."
+msgstr ""
+
 msgid "Shabbat Keeper"
 msgstr ""
 
