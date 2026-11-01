@@ -4,7 +4,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.47.4
+Stable tag: 1.48.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -243,6 +243,16 @@ A copy-this-page-address widget as one shortcode (disabled by default; enable it
 * `[digitizer_geturl]` prints the current page address on its own, for use as a dynamic value (an Elementor form field's default, for instance). The address is built from the site's canonical home URL - correct behind a reverse proxy - decoded so a Hebrew slug stays readable, with markup-breaking characters stripped
 * Replaces the functions.php snippet and the three-widget Elementor construction (form, absolutely positioned heading, raw HTML script) this used to take
 
+= Module: UTM Passthrough =
+
+Keeps campaign parameters on the site's own links (disabled by default; enable it on the Modules screen):
+
+* A visitor who arrives with `utm_*` parameters keeps them on every internal link, including links added after the page loads (popups, Loop Grids, menus), so the campaign is still on the address at the form or the checkout
+* A link that already carries its own `utm_*` keeps it. www and the bare domain count as one site; subdomains do not
+* External links, same-page anchors, downloads, the admin, the login page and add-to-cart links are left alone; the `dpt_utm_excluded_paths` filter adds more paths
+* Runs in the browser, so page caches are unaffected, and stores nothing - no cookie
+* Replaces the snippet pasted into the site header
+
 Admin interface is in English with a full Hebrew translation.
 
 = Module: Shabbat Keeper =
@@ -360,6 +370,9 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 5. Configure each module you enabled from its own screen. For the Cookie Banner that means reviewing the texts per language and pasting your analytics/marketing snippets in the Scripts tab, then checking the site
 
 == Changelog ==
+
+= 1.48.0 =
+* New module: UTM Passthrough - a visitor who arrives with utm_* parameters keeps them on the site's internal links, including links added after the page loads. Runs in the browser and stores nothing. External links, downloads, the admin, the login page and add-to-cart links are left alone; the dpt_utm_excluded_paths filter adds more paths. Replaces the snippet pasted into the site header
 
 = 1.47.4 =
 * Content Control: posts a restriction hides from a list are left out before the query is paged, so result counts and page numbers count only what the visitor can see. Very large lists (over 1,000 matches, adjustable with the dpt_cc_prefilter_limit filter) keep hiding per page as before.

@@ -2175,6 +2175,12 @@ msgstr "העתקת כתובת"
 msgid "Two shortcodes: [digitizer_copy_url] renders a copy-this-page-address field with a one-click button, and [digitizer_geturl] prints the current page address for use as a dynamic value. Replaces the functions.php snippet and the three-widget Elementor construction around it."
 msgstr "שני שורטקודים: [digitizer_copy_url] מציג שדה עם כתובת העמוד הנוכחי וכפתור העתקה בלחיצה אחת, ו-[digitizer_geturl] מדפיס את כתובת העמוד הנוכחי לשימוש כערך דינמי. מחליף את הסניפט מ-functions.php ואת מבנה שלושת הווידג׳טים באלמנטור שנבנה סביבו."
 
+msgid "UTM Passthrough"
+msgstr "העברת UTM"
+
+msgid "A visitor who arrives with utm_* parameters keeps them on the site's internal links, so the campaign reaches the form or the checkout. Runs in the browser, stores nothing, and leaves external links, downloads, the admin and add-to-cart links alone. Replaces the snippet pasted into the site header."
+msgstr "גולש שמגיע עם פרמטרי utm_* שומר אותם בקישורים הפנימיים של האתר, כך שהקמפיין מגיע עד לטופס או לתשלום. רץ בדפדפן, לא שומר כלום, ולא נוגע בקישורים חיצוניים, בהורדות, בניהול האתר ובקישורי הוספה לסל. מחליף את הסניפט שהודבק בכותרת האתר."
+
 msgid "Shabbat Keeper"
 msgstr "שומר שבת"
 
