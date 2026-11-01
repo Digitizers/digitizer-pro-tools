@@ -81,6 +81,16 @@ $GLOBALS['dpt_stub_filters']['dpt_utm_passthrough_params'] = array();
 dpt_test_eq( apply_filters( 'dpt_rocket_ignored_params', array() ), array(), 'and nothing when nothing beyond utm_* is carried' );
 $GLOBALS['dpt_stub_filters'] = array();
 
+// The parameter list sits in the page's HTML, so cached pages must go. (PR #78 Codex P2)
+$GLOBALS['dpt_purges'] = 0;
+class DPT_CB_Settings { public static function purge_page_caches() { $GLOBALS['dpt_purges']++; } }
+DPT_UTM_Settings::save( array( 'hubspot_ads' => '1' ) );
+dpt_test_eq( $GLOBALS['dpt_purges'], 1, 'changing the switch purges page caches' );
+DPT_UTM_Settings::save( array( 'hubspot_ads' => '1' ) );
+dpt_test_eq( $GLOBALS['dpt_purges'], 1, 'saving it unchanged does not' );
+DPT_UTM_Settings::save( array( 'hubspot_ads' => '0' ) );
+dpt_test_eq( $GLOBALS['dpt_purges'], 2, 'switching it back purges too' );
+
 DPT_UTM_Settings::save( array( 'hubspot_ads' => 'yes', 'other' => '1' ) );
 dpt_test_eq( DPT_UTM_Settings::all(), array( 'hubspot_ads' => '0' ), 'the switch saves strictly, and only known keys' );
 dpt_test_eq( DPT_UTM_Settings::OPTION, 'dpt_utm_passthrough', 'the option name' );

@@ -38,13 +38,20 @@ class DPT_UTM_Settings {
 		if ( ! is_array( $raw ) ) {
 			return false;
 		}
-		$clean = self::all();
+		$before = self::all();
+		$clean  = $before;
 		foreach ( array_keys( self::defaults() ) as $flag ) {
 			if ( isset( $raw[ $flag ] ) ) {
 				$clean[ $flag ] = '1' === $raw[ $flag ] ? '1' : '0';
 			}
 		}
 		update_option( self::OPTION, $clean );
+
+		// The parameter list is printed into each page, so cached pages would
+		// keep the old one. (PR #78 Codex P2)
+		if ( $clean !== $before && class_exists( 'DPT_CB_Settings' ) ) {
+			DPT_CB_Settings::purge_page_caches();
+		}
 		return true;
 	}
 }
