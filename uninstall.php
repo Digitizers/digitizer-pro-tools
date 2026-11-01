@@ -30,6 +30,8 @@ delete_option( 'dpt_resend_mail' );
 delete_option( 'dpt_name_your_price' );
 delete_option( 'dpt_woo_checkout_fields' );
 delete_option( 'dpt_embed' );
+delete_option( 'dpt_utm_passthrough' );
+delete_option( 'dpt_rocket_ignored_hash' );
 delete_option( 'dpt_resend_mail_log' );
 
 // The Agent Log keeps a table of its own, plus the schema stamp that says the

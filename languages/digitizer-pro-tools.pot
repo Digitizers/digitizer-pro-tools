@@ -2178,7 +2178,28 @@ msgstr ""
 msgid "UTM Passthrough"
 msgstr ""
 
-msgid "A visitor who arrives with utm_* parameters keeps them on the site's internal links, so the campaign reaches the form or the checkout. Runs in the browser, stores nothing, and leaves external links, downloads, the admin and add-to-cart links alone. Replaces the snippet pasted into the site header."
+msgid "A visitor who arrives with utm_* parameters keeps them on the site's internal links, so the campaign reaches the form or the checkout. Can carry HubSpot's ad parameters too. Runs in the browser, stores nothing, and leaves external links, downloads, the admin and add-to-cart links alone. Replaces the snippet pasted into the site header."
+msgstr ""
+
+msgid "Cache Ignore Params"
+msgstr ""
+
+msgid "WP Rocket serves visits carrying HubSpot's tracking parameters from the page cache instead of building the page again. Does nothing without WP Rocket, and does not reach Cloudflare or a server cache. Replaces the WP Rocket helper plugin."
+msgstr ""
+
+msgid "utm_* parameters are always carried onto the site's internal links. Choose what else travels with them."
+msgstr ""
+
+msgid "Also carry"
+msgstr ""
+
+msgid "HubSpot ad parameters"
+msgstr ""
+
+msgid "hsa_* and hss_channel. HubSpot's email and contact parameters, such as _hsenc and hsutk, are never carried: a shared link would spread them to other visitors."
+msgstr ""
+
+msgid "Developers can add parameters by name with the dpt_utm_passthrough_params filter. Everything added here is also ignored by the WP Rocket cache, so it does not cost each page its cache."
 msgstr ""
 
 msgid "Shabbat Keeper"

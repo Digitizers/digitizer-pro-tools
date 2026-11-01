@@ -4,7 +4,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.48.0
+Stable tag: 1.49.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -249,9 +249,20 @@ Keeps campaign parameters on the site's own links (disabled by default; enable i
 
 * A visitor who arrives with `utm_*` parameters keeps them on every internal link, including links added after the page loads (popups, Loop Grids, menus), so the campaign is still on the address at the form or the checkout
 * A link that already carries its own `utm_*` keeps it. www and the bare domain count as one site; subdomains do not
+* A switch on its screen also carries HubSpot's ad parameters (`hsa_*`, `hss_channel`), and the `dpt_utm_passthrough_params` filter adds parameters by exact name. HubSpot's email and contact parameters (`_hsenc`, `_hsmi`, `hsutk`) are never carried by the switch: a shared link would spread them to other visitors
+* Whatever is carried beyond `utm_*` also joins WP Rocket's ignored list, so it does not cost each page of the visit its cache
 * External links, same-page anchors, downloads, the admin, the login page and add-to-cart links are left alone; the `dpt_utm_excluded_paths` filter adds more paths
 * Runs in the browser, so page caches are unaffected, and stores nothing - no cookie
 * Replaces the snippet pasted into the site header
+
+= Module: Cache Ignore Params =
+
+Keeps tracking parameters from skipping WP Rocket's page cache (disabled by default; enable it on the Modules screen):
+
+* Visits carrying HubSpot's tracking parameters (`hsa_*`, `_hsenc`, `__hstc` and the rest) are served from the page cache instead of building the page again
+* The `dpt_cache_ignored_params` filter adds more names. WP Rocket's config file is rebuilt on its own when the list changes
+* Does nothing without WP Rocket, and does not reach Cloudflare or a server cache
+* Replaces the wp-rocket-cache-ignore-query-strings-hubspot helper plugin
 
 Admin interface is in English with a full Hebrew translation.
 
@@ -370,6 +381,10 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 5. Configure each module you enabled from its own screen. For the Cookie Banner that means reviewing the texts per language and pasting your analytics/marketing snippets in the Scripts tab, then checking the site
 
 == Changelog ==
+
+= 1.49.0 =
+* UTM Passthrough: a new switch also carries HubSpot's ad parameters (hsa_*, hss_channel), and the dpt_utm_passthrough_params filter adds parameters by name. HubSpot's email and contact parameters are never carried. Whatever is carried beyond utm_* also joins WP Rocket's ignored list, so it does not cost each page its cache
+* New module: Cache Ignore Params - WP Rocket serves visits carrying HubSpot's tracking parameters from the page cache. The dpt_cache_ignored_params filter adds more. Replaces the wp-rocket-cache-ignore-query-strings-hubspot helper plugin
 
 = 1.48.0 =
 * New module: UTM Passthrough - a visitor who arrives with utm_* parameters keeps them on the site's internal links, including links added after the page loads. Runs in the browser and stores nothing. External links, downloads, the admin, the login page and add-to-cart links are left alone; the dpt_utm_excluded_paths filter adds more paths. Replaces the snippet pasted into the site header
