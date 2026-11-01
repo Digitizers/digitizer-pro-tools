@@ -3,7 +3,7 @@
  * Plugin Name:       Digitizer Pro Tools
  * Plugin URI:        https://github.com/digitizers/digitizer-pro-tools
  * Description:       One toolbox plugin by Digitizer: a multilingual cookie-consent banner, one-click post duplication, auto-update email silencing, and more modules to come.
- * Version:           1.48.0
+ * Version:           1.49.0
  * Requires at least: 5.8
  * Requires PHP:      7.4
  * Author:            Digitizer
@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'DPT_VERSION', '1.48.0' );
+define( 'DPT_VERSION', '1.49.0' );
 define( 'DPT_PATH', plugin_dir_path( __FILE__ ) );
 define( 'DPT_URL', plugin_dir_url( __FILE__ ) );
 define( 'DPT_BASENAME', plugin_basename( __FILE__ ) );
@@ -26,6 +26,7 @@ define( 'DPT_OPTION', 'dpt_settings' );
 
 require_once DPT_PATH . 'includes/class-dpt-module.php';
 require_once DPT_PATH . 'includes/class-dpt-plugin.php';
+require_once DPT_PATH . 'includes/class-dpt-rocket-params.php';
 require_once DPT_PATH . 'includes/class-dpt-admin.php';
 require_once DPT_PATH . 'includes/class-dpt-updater.php';
 
@@ -44,6 +45,11 @@ function dpt_activate() {
 	DPT_Plugin::instance()->install_defaults();
 }
 register_activation_hook( __FILE__, 'dpt_activate' );
+
+function dpt_deactivate() {
+	DPT_Rocket_Params::deactivate();
+}
+register_deactivation_hook( __FILE__, 'dpt_deactivate' );
 
 /**
  * The sanitized `page` query argument of the current admin request, or '' when

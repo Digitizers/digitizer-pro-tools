@@ -1,14 +1,16 @@
 /**
- * UTM Passthrough: copy the address's utm_* parameters onto the site's own
- * links. Links are rewritten rather than handled on click, so a middle click,
+ * UTM Passthrough: copy the address's utm_* parameters, and any others the
+ * site names, onto its own links. Links are rewritten rather than handled on click, so a middle click,
  * "open in new tab" and "copy link" carry the parameters too.
  */
 ( function () {
 	'use strict';
 
-	var pairs = [];
+	var config = window.DPT_UTM_CONFIG || {};
+	var named  = config.params || [];
+	var pairs  = [];
 	new URLSearchParams( window.location.search ).forEach( function ( value, key ) {
-		if ( isUtm( key ) ) {
+		if ( isCarried( key ) ) {
 			pairs.push( [ key, value ] );
 		}
 	} );
@@ -18,12 +20,11 @@
 
 	var query   = new URLSearchParams( pairs ).toString();
 	var host    = bareHost( window.location.hostname );
-	var config  = window.DPT_UTM_CONFIG || {};
 	var exclude = config.exclude || [];
 	var files   = /\.(pdf|zip|rar|7z|gz|docx?|xlsx?|pptx?|csv|jpe?g|png|gif|webp|svg|mp3|mp4|mov|webm)$/i;
 
-	function isUtm( key ) {
-		return 0 === key.indexOf( 'utm_' );
+	function isCarried( key ) {
+		return 0 === key.indexOf( 'utm_' ) || -1 !== named.indexOf( key );
 	}
 
 	function bareHost( name ) {
@@ -37,10 +38,10 @@
 		} );
 	}
 
-	function hasUtmOrCart( params ) {
+	function hasOwnOrCart( params ) {
 		var found = false;
 		params.forEach( function ( value, key ) {
-			found = found || isUtm( key ) || 'add-to-cart' === key;
+			found = found || isCarried( key ) || 'add-to-cart' === key;
 		} );
 		return found;
 	}
@@ -59,7 +60,7 @@
 		if ( ( 'http:' !== url.protocol && 'https:' !== url.protocol ) || bareHost( url.hostname ) !== host ) {
 			return;
 		}
-		if ( excludedPath( url.pathname ) || files.test( url.pathname ) || hasUtmOrCart( url.searchParams ) ) {
+		if ( excludedPath( url.pathname ) || files.test( url.pathname ) || hasOwnOrCart( url.searchParams ) ) {
 			return;
 		}
 		// Appended to the query as written: re-serializing would respell it.

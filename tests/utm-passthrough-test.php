@@ -8,6 +8,9 @@ require_once __DIR__ . '/bootstrap.php';
 require_once dirname( __DIR__ ) . '/includes/class-dpt-module.php';
 
 function wp_login_url() { return 'https://example.test/site/wp-login.php'; }
+if ( ! function_exists( 'add_option' ) ) {
+	function add_option( $key, $value ) { $GLOBALS['dpt_stub_options'][ $key ] = $value; return true; }
+}
 $GLOBALS['dpt_stub_scripts_by_handle'] = array();
 function wp_enqueue_script( $handle, $src = '', $deps = array(), $ver = null, $footer = false ) {
 	$GLOBALS['dpt_stub_scripts_by_handle'][ $handle ] = array( 'src' => $src, 'footer' => $footer );
@@ -17,6 +20,7 @@ function wp_localize_script( $handle, $name, $data ) {
 	$GLOBALS['dpt_stub_config'][ $handle ] = array( $name, $data );
 }
 
+require_once dirname( __DIR__ ) . '/includes/class-dpt-rocket-params.php';
 require_once dirname( __DIR__ ) . '/modules/utm-passthrough/class-dpt-utm-module.php';
 
 /* ---- the module ---- */
@@ -41,6 +45,49 @@ $module->enqueue_assets();
 dpt_test_ok( in_array( '/members/', $GLOBALS['dpt_stub_config']['dpt-utm-passthrough'][1]['exclude'], true ), 'a site can add its own exclusions' );
 $GLOBALS['dpt_stub_filters'] = array();
 
+/* ---- the parameters beyond utm_* ---- */
+
+$params = function () use ( $module ) {
+	$module->enqueue_assets();
+	return $GLOBALS['dpt_stub_config']['dpt-utm-passthrough'][1]['params'];
+};
+$GLOBALS['dpt_stub_options'] = array();
+DPT_UTM_Settings::install_defaults();
+dpt_test_eq( DPT_UTM_Settings::get( 'hubspot_ads' ), '0', 'the HubSpot switch starts off' );
+dpt_test_eq( $params(), array(), 'nothing beyond utm_* by default' );
+
+DPT_UTM_Settings::save( array( 'hubspot_ads' => '1' ) );
+$hs = $params();
+foreach ( array( 'hss_channel', 'hsa_acc', 'hsa_cam', 'hsa_grp', 'hsa_ad', 'hsa_src', 'hsa_tgt', 'hsa_kw', 'hsa_ver', 'hsa_mt', 'hsa_net', 'hsa_la', 'hsa_ol' ) as $name ) {
+	dpt_test_ok( in_array( $name, $hs, true ), "HubSpot switch carries $name" );
+}
+foreach ( array( '_hsenc', '_hsmi', 'hsutk', '__hstc', '__hssc', '__hsfp', 'submissionGuid', 'hsCtaTracking' ) as $name ) {
+	dpt_test_ok( ! in_array( $name, $hs, true ), "but never $name: it names a person or one moment, and a shared link would spread it" );
+}
+
+add_filter( 'dpt_utm_passthrough_params', function ( $p ) { $p[] = 'gclid'; $p[] = ' ref '; $p[] = ''; $p[] = array( 'x' ); return $p; } );
+$hs = $params();
+dpt_test_ok( in_array( 'gclid', $hs, true ) && in_array( 'ref', $hs, true ), 'a site adds its own by name, trimmed' );
+dpt_test_ok( ! in_array( '', $hs, true ) && count( $hs ) === count( array_filter( $hs, 'is_string' ) ), 'junk is dropped' );
+
+// What is carried onto every link must not cost every page its cache.
+$GLOBALS['dpt_stub_filters'] = array();
+$module->init();
+add_filter( 'dpt_utm_passthrough_params', function ( $p ) { $p[] = 'gclid'; return $p; } );
+$ignored = apply_filters( 'dpt_rocket_ignored_params', array() );
+dpt_test_ok( in_array( 'hsa_la', $ignored, true ) && in_array( 'hss_channel', $ignored, true ) && in_array( 'gclid', $ignored, true ), 'every carried parameter joins WP Rocket\'s ignored list' );
+DPT_UTM_Settings::save( array( 'hubspot_ads' => '0' ) );
+$GLOBALS['dpt_stub_filters']['dpt_utm_passthrough_params'] = array();
+dpt_test_eq( apply_filters( 'dpt_rocket_ignored_params', array() ), array(), 'and nothing when nothing beyond utm_* is carried' );
+$GLOBALS['dpt_stub_filters'] = array();
+
+DPT_UTM_Settings::save( array( 'hubspot_ads' => 'yes', 'other' => '1' ) );
+dpt_test_eq( DPT_UTM_Settings::all(), array( 'hubspot_ads' => '0' ), 'the switch saves strictly, and only known keys' );
+dpt_test_eq( DPT_UTM_Settings::OPTION, 'dpt_utm_passthrough', 'the option name' );
+
+$admin = (string) file_get_contents( dirname( __DIR__ ) . '/modules/utm-passthrough/class-dpt-utm-admin.php' );
+dpt_test_ok( false !== strpos( $admin, "check_admin_referer( 'dpt_utm_settings' )" ) && false !== strpos( $admin, "current_user_can( 'manage_options' )" ), 'the settings save checks its nonce and the capability' );
+
 $registry = (string) file_get_contents( dirname( __DIR__ ) . '/includes/class-dpt-plugin.php' );
 dpt_test_ok( 1 === preg_match( "/'utm_passthrough'\s*=>\s*array\(\s*'file'\s*=>\s*DPT_PATH \. 'modules\/utm-passthrough\/class-dpt-utm-module\.php',\s*'class'\s*=>\s*'DPT_UTM_Passthrough_Module',\s*'default'\s*=>\s*'0'/", $registry ), 'registered, off by default' );
 
@@ -61,7 +108,7 @@ $js = (string) file_get_contents( dirname( __DIR__ ) . '/modules/utm-passthrough
  * @param array  $late   Links added after the script ran.
  * @return array href attribute => the href after the script.
  */
-$run = function ( $page, $links, $late = array() ) use ( $node, $js ) {
+$run = function ( $page, $links, $late = array(), $params = array() ) use ( $node, $js ) {
 	$harness = <<<'JS'
 var PAGE = __PAGE__;
 function A(href, attrs) { this.attr = href; this.attrs = attrs || {}; this.nodeType = 1; }
@@ -77,7 +124,7 @@ function wrap(list) { return { nodeType: 1, matches: function () { return false;
 var links = [];
 var observers = [];
 var u = new URL(PAGE);
-var window = { DPT_UTM_CONFIG: { exclude: ['/wp-admin/', '/site/wp-login.php'] }, location: u };
+var window = { DPT_UTM_CONFIG: { exclude: ['/wp-admin/', '/site/wp-login.php'], params: __PARAMS__ }, location: u };
 var location = u;
 var document = {
   readyState: 'complete',
@@ -99,8 +146,8 @@ if (late.length) {
 process.stdout.write(JSON.stringify({ hrefs: order.map(function (a) { return a.attr; }), observers: observers.length }));
 JS;
 	$harness = str_replace(
-		array( '__PAGE__', '__LINKS__', '__LATE__', '__SCRIPT__' ),
-		array( json_encode( $page ), json_encode( $links ), json_encode( $late ), $js ),
+		array( '__PAGE__', '__LINKS__', '__LATE__', '__PARAMS__', '__SCRIPT__' ),
+		array( json_encode( $page ), json_encode( $links ), json_encode( $late ), json_encode( $params ), $js ),
 		$harness
 	);
 	$file = tempnam( sys_get_temp_dir(), 'dpt' ) . '.js';
@@ -154,5 +201,16 @@ dpt_test_eq( $none['observers'], 0, 'and nothing keeps watching the page' );
 
 $late = $run( $page, array(), array( array( '/popup-link/', null ), array( '/in-a-loop-grid/', null ), array( 'https://other.test/', null ) ) );
 dpt_test_eq( $late['hrefs'], array( 'https://example.test/popup-link/?utm_source=fb&utm_campaign=sale', 'https://example.test/in-a-loop-grid/?utm_source=fb&utm_campaign=sale', 'https://other.test/' ), 'links added after load are handled, the same way' );
+
+/* Named parameters travel with the utm_* ones, and on their own. */
+$hub = 'https://example.test/l?hsa_acc=7&utm_source=hs&_hsenc=secret&hsa_cam=9';
+$r = $run( $hub, array( array( '/about/', null ) ), array(), array( 'hsa_acc', 'hsa_cam' ) );
+dpt_test_eq( $r['hrefs'][0], 'https://example.test/about/?hsa_acc=7&utm_source=hs&hsa_cam=9', 'named parameters are carried in address order; unnamed ones are not' );
+$r = $run( 'https://example.test/l?gclid=abc', array( array( '/about/', null ) ), array(), array( 'gclid' ) );
+dpt_test_eq( $r['hrefs'][0], 'https://example.test/about/?gclid=abc', 'a named parameter alone is enough to start' );
+$r = $run( $hub, array( array( '/x?hsa_acc=1', null ) ), array(), array( 'hsa_acc' ) );
+dpt_test_eq( $r['hrefs'][0], '/x?hsa_acc=1', 'a link already carrying a named parameter is left alone' );
+$r = $run( 'https://example.test/l?HSA_ACC=7', array( array( '/x', null ) ), array(), array( 'hsa_acc' ) );
+dpt_test_eq( $r['hrefs'][0], '/x', 'names match exactly' );
 
 exit( dpt_test_summary() > 0 ? 1 : 0 );

@@ -2178,8 +2178,29 @@ msgstr "שני שורטקודים: [digitizer_copy_url] מציג שדה עם כ�
 msgid "UTM Passthrough"
 msgstr "העברת UTM"
 
-msgid "A visitor who arrives with utm_* parameters keeps them on the site's internal links, so the campaign reaches the form or the checkout. Runs in the browser, stores nothing, and leaves external links, downloads, the admin and add-to-cart links alone. Replaces the snippet pasted into the site header."
-msgstr "גולש שמגיע עם פרמטרי utm_* שומר אותם בקישורים הפנימיים של האתר, כך שהקמפיין מגיע עד לטופס או לתשלום. רץ בדפדפן, לא שומר כלום, ולא נוגע בקישורים חיצוניים, בהורדות, בניהול האתר ובקישורי הוספה לסל. מחליף את הסניפט שהודבק בכותרת האתר."
+msgid "A visitor who arrives with utm_* parameters keeps them on the site's internal links, so the campaign reaches the form or the checkout. Can carry HubSpot's ad parameters too. Runs in the browser, stores nothing, and leaves external links, downloads, the admin and add-to-cart links alone. Replaces the snippet pasted into the site header."
+msgstr "גולש שמגיע עם פרמטרי utm_* שומר אותם בקישורים הפנימיים של האתר, כך שהקמפיין מגיע עד לטופס או לתשלום. יכול להעביר גם את פרמטרי המודעות של HubSpot. רץ בדפדפן, לא שומר כלום, ולא נוגע בקישורים חיצוניים, בהורדות, בניהול האתר ובקישורי הוספה לסל. מחליף את הסניפט שהודבק בכותרת האתר."
+
+msgid "Cache Ignore Params"
+msgstr "התעלמות מפרמטרים ב-Cache"
+
+msgid "WP Rocket serves visits carrying HubSpot's tracking parameters from the page cache instead of building the page again. Does nothing without WP Rocket, and does not reach Cloudflare or a server cache. Replaces the WP Rocket helper plugin."
+msgstr "WP Rocket מגיש ביקורים עם פרמטרי המעקב של HubSpot מה-Cache במקום לבנות את העמוד מחדש. לא עושה כלום בלי WP Rocket, ולא משפיע על Cloudflare או על Cache של השרת. מחליף את תוסף העזר של WP Rocket."
+
+msgid "utm_* parameters are always carried onto the site's internal links. Choose what else travels with them."
+msgstr "פרמטרי utm_* תמיד עוברים לקישורים הפנימיים של האתר. כאן בוחרים מה עוד יעבור איתם."
+
+msgid "Also carry"
+msgstr "להעביר גם"
+
+msgid "HubSpot ad parameters"
+msgstr "פרמטרי מודעות של HubSpot"
+
+msgid "hsa_* and hss_channel. HubSpot's email and contact parameters, such as _hsenc and hsutk, are never carried: a shared link would spread them to other visitors."
+msgstr "hsa_* ו-hss_channel. פרמטרי המייל ואנשי הקשר של HubSpot, כמו _hsenc ו-hsutk, אף פעם לא עוברים: קישור ששותף היה מפיץ אותם לגולשים אחרים."
+
+msgid "Developers can add parameters by name with the dpt_utm_passthrough_params filter. Everything added here is also ignored by the WP Rocket cache, so it does not cost each page its cache."
+msgstr "מפתחים יכולים להוסיף פרמטרים לפי שם דרך הפילטר dpt_utm_passthrough_params. כל מה שנוסף כאן נכנס גם לרשימת ההתעלמות של WP Rocket, כדי שעמודים לא יאבדו את ה-Cache שלהם."
 
 msgid "Shabbat Keeper"
 msgstr "שומר שבת"

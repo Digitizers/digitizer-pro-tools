@@ -133,6 +133,11 @@ class DPT_Plugin {
 				'class'   => 'DPT_UTM_Passthrough_Module',
 				'default' => '0',
 			),
+			'cache_ignore' => array(
+				'file'    => DPT_PATH . 'modules/cache-ignore/class-dpt-ci-module.php',
+				'class'   => 'DPT_Cache_Ignore_Module',
+				'default' => '0',
+			),
 			'shabbat_keeper' => array(
 				'file'    => DPT_PATH . 'modules/shabbat-keeper/class-dpt-sk-module.php',
 				'class'   => 'DPT_Shabbat_Keeper_Module',
@@ -155,6 +160,7 @@ class DPT_Plugin {
 	public function boot() {
 		add_action( 'init', array( $this, 'load_textdomain' ) );
 
+		DPT_Rocket_Params::register();
 		$this->load_modules();
 		$this->maybe_migrate();
 
