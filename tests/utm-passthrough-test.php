@@ -11,6 +11,9 @@ function wp_login_url() { return 'https://example.test/site/wp-login.php'; }
 if ( ! function_exists( 'add_option' ) ) {
 	function add_option( $key, $value ) { $GLOBALS['dpt_stub_options'][ $key ] = $value; return true; }
 }
+// Declared ahead of the first save: PHP hoists a plain class declaration.
+$GLOBALS['dpt_purges'] = 0;
+class DPT_CB_Settings { public static function purge_page_caches() { $GLOBALS['dpt_purges']++; } }
 $GLOBALS['dpt_stub_scripts_by_handle'] = array();
 function wp_enqueue_script( $handle, $src = '', $deps = array(), $ver = null, $footer = false ) {
 	$GLOBALS['dpt_stub_scripts_by_handle'][ $handle ] = array( 'src' => $src, 'footer' => $footer );
@@ -83,7 +86,6 @@ $GLOBALS['dpt_stub_filters'] = array();
 
 // The parameter list sits in the page's HTML, so cached pages must go. (PR #78 Codex P2)
 $GLOBALS['dpt_purges'] = 0;
-class DPT_CB_Settings { public static function purge_page_caches() { $GLOBALS['dpt_purges']++; } }
 DPT_UTM_Settings::save( array( 'hubspot_ads' => '1' ) );
 dpt_test_eq( $GLOBALS['dpt_purges'], 1, 'changing the switch purges page caches' );
 DPT_UTM_Settings::save( array( 'hubspot_ads' => '1' ) );
