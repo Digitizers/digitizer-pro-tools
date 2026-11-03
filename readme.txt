@@ -4,7 +4,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.49.1
+Stable tag: 1.49.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -382,6 +382,9 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 5. Configure each module you enabled from its own screen. For the Cookie Banner that means reviewing the texts per language and pasting your analytics/marketing snippets in the Scripts tab, then checking the site
 
 == Changelog ==
+
+= 1.49.2 =
+* REST Bridge: a write to the old Open Graph names (rank_math_og_title, rank_math_og_description, rank_math_og_image) now reaches the page. Rank Math reads rank_math_facebook_*, so the value is copied there, unless the same request sets that key itself. Before, the write answered 200 and the page kept its fallback og: tags (#83)
 
 = 1.49.1 =
 * Disable Comments: comment feeds go with the comments. The head no longer links to the comments feed, /comments/feed/ and a switched-off post type's per-post comment feed return 404, and when some types keep their comments the site-wide feed leaves out the rest. Comment counts read 0 on the front end where comments are hidden (#81)

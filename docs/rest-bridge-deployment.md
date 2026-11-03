@@ -47,8 +47,10 @@ Five sections:
   and the three Open Graph names the old plugin published
   (`rank_math_og_title`, `rank_math_og_description`, `rank_math_og_image`),
   which also appear under Compatibility names. Rank Math itself reads
-  `rank_math_facebook_*`; the old names are kept only so callers written
-  against the old plugin are not dropped. They are registered as post meta
+  `rank_math_facebook_*`; the old names are kept so callers written against
+  the old plugin are not dropped, and since 1.49.2 a REST write to one is
+  copied to the matching `rank_math_facebook_*` key unless the same request
+  sets that key itself. New callers should write `rank_math_facebook_*`. They are registered as post meta
   rather than REST fields, so they are deliberately absent from the Fields
   table.
 - **Not exposed** — what was skipped and why. **Read this one.** The reasons
