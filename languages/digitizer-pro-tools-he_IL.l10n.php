@@ -735,6 +735,8 @@ return array (
     'HubSpot ad parameters' => 'פרמטרי מודעות של HubSpot',
     'hsa_* and hss_channel. HubSpot\'s email and contact parameters, such as _hsenc and hsutk, are never carried: a shared link would spread them to other visitors.' => 'hsa_* ו-hss_channel. פרמטרי המייל ואנשי הקשר של HubSpot, כמו _hsenc ו-hsutk, אף פעם לא עוברים: קישור ששותף היה מפיץ אותם לגולשים אחרים.',
     'Developers can add parameters by name with the dpt_utm_passthrough_params filter. Everything added here is also ignored by the WP Rocket cache, so it does not cost each page its cache.' => 'מפתחים יכולים להוסיף פרמטרים לפי שם דרך הפילטר dpt_utm_passthrough_params. כל מה שנוסף כאן נכנס גם לרשימת ההתעלמות של WP Rocket, כדי שעמודים לא יאבדו את ה-Cache שלהם.',
+    'Related Posts Fill' => 'השלמת פוסטים קשורים',
+    'An Elementor Posts widget with the Query ID dpt_related_fill always shows a full row: posts from the current post\'s categories first, newest first, then the newest posts on the site. Other widgets are not affected.' => 'ווידג׳ט Posts של Elementor עם Query ID ‏dpt_related_fill מציג תמיד שורה מלאה: קודם פוסטים מהקטגוריות של הפוסט הנוכחי, מהחדש לישן, ואז הפוסטים החדשים ביותר באתר. ווידג׳טים אחרים לא מושפעים.',
     'Shabbat Keeper' => 'שומר שבת',
     'Closes the site, or only its shop and forms, from candle lighting to Havdalah every Shabbat and Israeli holiday. Times are computed on the server for the city you pick; nothing is sent anywhere.' => 'סוגר את האתר, או רק את החנות והטפסים, מהדלקת נרות ועד הבדלה בכל שבת וחג. הזמנים מחושבים בשרת לפי העיר שבחרתם; שום דבר לא נשלח לשום מקום.',
     'Jerusalem' => 'ירושלים',

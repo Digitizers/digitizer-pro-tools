@@ -69,6 +69,7 @@ $back = array(
 	'duplicate-post/class-dpt-dp-module.php',
 	'rest-bridge/class-dpt-rb-module.php',
 	'cache-ignore/class-dpt-ci-module.php',
+	'related-fill/class-dpt-rf-module.php',
 );
 $rx = '/public function affects_frontend\(\)\s*\{\s*return false;\s*\}/';
 foreach ( glob( dirname( __DIR__ ) . '/modules/*/class-dpt-*-module.php' ) as $file ) {

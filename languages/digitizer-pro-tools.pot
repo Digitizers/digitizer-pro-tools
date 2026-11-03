@@ -2202,6 +2202,12 @@ msgstr ""
 msgid "Developers can add parameters by name with the dpt_utm_passthrough_params filter. Everything added here is also ignored by the WP Rocket cache, so it does not cost each page its cache."
 msgstr ""
 
+msgid "Related Posts Fill"
+msgstr ""
+
+msgid "An Elementor Posts widget with the Query ID dpt_related_fill always shows a full row: posts from the current post's categories first, newest first, then the newest posts on the site. Other widgets are not affected."
+msgstr ""
+
 msgid "Shabbat Keeper"
 msgstr ""
 

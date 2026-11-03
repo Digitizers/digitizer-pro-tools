@@ -138,6 +138,11 @@ class DPT_Plugin {
 				'class'   => 'DPT_Cache_Ignore_Module',
 				'default' => '0',
 			),
+			'related_fill' => array(
+				'file'    => DPT_PATH . 'modules/related-fill/class-dpt-rf-module.php',
+				'class'   => 'DPT_Related_Fill_Module',
+				'default' => '0',
+			),
 			'shabbat_keeper' => array(
 				'file'    => DPT_PATH . 'modules/shabbat-keeper/class-dpt-sk-module.php',
 				'class'   => 'DPT_Shabbat_Keeper_Module',

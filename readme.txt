@@ -4,7 +4,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.49.3
+Stable tag: 1.50.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -256,6 +256,15 @@ Keeps campaign parameters on the site's own links (disabled by default; enable i
 * Runs in the browser, so page caches are unaffected, and stores nothing - no cookie
 * Replaces the snippet pasted into the site header
 
+= Module: Related Posts Fill =
+
+A full row of related posts in an Elementor Posts widget (disabled by default; enable it on the Modules screen):
+
+* Give the Posts widget the Query ID `dpt_related_fill`. It then shows the current post's category posts first, newest first, and fills the rest of the row with the newest posts on the site
+* The row size is the widget's own posts per page (3 when it has none). The current post, the widget's own exclusions and unpublished posts never appear, and no post appears twice
+* Works with the widget's "Related" source, whose own fallback only acts when nothing is found. Only the choice of posts changes: the card markup stays as it is
+* Widgets without that Query ID are not affected, so switching the module on changes no page by itself
+
 = Module: Cache Ignore Params =
 
 Keeps tracking parameters from skipping WP Rocket's page cache (disabled by default; enable it on the Modules screen):
@@ -382,6 +391,9 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 5. Configure each module you enabled from its own screen. For the Cookie Banner that means reviewing the texts per language and pasting your analytics/marketing snippets in the Scripts tab, then checking the site
 
 == Changelog ==
+
+= 1.50.0 =
+* New module: Related Posts Fill - an Elementor Posts widget with the Query ID dpt_related_fill always shows a full row: posts from the current post's categories, newest first, then the newest posts on the site. Elementor's related fallback acts only when nothing is found, so a small category used to leave a row of one or two cards. Only the posts change, never the card markup
 
 = 1.49.3 =
 * Switching a module on or off purges the page caches only when that module changes what visitors are served. Back-end modules (Agent Log, Update Emails, Update Policy, User Role Editor, Resend Mail, Onboarding, Duplicate Post, REST Bridge, Cache Ignore Params) no longer trigger a site-wide purge; a module that cannot say so still does (#85)
