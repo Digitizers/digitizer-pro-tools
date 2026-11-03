@@ -2202,6 +2202,12 @@ msgstr "hsa_* ו-hss_channel. פרמטרי המייל ואנשי הקשר של H
 msgid "Developers can add parameters by name with the dpt_utm_passthrough_params filter. Everything added here is also ignored by the WP Rocket cache, so it does not cost each page its cache."
 msgstr "מפתחים יכולים להוסיף פרמטרים לפי שם דרך הפילטר dpt_utm_passthrough_params. כל מה שנוסף כאן נכנס גם לרשימת ההתעלמות של WP Rocket, כדי שעמודים לא יאבדו את ה-Cache שלהם."
 
+msgid "Related Posts Fill"
+msgstr "השלמת פוסטים קשורים"
+
+msgid "An Elementor Posts widget with the Query ID dpt_related_fill always shows a full row: posts from the current post's categories first, newest first, then the newest posts on the site. Other widgets are not affected."
+msgstr "ווידג׳ט Posts של Elementor עם Query ID ‏dpt_related_fill מציג תמיד שורה מלאה: קודם פוסטים מהקטגוריות של הפוסט הנוכחי, מהחדש לישן, ואז הפוסטים החדשים ביותר באתר. ווידג׳טים אחרים לא מושפעים."
+
 msgid "Shabbat Keeper"
 msgstr "שומר שבת"
 
