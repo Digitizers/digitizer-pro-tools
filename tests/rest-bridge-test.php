@@ -3713,6 +3713,19 @@ update_post_meta( 4101, 'rank_math_og_description', wp_slash( 'C:\\docs' ) ); //
 DPT_RB_Rankmath::mirror_legacy( $dpt_og_post, $dpt_og_req( array( 'rank_math_og_description' => 'C:\\docs' ) ) );
 dpt_test_eq( get_post_meta( 4101, 'rank_math_facebook_description', true ), 'C:\\docs', 'a backslash survives the copy' );
 
+// The copy writes a key the request never named, so it asks that key's own
+// write permission: a site that denies rank_math_facebook_title must not see
+// it changed through the old name. (PR #84 Codex P2)
+update_post_meta( 4101, 'rank_math_facebook_title', 'Guarded' );
+update_post_meta( 4101, 'rank_math_og_title', 'Sneaked' );
+$GLOBALS['dpt_stub_denied_meta_caps'][] = 'rank_math_facebook_title';
+DPT_RB_Rankmath::mirror_legacy( $dpt_og_post, $dpt_og_req( array( 'rank_math_og_title' => 'Sneaked' ) ) );
+dpt_test_eq( get_post_meta( 4101, 'rank_math_facebook_title', true ), 'Guarded', 'a denied destination is not overwritten' );
+update_post_meta( 4101, 'rank_math_og_title', '' );
+DPT_RB_Rankmath::mirror_legacy( $dpt_og_post, $dpt_og_req( array( 'rank_math_og_title' => '' ) ) );
+dpt_test_eq( get_post_meta( 4101, 'rank_math_facebook_title', true ), 'Guarded', 'nor deleted' );
+$GLOBALS['dpt_stub_denied_meta_caps'] = array_values( array_diff( $GLOBALS['dpt_stub_denied_meta_caps'], array( 'rank_math_facebook_title' ) ) );
+
 // rank_math_robots is a list of directives (e.g. noindex), never a single
 // string - Rank Math's own admin columns read it with FILTER_REQUIRE_ARRAY.
 dpt_test_eq( $GLOBALS['dpt_stub_registered_post_meta']['post']['rank_math_robots']['type'], 'array', 'robots is registered as an array, matching how Rank Math stores it' );

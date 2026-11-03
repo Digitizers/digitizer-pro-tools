@@ -214,7 +214,8 @@ class DPT_RB_Rankmath {
 	 * the stored value, past the controller's own checks; a write it refused
 	 * copies nothing new. When one request sets both names, the key Rank Math
 	 * reads was set on purpose and is left as sent. An emptied old name
-	 * empties what it set, so Rank Math falls back as it does for any post.
+	 * empties what it set, so Rank Math falls back as it does for any post. A
+	 * user not allowed to write the destination key gets no copy.
 	 *
 	 * @param WP_Post         $post    The post just written.
 	 * @param WP_REST_Request $request The request that wrote it.
@@ -226,6 +227,13 @@ class DPT_RB_Rankmath {
 		}
 		foreach ( self::legacy() as $legacy => $real ) {
 			if ( ! array_key_exists( $legacy, $meta ) || array_key_exists( $real, $meta ) ) {
+				continue;
+			}
+			// The request was checked for the old name only. The copy writes a
+			// key it never named, so that key's own permission - including any
+			// auth_post_meta_* denial a site set on it - must agree.
+			// (PR #84 Codex P2)
+			if ( ! current_user_can( 'edit_post_meta', $post->ID, $real ) ) {
 				continue;
 			}
 			$value = (string) get_post_meta( $post->ID, $legacy, true );
