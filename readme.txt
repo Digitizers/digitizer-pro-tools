@@ -4,7 +4,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.50.0
+Stable tag: 1.50.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -24,7 +24,7 @@ Brings a new site up to the Digitizer baseline in one pass:
 * Untick anything a given client does not need, then install the rest
 * **Only the child theme and Elementor are switched on.** Everything else is installed and left inactive, so you decide per client what actually runs
 * Installs from WordPress.org, and from the public GitHub repositories for Hello Digitizer, Elementor MCP and MCP Adapter
-* Optionally turns on WordPress's automatic updates for the items it installed, and for Digitizer Pro Tools itself
+* Optionally turns on WordPress's automatic updates for the items it installed, and for Digitizer Pro Tools itself - the box starts unticked
 * Reports updates for the baseline's GitHub items - Hello Digitizer, Elementor MCP and MCP Adapter - which are not in the WordPress.org directory and are installed inactive, so nothing else on the site would ever check them. Switch the module off and those offers stop with it
 * Optionally removes the unused default themes, always keeping the newest one and the theme this WordPress is configured to fall back to if the active theme ever breaks. The active theme, any theme another theme depends on, and anything that is not actually one of WordPress's own themes are never removed. Not offered on a multisite network, where one directory of themes is shared by every site
 * Nothing already installed is updated, downgraded or reconfigured
@@ -392,6 +392,9 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 5. Configure each module you enabled from its own screen. For the Cookie Banner that means reviewing the texts per language and pasting your analytics/marketing snippets in the Scripts tab, then checking the site
 
 == Changelog ==
+
+= 1.50.1 =
+* Onboarding: the "Turn on automatic updates" box now starts unticked, so running the wizard as it comes no longer enrolls Digitizer Pro Tools and the installed items in WordPress's unattended updates. Sites already enrolled keep their setting
 
 = 1.50.0 =
 * New module: Related Posts Fill - an Elementor Posts widget with the Query ID dpt_related_fill always shows a full row: posts from the current post's categories, newest first, then the newest posts on the site. Elementor's related fallback acts only when nothing is found, so a small category used to leave a row of one or two cards. Only the posts change, never the card markup

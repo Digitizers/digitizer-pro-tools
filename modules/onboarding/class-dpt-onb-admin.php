@@ -210,7 +210,8 @@ class DPT_ONB_Admin {
 				if ( DPT_ONB_Installer::may_auto_update() ) :
 					?>
 				<label>
-					<input type="checkbox" id="dpt-onb-auto-update" checked />
+					<?php // Unticked by default: unattended updates are turned on on purpose, not by running the wizard as it comes (3.11). ?>
+					<input type="checkbox" id="dpt-onb-auto-update" />
 					<?php esc_html_e( 'Turn on automatic updates for these items and for Digitizer Pro Tools itself', 'digitizer-pro-tools' ); ?>
 					<span class="description"><?php esc_html_e( 'Covers Digitizer Pro Tools too, and the items installed from GitHub - while this module is on, it reports their releases to WordPress for them.', 'digitizer-pro-tools' ); ?></span>
 				</label>
