@@ -52,6 +52,13 @@ class DPT_Cache_Ignore_Module extends DPT_Module {
 		return __( 'WP Rocket serves visits carrying HubSpot\'s tracking parameters from the page cache instead of building the page again. Does nothing without WP Rocket, and does not reach Cloudflare or a server cache. Replaces the WP Rocket helper plugin.', 'digitizer-pro-tools' );
 	}
 
+	/**
+	 * No purge on toggle: It changes WP Rocket's config, which DPT_Rocket_Params rebuilds itself. (#85)
+	 */
+	public function affects_frontend() {
+		return false;
+	}
+
 	public function init() {
 		add_filter( 'dpt_rocket_ignored_params', array( $this, 'add_params' ) );
 	}

@@ -53,6 +53,21 @@ abstract class DPT_Module {
 	}
 
 	/**
+	 * Whether switching this module on or off changes what visitors are
+	 * served, so cached pages must be purged. Yes unless a module says
+	 * otherwise: a stale page is worse than a needless purge. A module that
+	 * works only in the admin, over REST, in mail or for logged-in users
+	 * answers no - a site-wide purge for it is pure cost, and on WP Rocket
+	 * with Remove Unused CSS one can leave pages re-cached without their used
+	 * CSS. (#85)
+	 *
+	 * @return bool
+	 */
+	public function affects_frontend() {
+		return true;
+	}
+
+	/**
 	 * Why this user may not switch the module, shown next to a locked switch.
 	 *
 	 * @return string Translated sentence, or '' when there is nothing to say.

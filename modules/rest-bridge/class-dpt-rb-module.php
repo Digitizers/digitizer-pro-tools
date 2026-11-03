@@ -46,6 +46,13 @@ class DPT_Rest_Bridge_Module extends DPT_Module {
 		return function_exists( 'digitizer_elementor_build_tree' );
 	}
 
+	/**
+	 * No purge on toggle: It changes REST responses, which page caches do not hold. (#85)
+	 */
+	public function affects_frontend() {
+		return false;
+	}
+
 	public function init() {
 		if ( self::legacy_plugin_active() ) {
 			return;

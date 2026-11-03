@@ -30,6 +30,13 @@ class DPT_Onboarding_Module extends DPT_Module {
 		return __( 'Installs the Digitizer baseline - Hello Elementor with the Digitizer child theme, and the standard plugin set - on a new site. The wizard never reconfigures or overwrites anything already installed, and a run can be repeated safely. While this module is on, the baseline items that come from GitHub also report their updates to WordPress, which they cannot do for themselves.', 'digitizer-pro-tools' );
 	}
 
+	/**
+	 * No purge on toggle: A setup wizard in the admin. (#85)
+	 */
+	public function affects_frontend() {
+		return false;
+	}
+
 	public function init() {
 		// Not admin-only: the update transients are read on the front end and
 		// refreshed from cron, and an item that reports an update in one place

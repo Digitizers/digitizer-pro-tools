@@ -31,6 +31,13 @@ class DPT_Resend_Mail_Module extends DPT_Module {
 		return __( 'Delivers all site email (wp_mail) through the Resend API - verified-domain sending, a send log with delivery statuses, and automatic fallback to the default mailer on errors. Replaces WP Mail SMTP / FluentSMTP.', 'digitizer-pro-tools' );
 	}
 
+	/**
+	 * No purge on toggle: It changes how mail is sent, nothing on a page. (#85)
+	 */
+	public function affects_frontend() {
+		return false;
+	}
+
 	public function init() {
 		// The sender no-ops until an API key and sender address are saved.
 		new DPT_RM_Sender();

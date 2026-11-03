@@ -246,24 +246,54 @@ class DPT_Plugin {
 		if ( ! is_array( $opts ) ) {
 			$opts = array();
 		}
-		$clean = array();
+		$before = $this->enabled_map();
+		$clean  = array();
 		foreach ( $this->registry() as $id => $spec ) {
 			$clean[ $id ] = ( isset( $map[ $id ] ) && '1' === $map[ $id ] ) ? '1' : '0';
 		}
-		$changed         = ! isset( $opts['modules'] ) || $opts['modules'] !== $clean;
 		$opts['modules'] = $clean;
 		update_option( DPT_OPTION, $opts );
 
-		// Toggling a module changes the rendered HTML - stale cached pages
-		// would keep the old module output alive.
-		if ( $changed && class_exists( 'DPT_CB_Settings' ) ) {
+		// Toggling a module that changes the rendered HTML leaves stale cached
+		// pages keeping the old output alive - but only such a module. (#85)
+		$purge = false;
+		foreach ( $clean as $id => $on ) {
+			if ( ( isset( $before[ $id ] ) ? $before[ $id ] : '0' ) !== $on && $this->affects_frontend( $id ) ) {
+				$purge = true;
+				break;
+			}
+		}
+		if ( $purge && class_exists( 'DPT_CB_Settings' ) ) {
 			DPT_CB_Settings::purge_page_caches();
 		}
-		if ( $changed ) {
+		if ( $purge ) {
 			// Shabbat Keeper documents this action for CDNs; switching that module
 			// on or off changes every page too.
 			do_action( 'dpt_shabbat_keeper_purge' );
 		}
+	}
+
+	/**
+	 * Whether switching this module changes what visitors are served. A
+	 * module that cannot be loaded is assumed to - the safe answer.
+	 *
+	 * @param string $id Module id.
+	 * @return bool
+	 */
+	private function affects_frontend( $id ) {
+		if ( ! isset( $this->modules[ $id ] ) ) {
+			$registry = $this->registry();
+			$spec     = isset( $registry[ $id ] ) ? $registry[ $id ] : null;
+			if ( ! $spec || ! file_exists( $spec['file'] ) ) {
+				return true;
+			}
+			require_once $spec['file'];
+			if ( ! class_exists( $spec['class'] ) ) {
+				return true;
+			}
+			$this->modules[ $id ] = new $spec['class']();
+		}
+		return (bool) $this->modules[ $id ]->affects_frontend();
 	}
 
 	/**

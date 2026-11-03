@@ -51,6 +51,13 @@ class DPT_Agent_Log_Module extends DPT_Module {
 		return class_exists( 'Digitizer_AI_Agent_Log_Core' ) || class_exists( 'AI_Agent_Activity_Log_Core' );
 	}
 
+	/**
+	 * No purge on toggle: It records automations in the admin; visitors are served nothing new. (#85)
+	 */
+	public function affects_frontend() {
+		return false;
+	}
+
 	public function init() {
 		if ( self::standalone_active() ) {
 			return;
