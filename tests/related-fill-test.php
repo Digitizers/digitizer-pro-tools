@@ -19,6 +19,9 @@ $GLOBALS['dpt_stub_pool'] = array();
 $GLOBALS['dpt_stub_get_posts'] = array();
 function get_posts( $args ) {
 	$GLOBALS['dpt_stub_get_posts'][] = $args;
+	// Every query runs pre_get_posts - Elementor's offset callback among them.
+	$pq = new DPT_Stub_Q( $args );
+	do_action( 'pre_get_posts', $pq );
 	$out = array();
 	foreach ( $GLOBALS['dpt_stub_pool'] as $id => $cats ) {
 		if ( in_array( $id, (array) $args['post__not_in'], true ) ) { continue; }
@@ -27,7 +30,10 @@ function get_posts( $args ) {
 	}
 	// A nested query fires the widget's hook again in Elementor: model that.
 	do_action( 'elementor/query/dpt_related_fill', new DPT_Stub_Q( array() ), null );
-	return array_slice( $out, 0, $args['posts_per_page'] );
+	return array_slice( $out, (int) $pq->get( 'offset', 0 ), $args['posts_per_page'] );
+}
+if ( ! function_exists( 'remove_action' ) ) {
+	function remove_action( $tag, $callback, $priority = 10 ) { return remove_filter( $tag, $callback ); }
 }
 if ( ! function_exists( 'do_action' ) ) {
 	function do_action( $tag, ...$args ) {
@@ -87,6 +93,19 @@ $q = $related( array( 'offset' => 1, 'paged' => 2 ) );
 $m->fill( $q );
 dpt_test_eq( $q->get( 'post__in' ), array( 1, 2, 3, 4, 5, 99 ), 'every candidate, in order: category posts, then the newest' );
 dpt_test_eq( array( (int) $q->get( 'offset' ), (int) $q->get( 'paged' ), (int) $q->get( 'posts_per_page' ) ), array( 1, 2, 3 ), 'offset, page and row size are the widget\'s own, for WordPress to apply' );
+// Elementor keeps its offset callback on pre_get_posts while the widget's
+// query is being built, and it sets the widget's offset on every query - the
+// lookups included. They must not skip posts the outer query skips again.
+// (PR #87 Codex P2)
+$dpt_elementor_offset = function ( $wpq ) { $wpq->set( 'offset', 1 ); };
+add_action( 'pre_get_posts', $dpt_elementor_offset, 1 );
+$q = $related( array( 'offset' => 1 ) );
+$m->fill( $q );
+dpt_test_eq( $q->get( 'post__in' ), array( 1, 2, 3, 4, 5, 99 ), 'the lookups ignore the widget\'s offset; only the outer query applies it' );
+$dpt_left = array_filter( (array) $GLOBALS['dpt_stub_filters']['pre_get_posts'], function ( $h ) use ( $m ) { return is_array( $h['callback'] ) && $h['callback'][0] === $m; } );
+dpt_test_eq( count( $dpt_left ), 0, 'and the guard is removed once the lookups are done, so no other query is touched' );
+$GLOBALS['dpt_stub_filters']['pre_get_posts'] = array();
+
 add_filter( 'dpt_related_fill_max', function () { return 4; } );
 $q = $related();
 $m->fill( $q );

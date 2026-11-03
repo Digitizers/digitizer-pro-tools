@@ -59,6 +59,10 @@ class DPT_Related_Fill_Module extends DPT_Module {
 		}
 
 		$this->running = true;
+		// Elementor keeps its offset callback (priority 1) on pre_get_posts
+		// while the widget's query is built, and it sets the widget's offset
+		// on every query - these lookups too. (PR #87 Codex P2)
+		add_action( 'pre_get_posts', array( $this, 'no_offset' ), PHP_INT_MAX );
 		$ids  = array();
 		$cats = $current ? wp_get_post_categories( $current ) : array();
 		if ( $cats ) {
@@ -67,6 +71,7 @@ class DPT_Related_Fill_Module extends DPT_Module {
 		if ( count( $ids ) < $want ) {
 			$ids = array_merge( $ids, $this->newest( $type, $want - count( $ids ), array_merge( $skip, $ids ), array() ) );
 		}
+		remove_action( 'pre_get_posts', array( $this, 'no_offset' ), PHP_INT_MAX );
 		$this->running = false;
 
 		if ( ! $ids ) {
@@ -78,6 +83,15 @@ class DPT_Related_Fill_Module extends DPT_Module {
 		$query->set( 'category__in', array() );
 		$query->set( 'ignore_sticky_posts', true );
 		$query->set( 'posts_per_page', $per );
+	}
+
+	/**
+	 * @param WP_Query $query A query running while the lookups do.
+	 */
+	public function no_offset( $query ) {
+		if ( $query->get( 'dpt_related_fill_lookup' ) ) {
+			$query->set( 'offset', 0 );
+		}
 	}
 
 	/**
@@ -95,6 +109,7 @@ class DPT_Related_Fill_Module extends DPT_Module {
 			'ignore_sticky_posts' => true,
 			'no_found_rows'       => true,
 			'suppress_filters'    => false, // Language plugins filter it.
+			'dpt_related_fill_lookup' => true,
 		);
 		if ( $cats ) {
 			$args['category__in'] = array_map( 'intval', $cats );
