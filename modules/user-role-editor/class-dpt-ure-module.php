@@ -31,6 +31,13 @@ class DPT_User_Role_Editor_Module extends DPT_Module {
 		DPT_URE_Manager::install_defaults();
 	}
 
+	/**
+	 * No purge on toggle: Capabilities matter to logged-in users, whom page caches do not serve. (#85)
+	 */
+	public function affects_frontend() {
+		return false;
+	}
+
 	public function init() {
 		$this->admin = new DPT_URE_Admin();
 	}

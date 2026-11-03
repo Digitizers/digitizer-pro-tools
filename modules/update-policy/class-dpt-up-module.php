@@ -73,6 +73,13 @@ class DPT_Update_Policy_Module extends DPT_Module {
 		return class_exists( 'Digitizer_Update_Hold_Core' ) || class_exists( 'Update_Policy_Core' );
 	}
 
+	/**
+	 * No purge on toggle: It decides which updates run; pages stay as they are. (#85)
+	 */
+	public function affects_frontend() {
+		return false;
+	}
+
 	public function init() {
 		if ( self::standalone_active() ) {
 			return;
