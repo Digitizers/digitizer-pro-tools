@@ -67,7 +67,7 @@ $GLOBALS['dpt_stub_pool'] = array( 100 => array( 7 ), 3 => array( 9 ), 1 => arra
 
 $q = $related();
 $m->fill( $q );
-dpt_test_eq( $q->get( 'post__in' ), array( 1, 2, 3 ), 'its two category posts first, then the newest other post: a full row of 3' );
+dpt_test_eq( array_slice( $q->get( 'post__in' ), 0, 3 ), array( 1, 2, 3 ), 'its two category posts first, then the newest other post: a full row of 3' );
 dpt_test_eq( $q->get( 'orderby' ), 'post__in', 'shown in that order' );
 dpt_test_eq( $q->get( 'tax_query' ), array(), 'the category filter is cleared, or it would drop the fill' );
 dpt_test_ok( true === $q->get( 'ignore_sticky_posts' ), 'sticky posts do not push in' );
@@ -78,26 +78,32 @@ dpt_test_ok( 'publish' === $a['post_status'] && 'ids' === $a['fields'] && false 
 $GLOBALS['dpt_stub_get_posts'] = array();
 $q = $related( array( 'post__not_in' => array( 100, 1 ) ) );
 $m->fill( $q );
-dpt_test_eq( $q->get( 'post__in' ), array( 2, 3, 4 ), 'the widget\'s own exclusions stay excluded, and nothing appears twice' );
+dpt_test_eq( $q->get( 'post__in' ), array( 2, 3, 4, 5, 99 ), 'the widget\'s own exclusions stay excluded, and nothing appears twice' );
 
-// An offset or a later page skips that many of the row's posts, then
-// still shows a full row; the outer query must not skip them again.
-// (PR #87 Codex P2)
-$q = $related( array( 'offset' => 1 ) );
+// The whole ordered list goes to post__in, so WordPress applies the
+// widget's offset and page and counts pages for its pagination; the hook
+// leaves those alone. (PR #87 Codex P2 x2)
+$q = $related( array( 'offset' => 1, 'paged' => 2 ) );
 $m->fill( $q );
-dpt_test_eq( $q->get( 'post__in' ), array( 2, 3, 4 ), 'an offset of 1 skips the first post and still fills the row' );
-dpt_test_eq( array( (int) $q->get( 'offset' ), (int) $q->get( 'paged' ) ), array( 0, 1 ), 'and the outer query skips nothing more' );
-$q = $related( array( 'paged' => 2 ) );
+dpt_test_eq( $q->get( 'post__in' ), array( 1, 2, 3, 4, 5, 99 ), 'every candidate, in order: category posts, then the newest' );
+dpt_test_eq( array( (int) $q->get( 'offset' ), (int) $q->get( 'paged' ), (int) $q->get( 'posts_per_page' ) ), array( 1, 2, 3 ), 'offset, page and row size are the widget\'s own, for WordPress to apply' );
+add_filter( 'dpt_related_fill_max', function () { return 4; } );
+$q = $related();
 $m->fill( $q );
-dpt_test_eq( $q->get( 'post__in' ), array( 4, 5, 99 ), 'page 2 is the next three' );
-dpt_test_eq( array( (int) $q->get( 'offset' ), (int) $q->get( 'paged' ) ), array( 0, 1 ), 'served as one page' );
+dpt_test_eq( $q->get( 'post__in' ), array( 1, 2, 3, 4 ), 'the list is capped (dpt_related_fill_max)' );
+$GLOBALS['dpt_stub_filters']['dpt_related_fill_max'] = array();
+add_filter( 'dpt_related_fill_max', function () { return 1; } );
+$q = $related();
+$m->fill( $q );
+dpt_test_eq( count( $q->get( 'post__in' ) ), 3, 'but never below one full row' );
+$GLOBALS['dpt_stub_filters']['dpt_related_fill_max'] = array();
 
 $q = $related( array( 'posts_per_page' => 5 ) );
 $m->fill( $q );
-dpt_test_eq( $q->get( 'post__in' ), array( 1, 2, 3, 4, 5 ), 'a row of 5 fills to 5' );
+dpt_test_eq( array_slice( $q->get( 'post__in' ), 0, 5 ), array( 1, 2, 3, 4, 5 ), 'a row of 5 fills to 5' );
 $q = $related( array( 'posts_per_page' => -1 ) );
 $m->fill( $q );
-dpt_test_eq( count( $q->get( 'post__in' ) ), 3, 'no usable row size: 3' );
+dpt_test_eq( (int) $q->get( 'posts_per_page' ), 3, 'no usable row size: 3' );
 
 $GLOBALS['dpt_stub_cats'][100] = array( 7, 8 );
 $GLOBALS['dpt_stub_pool'] = array( 100 => array( 7 ), 6 => array( 8 ), 1 => array( 7 ), 3 => array( 9 ) );
@@ -110,8 +116,7 @@ $GLOBALS['dpt_stub_pool'] = array( 100 => array( 7 ), 1 => array( 7 ), 2 => arra
 $GLOBALS['dpt_stub_get_posts'] = array();
 $q = $related();
 $m->fill( $q );
-dpt_test_eq( $q->get( 'post__in' ), array( 1, 2, 8 ), 'a full category row needs no fill' );
-dpt_test_eq( count( $GLOBALS['dpt_stub_get_posts'] ), 1, 'and runs one lookup, not two' );
+dpt_test_eq( $q->get( 'post__in' ), array( 1, 2, 8, 3 ), 'category posts first, then the rest' );
 
 $GLOBALS['dpt_stub_pool'] = array( 100 => array( 7 ) );
 $q = $related();

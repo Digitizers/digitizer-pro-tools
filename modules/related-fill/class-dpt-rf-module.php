@@ -46,11 +46,10 @@ class DPT_Related_Fill_Module extends DPT_Module {
 		}
 		$per     = (int) $query->get( 'posts_per_page' );
 		$per     = $per > 0 ? $per : 3;
-		// An offset or a later page skips that many of the row's own posts,
-		// which are only known here; the outer query then skips none.
-		// (PR #87 Codex P2)
-		$from    = max( 0, (int) $query->get( 'offset' ) ) + ( max( 1, (int) $query->get( 'paged' ) ) - 1 ) * $per;
-		$want    = $from + $per;
+		// The whole ordered list goes to post__in, not one row of it, so
+		// WordPress still applies the widget's offset and page and counts
+		// the pages its pagination needs. (PR #87 Codex P2 x2)
+		$want    = max( $per, (int) apply_filters( 'dpt_related_fill_max', 100 ) );
 		$current = is_singular() ? (int) get_queried_object_id() : 0;
 		$type    = $query->get( 'post_type' );
 		$type    = ( $type && 'any' !== $type ) ? $type : 'post';
@@ -69,7 +68,6 @@ class DPT_Related_Fill_Module extends DPT_Module {
 			$ids = array_merge( $ids, $this->newest( $type, $want - count( $ids ), array_merge( $skip, $ids ), array() ) );
 		}
 		$this->running = false;
-		$ids = array_slice( $ids, $from, $per );
 
 		if ( ! $ids ) {
 			return; // Nothing to show: Elementor's own fallback may still act.
@@ -80,8 +78,6 @@ class DPT_Related_Fill_Module extends DPT_Module {
 		$query->set( 'category__in', array() );
 		$query->set( 'ignore_sticky_posts', true );
 		$query->set( 'posts_per_page', $per );
-		$query->set( 'offset', 0 );
-		$query->set( 'paged', 1 );
 	}
 
 	/**
