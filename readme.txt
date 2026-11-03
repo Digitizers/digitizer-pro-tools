@@ -4,7 +4,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.49.0
+Stable tag: 1.49.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -113,6 +113,7 @@ Turns comments off - dynamically (disabled by default; enable it on the Modules 
 
 * Everywhere, or only on selected post types
 * Closes comment/trackback forms, hides existing comments, strips editor support
+* Comment feeds go with the comments: no comments-feed link in the head, a 404 for a switched-off post type's comment feed and for /comments/feed/ when every type is off, and the site-wide feed leaves out switched-off types otherwise. Comment counts read 0 on the front end where comments are hidden
 * Removes the admin comments UI (menu, admin-bar bubble, dashboard widget, edit-comments screen) - only when comments are disabled for every relevant post type
 * WooCommerce product reviews are comments under the hood - a dedicated toggle (on by default) keeps them working
 
@@ -381,6 +382,9 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 5. Configure each module you enabled from its own screen. For the Cookie Banner that means reviewing the texts per language and pasting your analytics/marketing snippets in the Scripts tab, then checking the site
 
 == Changelog ==
+
+= 1.49.1 =
+* Disable Comments: comment feeds go with the comments. The head no longer links to the comments feed, /comments/feed/ and a switched-off post type's per-post comment feed return 404, and when some types keep their comments the site-wide feed leaves out the rest. Comment counts read 0 on the front end where comments are hidden (#81)
 
 = 1.49.0 =
 * UTM Passthrough: a new switch also carries HubSpot's ad parameters (hsa_*, hss_channel), and the dpt_utm_passthrough_params filter adds parameters by name. HubSpot's email and contact parameters are never carried. Whatever is carried beyond utm_* also joins WP Rocket's ignored list, so it does not cost each page its cache

@@ -35,6 +35,13 @@ class DPT_Disable_Comments_Module extends DPT_Module {
 		// WP_Comment_Query and never pass through comments_array.
 		add_action( 'pre_get_comments', array( $this, 'filter_comment_queries' ) );
 
+		// Comment feeds go with the comments. (#81)
+		add_filter( 'feed_links_show_comments_feed', array( $this, 'filter_show_comments_feed' ) );
+		add_filter( 'feed_links_extra_show_post_comments_feed', array( $this, 'filter_show_post_comments_feed' ) );
+		add_action( 'template_redirect', array( $this, 'block_comment_feeds' ), 1 );
+		add_filter( 'comment_feed_where', array( $this, 'filter_comment_feed_where' ), 10, 2 );
+		add_filter( 'get_comments_number', array( $this, 'filter_comments_number' ), 10, 2 );
+
 		// Editor/REST support removal - after all post types registered.
 		add_action( 'init', array( $this, 'remove_post_type_support' ), 100 );
 
@@ -156,6 +163,110 @@ class DPT_Disable_Comments_Module extends DPT_Module {
 		} else {
 			$query->query_vars['post_type'] = $kept;
 		}
+	}
+
+	/**
+	 * The comment-supporting types whose comments are switched off.
+	 *
+	 * @return string[]
+	 */
+	private function disabled_types() {
+		$types = array();
+		foreach ( DPT_DC_Settings::comment_post_types() as $type ) {
+			if ( DPT_DC_Settings::disabled_for( $type ) ) {
+				$types[] = $type;
+			}
+		}
+		return $types;
+	}
+
+	/**
+	 * Whether the site-wide comment feed has nothing left to list. Unlike
+	 * fully_disabled(), kept WooCommerce reviews count: they are comments
+	 * the feed still shows.
+	 */
+	private function all_comments_off() {
+		$types = DPT_DC_Settings::comment_post_types();
+		return $types && count( $this->disabled_types() ) === count( $types );
+	}
+
+	/**
+	 * The head's site-wide comment feed link.
+	 *
+	 * @param bool $show Whether core would print it.
+	 * @return bool
+	 */
+	public function filter_show_comments_feed( $show ) {
+		return $show && ! $this->all_comments_off();
+	}
+
+	/**
+	 * The head's link to the viewed post's own comment feed.
+	 *
+	 * @param bool $show Whether core would print it.
+	 * @return bool
+	 */
+	public function filter_show_post_comments_feed( $show ) {
+		return $show && ! DPT_DC_Settings::disabled_for( (string) get_post_type( get_queried_object_id() ) );
+	}
+
+	/**
+	 * A comment feed that could list only switched-off comments is a 404:
+	 * a post's own feed on a switched-off type, and the site-wide feed when
+	 * every type is off. set_404() clears is_feed, so the theme's 404
+	 * template renders instead of the feed.
+	 */
+	public function block_comment_feeds() {
+		if ( ! is_comment_feed() ) {
+			return;
+		}
+		$off = is_singular()
+			? DPT_DC_Settings::disabled_for( (string) get_post_type( get_queried_object_id() ) )
+			: $this->all_comments_off();
+		if ( ! $off ) {
+			return;
+		}
+		global $wp_query;
+		$wp_query->set_404();
+		status_header( 404 );
+		nocache_headers();
+	}
+
+	/**
+	 * The site-wide comment feed, when some types keep their comments:
+	 * leave out the rest. Core's comment feed query joins the posts table.
+	 *
+	 * @param string   $where The feed query's WHERE clause.
+	 * @param WP_Query $query The feed's query.
+	 * @return string
+	 */
+	public function filter_comment_feed_where( $where, $query ) {
+		if ( is_object( $query ) && method_exists( $query, 'is_singular' ) && $query->is_singular() ) {
+			return $where;
+		}
+		$types = $this->disabled_types();
+		if ( ! $types ) {
+			return $where;
+		}
+		global $wpdb;
+		$list = $wpdb->prepare( implode( ',', array_fill( 0, count( $types ), '%s' ) ), $types ); // phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- One %s per type.
+		return $where . " AND {$wpdb->posts}.post_type NOT IN ({$list})";
+	}
+
+	/**
+	 * Hidden comments are not counted on the front end: a theme would
+	 * otherwise announce "5 comments" over an empty list, and RSS items
+	 * would link to a comment feed that is now a 404.
+	 *
+	 * @param int|string $count   The count.
+	 * @param int        $post_id The post.
+	 * @return int|string
+	 */
+	public function filter_comments_number( $count, $post_id ) {
+		if ( ! is_admin() && DPT_DC_Settings::disabled_for( (string) get_post_type( $post_id ) ) ) {
+			return 0;
+		}
+		return $count;
 	}
 
 	/**
