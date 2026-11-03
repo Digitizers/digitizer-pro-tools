@@ -16,8 +16,9 @@
  * Those three old names are registered as well, as compatibility names:
  * automations written against the replaced plugin still write them, and a
  * key that is not registered is dropped by the REST controller without a
- * word. They store under their own names, as they always did. Rank Math does
- * not read them, and each one's description says which key it does read.
+ * word. They store under their own names, as they always did, and a REST
+ * write to one is copied to the key Rank Math reads (mirror_legacy()), so a
+ * custom Open Graph title set through an old name reaches the page.
  *
  * @package Digitizer_Pro_Tools
  */
@@ -197,6 +198,50 @@ class DPT_RB_Rankmath {
 				}
 
 				register_post_meta( $post_type, $key, $args );
+			}
+
+			add_action( "rest_after_insert_{$post_type}", array( __CLASS__, 'mirror_legacy' ), 10, 2 );
+		}
+	}
+
+	/**
+	 * Copy a REST write to an old Open Graph name onto the key Rank Math
+	 * reads. Writing rank_math_og_title used to answer 200 and read back fine
+	 * while the page kept its fallback og:title - the custom value was lost
+	 * without a word. (#83)
+	 *
+	 * Runs after the REST controller has saved the meta, so what is copied is
+	 * the stored value, past the controller's own checks; a write it refused
+	 * copies nothing new. When one request sets both names, the key Rank Math
+	 * reads was set on purpose and is left as sent. An emptied old name
+	 * empties what it set, so Rank Math falls back as it does for any post. A
+	 * user not allowed to write the destination key gets no copy.
+	 *
+	 * @param WP_Post         $post    The post just written.
+	 * @param WP_REST_Request $request The request that wrote it.
+	 */
+	public static function mirror_legacy( $post, $request ) {
+		$meta = $request->get_param( 'meta' );
+		if ( ! is_array( $meta ) || empty( $post->ID ) ) {
+			return;
+		}
+		foreach ( self::legacy() as $legacy => $real ) {
+			if ( ! array_key_exists( $legacy, $meta ) || array_key_exists( $real, $meta ) ) {
+				continue;
+			}
+			// The request was checked for the old name only. The copy writes a
+			// key it never named, so that key's own permission - including any
+			// auth_post_meta_* denial a site set on it - must agree.
+			// (PR #84 Codex P2)
+			if ( ! current_user_can( 'edit_post_meta', $post->ID, $real ) ) {
+				continue;
+			}
+			$value = (string) get_post_meta( $post->ID, $legacy, true );
+			if ( '' === $value ) {
+				delete_post_meta( $post->ID, $real );
+			} else {
+				// update_post_meta() unslashes; the stored value is already raw.
+				update_post_meta( $post->ID, $real, wp_slash( $value ) );
 			}
 		}
 	}

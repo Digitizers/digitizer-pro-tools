@@ -3672,6 +3672,60 @@ dpt_test_ok( in_array( 'rank_math_og_image', DPT_RB_Rankmath::keys(), true ), 't
 dpt_test_eq( DPT_RB_Rankmath::compat(), array( 'rank_math_og_title', 'rank_math_og_description', 'rank_math_og_image' ), 'and they are reported as compatibility names' );
 dpt_test_eq( count( DPT_RB_Rankmath::keys() ), 15, 'twelve Rank Math keys and three compatibility names' );
 
+// A write to an old name still reaches the page's og: tags: it is copied to
+// the key Rank Math reads, unless the same request set that key itself. (#83)
+foreach ( array( 'post', 'page' ) as $dpt_pt ) {
+	dpt_test_ok( dpt_stub_has_filter( "rest_after_insert_$dpt_pt" ), "the copy runs after a REST write to a $dpt_pt" );
+}
+$dpt_og_post = (object) array( 'ID' => 4101, 'post_type' => 'post' );
+$dpt_og_req  = function ( $meta ) {
+	return new WP_REST_Request( array( 'meta' => $meta ) );
+};
+update_post_meta( 4101, 'rank_math_og_title', 'Custom OG' );
+update_post_meta( 4101, 'rank_math_og_image', 'https://example.test/og.png' );
+DPT_RB_Rankmath::mirror_legacy( $dpt_og_post, $dpt_og_req( array( 'rank_math_og_title' => 'Custom OG', 'rank_math_og_image' => 'https://example.test/og.png' ) ) );
+dpt_test_eq( get_post_meta( 4101, 'rank_math_facebook_title', true ), 'Custom OG', 'an old-name title reaches rank_math_facebook_title' );
+dpt_test_eq( get_post_meta( 4101, 'rank_math_facebook_image', true ), 'https://example.test/og.png', 'and an old-name image reaches rank_math_facebook_image' );
+dpt_test_eq( get_post_meta( 4101, 'rank_math_og_title', true ), 'Custom OG', 'the old name keeps its own value, as before' );
+dpt_test_eq( get_post_meta( 4101, 'rank_math_facebook_description', true ), '', 'a key the request did not touch is left alone' );
+
+update_post_meta( 4101, 'rank_math_og_title', 'Old name' );
+update_post_meta( 4101, 'rank_math_facebook_title', 'Real name' );
+DPT_RB_Rankmath::mirror_legacy( $dpt_og_post, $dpt_og_req( array( 'rank_math_og_title' => 'Old name', 'rank_math_facebook_title' => 'Real name' ) ) );
+dpt_test_eq( get_post_meta( 4101, 'rank_math_facebook_title', true ), 'Real name', 'when one request sets both, the key Rank Math reads wins' );
+
+DPT_RB_Rankmath::mirror_legacy( $dpt_og_post, $dpt_og_req( array( 'rank_math_title' => 'SEO' ) ) );
+dpt_test_eq( get_post_meta( 4101, 'rank_math_facebook_title', true ), 'Real name', 'a request without an old name copies nothing' );
+DPT_RB_Rankmath::mirror_legacy( $dpt_og_post, $dpt_og_req( null ) );
+dpt_test_eq( get_post_meta( 4101, 'rank_math_facebook_title', true ), 'Real name', 'nor does one without meta' );
+
+update_post_meta( 4101, 'rank_math_og_title', '' );
+DPT_RB_Rankmath::mirror_legacy( $dpt_og_post, $dpt_og_req( array( 'rank_math_og_title' => '' ) ) );
+dpt_test_eq( get_post_meta( 4101, 'rank_math_facebook_title', true ), '', 'clearing the old name clears what it set' );
+
+// The copy is the stored value, after the REST controller's own checks: a
+// write the controller refused leaves the old name unchanged, so nothing new
+// is copied.
+update_post_meta( 4101, 'rank_math_og_description', 'Stored' );
+DPT_RB_Rankmath::mirror_legacy( $dpt_og_post, $dpt_og_req( array( 'rank_math_og_description' => 'Refused value' ) ) );
+dpt_test_eq( get_post_meta( 4101, 'rank_math_facebook_description', true ), 'Stored', 'what is copied is what was stored, not what was asked' );
+update_post_meta( 4101, 'rank_math_og_description', wp_slash( 'C:\\docs' ) ); // As the REST controller stores it.
+DPT_RB_Rankmath::mirror_legacy( $dpt_og_post, $dpt_og_req( array( 'rank_math_og_description' => 'C:\\docs' ) ) );
+dpt_test_eq( get_post_meta( 4101, 'rank_math_facebook_description', true ), 'C:\\docs', 'a backslash survives the copy' );
+
+// The copy writes a key the request never named, so it asks that key's own
+// write permission: a site that denies rank_math_facebook_title must not see
+// it changed through the old name. (PR #84 Codex P2)
+update_post_meta( 4101, 'rank_math_facebook_title', 'Guarded' );
+update_post_meta( 4101, 'rank_math_og_title', 'Sneaked' );
+$GLOBALS['dpt_stub_denied_meta_caps'][] = 'rank_math_facebook_title';
+DPT_RB_Rankmath::mirror_legacy( $dpt_og_post, $dpt_og_req( array( 'rank_math_og_title' => 'Sneaked' ) ) );
+dpt_test_eq( get_post_meta( 4101, 'rank_math_facebook_title', true ), 'Guarded', 'a denied destination is not overwritten' );
+update_post_meta( 4101, 'rank_math_og_title', '' );
+DPT_RB_Rankmath::mirror_legacy( $dpt_og_post, $dpt_og_req( array( 'rank_math_og_title' => '' ) ) );
+dpt_test_eq( get_post_meta( 4101, 'rank_math_facebook_title', true ), 'Guarded', 'nor deleted' );
+$GLOBALS['dpt_stub_denied_meta_caps'] = array_values( array_diff( $GLOBALS['dpt_stub_denied_meta_caps'], array( 'rank_math_facebook_title' ) ) );
+
 // rank_math_robots is a list of directives (e.g. noindex), never a single
 // string - Rank Math's own admin columns read it with FILTER_REQUIRE_ARRAY.
 dpt_test_eq( $GLOBALS['dpt_stub_registered_post_meta']['post']['rank_math_robots']['type'], 'array', 'robots is registered as an array, matching how Rank Math stores it' );
