@@ -31,14 +31,6 @@ class DPT_Related_Fill_Module extends DPT_Module {
 		return __( 'An Elementor Posts widget with the Query ID dpt_related_fill always shows a full row: posts from the current post\'s categories first, newest first, then the newest posts on the site. Other widgets are not affected.', 'digitizer-pro-tools' );
 	}
 
-	/**
-	 * No purge on toggle: no page changes until a widget is given the Query
-	 * ID, and that edit is the template's own. (#85)
-	 */
-	public function affects_frontend() {
-		return false;
-	}
-
 	public function init() {
 		// Elementor Pro fires this inside the widget query's pre_get_posts,
 		// in related mode too, before its zero-result fallback is considered.
@@ -54,6 +46,11 @@ class DPT_Related_Fill_Module extends DPT_Module {
 		}
 		$per     = (int) $query->get( 'posts_per_page' );
 		$per     = $per > 0 ? $per : 3;
+		// An offset or a later page skips that many of the row's own posts,
+		// which are only known here; the outer query then skips none.
+		// (PR #87 Codex P2)
+		$from    = max( 0, (int) $query->get( 'offset' ) ) + ( max( 1, (int) $query->get( 'paged' ) ) - 1 ) * $per;
+		$want    = $from + $per;
 		$current = is_singular() ? (int) get_queried_object_id() : 0;
 		$type    = $query->get( 'post_type' );
 		$type    = ( $type && 'any' !== $type ) ? $type : 'post';
@@ -66,12 +63,13 @@ class DPT_Related_Fill_Module extends DPT_Module {
 		$ids  = array();
 		$cats = $current ? wp_get_post_categories( $current ) : array();
 		if ( $cats ) {
-			$ids = $this->newest( $type, $per, $skip, $cats );
+			$ids = $this->newest( $type, $want, $skip, $cats );
 		}
-		if ( count( $ids ) < $per ) {
-			$ids = array_merge( $ids, $this->newest( $type, $per - count( $ids ), array_merge( $skip, $ids ), array() ) );
+		if ( count( $ids ) < $want ) {
+			$ids = array_merge( $ids, $this->newest( $type, $want - count( $ids ), array_merge( $skip, $ids ), array() ) );
 		}
 		$this->running = false;
+		$ids = array_slice( $ids, $from, $per );
 
 		if ( ! $ids ) {
 			return; // Nothing to show: Elementor's own fallback may still act.
@@ -82,6 +80,8 @@ class DPT_Related_Fill_Module extends DPT_Module {
 		$query->set( 'category__in', array() );
 		$query->set( 'ignore_sticky_posts', true );
 		$query->set( 'posts_per_page', $per );
+		$query->set( 'offset', 0 );
+		$query->set( 'paged', 1 );
 	}
 
 	/**

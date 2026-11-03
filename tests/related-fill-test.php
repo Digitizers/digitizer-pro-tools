@@ -46,7 +46,7 @@ require_once dirname( __DIR__ ) . '/modules/related-fill/class-dpt-rf-module.php
 $GLOBALS['dpt_stub_filters'] = array();
 $m = new DPT_Related_Fill_Module();
 dpt_test_eq( $m->id(), 'related_fill', 'the module id' );
-dpt_test_eq( $m->affects_frontend(), false, 'switching it on changes no page until a widget opts in, so no site-wide purge' );
+dpt_test_eq( $m->affects_frontend(), true, 'once a widget is configured, switching the module changes its page, so the toggle purges (PR #87 Codex P2)' );
 $m->init();
 dpt_test_ok( dpt_stub_has_filter( 'elementor/query/dpt_related_fill' ), 'it listens only on its own Query ID' );
 
@@ -79,6 +79,18 @@ $GLOBALS['dpt_stub_get_posts'] = array();
 $q = $related( array( 'post__not_in' => array( 100, 1 ) ) );
 $m->fill( $q );
 dpt_test_eq( $q->get( 'post__in' ), array( 2, 3, 4 ), 'the widget\'s own exclusions stay excluded, and nothing appears twice' );
+
+// An offset or a later page skips that many of the row's posts, then
+// still shows a full row; the outer query must not skip them again.
+// (PR #87 Codex P2)
+$q = $related( array( 'offset' => 1 ) );
+$m->fill( $q );
+dpt_test_eq( $q->get( 'post__in' ), array( 2, 3, 4 ), 'an offset of 1 skips the first post and still fills the row' );
+dpt_test_eq( array( (int) $q->get( 'offset' ), (int) $q->get( 'paged' ) ), array( 0, 1 ), 'and the outer query skips nothing more' );
+$q = $related( array( 'paged' => 2 ) );
+$m->fill( $q );
+dpt_test_eq( $q->get( 'post__in' ), array( 4, 5, 99 ), 'page 2 is the next three' );
+dpt_test_eq( array( (int) $q->get( 'offset' ), (int) $q->get( 'paged' ) ), array( 0, 1 ), 'served as one page' );
 
 $q = $related( array( 'posts_per_page' => 5 ) );
 $m->fill( $q );

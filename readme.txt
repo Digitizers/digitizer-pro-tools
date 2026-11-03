@@ -263,7 +263,8 @@ A full row of related posts in an Elementor Posts widget (disabled by default; e
 * Give the Posts widget the Query ID `dpt_related_fill`. It then shows the current post's category posts first, newest first, and fills the rest of the row with the newest posts on the site
 * The row size is the widget's own posts per page (3 when it has none). The current post, the widget's own exclusions and unpublished posts never appear, and no post appears twice
 * Works with the widget's "Related" source, whose own fallback only acts when nothing is found. Only the choice of posts changes: the card markup stays as it is
-* Widgets without that Query ID are not affected, so switching the module on changes no page by itself
+* An offset or a later page skips that many of the row's posts and still shows a full row
+* Widgets without that Query ID are not affected
 
 = Module: Cache Ignore Params =
 
