@@ -54,6 +54,15 @@ class DPT_Related_Fill_Module extends DPT_Module {
 		$type    = $query->get( 'post_type' );
 		$type    = ( $type && 'any' !== $type ) ? $type : 'post';
 		$skip    = array_map( 'intval', (array) $query->get( 'post__not_in' ) );
+		// Filters that stay on the outer query apply to the lookups too, or
+		// the cap fills with posts it then drops. (PR #87 Codex P2)
+		$keep = array();
+		foreach ( array( 'author', 'author__in', 'author__not_in', 'date_query', 'meta_query' ) as $var ) {
+			$value = $query->get( $var );
+			if ( '' !== $value && array() !== $value && null !== $value ) {
+				$keep[ $var ] = $value;
+			}
+		}
 		if ( $current ) {
 			$skip[] = $current;
 		}
@@ -66,10 +75,10 @@ class DPT_Related_Fill_Module extends DPT_Module {
 		$ids  = array();
 		$cats = $current ? wp_get_post_categories( $current ) : array();
 		if ( $cats ) {
-			$ids = $this->newest( $type, $want, $skip, $cats );
+			$ids = $this->newest( $type, $want, $skip, $cats, $keep );
 		}
 		if ( count( $ids ) < $want ) {
-			$ids = array_merge( $ids, $this->newest( $type, $want - count( $ids ), array_merge( $skip, $ids ), array() ) );
+			$ids = array_merge( $ids, $this->newest( $type, $want - count( $ids ), array_merge( $skip, $ids ), array(), $keep ) );
 		}
 		remove_action( 'pre_get_posts', array( $this, 'no_offset' ), PHP_INT_MAX );
 		$this->running = false;
@@ -97,8 +106,8 @@ class DPT_Related_Fill_Module extends DPT_Module {
 	/**
 	 * @return int[] Published post ids, newest first.
 	 */
-	private function newest( $type, $limit, $skip, $cats ) {
-		$args = array(
+	private function newest( $type, $limit, $skip, $cats, $keep ) {
+		$args = $keep + array(
 			'post_type'           => $type,
 			'post_status'         => 'publish',
 			'posts_per_page'      => $limit,

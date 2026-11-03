@@ -106,6 +106,19 @@ $dpt_left = array_filter( (array) $GLOBALS['dpt_stub_filters']['pre_get_posts'],
 dpt_test_eq( count( $dpt_left ), 0, 'and the guard is removed once the lookups are done, so no other query is touched' );
 $GLOBALS['dpt_stub_filters']['pre_get_posts'] = array();
 
+// The widget's other filters stay on the outer query, so the lookups apply
+// them too - or the cap fills with posts the outer query then drops.
+// (PR #87 Codex P2)
+$GLOBALS['dpt_stub_get_posts'] = array();
+$q = $related( array( 'author__in' => array( 5 ), 'author__not_in' => array( 6 ), 'author' => '5', 'date_query' => array( array( 'after' => '1 year ago' ) ), 'meta_query' => array( array( 'key' => 'k' ) ) ) );
+$m->fill( $q );
+foreach ( $GLOBALS['dpt_stub_get_posts'] as $dpt_a ) {
+	dpt_test_ok( array( 5 ) === $dpt_a['author__in'] && array( 6 ) === $dpt_a['author__not_in'] && '5' === $dpt_a['author'] && ! empty( $dpt_a['date_query'] ) && ! empty( $dpt_a['meta_query'] ), 'a lookup carries the widget\'s author, date and meta filters' );
+}
+$GLOBALS['dpt_stub_get_posts'] = array();
+$m->fill( $related() );
+dpt_test_ok( ! array_key_exists( 'author__in', $GLOBALS['dpt_stub_get_posts'][0] ), 'and adds none the widget did not set' );
+
 add_filter( 'dpt_related_fill_max', function () { return 4; } );
 $q = $related();
 $m->fill( $q );
