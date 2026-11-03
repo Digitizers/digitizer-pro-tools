@@ -119,6 +119,20 @@ $GLOBALS['dpt_stub_get_posts'] = array();
 $m->fill( $related() );
 dpt_test_ok( ! array_key_exists( 'author__in', $GLOBALS['dpt_stub_get_posts'][0] ), 'and adds none the widget did not set' );
 
+// Terms the widget excludes stay excluded: only the related inclusion is
+// lifted. (PR #87 Codex P2)
+$dpt_excl = array( 'taxonomy' => 'post_tag', 'field' => 'term_id', 'terms' => array( 12 ), 'operator' => 'NOT IN' );
+$GLOBALS['dpt_stub_get_posts'] = array();
+$q = $related( array( 'tax_query' => array( 'relation' => 'AND', array( 'taxonomy' => 'category', 'terms' => array( 7 ) ), $dpt_excl ) ) );
+$m->fill( $q );
+dpt_test_eq( $q->get( 'tax_query' ), array( 'relation' => 'AND', $dpt_excl ), 'the outer query keeps the exclusion and loses the related inclusion' );
+foreach ( $GLOBALS['dpt_stub_get_posts'] as $dpt_a ) {
+	dpt_test_eq( $dpt_a['tax_query'] ?? null, array( 'relation' => 'AND', $dpt_excl ), 'and every lookup applies it' );
+}
+$GLOBALS['dpt_stub_get_posts'] = array();
+$m->fill( $related() );
+dpt_test_ok( ! array_key_exists( 'tax_query', $GLOBALS['dpt_stub_get_posts'][0] ), 'no exclusions, no tax_query on the lookups' );
+
 add_filter( 'dpt_related_fill_max', function () { return 4; } );
 $q = $related();
 $m->fill( $q );

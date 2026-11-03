@@ -63,6 +63,18 @@ class DPT_Related_Fill_Module extends DPT_Module {
 				$keep[ $var ] = $value;
 			}
 		}
+		// Of the tax_query, only the related inclusion keeps the row short:
+		// terms the widget excludes (NOT IN) stay excluded. (PR #87 Codex P2)
+		$exclude = array();
+		foreach ( (array) $query->get( 'tax_query' ) as $clause ) {
+			if ( is_array( $clause ) && isset( $clause['operator'] ) && 'NOT IN' === strtoupper( $clause['operator'] ) ) {
+				$exclude[] = $clause;
+			}
+		}
+		$tax = $exclude ? array_merge( array( 'relation' => 'AND' ), $exclude ) : array();
+		if ( $tax ) {
+			$keep['tax_query'] = $tax;
+		}
 		if ( $current ) {
 			$skip[] = $current;
 		}
@@ -88,7 +100,7 @@ class DPT_Related_Fill_Module extends DPT_Module {
 		}
 		$query->set( 'post__in', $ids );
 		$query->set( 'orderby', 'post__in' );
-		$query->set( 'tax_query', array() );
+		$query->set( 'tax_query', $tax );
 		$query->set( 'category__in', array() );
 		$query->set( 'ignore_sticky_posts', true );
 		$query->set( 'posts_per_page', $per );
