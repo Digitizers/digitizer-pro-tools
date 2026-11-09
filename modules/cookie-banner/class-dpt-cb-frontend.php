@@ -30,6 +30,12 @@ class DPT_CB_Frontend {
 		add_filter( 'rocket_delay_js_exclusions',         array( $this, 'rocket_exclude_patterns' ) );
 		add_filter( 'rocket_minify_excluded_external_js', array( $this, 'rocket_exclude_files' ) );
 		add_filter( 'rocket_excluded_inline_js_content',  array( $this, 'rocket_exclude_inline' ) );
+		// WP Rocket Remove Unused CSS: used CSS built before the banner existed
+		// has none of its rules, and the stylesheet itself is stripped - the
+		// banner then renders unstyled at the page bottom, where nobody sees it
+		// to consent. Keep the file and the inline style tags out of it. (#79)
+		add_filter( 'rocket_rucss_external_exclusions',    array( $this, 'rocket_rucss_keep_file' ) );
+		add_filter( 'rocket_rucss_inline_atts_exclusions', array( $this, 'rocket_rucss_keep_inline' ) );
 		add_shortcode( 'dpt_cookie_settings', array( $this, 'settings_link_shortcode' ) );
 
 		// The WP Consent API reads two things from the consent plugin: that one
@@ -245,6 +251,19 @@ class DPT_CB_Frontend {
 		// The WP Consent API's own script: delayed until an interaction, it
 		// would not be there to receive the visitor's choice.
 		$excluded[] = 'wp-consent-api';
+		return $excluded;
+	}
+
+	public function rocket_rucss_keep_file( $excluded ) {
+		if ( ! is_array( $excluded ) ) { $excluded = array(); }
+		$excluded[] = 'digitizer-pro-tools/modules/cookie-banner/assets/css/frontend.css';
+		return $excluded;
+	}
+
+	/** Matches the ids of both inline style tags: dpt-cb-precheck-css and dpt-cb-inline-css. */
+	public function rocket_rucss_keep_inline( $excluded ) {
+		if ( ! is_array( $excluded ) ) { $excluded = array(); }
+		$excluded[] = 'dpt-cb-';
 		return $excluded;
 	}
 
