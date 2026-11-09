@@ -152,4 +152,19 @@ foreach ( array( 'dpt-cb-precheck-css', 'dpt-cb-inline-css' ) as $dpt_id ) {
 	dpt_test_ok( false !== strpos( (string) file_get_contents( dirname( __DIR__ ) . '/modules/cookie-banner/class-dpt-cb-frontend.php' ), 'id="' . $dpt_id . '"' ), "the pattern matches the inline style #$dpt_id" );
 }
 
+/* Flying Scripts delays every script[!type] / script[type='text/javascript']
+   whose text holds one of its keywords until a user interaction - on the live
+   sites it caught the head precheck, so the purge, the Consent Mode defaults
+   and the banner check never ran on load (#80). An explicit JavaScript MIME
+   type the browser runs, and that selector skips, keeps it first. */
+$GLOBALS['dpt_stub_is_admin'] = false;
+ob_start();
+$dpt_f->inject_inline_consent_check();
+$dpt_head = (string) ob_get_clean();
+dpt_test_ok( false !== strpos( $dpt_head, 'id="dpt-cb-precheck"' ), 'the head precheck is printed on the front end' );
+dpt_test_ok( 1 === preg_match( '#<script id="dpt-cb-precheck" type="application/javascript" data-no-defer data-cfasync="false">#', $dpt_head ), 'the precheck carries type="application/javascript"' );
+preg_match_all( '#<script\b([^>]*)>#', $dpt_head, $dpt_tags );
+$dpt_caught = array_filter( $dpt_tags[1], function ( $atts ) { return ! preg_match( '/\btype=/', $atts ) || preg_match( '/\btype=["\']text\/javascript["\']/', $atts ); } );
+dpt_test_eq( array_values( $dpt_caught ), array(), 'no script in the head output matches Flying Scripts\' selector' );
+
 exit( dpt_test_summary() > 0 ? 1 : 0 );
