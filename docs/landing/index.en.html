@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Digitizer Pro Tools: One WordPress Plugin Instead of Twenty | Digitizer</title>
+<meta name="description" content="One WordPress plugin that replaces dozens of plugins and snippets: cookie consent, Shabbat closure, content control, WooCommerce checkout and more.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f7f6f2; --surface:#ffffff; --ink:#16181d; --muted:#5b616e; --line:#e3e1da;
+  --accent:#0f5bd8; --accent-ink:#ffffff; --accent-soft:#e6eefc; --chip:#f0efe9;
+  --radius:16px; --shadow:0 1px 2px rgba(0,0,0,.04),0 8px 24px rgba(16,24,40,.06);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1115; --surface:#171a21; --ink:#eef0f4; --muted:#a3a9b6; --line:#262a33;
+    --accent:#6ea2ff; --accent-ink:#0b1020; --accent-soft:#1a2540; --chip:#1f232c;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1115; --surface:#171a21; --ink:#eef0f4; --muted:#a3a9b6; --line:#262a33;
+  --accent:#6ea2ff; --accent-ink:#0b1020; --accent-soft:#1a2540; --chip:#1f232c;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 17px/1.6 Inter,system-ui,-apple-system,"Segoe UI",Arial,sans-serif}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+.wrap{max-width:1120px;margin:0 auto;padding:0 16px}
+header.top{display:flex;align-items:center;justify-content:space-between;padding:20px 0}
+.brand{font-weight:800;letter-spacing:-.01em;font-size:18px;display:flex;gap:10px;align-items:center}
+.brand .dot{width:12px;height:12px;border-radius:4px;background:var(--accent)}
+.top nav a{color:var(--muted);margin-inline-start:20px;font-size:15px}
+.hero{padding:56px 0 40px}
+.hero h1{font-size:clamp(34px,6vw,58px);line-height:1.08;letter-spacing:-.02em;margin:0 0 18px;font-weight:800;max-width:15ch}
+.hero p.lead{font-size:clamp(18px,2.2vw,21px);color:var(--muted);max-width:52ch;margin:0 0 28px}
+.cta{display:flex;gap:12px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:13px 20px;border-radius:12px;font-weight:700;font-size:16px;border:1px solid transparent}
+.btn.primary{background:var(--accent);color:var(--accent-ink)}
+.btn.ghost{border-color:var(--line);color:var(--ink);background:var(--surface)}
+.btn:hover{text-decoration:none;filter:brightness(1.05)}
+.facts{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:44px 0 8px}
+.fact{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px}
+.fact b{display:block;font-size:28px;font-weight:800;letter-spacing:-.02em}
+.fact span{color:var(--muted);font-size:14px}
+section{padding:56px 0}
+h2{font-size:clamp(26px,3.6vw,36px);letter-spacing:-.015em;margin:0 0 10px;font-weight:800}
+.sub{color:var(--muted);margin:0 0 28px;max-width:60ch}
+.groups{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.group{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:22px;box-shadow:var(--shadow)}
+.group h3{margin:0 0 4px;font-size:19px}
+.group p.g{margin:0 0 14px;color:var(--muted);font-size:15px}
+.group ul{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.group li{font-size:15px;line-height:1.5}
+.group li b{display:block;font-weight:700}
+.group li span{color:var(--muted)}
+.why{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+.why div{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:22px}
+.why h3{margin:0 0 6px;font-size:18px}
+.why p{margin:0;color:var(--muted);font-size:15px}
+.stand{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.stand a{display:block;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px;color:var(--ink)}
+.stand a:hover{border-color:var(--accent);text-decoration:none}
+.stand small{display:block;color:var(--muted);font-size:13px;margin-top:4px}
+.chip{display:inline-block;background:var(--chip);border-radius:999px;padding:2px 10px;font-size:12px;color:var(--muted);margin-bottom:8px}
+.final{background:var(--accent-soft);border-radius:24px;padding:40px 28px;text-align:center}
+.final p{color:var(--muted);margin:0 auto 22px;max-width:52ch}
+footer{padding:32px 0 48px;color:var(--muted);font-size:14px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.88em;background:var(--chip);padding:1px 6px;border-radius:6px;direction:ltr;unicode-bidi:isolate}
+@media (max-width:900px){.groups{grid-template-columns:1fr 1fr}.stand{grid-template-columns:1fr 1fr}.facts{grid-template-columns:1fr 1fr}}
+@media (max-width:620px){.groups,.why,.stand{grid-template-columns:1fr}.top nav{display:none}.hero{padding-top:28px}section{padding:40px 0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><span class="dot" aria-hidden="true"></span>Digitizer Pro Tools</div>
+    <nav aria-label="Page">
+      <a href="#modules">Modules</a>
+      <a href="#why">Why</a>
+      <a href="#wporg">On WordPress.org</a>
+    </nav>
+  </header>
+
+  <section class="hero" aria-labelledby="h1">
+    <h1 id="h1">One plugin instead of twenty.</h1>
+    <p class="lead">Digitizer Pro Tools puts the tools a WordPress site needs in one place: cookie consent, content restriction, update control, WooCommerce checkout, REST fields and more. Every feature is a module, and every module stays off until you turn it on.</p>
+    <div class="cta">
+      <a class="btn primary" href="https://github.com/Digitizers/digitizer-pro-tools/releases/latest">Download the latest release</a>
+      <a class="btn ghost" href="#modules">See what's inside</a>
+    </div>
+    <div class="facts" role="list">
+      <div class="fact" role="listitem"><b>24</b><span>modules</span></div>
+      <div class="fact" role="listitem"><b>0</b><span>modules on after install</span></div>
+      <div class="fact" role="listitem"><b>4</b><span>also free on WordPress.org</span></div>
+      <div class="fact" role="listitem"><b>RTL</b><span>built for multilingual and right-to-left sites</span></div>
+    </div>
+  </section>
+
+  <section id="modules" aria-labelledby="h-mod">
+    <h2 id="h-mod">What's inside</h2>
+    <p class="sub">Each module does one job and replaces a plugin or a snippet you used to carry. Turn on only what the site needs.</p>
+    <div class="groups">
+      <div class="group">
+        <h3>Setup and maintenance</h3><p class="g">New sites start ready. Running sites stay quiet.</p>
+        <ul>
+          <li><b>Onboarding</b><span>Installs Digitizer's baseline on a new site without touching what is already there.</span></li>
+          <li><b>Update Policy</b><span>Holds a major WordPress release until your plugins catch up. Security releases always go through.</span></li>
+          <li><b>Update Emails</b><span>Silences the "your site was updated" emails. Failure emails still arrive.</span></li>
+          <li><b>Agent Log</b><span>A log of everything automations changed on the site: who, what and when.</span></li>
+          <li><b>Site Tweaks</b><span>Security headers, SVG uploads with unsafe code stripped, and less dead weight on Elementor sites.</span></li>
+        </ul>
+      </div>
+      <div class="group">
+        <h3>Privacy and access</h3><p class="g">Who sees what, and when.</p>
+        <ul>
+          <li><b>Cookie Banner</b><span>A multilingual consent banner that holds tagged scripts until consent, supports Google Consent Mode v2, and clears cookies on refusal.</span></li>
+          <li><b>Content Control</b><span>Restrict content by role, set site-wide rules, or put the whole site behind a login.</span></li>
+          <li><b>Hide Login</b><span>Moves the login page to an address of your choice.</span></li>
+          <li><b>User Role Editor</b><span>Edit what each role is allowed to do.</span></li>
+          <li><b>Disable Comments</b><span>Turns comments off, comment feeds included, without touching WooCommerce reviews.</span></li>
+          <li><b>Shabbat Keeper</b><span>Closes the site, or just the shop and forms, from candle lighting to Havdalah and on Jewish holidays.</span></li>
+        </ul>
+      </div>
+      <div class="group">
+        <h3>Content and editing</h3><p class="g">Fewer heavy widgets, less pasted code.</p>
+        <ul>
+          <li><b>Duplicate Post</b><span>One-click copies, Elementor content included.</span></li>
+          <li><b>Embed</b><span>PDFs and Google Docs in a responsive frame.</span></li>
+          <li><b>Code Highlighter</b><span>Syntax highlighting with no external CDN.</span></li>
+          <li><b>Copy URL</b><span>A "copy this page's address" field in one shortcode.</span></li>
+          <li><b>Related Posts Fill</b><span>Fills Elementor's related posts widget when the category runs short.</span></li>
+          <li><b>Rank Math Breadcrumbs</b><span>Adds your Blog and Shop pages to Rank Math breadcrumbs.</span></li>
+        </ul>
+      </div>
+      <div class="group">
+        <h3>Marketing and performance</h3><p class="g">The campaign survives all the way to the form.</p>
+        <ul>
+          <li><b>UTM Passthrough</b><span>Carries UTM parameters through internal links as the visitor browses, HubSpot ad parameters included.</span></li>
+          <li><b>Cache Ignore Params</b><span>Lets WP Rocket serve cached pages to visits that arrive with tracking parameters.</span></li>
+        </ul>
+      </div>
+      <div class="group">
+        <h3>WooCommerce</h3><p class="g">A cleaner checkout.</p>
+        <ul>
+          <li><b>WooCommerce Checkout</b><span>Suggests fixes for mistyped email addresses and validates Israeli phone numbers.</span></li>
+          <li><b>Checkout Field Editor</b><span>Add, hide and reorder checkout fields.</span></li>
+          <li><b>Name Your Price</b><span>Pay-what-you-want pricing, with a minimum and maximum enforced on the server.</span></li>
+        </ul>
+      </div>
+      <div class="group">
+        <h3>Integrations</h3><p class="g">Your site talks to your automations.</p>
+        <ul>
+          <li><b>REST Bridge</b><span>JetEngine and Rank Math fields in the REST API, and Elementor content edits that keep the design intact. <a href="https://www.digitizer.studio/wordpress-api-pro/">More on WordPress API work</a></span></li>
+          <li><b>Resend Mail</b><span>Sends all site email through Resend, with a delivery log.</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="why" aria-labelledby="h-why">
+    <h2 id="h-why">Why one plugin</h2>
+    <p class="sub">Fewer plugins means fewer updates to track, fewer conflicts, and less code someone pasted in once and forgot.</p>
+    <div class="why">
+      <div><h3>Off by default</h3><p>Activating it changes nothing. Each module turns on only when you decide, so the site runs exactly what you chose.</p></div>
+      <div><h3>Built for multilingual sites</h3><p>Full right-to-left support on every screen, a Hebrew interface, and a cookie banner that follows the page's language and direction.</p></div>
+      <div><h3>Works with your cache</h3><p>The banner, the restrictions and the parameters keep working behind WP Rocket, Cloudflare and optimization plugins.</p></div>
+      <div><h3>No data sent home</h3><p>The plugin collects and sends no usage data. The update check asks GitHub without sending your site's address. A module built around an outside service, like Resend, talks to that service only.</p></div>
+    </div>
+  </section>
+
+  <section id="wporg" aria-labelledby="h-wp">
+    <h2 id="h-wp">Need just one of them?</h2>
+    <p class="sub">Four modules are also available as separate, free plugins on WordPress.org.</p>
+    <div class="stand">
+      <a href="https://wordpress.org/plugins/digitizer-cookie-consent/"><span class="chip">WordPress.org</span><b>Cookie Consent</b><small>Cookie consent banner</small></a>
+      <a href="https://wordpress.org/plugins/digitizer-shabbat-keeper/"><span class="chip">WordPress.org</span><b>Shabbat Keeper</b><small>Close the site on Shabbat and holidays</small></a>
+      <a href="https://wordpress.org/plugins/digitizer-update-hold/"><span class="chip">WordPress.org</span><b>Update Hold</b><small>Hold major WordPress releases</small></a>
+      <a href="https://wordpress.org/plugins/digitizer-ai-agent-log/"><span class="chip">WordPress.org</span><b>AI Agent Log</b><small>A log of automated changes</small></a>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-final">
+    <div class="final">
+      <h2 id="h-final">Want a site that runs on less?</h2>
+      <p>Digitizer builds and maintains WordPress sites for businesses. Pro Tools is the toolkit behind every site we launch.</p>
+      <div class="cta" style="justify-content:center">
+        <a class="btn primary" href="https://www.digitizer.studio/wordpress-maintenance/">WordPress maintenance</a>
+        <a class="btn ghost" href="https://www.digitizer.studio/contact-us/">Talk to us</a>
+        <a class="btn ghost" href="https://github.com/Digitizers/digitizer-pro-tools">Code on GitHub</a>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span>Digitizer Pro Tools · GPLv2 or later</span>
+    <span>WordPress 5.8+ · PHP 7.4+</span>
+  </footer>
+</div>
+</body>
+</html>
