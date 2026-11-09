@@ -2,3 +2,5 @@
 dist/
 .DS_Store
 /messages.mo
+# Browser-automation logs (Playwright MCP) written into the working tree.
+.playwright-mcp/
