@@ -1,0 +1,52 @@
+<style>
+  html,body{margin:0;padding:0}
+  .b{position:relative;width:772px;height:250px;overflow:hidden;
+     background:linear-gradient(135deg,#0f172a 0%,#1e293b 100%);
+     font-family:system-ui,-apple-system,'Segoe UI',sans-serif}
+  .grid{position:absolute;inset:0;opacity:.05;
+     background-image:linear-gradient(#fff 1px,transparent 1px),linear-gradient(90deg,#fff 1px,transparent 1px);
+     background-size:50px 50px}
+  .glow{position:absolute;border-radius:50%;background:#60a5fa;filter:blur(60px)}
+  .g1{width:260px;height:260px;right:-60px;top:-90px;opacity:.22}
+  .g2{width:200px;height:200px;left:-80px;bottom:-90px;opacity:.09}
+  .wrap{position:absolute;left:52px;top:44px;display:flex;gap:30px;align-items:flex-start}
+  .mark{width:92px;height:92px;flex:none}
+  .kicker{font-size:13px;letter-spacing:2.6px;font-weight:600;color:#60a5fa;text-transform:uppercase;margin:2px 0 12px}
+  .h{font-size:27px;line-height:1.24;font-weight:700;color:#fff;letter-spacing:-.4px;margin:0}
+  .h em{font-style:normal;color:#94a3b8}
+  .rule{width:64px;height:3px;border-radius:2px;background:#60a5fa;opacity:.7;margin-top:18px}
+  .chips{position:absolute;right:44px;top:62px;display:flex;flex-direction:column;gap:12px;align-items:flex-end}
+  .chip{display:flex;align-items:center;gap:10px;padding:8px 15px;border-radius:999px;
+        border:1px solid rgba(148,163,184,.28);background:rgba(15,23,42,.5);
+        font-size:13px;font-weight:600;letter-spacing:.3px;color:#cbd5e1}
+  .chip b{color:#60a5fa;font-weight:700}
+  .dot{width:7px;height:7px;border-radius:50%;background:#60a5fa}
+  .off .dot{background:#64748b}
+</style>
+<div class="b">
+  <div class="grid"></div><div class="glow g1"></div><div class="glow g2"></div>
+  <div class="wrap">
+    <svg class="mark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <rect x="28" y="28" width="56" height="56" rx="14" fill="#fff"/>
+  <rect x="100" y="28" width="56" height="56" rx="14" fill="#60a5fa"/>
+  <rect x="172" y="28" width="56" height="56" rx="14" fill="#fff" opacity=".18"/>
+  <rect x="28" y="100" width="56" height="56" rx="14" fill="#fff" opacity=".18"/>
+  <rect x="100" y="100" width="56" height="56" rx="14" fill="#fff"/>
+  <rect x="172" y="100" width="56" height="56" rx="14" fill="#fff" opacity=".18"/>
+  <rect x="28" y="172" width="56" height="56" rx="14" fill="#60a5fa"/>
+  <rect x="100" y="172" width="56" height="56" rx="14" fill="#fff" opacity=".18"/>
+  <rect x="172" y="172" width="56" height="56" rx="14" fill="#fff"/>
+</svg>
+
+    <div>
+      <div class="kicker">Digitizer Pro Tools</div>
+      <p class="h">One plugin instead of twenty.<br><em>Each module off until you need it.</em></p>
+      <div class="rule"></div>
+    </div>
+  </div>
+  <div class="chips">
+    <div class="chip"><span class="dot"></span><b>24</b> modules</div>
+    <div class="chip"><span class="dot"></span>עברית · RTL</div>
+    <div class="chip off"><span class="dot"></span>Off by default</div>
+  </div>
+</div>
