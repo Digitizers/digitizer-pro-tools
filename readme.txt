@@ -8,7 +8,7 @@ Stable tag: 1.50.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-One toolbox plugin by Digitizer. Modules: multilingual cookie-consent banner, one-click post duplication, auto-update email silencing.
+One plugin in place of many: cookie consent, access control, updates, WooCommerce and REST tools - each a module, all off until you switch them on.
 
 == Description ==
 
