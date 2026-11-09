@@ -139,4 +139,17 @@ dpt_test_ok( false !== strpos( dpt_test_rf_css( DPT_CB_Settings::all() ), 'max-h
 $admin_css = (string) file_get_contents( dirname( __DIR__ ) . '/assets/css/admin.css' );
 dpt_test_ok( 1 === preg_match( '/\.dpt-switch input:focus-visible \+ \.dpt-switch-slider\s*\{[^}]*outline:/', $admin_css ), 'a focused settings switch shows a focus ring' );
 
+/* WP Rocket Remove Unused CSS stripped the banner's stylesheet, so the banner
+   rendered unstyled at the page bottom and nobody could consent (#79). */
+$GLOBALS['dpt_stub_filters'] = array();
+$dpt_f = new DPT_CB_Frontend();
+dpt_test_ok( dpt_stub_has_filter( 'rocket_rucss_external_exclusions' ) && dpt_stub_has_filter( 'rocket_rucss_inline_atts_exclusions' ), 'the banner opts out of WP Rocket\'s unused-CSS removal' );
+$dpt_ext = apply_filters( 'rocket_rucss_external_exclusions', array( 'theme.css' ) );
+dpt_test_ok( in_array( 'theme.css', $dpt_ext, true ) && in_array( 'digitizer-pro-tools/modules/cookie-banner/assets/css/frontend.css', $dpt_ext, true ), 'its stylesheet stays loaded as a file, beside what was excluded already' );
+$dpt_in = apply_filters( 'rocket_rucss_inline_atts_exclusions', 'not-an-array' );
+dpt_test_ok( is_array( $dpt_in ) && in_array( 'dpt-cb-', $dpt_in, true ), 'and its inline style tags are kept, a broken input notwithstanding' );
+foreach ( array( 'dpt-cb-precheck-css', 'dpt-cb-inline-css' ) as $dpt_id ) {
+	dpt_test_ok( false !== strpos( (string) file_get_contents( dirname( __DIR__ ) . '/modules/cookie-banner/class-dpt-cb-frontend.php' ), 'id="' . $dpt_id . '"' ), "the pattern matches the inline style #$dpt_id" );
+}
+
 exit( dpt_test_summary() > 0 ? 1 : 0 );
