@@ -7,6 +7,7 @@ Each feature is a **module**. Activating the plugin adds a Modules screen and do
 - WordPress 5.8+ · PHP 7.4+ · GPLv2 or later
 - Interface in English, with a full Hebrew translation. RTL is supported throughout.
 - No external services unless a module's job is one, such as Resend Mail. Updates come from this repository's GitHub Releases.
+- Product page (Hebrew): https://www.digitizer.co.il/digitizer-pro-tools/
 
 ---
 
