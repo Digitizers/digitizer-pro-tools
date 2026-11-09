@@ -4,7 +4,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.50.2
+Stable tag: 1.50.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -392,6 +392,9 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 5. Configure each module you enabled from its own screen. For the Cookie Banner that means reviewing the texts per language and pasting your analytics/marketing snippets in the Scripts tab, then checking the site
 
 == Changelog ==
+
+= 1.50.3 =
+* Cookie Banner: the script at the top of the page - which deletes a refused category's cookies, sets the Google Consent Mode defaults and hides the banner for a visitor who already answered - now declares its type, so optimisation plugins such as Flying Scripts no longer hold it back until the visitor clicks. Before, a cookie like PostHog's or a Google Analytics property cookie could survive a withdrawal (#80)
 
 = 1.50.2 =
 * Cookie Banner: with WP Rocket's Remove Unused CSS on, the banner's stylesheet and inline styles are kept out of it. Before, the banner rendered unstyled at the bottom of the page, where visitors did not see it to consent (#79)

@@ -324,7 +324,14 @@ class DPT_CB_Frontend {
 		$o            = DPT_CB_Settings::all();
 		$consent_mode = '1' === $o['consent_mode'] && $this->is_active() && self::signals_possible( $o );
 		?>
-		<script id="dpt-cb-precheck" data-no-defer data-cfasync="false">
+		<?php
+		// An explicit JavaScript MIME type: Flying Scripts delays every
+		// script[!type] / script[type='text/javascript'] whose text holds one
+		// of its keywords (gtag, say) until a user interaction, and has no
+		// exclusion. On the live sites it held this back, so the purge, the
+		// Consent Mode defaults and this check ran only after a click. (#80)
+		?>
+		<script id="dpt-cb-precheck" type="application/javascript" data-no-defer data-cfasync="false">
 		<?php
 		// Deleting a denied category's cookies, here rather than in
 		// frontend.js: this runs first in <head>, before any tag that could
