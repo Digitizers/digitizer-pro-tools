@@ -4,7 +4,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.50.4
+Stable tag: 1.50.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -392,6 +392,9 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 5. Configure each module you enabled from its own screen. For the Cookie Banner that means reviewing the texts per language and pasting your analytics/marketing snippets in the Scripts tab, then checking the site
 
 == Changelog ==
+
+= 1.50.5 =
+* "View details": the sharp banner is used on high-density screens and the regular one elsewhere (they were the wrong way round), and the plugin's icon is passed along too (#95)
 
 = 1.50.4 =
 * The Plugins screen describes the plugin as it is today, and the "View details" window shows a banner and an icon

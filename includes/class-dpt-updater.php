@@ -89,6 +89,10 @@ class DPT_Updater {
 		// download. Hook the request arguments for that download too.
 		add_filter( 'upgrader_pre_download', array( __CLASS__, 'before_package_download' ), 10, 2 );
 
+		// The "View details" window: the checker labels the banners the wrong way
+		// round and passes no icons, so set both from assets/ here.
+		add_filter( 'plugins_api_result', array( __CLASS__, 'details_assets' ), 20, 3 );
+
 		self::$checker = $checker;
 		return $checker;
 	}
@@ -175,5 +179,35 @@ class DPT_Updater {
 			return array( 'latest_release' => $strategies['latest_release'] );
 		}
 		return $strategies;
+	}
+
+	/**
+	 * Banner and icons for this plugin's "View details" window.
+	 *
+	 * WordPress shows banners['low'] (772x250) and, on high-density screens,
+	 * banners['high'] (1544x500). The bundled checker assigns them the other way
+	 * round and leaves the icons out of plugin_information, so both are set from
+	 * the plugin's own assets/ folder - nothing is fetched from elsewhere.
+	 *
+	 * @param mixed  $result plugins_api() result.
+	 * @param string $action plugins_api() action.
+	 * @param object $args   plugins_api() arguments.
+	 * @return mixed
+	 */
+	public static function details_assets( $result, $action, $args ) {
+		if ( 'plugin_information' !== $action || ! is_object( $result ) || ! is_object( $args ) || ! isset( $args->slug ) || 'digitizer-pro-tools' !== $args->slug ) {
+			return $result;
+		}
+		$base            = DPT_URL . 'assets/';
+		$result->banners = array(
+			'low'  => $base . 'banner-772x250.png',
+			'high' => $base . 'banner-1544x500.png',
+		);
+		$result->icons   = array(
+			'1x'      => $base . 'icon-128x128.png',
+			'2x'      => $base . 'icon-256x256.png',
+			'default' => $base . 'icon-256x256.png',
+		);
+		return $result;
 	}
 }
