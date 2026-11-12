@@ -21,6 +21,7 @@
 	var query   = new URLSearchParams( pairs ).toString();
 	var host    = bareHost( window.location.hostname );
 	var exclude = config.exclude || [];
+	var linked  = ( config.linked || [] ).map( bareHost );
 	var files   = /\.(pdf|zip|rar|7z|gz|docx?|xlsx?|pptx?|csv|jpe?g|png|gif|webp|svg|mp3|mp4|mov|webm)$/i;
 
 	function isCarried( key ) {
@@ -57,10 +58,17 @@
 		} catch ( e ) {
 			return;
 		}
-		if ( ( 'http:' !== url.protocol && 'https:' !== url.protocol ) || bareHost( url.hostname ) !== host ) {
+		if ( 'http:' !== url.protocol && 'https:' !== url.protocol ) {
 			return;
 		}
-		if ( excludedPath( url.pathname ) || files.test( url.pathname ) || hasOwnOrCart( url.searchParams ) ) {
+		var target = bareHost( url.hostname );
+		var own    = target === host;
+		// A listed sister domain is treated as the site's own - except for the
+		// excluded paths, which are this site's admin and login, not its sister's.
+		if ( ! own && -1 === linked.indexOf( target ) ) {
+			return;
+		}
+		if ( ( own && excludedPath( url.pathname ) ) || files.test( url.pathname ) || hasOwnOrCart( url.searchParams ) ) {
 			return;
 		}
 		// Appended to the query as written: re-serializing would respell it.

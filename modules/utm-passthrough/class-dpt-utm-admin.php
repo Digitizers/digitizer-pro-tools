@@ -38,7 +38,7 @@ class DPT_UTM_Admin {
 		}
 		check_admin_referer( 'dpt_utm_settings' );
 
-		$data = isset( $_POST['dpt_utm'] ) && is_array( $_POST['dpt_utm'] ) ? $_POST['dpt_utm'] : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- Each value is only compared to '1' in the settings class.
+		$data = isset( $_POST['dpt_utm'] ) && is_array( $_POST['dpt_utm'] ) ? wp_unslash( $_POST['dpt_utm'] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- The switch is only compared to '1'; linked_hosts is reduced to bare hostnames by DPT_UTM_Settings::clean_hosts().
 		DPT_UTM_Settings::save( $data );
 
 		wp_safe_redirect( add_query_arg( array( 'page' => self::PAGE_SLUG, 'dpt_saved' => 1 ), admin_url( 'admin.php' ) ) );
@@ -81,6 +81,19 @@ class DPT_UTM_Admin {
 								</tr>
 							</table>
 							<p class="description"><?php esc_html_e( 'Developers can add parameters by name with the dpt_utm_passthrough_params filter. Everything added here is also ignored by the WP Rocket cache, so it does not cost each page its cache.', 'digitizer-pro-tools' ); ?></p>
+						</div>
+
+						<div class="dpt-panel">
+							<h2><span class="dashicons dashicons-admin-site-alt3"></span> <?php esc_html_e( 'Linked domains', 'digitizer-pro-tools' ); ?></h2>
+							<table class="form-table dpt-form">
+								<tr>
+									<th><label for="dpt-utm-linked-hosts"><?php esc_html_e( 'Linked domains', 'digitizer-pro-tools' ); ?></label></th>
+									<td>
+										<textarea id="dpt-utm-linked-hosts" name="dpt_utm[linked_hosts]" rows="4" cols="40" class="code" dir="ltr" placeholder="www.example.com"><?php echo esc_textarea( implode( "\n", $o['linked_hosts'] ) ); ?></textarea>
+										<p class="description"><?php esc_html_e( 'One domain per line, for example a site in another language on its own domain. Links to these domains get the same parameters as the site\'s own links, and nothing else from the address. Leave empty to carry them on this site\'s links only. List the same parameters in Cache Ignore Params on the other site, or each arrival there skips its cache.', 'digitizer-pro-tools' ); ?></p>
+									</td>
+								</tr>
+							</table>
 						</div>
 
 						<p class="dpt-actions">

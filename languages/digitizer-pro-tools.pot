@@ -2199,6 +2199,12 @@ msgstr ""
 msgid "Also carry"
 msgstr ""
 
+msgid "Linked domains"
+msgstr ""
+
+msgid "One domain per line, for example a site in another language on its own domain. Links to these domains get the same parameters as the site's own links, and nothing else from the address. Leave empty to carry them on this site's links only. List the same parameters in Cache Ignore Params on the other site, or each arrival there skips its cache."
+msgstr ""
+
 msgid "HubSpot ad parameters"
 msgstr ""
 

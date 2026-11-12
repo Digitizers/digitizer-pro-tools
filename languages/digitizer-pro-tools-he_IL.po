@@ -2199,6 +2199,12 @@ msgstr "פרמטרי utm_* תמיד עוברים לקישורים הפנימיי
 msgid "Also carry"
 msgstr "להעביר גם"
 
+msgid "Linked domains"
+msgstr "דומיינים מקושרים"
+
+msgid "One domain per line, for example a site in another language on its own domain. Links to these domains get the same parameters as the site's own links, and nothing else from the address. Leave empty to carry them on this site's links only. List the same parameters in Cache Ignore Params on the other site, or each arrival there skips its cache."
+msgstr "דומיין אחד בכל שורה, למשל אתר בשפה אחרת בדומיין משלו. קישורים לדומיינים האלה מקבלים את אותם פרמטרים כמו הקישורים של האתר, ושום דבר אחר מהכתובת. השאירו ריק כדי להעביר אותם רק בקישורים של האתר הזה. ברשימת Cache Ignore Params באתר השני צריכים להופיע אותם פרמטרים, אחרת כל כניסה לשם עוקפת את ה-cache."
+
 msgid "HubSpot ad parameters"
 msgstr "פרמטרי מודעות של HubSpot"
 

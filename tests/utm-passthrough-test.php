@@ -94,7 +94,19 @@ DPT_UTM_Settings::save( array( 'hubspot_ads' => '0' ) );
 dpt_test_eq( $GLOBALS['dpt_purges'], 2, 'switching it back purges too' );
 
 DPT_UTM_Settings::save( array( 'hubspot_ads' => 'yes', 'other' => '1' ) );
-dpt_test_eq( DPT_UTM_Settings::all(), array( 'hubspot_ads' => '0' ), 'the switch saves strictly, and only known keys' );
+dpt_test_eq( DPT_UTM_Settings::all(), array( 'hubspot_ads' => '0', 'linked_hosts' => array() ), 'the switch saves strictly, and only known keys' );
+
+/* ---- linked hosts: sister domains whose links get the parameters too ---- */
+dpt_test_eq( DPT_UTM_Settings::defaults()['linked_hosts'], array(), 'no linked hosts by default' );
+DPT_UTM_Settings::save( array( 'linked_hosts' => "https://www.Digitizer.co.il/he/page?x=1\r\n  www.digitizer.studio  \nnot a host!\n\nshop.example.test:8080\ndigitizer.studio" ) );
+dpt_test_eq( DPT_UTM_Settings::get( 'linked_hosts' ), array( 'digitizer.co.il', 'digitizer.studio', 'shop.example.test' ), 'hosts are stored bare: no scheme, path, port or www; junk and repeats dropped' );
+DPT_UTM_Settings::save( array( 'hubspot_ads' => '1' ) );
+dpt_test_eq( DPT_UTM_Settings::get( 'linked_hosts' ), array( 'digitizer.co.il', 'digitizer.studio', 'shop.example.test' ), 'saving another field keeps the list' );
+$module->enqueue_assets();
+dpt_test_eq( $GLOBALS['dpt_stub_config']['dpt-utm-passthrough'][1]['linked'], array( 'digitizer.co.il', 'digitizer.studio', 'shop.example.test' ), 'the list reaches the script' );
+DPT_UTM_Settings::save( array( 'hubspot_ads' => '0', 'linked_hosts' => '' ) );
+dpt_test_eq( DPT_UTM_Settings::get( 'linked_hosts' ), array(), 'an empty box clears it' );
+
 dpt_test_eq( DPT_UTM_Settings::OPTION, 'dpt_utm_passthrough', 'the option name' );
 
 $admin = (string) file_get_contents( dirname( __DIR__ ) . '/modules/utm-passthrough/class-dpt-utm-admin.php' );
@@ -120,7 +132,7 @@ $js = (string) file_get_contents( dirname( __DIR__ ) . '/modules/utm-passthrough
  * @param array  $late   Links added after the script ran.
  * @return array href attribute => the href after the script.
  */
-$run = function ( $page, $links, $late = array(), $params = array() ) use ( $node, $js ) {
+$run = function ( $page, $links, $late = array(), $params = array(), $linked = array() ) use ( $node, $js ) {
 	$harness = <<<'JS'
 var PAGE = __PAGE__;
 function A(href, attrs) { this.attr = href; this.attrs = attrs || {}; this.nodeType = 1; }
@@ -136,7 +148,7 @@ function wrap(list) { return { nodeType: 1, matches: function () { return false;
 var links = [];
 var observers = [];
 var u = new URL(PAGE);
-var window = { DPT_UTM_CONFIG: { exclude: ['/wp-admin/', '/site/wp-login.php'], params: __PARAMS__ }, location: u };
+var window = { DPT_UTM_CONFIG: { exclude: ['/wp-admin/', '/site/wp-login.php'], params: __PARAMS__, linked: __LINKED__ }, location: u };
 var location = u;
 var document = {
   readyState: 'complete',
@@ -158,8 +170,8 @@ if (late.length) {
 process.stdout.write(JSON.stringify({ hrefs: order.map(function (a) { return a.attr; }), observers: observers.length }));
 JS;
 	$harness = str_replace(
-		array( '__PAGE__', '__LINKS__', '__LATE__', '__PARAMS__', '__SCRIPT__' ),
-		array( json_encode( $page ), json_encode( $links ), json_encode( $late ), json_encode( $params ), $js ),
+		array( '__PAGE__', '__LINKS__', '__LATE__', '__PARAMS__', '__LINKED__', '__SCRIPT__' ),
+		array( json_encode( $page ), json_encode( $links ), json_encode( $late ), json_encode( $params ), json_encode( $linked ), $js ),
 		$harness
 	);
 	$file = tempnam( sys_get_temp_dir(), 'dpt' ) . '.js';
@@ -224,5 +236,26 @@ $r = $run( $hub, array( array( '/x?hsa_acc=1', null ) ), array(), array( 'hsa_ac
 dpt_test_eq( $r['hrefs'][0], '/x?hsa_acc=1', 'a link already carrying a named parameter is left alone' );
 $r = $run( 'https://example.test/l?HSA_ACC=7', array( array( '/x', null ) ), array(), array( 'hsa_acc' ) );
 dpt_test_eq( $r['hrefs'][0], '/x', 'names match exactly' );
+
+/* Linked hosts: a sister domain's links are treated as the site's own. */
+$sis = function ( $href, $linked = array( 'sister.test' ), $params = array() ) use ( $run, $page ) {
+	$r = $run( $page, array( array( $href, null ) ), array(), $params, $linked );
+	return $r['hrefs'][0];
+};
+dpt_test_eq( $sis( 'https://www.sister.test/he/about/' ), 'https://www.sister.test/he/about/?utm_source=fb&utm_campaign=sale', 'a link to a linked host gets the utm_* parameters, and only them' );
+dpt_test_eq( $sis( 'https://sister.test/x?lang=he' ), 'https://sister.test/x?lang=he&utm_source=fb&utm_campaign=sale', 'its own query is kept' );
+dpt_test_eq( $sis( 'https://www.sister.test/wp-admin/' ), 'https://www.sister.test/wp-admin/?utm_source=fb&utm_campaign=sale', 'this site\'s excluded paths are its own, not the sister\'s' );
+foreach ( array(
+	'a host not on the list'           => 'https://other.test/',
+	'a subdomain of a linked host'     => 'https://shop.sister.test/',
+	'a look-alike of a linked host'    => 'https://sister.test.evil.test/',
+	'a file on the linked host'        => 'https://sister.test/a.pdf',
+	'a link that already carries utm'  => 'https://sister.test/x?utm_source=mail',
+) as $label => $href ) {
+	dpt_test_eq( $sis( $href ), $href, "linked hosts leave alone: $label" );
+}
+dpt_test_eq( $sis( 'https://sister.test/x' , array() ), 'https://sister.test/x', 'with no list, a sister domain is just an external link' );
+$r = $run( 'https://example.test/l?hsa_acc=7&utm_source=hs&secret=1', array( array( 'https://sister.test/', null ) ), array(), array( 'hsa_acc' ), array( 'sister.test' ) );
+dpt_test_eq( $r['hrefs'][0], 'https://sister.test/?hsa_acc=7&utm_source=hs', 'named parameters cross too; nothing else from the address does' );
 
 exit( dpt_test_summary() > 0 ? 1 : 0 );
