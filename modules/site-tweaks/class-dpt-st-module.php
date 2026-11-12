@@ -70,6 +70,9 @@ class DPT_Site_Tweaks_Module extends DPT_Module {
 		if ( '1' === $o['elementor_icon_fonts'] ) {
 			add_action( 'elementor/frontend/after_register_styles', array( $this, 'drop_elementor_icon_fonts' ), 20 );
 		}
+		if ( '1' === $o['elementor_post_cards_a11y'] ) {
+			add_filter( 'elementor/widget/render_content', array( $this, 'post_cards_render_content' ), 10, 2 );
+		}
 		if ( '1' === $o['elementor_lock'] ) {
 			// The redirect is the mechanism; hiding the switch and rewriting
 			// edit links are belt and braces for a cached admin page or a
@@ -578,5 +581,94 @@ class DPT_Site_Tweaks_Module extends DPT_Module {
 		if ( $this->admin ) {
 			$this->admin->register_menu( $parent_slug );
 		}
+	}
+
+	/**
+	 * elementor/widget/render_content: accessible links in Elementor Pro's
+	 * Posts and Archive Posts cards. Other widgets pass through untouched.
+	 *
+	 * @param string $content Rendered widget HTML.
+	 * @param object $widget  Elementor widget.
+	 * @return string
+	 */
+	public function post_cards_render_content( $content, $widget ) {
+		if ( ! is_string( $content ) || ! is_object( $widget ) || ! method_exists( $widget, 'get_name' )
+			|| ! in_array( $widget->get_name(), array( 'posts', 'archive-posts' ), true )
+			|| false === strpos( $content, 'elementor-post' ) ) {
+			return $content;
+		}
+		return self::a11y_post_cards( $content );
+	}
+
+	/**
+	 * Rewrites each post card (<article class="... post-123 ...">):
+	 * - The image link repeats the title link and has no text. When the card
+	 *   has a title link, the image link is hidden from screen readers and
+	 *   taken out of the tab order; when it has none, the image link is the
+	 *   way in, so it is named after the post instead.
+	 * - The read-more link's aria-label becomes "<visible text>: <title>",
+	 *   so the spoken name starts with the words on the button (WCAG 2.5.3)
+	 *   in whatever language and wording the site uses.
+	 * The post ID comes from the card's own class, so nothing is looked up by URL.
+	 *
+	 * @param string        $html   Widget HTML.
+	 * @param callable|null $titles Post ID => plain title. Defaults to get_the_title().
+	 * @return string
+	 */
+	public static function a11y_post_cards( $html, $titles = null ) {
+		if ( null === $titles ) {
+			$titles = function ( $id ) {
+				return function_exists( 'get_the_title' ) ? get_the_title( $id ) : '';
+			};
+		}
+		return (string) preg_replace_callback(
+			'#(<article\b[^>]*\bclass="[^"]*\bpost-(\d+)\b[^"]*"[^>]*>)(.*?)(</article>)#s',
+			function ( $m ) use ( $titles ) {
+				$title = trim( html_entity_decode( wp_strip_all_tags( (string) call_user_func( $titles, (int) $m[2] ) ), ENT_QUOTES, 'UTF-8' ) );
+				if ( '' === $title ) {
+					return $m[0];
+				}
+				$body       = $m[3];
+				$title_link = 1 === preg_match( '#class="[^"]*\belementor-post__title\b[^"]*"[^>]*>\s*<a\b#', $body );
+
+				$body = preg_replace_callback(
+					'#<a\b([^>]*\bclass="[^"]*\belementor-post__thumbnail__link\b[^"]*"[^>]*?)\s*>#',
+					function ( $a ) use ( $title, $title_link ) {
+						$attrs = $a[1];
+						if ( $title_link ) {
+							if ( false === strpos( $attrs, 'aria-hidden=' ) ) {
+								$attrs .= ' aria-hidden="true"';
+							}
+							if ( false === strpos( $attrs, 'tabindex=' ) ) {
+								$attrs .= ' tabindex="-1"';
+							}
+						} elseif ( false === strpos( $attrs, 'aria-label=' ) ) {
+							$attrs .= ' aria-label="' . esc_attr( $title ) . '"';
+						}
+						return '<a' . $attrs . '>';
+					},
+					$body
+				);
+
+				$body = preg_replace_callback(
+					'#<a\b([^>]*\bclass="[^"]*\belementor-post__read-more\b[^"]*"[^>]*?)\s*>(.*?)</a>#s',
+					function ( $a ) use ( $title ) {
+						$visible = trim( html_entity_decode( wp_strip_all_tags( $a[2] ), ENT_QUOTES, 'UTF-8' ) );
+						// Drop trailing arrows and other symbols, so "Read More »" is spoken as "Read More".
+						$visible = trim( (string) preg_replace( '/[^\p{L}\p{N}]+$/u', '', $visible ) );
+						if ( '' === $visible ) {
+							return $a[0];
+						}
+						$label = esc_attr( $visible . ': ' . $title );
+						$attrs = preg_replace( '#\saria-label="[^"]*"#', '', $a[1] ) . ' aria-label="' . $label . '"';
+						return '<a' . $attrs . '>' . $a[2] . '</a>';
+					},
+					$body
+				);
+
+				return $m[1] . $body . $m[4];
+			},
+			$html
+		);
 	}
 }

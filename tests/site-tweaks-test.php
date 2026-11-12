@@ -282,4 +282,41 @@ $field = array( 'id' => 'phone', 'value' => '052-123-4567' );
 $module->validate_tel_field( $field, null, $tel_handler );
 dpt_test_eq( $field['value'], '052-123-4567', 'the lead keeps the number as it was typed' );
 
+/* ---- Elementor Pro post cards: accessible links ---- */
+
+dpt_test_eq( DPT_ST_Settings::defaults()['elementor_post_cards_a11y'], '0', 'post-card accessibility is a known tweak, off by default' );
+
+$titles = function ( $id ) { return array( 12 => 'Hello & "World"', 34 => 'שלום עולם' )[ $id ] ?? ''; };
+$card = function ( $id, $thumb_attrs, $title_link = true, $more = 'Read More »' ) {
+	return '<article class="elementor-post elementor-grid-item post-' . $id . ' post type-post" role="listitem">'
+		. '<a class="elementor-post__thumbnail__link" href="https://ex.test/p' . $id . '/"' . $thumb_attrs . ' ><div class="elementor-post__thumbnail"><img src="x.jpg" alt="" /></div></a>'
+		. '<div class="elementor-post__text"><h3 class="elementor-post__title">' . ( $title_link ? '<a href="https://ex.test/p' . $id . '/">T</a>' : 'T' ) . '</h3>'
+		. '<a class="elementor-post__read-more" href="https://ex.test/p' . $id . '/" aria-label="Read more about T" tabindex="-1" >' . $more . '</a></div></article>';
+};
+
+$html = DPT_Site_Tweaks_Module::a11y_post_cards( $card( 12, ' tabindex="-1"' ) . $card( 34, '', true, ' קרא עוד ' ), $titles );
+dpt_test_ok( 1 === preg_match( '#<a class="elementor-post__thumbnail__link" href="https://ex.test/p12/" tabindex="-1" aria-hidden="true"#', $html ), 'image link duplicating the title link is hidden from screen readers' );
+dpt_test_ok( 1 === preg_match( '#<a class="elementor-post__thumbnail__link" href="https://ex.test/p34/" aria-hidden="true" tabindex="-1"#', $html ), 'and taken out of the tab order when Elementor left it in' );
+dpt_test_ok( false !== strpos( $html, 'aria-label="Read More: Hello &amp; &quot;World&quot;"' ), 'read-more label starts with its visible text, then the title (arrow dropped, escaped)' );
+dpt_test_ok( false !== strpos( $html, 'aria-label="קרא עוד: שלום עולם"' ), 'the same in Hebrew, from the visible text, with no wording of our own' );
+dpt_test_eq( substr_count( $html, 'Read more about' ), 0, 'Elementor\'s own read-more label is replaced, not doubled' );
+
+$html = DPT_Site_Tweaks_Module::a11y_post_cards( $card( 12, ' tabindex="-1"', false ), $titles );
+dpt_test_ok( false === strpos( $html, 'aria-hidden' ), 'with no title link the image link is the way in: it is not hidden' );
+dpt_test_ok( false !== strpos( $html, 'tabindex="-1" aria-label="Hello &amp; &quot;World&quot;"' ), 'it gets the post title as its name instead' );
+
+$plain = '<div class="elementor-widget-container"><p>No cards here</p></div>';
+dpt_test_eq( DPT_Site_Tweaks_Module::a11y_post_cards( $plain, $titles ), $plain, 'markup without post cards is untouched' );
+$again = DPT_Site_Tweaks_Module::a11y_post_cards( $card( 12, ' tabindex="-1"' ), $titles );
+dpt_test_eq( DPT_Site_Tweaks_Module::a11y_post_cards( $again, $titles ), $again, 'running twice changes nothing' );
+$unknown = $card( 99, ' tabindex="-1"', false );
+dpt_test_eq( DPT_Site_Tweaks_Module::a11y_post_cards( $unknown, $titles ), $unknown, 'a card whose post has no title is left as Elementor made it' );
+
+$widget = new class() { public $n = 'posts'; public function get_name() { return $this->n; } };
+$module_a11y = new DPT_Site_Tweaks_Module();
+dpt_test_eq( $module_a11y->post_cards_render_content( $plain . 'x', $widget ), $plain . 'x', 'the render filter passes other markup through' );
+$widget->n = 'heading';
+$c = $card( 12, ' tabindex="-1"' );
+dpt_test_eq( $module_a11y->post_cards_render_content( $c, $widget ), $c, 'other widgets are not touched' );
+
 exit( dpt_test_summary() > 0 ? 1 : 0 );
