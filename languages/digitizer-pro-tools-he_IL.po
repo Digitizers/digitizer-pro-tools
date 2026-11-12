@@ -2163,6 +2163,12 @@ msgstr "ניקוי היומן"
 msgid "Records what automations changed on this site - anything that arrived over the REST API, WP-Cron, WP-CLI or XML-RPC. A change made by a person in the admin is not recorded at all. Each entry names who, what and when, and which fields were touched; it never stores the values. Readable at /digitizer/v1/activity and on its own screen."
 msgstr "רושם מה אוטומציות שינו באתר הזה - כל מה שהגיע דרך REST API,‏ WP-Cron,‏ WP-CLI או XML-RPC. שינוי שבוצע על ידי אדם בממשק הניהול אינו נרשם כלל. כל רשומה מציינת מי, מה ומתי, ואילו שדות נגעו בהם; הערכים עצמם אינם נשמרים לעולם. ניתן לקרוא ב-/digitizer/v1/activity ובמסך הייעודי של המודול."
 
+msgid "Accessible links in post cards (Elementor Pro)"
+msgstr "קישורים נגישים בכרטיסי פוסטים (Elementor Pro)"
+
+msgid "In the Posts and Archive Posts widgets, the image link that repeats a card's title link is hidden from screen readers, so the title is not announced twice; a card without a title link names its image link after the post instead. The read-more link is announced as its visible text followed by the post title, in whatever wording the site uses."
+msgstr "בווידג׳טים Posts ו-Archive Posts, קישור התמונה שחוזר על קישור הכותרת של הכרטיס מוסתר מקוראי מסך, כך שהכותרת לא מוקראת פעמיים. בכרטיס בלי קישור כותרת, קישור התמונה מקבל את שם הפוסט במקום. קישור \"קרא עוד\" מוקרא כטקסט שמופיע עליו ואחריו כותרת הפוסט, בכל ניסוח שהאתר משתמש בו."
+
 msgid "Lock Elementor pages to the Elementor editor"
 msgstr "נעילת עמודי Elementor לעורך של Elementor"
 

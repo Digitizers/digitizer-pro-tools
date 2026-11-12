@@ -53,6 +53,10 @@ class DPT_ST_Settings {
 			// Editor" switch from them - the switch is how a client ends up
 			// looking at Gutenberg output instead of their Elementor layout.
 			'elementor_lock'         => '0', // '1' = lock Elementor pages to the Elementor editor
+			// Elementor Pro Posts / Archive Posts cards: the image link repeats the
+			// title link with no name of its own, and the read-more label does not
+			// start with the words on the button (WCAG 2.5.3). Front-end markup only.
+			'elementor_post_cards_a11y' => '0', // '1' = accessible links in Elementor Pro post cards
 
 			// Front-end weight that a site built with Elementor rarely needs.
 			'block_library_css'      => '0', // '1' = dequeue the block library stylesheets

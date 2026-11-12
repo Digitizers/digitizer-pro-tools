@@ -4,7 +4,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.50.5
+Stable tag: 1.51.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -172,6 +172,7 @@ Small site-wide tweaks that replace assorted functions.php snippets - each an in
 * Hide the WordPress version: removes the generator meta tag/RSS marker and the `?ver=` core version from asset URLs, while keeping plugin/theme asset versions so cache-busting still works
 * Elementor helpers (only when Elementor is active): disable Elementor's Google Fonts, validate phone numbers in Elementor Pro `tel` form fields, and drop Elementor's icon fonts (Font Awesome and eicons) on a design that uses no icons - a page that does use one shows an empty square, so check first
 * Lock Elementor pages to the Elementor editor: users without the bypass capability (`manage_options` by default, filterable) are sent from the native WordPress editor straight to Elementor for pages built with Elementor, edit links point there directly, and the "Back to WordPress Editor" switch - the button that makes a page render its Gutenberg content instead of the Elementor layout - is hidden from them. Administrators are never affected, trash and the Elementor editor itself always pass through, and the whole thing is a no-op while Elementor is inactive
+* Accessible links in Elementor Pro post cards: in the Posts and Archive Posts widgets, the image link that repeats a card's title link is hidden from screen readers and the keyboard, so the title is not announced twice (a card with no title link names its image link after the post instead). The read-more link is announced as its own visible text followed by the post title, so the spoken name starts with the words on the button, in any language. The post is identified from the card's markup, with no lookup by URL. Front-end markup only, off by default
 * Front-end weight: drop the block editor stylesheets from public pages on a site built entirely in Elementor (the editor itself is unaffected, and any page that does contain a block loses its styling), and switch the block editor off for posts and pages so there is one way to edit content rather than two
 
 = Module: WooCommerce Checkout =
@@ -392,6 +393,9 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 5. Configure each module you enabled from its own screen. For the Cookie Banner that means reviewing the texts per language and pasting your analytics/marketing snippets in the Scripts tab, then checking the site
 
 == Changelog ==
+
+= 1.51.0 =
+* Site Tweaks: new "Accessible links in post cards (Elementor Pro)" toggle (off by default). In the Posts and Archive Posts widgets, the image link that repeats the title link is hidden from screen readers and the keyboard, and the read-more link is announced as its visible text followed by the post title (WCAG 2.5.3). Replaces a WPCode snippet on Digitizer sites
 
 = 1.50.5 =
 * "View details": the sharp banner is used on high-density screens and the regular one elsewhere (they were the wrong way round), and the plugin's icon is passed along too (#95)
