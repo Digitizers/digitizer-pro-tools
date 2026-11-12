@@ -16,6 +16,15 @@ class DPT_ST_Settings {
 	const OPTION = 'dpt_site_tweaks';
 
 	/**
+	 * Tweaks that change nothing a visitor's page carries: the admin, uploads,
+	 * and form validation that runs on submit. Switching one of these does not
+	 * purge the page caches - a full purge rebuilds every page at once (and, on
+	 * WP Rocket with Remove Unused CSS, resubmits every page to its service).
+	 * Every other tweak changes the page or its headers and does purge.
+	 */
+	const ADMIN_ONLY = array( 'svg_upload', 'elementor_tel_validate', 'elementor_lock', 'disable_block_editor' );
+
+	/**
 	 * Boolean-style keys stored as '1'/'0'.
 	 */
 	public static function defaults() {
@@ -123,9 +132,17 @@ class DPT_ST_Settings {
 
 		update_option( self::OPTION, $clean );
 
-		// Headers / generator output are part of the cacheable response -
-		// invalidate page caches when behaviour actually changed.
-		if ( $clean != $before && class_exists( 'DPT_CB_Settings' ) ) {
+		// Headers and page markup are part of the cacheable response, so a
+		// change to a tweak that touches them invalidates the page caches.
+		// Admin- and form-side tweaks do not. (#101)
+		$page_changed = false;
+		foreach ( array_keys( self::defaults() ) as $key ) {
+			if ( $clean[ $key ] !== $before[ $key ] && ! in_array( $key, self::ADMIN_ONLY, true ) ) {
+				$page_changed = true;
+				break;
+			}
+		}
+		if ( $page_changed && class_exists( 'DPT_CB_Settings' ) ) {
 			DPT_CB_Settings::purge_page_caches();
 		}
 		return true;
