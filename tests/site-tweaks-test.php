@@ -319,4 +319,32 @@ $widget->n = 'heading';
 $c = $card( 12, ' tabindex="-1"' );
 dpt_test_eq( $module_a11y->post_cards_render_content( $c, $widget ), $c, 'other widgets are not touched' );
 
+/* ---- a save purges page caches only when page output changed ---- */
+
+if ( ! class_exists( 'DPT_CB_Settings' ) ) {
+	class DPT_CB_Settings {
+		public static $purges = 0;
+		public static function purge_page_caches() { self::$purges++; }
+	}
+}
+$GLOBALS['dpt_stub_options'] = array();
+$purges_after = function ( $changes ) {
+	$before = DPT_CB_Settings::$purges;
+	DPT_ST_Settings::save( array_merge( DPT_ST_Settings::all(), $changes ) );
+	return DPT_CB_Settings::$purges - $before;
+};
+foreach ( array( 'svg_upload', 'elementor_tel_validate', 'elementor_lock', 'disable_block_editor' ) as $key ) {
+	dpt_test_eq( $purges_after( array( $key => '1' ) ), 0, "$key is admin- or form-side: switching it on purges nothing" );
+	dpt_test_eq( $purges_after( array( $key => '0' ) ), 0, "nor switching it off" );
+}
+foreach ( array( 'x_frame_options', 'hsts', 'remove_generator', 'elementor_google_fonts', 'elementor_icon_fonts', 'elementor_post_cards_a11y', 'block_library_css' ) as $key ) {
+	$on = '1' === DPT_ST_Settings::get( $key ) ? '0' : '1';
+	dpt_test_eq( $purges_after( array( $key => $on ) ), 1, "$key changes what visitors get: it purges once" );
+}
+dpt_test_eq( $purges_after( array() ), 0, 'saving with no change purges nothing' );
+dpt_test_eq( $purges_after( array( 'elementor_lock' => '1', 'block_library_css' => '1' === DPT_ST_Settings::get( 'block_library_css' ) ? '0' : '1' ) ), 1, 'a mixed save purges once' );
+foreach ( array_keys( DPT_ST_Settings::defaults() ) as $key ) {
+	dpt_test_ok( in_array( $key, DPT_ST_Settings::ADMIN_ONLY, true ) || in_array( $key, array( 'x_frame_options', 'x_content_type_options', 'x_xss_protection', 'hsts', 'hsts_preload', 'remove_generator', 'elementor_google_fonts', 'elementor_icon_fonts', 'elementor_post_cards_a11y', 'block_library_css' ), true ), "$key is classified (a new tweak must pick a side)" );
+}
+
 exit( dpt_test_summary() > 0 ? 1 : 0 );

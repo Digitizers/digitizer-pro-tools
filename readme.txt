@@ -4,7 +4,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.52.0
+Stable tag: 1.52.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -394,6 +394,9 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 5. Configure each module you enabled from its own screen. For the Cookie Banner that means reviewing the texts per language and pasting your analytics/marketing snippets in the Scripts tab, then checking the site
 
 == Changelog ==
+
+= 1.52.1 =
+* Site Tweaks: switching a tweak that changes nothing on the visitor's page - SVG uploads, phone validation in forms, the Elementor editor lock, the classic editor - no longer purges the whole page cache. A full purge rebuilds every page at once, and on WP Rocket with Remove Unused CSS resubmits every page to its service (#101)
 
 = 1.52.0 =
 * UTM Passthrough: new "Linked domains" list (empty by default). Links to the sister domains it names - such as the same site in another language on its own domain - get the same campaign parameters as internal links, and nothing else from the address. It runs in the browser, so it works on cached pages (#99)
