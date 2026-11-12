@@ -4,7 +4,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.51.0
+Stable tag: 1.52.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -254,6 +254,7 @@ Keeps campaign parameters on the site's own links (disabled by default; enable i
 * A switch on its screen also carries HubSpot's ad parameters (`hsa_*`, `hss_channel`), and the `dpt_utm_passthrough_params` filter adds parameters by exact name. HubSpot's email and contact parameters (`_hsenc`, `_hsmi`, `hsutk`) are never carried by the switch: a shared link would spread them to other visitors
 * Whatever is carried beyond `utm_*` also joins WP Rocket's ignored list, so it does not cost each page of the visit its cache
 * External links, same-page anchors, downloads, the admin, the login page and add-to-cart links are left alone; the `dpt_utm_excluded_paths` filter adds more paths
+* Linked domains: a list on its screen (empty by default) names sister domains, such as the same site in another language on its own domain. Links to them get the same parameters as internal links, and nothing else from the address. Works on cached pages, as it runs in the browser
 * Runs in the browser, so page caches are unaffected, and stores nothing - no cookie
 * Replaces the snippet pasted into the site header
 
@@ -393,6 +394,9 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 5. Configure each module you enabled from its own screen. For the Cookie Banner that means reviewing the texts per language and pasting your analytics/marketing snippets in the Scripts tab, then checking the site
 
 == Changelog ==
+
+= 1.52.0 =
+* UTM Passthrough: new "Linked domains" list (empty by default). Links to the sister domains it names - such as the same site in another language on its own domain - get the same campaign parameters as internal links, and nothing else from the address. It runs in the browser, so it works on cached pages (#99)
 
 = 1.51.0 =
 * Site Tweaks: new "Accessible links in post cards (Elementor Pro)" toggle (off by default). In the Posts and Archive Posts widgets, the image link that repeats the title link is hidden from screen readers and the keyboard, and the read-more link is announced as its visible text followed by the post title (WCAG 2.5.3). Replaces a WPCode snippet on Digitizer sites

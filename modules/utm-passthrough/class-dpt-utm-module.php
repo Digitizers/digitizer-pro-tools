@@ -82,6 +82,7 @@ class DPT_UTM_Passthrough_Module extends DPT_Module {
 		wp_localize_script( 'dpt-utm-passthrough', 'DPT_UTM_CONFIG', array(
 			'exclude' => self::excluded_paths(),
 			'params'  => self::carried_params(),
+			'linked'  => DPT_UTM_Settings::get( 'linked_hosts' ),
 		) );
 	}
 
