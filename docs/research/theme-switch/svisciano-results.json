@@ -1,0 +1,180 @@
+{
+  "browser": "157.0.8103.51",
+  "results": [
+    {
+      "name": "Mapped Elementor-style body token changes; scoped and fixed colors stay unchanged",
+      "confirmed": true,
+      "observed": {
+        "theme": "sv-dark",
+        "toggleClasses": [
+          "sv-dark",
+          ""
+        ],
+        "color": "rgb(238, 238, 238)",
+        "background": "rgb(17, 17, 17)",
+        "scoped": "rgb(204, 0, 0)",
+        "raw": "rgb(0, 0, 0)",
+        "colorScheme": "normal",
+        "cookie": "svis_ldtm_theme=sv-dark"
+      }
+    },
+    {
+      "name": "Only first switch visual state is updated",
+      "confirmed": true,
+      "observed": [
+        "sv-dark",
+        ""
+      ]
+    },
+    {
+      "name": "Native color-scheme is not set",
+      "confirmed": true,
+      "observed": "normal"
+    },
+    {
+      "name": "Manual dark selection survives reload",
+      "confirmed": true,
+      "observed": {
+        "theme": "sv-dark",
+        "toggleClasses": [
+          "sv-dark",
+          ""
+        ],
+        "color": "rgb(238, 238, 238)",
+        "background": "rgb(17, 17, 17)",
+        "scoped": "rgb(204, 0, 0)",
+        "raw": "rgb(0, 0, 0)",
+        "colorScheme": "normal",
+        "cookie": "svis_ldtm_theme=sv-dark"
+      }
+    },
+    {
+      "name": "Light mode restores base body color",
+      "confirmed": true,
+      "observed": {
+        "theme": "sv-light",
+        "toggleClasses": [
+          "sv-light",
+          ""
+        ],
+        "color": "rgb(34, 34, 34)",
+        "background": "rgb(255, 255, 255)",
+        "scoped": "rgb(204, 0, 0)",
+        "raw": "rgb(0, 0, 0)",
+        "colorScheme": "normal",
+        "cookie": "svis_ldtm_theme=sv-light"
+      }
+    },
+    {
+      "name": "Second switch click is inert",
+      "confirmed": true,
+      "observed": "sv-light"
+    },
+    {
+      "name": "Default controls are unfocusable divs with no accessible labels",
+      "confirmed": true,
+      "observed": [
+        {
+          "tag": "DIV",
+          "tabIndex": -1,
+          "role": null,
+          "label": null
+        },
+        {
+          "tag": "DIV",
+          "tabIndex": -1,
+          "role": null,
+          "label": null
+        },
+        {
+          "tag": "DIV",
+          "tabIndex": -1,
+          "role": null,
+          "label": null
+        }
+      ]
+    },
+    {
+      "name": "Glass Pill focuses but Enter and Space do not select dark mode",
+      "confirmed": true,
+      "observed": "sv-light"
+    },
+    {
+      "name": "Auto mode follows a live device preference change",
+      "confirmed": true,
+      "observed": "sv-dark"
+    },
+    {
+      "name": "Explicit light selection wins over device changes",
+      "confirmed": true,
+      "observed": "sv-light"
+    },
+    {
+      "name": "Dark base applies alternate mapping when light is selected",
+      "confirmed": true,
+      "observed": {
+        "theme": "sv-light",
+        "toggleClasses": [
+          "sv-light",
+          ""
+        ],
+        "color": "rgb(34, 34, 34)",
+        "background": "rgb(255, 255, 255)",
+        "scoped": "rgb(204, 0, 0)",
+        "raw": "rgb(0, 0, 0)",
+        "colorScheme": "normal",
+        "cookie": "svis_ldtm_theme=sv-light"
+      }
+    },
+    {
+      "name": "Script executed after DOMContentLoaded never initializes",
+      "confirmed": true,
+      "observed": ""
+    },
+    {
+      "name": "RTL default switch ball intercepts the light control after selecting dark",
+      "confirmed": true,
+      "observed": {
+        "theme": "sv-dark",
+        "pointerInterception": true
+      }
+    },
+    {
+      "name": "Visible base colors precede dark initialization when DOMContentLoaded is held",
+      "confirmed": true,
+      "observed": {
+        "before": {
+          "theme": "",
+          "toggleClasses": [
+            "",
+            ""
+          ],
+          "color": "rgb(34, 34, 34)",
+          "background": "rgb(255, 255, 255)",
+          "scoped": "rgb(204, 0, 0)",
+          "raw": "rgb(0, 0, 0)",
+          "colorScheme": "normal",
+          "cookie": ""
+        },
+        "after": {
+          "theme": "sv-dark",
+          "toggleClasses": [
+            "sv-dark",
+            ""
+          ],
+          "color": "rgb(238, 238, 238)",
+          "background": "rgb(17, 17, 17)",
+          "scoped": "rgb(204, 0, 0)",
+          "raw": "rgb(0, 0, 0)",
+          "colorScheme": "normal",
+          "cookie": "svis_ldtm_theme=sv-dark"
+        }
+      }
+    },
+    {
+      "name": "No uncaught browser errors in fixture",
+      "confirmed": true,
+      "observed": []
+    }
+  ]
+}
