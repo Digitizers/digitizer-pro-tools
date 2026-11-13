@@ -65,7 +65,7 @@ class DPT_TS_Admin {
 					<table class="widefat striped"><thead><tr><th><?php esc_html_e( 'Elementor color', 'digitizer-pro-tools' ); ?></th><th><?php esc_html_e( 'Original color', 'digitizer-pro-tools' ); ?></th><th><?php esc_html_e( 'Alternate color', 'digitizer-pro-tools' ); ?></th></tr></thead><tbody>
 					<?php $i = 0; foreach ( $kit as $name => $entry ) : $i++; ?>
 						<tr><td><label for="dpt-ts-color-<?php echo (int) $i; ?>"><?php echo esc_html( $entry['label'] ); ?></label></td><td><code dir="ltr"><?php echo esc_html( $entry['color'] ); ?></code></td><td>
-							<input id="dpt-ts-color-<?php echo (int) $i; ?>" type="text" dir="ltr" name="dpt_ts[colors][<?php echo esc_attr( $name ); ?>]" value="<?php echo esc_attr( isset( $o['colors'][ $name ] ) ? $o['colors'][ $name ] : '' ); ?>" placeholder="#18181b" />
+							<input id="dpt-ts-color-<?php echo (int) $i; ?>" type="text" dir="ltr" pattern="#(?:[a-fA-F0-9]{3}|[a-fA-F0-9]{4}|[a-fA-F0-9]{6}|[a-fA-F0-9]{8})" name="dpt_ts[colors][<?php echo esc_attr( $name ); ?>]" value="<?php echo esc_attr( isset( $o['colors'][ $name ] ) ? $o['colors'][ $name ] : '' ); ?>" placeholder="#18181b" />
 						</td></tr>
 					<?php endforeach; ?>
 					</tbody></table>

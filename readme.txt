@@ -4,7 +4,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.52.1
+Stable tag: 1.53.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -268,6 +268,17 @@ A full row of related posts in an Elementor Posts widget (disabled by default; e
 * The widget's offset and pagination keep working on that ordered list (up to 100 posts; the `dpt_related_fill_max` filter changes it)
 * Widgets without that Query ID are not affected
 
+= Module: Theme Switch =
+
+An explicit alternate color palette (disabled by default; enable it on the Modules screen):
+
+* Choose whether the original site is light or dark, then enter alternate hex colors in Theme Switch settings. Elementor's active Kit colors are listed automatically; other CSS color variables can be mapped manually
+* Place `[dpt_theme_switch]` in content, a header/footer or an Elementor Shortcode widget. Each instance has native Light, Dark and System buttons, with keyboard support, Hebrew labels and RTL layout
+* A visitor's explicit choice wins over the device setting and is saved locally in that browser. System follows live device changes. Multiple switches, dynamic controls and other open tabs stay synchronized
+* The synchronous head script applies the selected palette before content renders. The same HTML is served to every visitor, so page caches remain shared. If storage is blocked, switching still works for the current page; without JavaScript the original palette remains
+* Only mapped CSS variables change. Fixed widget colors, locally overridden variables and image/logo artwork need design changes. Blank mappings retain the site's original colors. Native browser controls follow the resolved light/dark mode
+* Settings changes and module toggles purge known page caches. Targeted WP Rocket exclusions keep initialization and alternate-palette styles from being delayed or removed
+
 = Module: Cache Ignore Params =
 
 Keeps tracking parameters from skipping WP Rocket's page cache (disabled by default; enable it on the Modules screen):
@@ -394,6 +405,9 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 5. Configure each module you enabled from its own screen. For the Cookie Banner that means reviewing the texts per language and pasting your analytics/marketing snippets in the Scripts tab, then checking the site
 
 == Changelog ==
+
+= 1.53.0 =
+* New module: Theme Switch — explicit alternate palettes, Elementor Kit color discovery and [dpt_theme_switch] with Light/Dark/System controls. Includes saved browser preference, synchronized controls, keyboard/RTL support and early head initialization. Disabled by default (#284)
 
 = 1.52.1 =
 * Site Tweaks: switching a tweak that changes nothing on the visitor's page - SVG uploads, phone validation in forms, the Elementor editor lock, the classic editor - no longer purges the whole page cache. A full purge rebuilds every page at once, and on WP Rocket with Remove Unused CSS resubmits every page to its service (#101)

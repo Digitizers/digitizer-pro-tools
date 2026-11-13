@@ -2523,3 +2523,48 @@ msgstr ""
 
 msgid "The standalone Digitizer Cookie Consent plugin is active and does this module's work, so the switch is locked - its settings are under Settings → Cookie Consent."
 msgstr ""
+
+msgid "Theme Switch"
+msgstr ""
+
+msgid "Switch between your original palette and alternate colors, with light, dark and system controls. Supports Elementor global colors and remembers each visitor's choice."
+msgstr ""
+
+msgid "System"
+msgstr ""
+
+msgid "Color mode"
+msgstr ""
+
+msgid "Keep your original design and choose the colors for its alternate mode. Place [dpt_theme_switch] in a page, header or Elementor Shortcode widget."
+msgstr ""
+
+msgid "Original palette"
+msgstr ""
+
+msgid "First visit"
+msgstr ""
+
+msgid "A saved visitor choice takes priority. System follows the device preference."
+msgstr ""
+
+msgid "Alternate palette"
+msgstr ""
+
+msgid "Enter hex colors, such as #18181b or #ffffff. Leave a color empty to keep the original. These values apply only in the mode opposite your original palette."
+msgstr ""
+
+msgid "Elementor color"
+msgstr ""
+
+msgid "Original color"
+msgstr ""
+
+msgid "Alternate color"
+msgstr ""
+
+msgid "Additional color variables"
+msgstr ""
+
+msgid "One CSS variable and alternate hex color per line: --surface=#18181b. Fixed widget colors and locally overridden variables need changes in the site design. Images and logos keep their original appearance."
+msgstr ""
