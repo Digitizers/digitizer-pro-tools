@@ -28,6 +28,11 @@ class DPT_Plugin {
 	 */
 	public function registry() {
 		$modules = array(
+			'theme_switch' => array(
+				'file'    => DPT_PATH . 'modules/theme-switch/class-dpt-ts-module.php',
+				'class'   => 'DPT_Theme_Switch_Module',
+				'default' => '0',
+			),
 			'onboarding' => array(
 				'file'    => DPT_PATH . 'modules/onboarding/class-dpt-onb-module.php',
 				'class'   => 'DPT_Onboarding_Module',
