@@ -1,0 +1,30 @@
+html[data-dpt-theme="light"] { color-scheme: light; }
+html[data-dpt-theme="dark"] { color-scheme: dark; }
+.dpt-theme-switch[hidden] { display: none !important; }
+.dpt-theme-switch {
+	display: inline-flex;
+	flex-wrap: wrap;
+	gap: .25rem;
+	padding: .25rem;
+	border: 1px solid currentColor;
+	border-radius: .5rem;
+	font: inherit;
+}
+.dpt-theme-switch button {
+	appearance: none;
+	font: inherit;
+	line-height: 1.4;
+	padding: .5rem .75rem;
+	min-block-size: 44px;
+	border: 2px solid transparent;
+	border-radius: .25rem;
+	background: Canvas;
+	color: CanvasText;
+	cursor: pointer;
+}
+.dpt-theme-switch button[aria-pressed="true"] {
+	border-color: currentColor;
+	text-decoration: underline;
+	text-underline-offset: .2em;
+}
+.dpt-theme-switch button:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }

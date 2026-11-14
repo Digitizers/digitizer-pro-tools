@@ -2523,3 +2523,48 @@ msgstr "אפשר למחוק רק עוגיות של האתר עצמו שסקרי�
 
 msgid "The standalone Digitizer Cookie Consent plugin is active and does this module's work, so the switch is locked - its settings are under Settings → Cookie Consent."
 msgstr "התוסף הנפרד Digitizer Cookie Consent פעיל ועושה את העבודה של המודול הזה, ולכן המתג נעול - ההגדרות שלו נמצאות תחת הגדרות ← הסכמה לעוגיות."
+
+msgid "Theme Switch"
+msgstr "החלפת מצב תצוגה"
+
+msgid "Switch between your original palette and alternate colors, with light, dark and system controls. Supports Elementor global colors and remembers each visitor's choice."
+msgstr "מעבר בין פלטת הצבעים המקורית לצבעים חלופיים, במצב בהיר, כהה או לפי המכשיר. תומך בצבעים הגלובליים של אלמנטור ושומר את בחירת המבקר."
+
+msgid "System"
+msgstr "לפי המכשיר"
+
+msgid "Color mode"
+msgstr "מצב תצוגה"
+
+msgid "Keep your original design and choose the colors for its alternate mode. Place [dpt_theme_switch] in a page, header or Elementor Shortcode widget."
+msgstr "שמרו על העיצוב המקורי ובחרו את הצבעים למצב החלופי. הוסיפו [dpt_theme_switch] לעמוד, לכותרת האתר או לווידג׳ט שורטקוד של אלמנטור."
+
+msgid "Original palette"
+msgstr "פלטת הצבעים המקורית"
+
+msgid "First visit"
+msgstr "ביקור ראשון"
+
+msgid "A saved visitor choice takes priority. System follows the device preference."
+msgstr "בחירה שמורה של המבקר קודמת להגדרת ברירת המחדל. מצב לפי המכשיר עוקב אחר הגדרת התצוגה שלו."
+
+msgid "Alternate palette"
+msgstr "פלטת צבעים חלופית"
+
+msgid "Enter hex colors, such as #18181b or #ffffff. Leave a color empty to keep the original. These values apply only in the mode opposite your original palette."
+msgstr "הזינו צבעי hex, למשל #18181b או #ffffff. השאירו שדה ריק כדי לשמור על הצבע המקורי. הצבעים חלים רק במצב ההפוך לפלטת הצבעים המקורית."
+
+msgid "Elementor color"
+msgstr "צבע באלמנטור"
+
+msgid "Original color"
+msgstr "צבע מקורי"
+
+msgid "Alternate color"
+msgstr "צבע חלופי"
+
+msgid "Additional color variables"
+msgstr "משתני צבע נוספים"
+
+msgid "One CSS variable and alternate hex color per line: --surface=#18181b. Fixed widget colors and locally overridden variables need changes in the site design. Images and logos keep their original appearance."
+msgstr "משתנה CSS וצבע hex חלופי בכל שורה: --surface=#18181b. צבעים קבועים בווידג׳טים ומשתנים שהוגדרו מחדש ברכיב דורשים התאמה בעיצוב האתר. תמונות וסמלים שומרים על המראה המקורי."

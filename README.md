@@ -38,6 +38,7 @@ Each feature is a **module**. Activating the plugin adds a Modules screen and do
 
 | Module | What it does |
 |---|---|
+| **Theme Switch** | `[dpt_theme_switch]` selects Light, Dark or System. Maps an explicit alternate palette, lists Elementor Kit colors, and remembers the visitor's choice. |
 | **Duplicate Post** | One-click duplicates as drafts, with custom fields (Elementor data included), taxonomies and the featured image. |
 | **Embed** | `[dpt_embed]` for PDFs and Google Docs, Sheets, Slides, Forms and Drive, in a responsive frame. |
 | **Code Highlighter** | Syntax highlighting with a block, a shortcode, automatic `pre/code` and an Elementor widget. No CDN. |
