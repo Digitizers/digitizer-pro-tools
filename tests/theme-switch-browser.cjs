@@ -21,7 +21,7 @@ async function themeSwitchBrowser(browser, url) {
 			fixed: getComputedStyle(document.querySelector('.elementor-element-abcdef3 h2')).color,
 			local: getComputedStyle(document.querySelector('#child-token')).color,
 			selected: [...document.querySelectorAll('.dpt-theme-switch button[aria-pressed="true"]')].map(el => el.dataset.dptThemeChoice),
-			colorScheme: getComputedStyle(document.documentElement).colorScheme,
+			colorScheme: getComputedStyle(document.querySelector('.dpt-theme-switch')).colorScheme,
 		}));
 		let s = await state();
 		check('First visit follows light device mode with real Kit colors', s.mode === 'light' && s.global === 'rgb(34, 34, 34)' && s.selected.join(',') === 'system,system', s);
