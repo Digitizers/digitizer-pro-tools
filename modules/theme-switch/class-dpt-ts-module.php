@@ -13,6 +13,10 @@ class DPT_Theme_Switch_Module extends DPT_Module {
 		return __( 'Switch between your original palette and alternate colors, with light, dark and system controls. Supports Elementor global colors and remembers each visitor\'s choice.', 'digitizer-pro-tools' );
 	}
 	public function install_defaults() { DPT_TS_Settings::install_defaults(); }
+	public function standing_down_reason() {
+		$o = DPT_TS_Settings::all();
+		return empty( $o['colors'] ) ? __( 'Add at least one alternate color in Theme Switch settings. Until then, the visitor switch is hidden.', 'digitizer-pro-tools' ) : '';
+	}
 
 	public function init() {
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue' ) );
@@ -32,6 +36,7 @@ class DPT_Theme_Switch_Module extends DPT_Module {
 
 	public function enqueue() {
 		$o = DPT_TS_Settings::all();
+		if ( empty( $o['colors'] ) ) { return; }
 		wp_enqueue_style( 'dpt-theme-switch', DPT_URL . 'modules/theme-switch/assets/theme-switch.css', array(), DPT_VERSION );
 		wp_add_inline_style( 'dpt-theme-switch', self::palette_css( $o ) );
 		// Synchronous head script: styles print at wp_head:8, scripts at :9.
@@ -54,6 +59,8 @@ class DPT_Theme_Switch_Module extends DPT_Module {
 	}
 
 	public function shortcode() {
+		$o = DPT_TS_Settings::all();
+		if ( empty( $o['colors'] ) ) { return ''; }
 		$labels = array(
 			'light' => __( 'Light', 'digitizer-pro-tools' ),
 			'dark' => __( 'Dark', 'digitizer-pro-tools' ),

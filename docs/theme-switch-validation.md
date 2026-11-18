@@ -21,8 +21,39 @@ later-inserted ones and controls in other tabs, share that preference.
 
 The dependency-free head script runs synchronously after styles are printed. It
 sets the root mode before body content renders and also handles execution after
-DOMContentLoaded. CSS opts native controls into the resolved `color-scheme`.
+DOMContentLoaded. CSS opts only the switch into the resolved `color-scheme`;
+native form controls elsewhere retain the site's own scheme.
 Without JavaScript, the original design remains and inactive controls are hidden.
+
+With no valid alternate colors, the shortcode emits nothing and no frontend
+assets are enqueued. The settings screen and enabled module card explain why.
+System remains the shipped first-visit default, explicitly described next to the
+selector: a dark-device visitor gets the dark palette without clicking a switch.
+
+The document observer starts only when the page contains a switch or Elementor
+content. Custom injectors adding the first switch to a previously idle page call
+`window.DPTThemeSwitch.refresh()` after insertion; that reveals and synchronizes
+the control and starts observation once. Repeated refresh calls are safe.
+
+## Follow-up regressions (2026-11-19, #105)
+
+Before fixing, module tests reported 3 failures for empty palette behavior, admin
+tests reported 2 failures for missing explanations/warnings, and the focused
+browser probe reproduced native input/select colors changing from white/black
+to dark/white plus an observer on a plain page with no controls. The missing
+explicit refresh API was also recorded before adding it.
+
+After fixing, the two PHP files pass 23 and 11 assertions respectively, and all
+9 focused browser checks pass in Chromium 157.0.8103.79. The browser probe uses
+the actual shipped JS/CSS with a fixed white HTML form, real native controls and
+an instrumented native MutationObserver (not a mock). It also covers automatic
+builder insertion, synchronization and idempotent refresh on a previously idle
+page. Run `node tests/theme-switch-followups.cjs` where Playwright is available.
+
+The original WordPress/Elementor checks below are historical results from the
+initial implementation, not a claim that those integration checks were repeated
+for this follow-up. The existing browser fixture assertion now inspects the
+switch's scheme rather than requiring a site-wide scheme.
 
 ## Recorded checks (2026-11-14)
 

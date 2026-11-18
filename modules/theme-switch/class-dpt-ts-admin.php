@@ -36,6 +36,9 @@ class DPT_TS_Admin {
 		?>
 		<div class="wrap dpt-wrap">
 			<h1><?php esc_html_e( 'Theme Switch', 'digitizer-pro-tools' ); ?></h1>
+			<?php if ( empty( $o['colors'] ) ) : ?>
+				<div class="notice notice-warning"><p><?php esc_html_e( 'Add at least one alternate color in Theme Switch settings. Until then, the visitor switch is hidden.', 'digitizer-pro-tools' ); ?></p></div>
+			<?php endif; ?>
 			<?php if ( isset( $_GET['dpt_saved'] ) ) : // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display flag only. ?>
 				<div class="notice notice-success"><p><?php esc_html_e( 'Settings saved.', 'digitizer-pro-tools' ); ?></p></div>
 			<?php endif; ?>
@@ -56,10 +59,11 @@ class DPT_TS_Admin {
 							<option value="light" <?php selected( $o['default'], 'light' ); ?>><?php esc_html_e( 'Light', 'digitizer-pro-tools' ); ?></option>
 							<option value="dark" <?php selected( $o['default'], 'dark' ); ?>><?php esc_html_e( 'Dark', 'digitizer-pro-tools' ); ?></option>
 						</select>
-						<p class="description"><?php esc_html_e( 'A saved visitor choice takes priority. System follows the device preference.', 'digitizer-pro-tools' ); ?></p>
+						<p class="description"><?php esc_html_e( 'System is the shipped default. On a first visit, System automatically applies the dark palette when the device prefers dark mode, without a click. A saved visitor choice takes priority.', 'digitizer-pro-tools' ); ?></p>
 					</td></tr>
 				</table>
 				<h2><?php esc_html_e( 'Alternate palette', 'digitizer-pro-tools' ); ?></h2>
+				<p class="description"><?php esc_html_e( 'Native form controls outside the switch keep the site\'s color scheme. Check fixed-color forms in both modes.', 'digitizer-pro-tools' ); ?></p>
 				<p><?php esc_html_e( 'Enter hex colors, such as #18181b or #ffffff. Leave a color empty to keep the original. These values apply only in the mode opposite your original palette.', 'digitizer-pro-tools' ); ?></p>
 				<?php if ( $kit ) : ?>
 					<table class="widefat striped"><thead><tr><th><?php esc_html_e( 'Elementor color', 'digitizer-pro-tools' ); ?></th><th><?php esc_html_e( 'Original color', 'digitizer-pro-tools' ); ?></th><th><?php esc_html_e( 'Alternate color', 'digitizer-pro-tools' ); ?></th></tr></thead><tbody>

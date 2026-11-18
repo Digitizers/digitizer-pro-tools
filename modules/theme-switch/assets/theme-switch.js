@@ -9,6 +9,7 @@
 	var preference = modes.indexOf(config.default) !== -1 ? config.default : 'system';
 	var query = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
 	var key = config.key || 'dpt-theme-switch';
+	var observing = false;
 	// Storage can throw even on access (privacy settings, sandboxed frames).
 	// https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage#exceptions
 	try {
@@ -42,7 +43,7 @@
 		try { window.localStorage.setItem(key, mode); } catch (ignore) {}
 		apply();
 	}
-	window.DPTThemeSwitch = { setPreference: choose };
+	window.DPTThemeSwitch = { setPreference: choose, refresh: ready };
 	apply();
 
 	document.addEventListener('click', function (event) {
@@ -75,7 +76,9 @@
 	});
 	function ready() {
 		sync(document);
-		if (!window.MutationObserver) { return; }
+		// Idle pages need no document observer. Custom injectors can call refresh().
+		if (observing || !window.MutationObserver || !document.querySelector('.dpt-theme-switch, .elementor')) { return; }
+		observing = true;
 		new MutationObserver(function (mutations) {
 			mutations.forEach(function (mutation) {
 				Array.prototype.forEach.call(mutation.addedNodes, function (node) {

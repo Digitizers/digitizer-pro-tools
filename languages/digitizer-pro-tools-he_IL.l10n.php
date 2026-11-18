@@ -855,5 +855,8 @@ return array (
     'Alternate color' => 'צבע חלופי',
     'Additional color variables' => 'משתני צבע נוספים',
     'One CSS variable and alternate hex color per line: --surface=#18181b. Fixed widget colors and locally overridden variables need changes in the site design. Images and logos keep their original appearance.' => 'משתנה CSS וצבע hex חלופי בכל שורה: --surface=#18181b. צבעים קבועים בווידג׳טים ומשתנים שהוגדרו מחדש ברכיב דורשים התאמה בעיצוב האתר. תמונות וסמלים שומרים על המראה המקורי.',
+    'Add at least one alternate color in Theme Switch settings. Until then, the visitor switch is hidden.' => 'הוסיפו לפחות צבע חלופי אחד בהגדרות החלפת מצב תצוגה. עד אז, המתג למבקרים מוסתר.',
+    'System is the shipped default. On a first visit, System automatically applies the dark palette when the device prefers dark mode, without a click. A saved visitor choice takes priority.' => 'לפי המכשיר היא ברירת המחדל. בביקור הראשון, הפלטה הכהה חלה אוטומטית אם המכשיר מוגדר למצב כהה, ללא לחיצה. בחירה שמורה של המבקר קודמת להגדרה זו.',
+    'Native form controls outside the switch keep the site\'s color scheme. Check fixed-color forms in both modes.' => 'שדות טופס מובנים מחוץ למתג שומרים על מצב הצבעים של האתר. בדקו טפסים בעלי צבעים קבועים בשני המצבים.',
   ),
 );
