@@ -7,7 +7,14 @@ class DPT_CB_Settings {
 	public static function purge_page_caches() { self::$purges++; }
 }
 DPT_TS_Settings::install_defaults();
-dpt_test_eq( DPT_TS_Settings::all(), array( 'base' => 'light', 'default' => 'system', 'colors' => array() ), 'base palette stays unchanged until configured' );
+dpt_test_eq( DPT_TS_Settings::all(), array( 'base' => 'light', 'default' => 'light', 'colors' => array() ), 'new installations start in Light' );
+foreach ( array( 'light', 'dark', 'system' ) as $saved ) {
+	$existing = array( 'base' => 'dark', 'default' => $saved, 'colors' => array( '--surface' => '#abc' ) );
+	$GLOBALS['dpt_stub_options'][ DPT_TS_Settings::OPTION ] = $existing;
+	DPT_TS_Settings::install_defaults();
+	dpt_test_eq( get_option( DPT_TS_Settings::OPTION ), $existing, 'activation preserves the complete saved palette and preference: ' . $saved );
+	dpt_test_eq( DPT_TS_Settings::all()['default'], $saved, 'saved preference still resolves: ' . $saved );
+}
 $raw = array( 'base' => 'dark', 'default' => 'light', 'colors' => array(
 	'--Brand' => '#AbCd', '--surface' => '#12345678', '--text' => '#FFF',
 	'--evil;}body{color:red' => '#fff', '--payload' => '#fff;</style><script>alert(1)</script>',

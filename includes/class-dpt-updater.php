@@ -22,6 +22,9 @@ class DPT_Updater {
 	/** @var object|null The built update-checker instance. */
 	private static $checker = null;
 
+	/** @var bool Update policy is independent of the bundled checker. */
+	private static $policy_registered = false;
+
 	/**
 	 * Build the update checker for the given main plugin file.
 	 *
@@ -29,6 +32,12 @@ class DPT_Updater {
 	 * @return object|null The update checker, or null when unavailable.
 	 */
 	public static function init( $plugin_file ) {
+		// Install even if the checker is unavailable or was already built.
+		if ( ! self::$policy_registered ) {
+			add_filter( 'auto_update_plugin', array( __CLASS__, 'self_auto_update' ), PHP_INT_MAX, 2 );
+			add_filter( 'plugin_auto_update_setting_html', array( __CLASS__, 'auto_update_setting_html' ), PHP_INT_MAX, 3 );
+			self::$policy_registered = true;
+		}
 		if ( null !== self::$checker ) {
 			return self::$checker;
 		}
@@ -95,6 +104,31 @@ class DPT_Updater {
 
 		self::$checker = $checker;
 		return $checker;
+	}
+
+	/**
+	 * Deny unattended self-updates unless an operator explicitly permits them.
+	 * Permission restores WordPress's decision; it never enrolls the plugin.
+	 * Manual updates and updates for other plugins are unaffected.
+	 *
+	 * @param bool|null $update WordPress's current decision.
+	 * @param object    $item   Plugin update offer.
+	 * @return bool|null
+	 */
+	public static function self_auto_update( $update, $item ) {
+		if ( is_object( $item ) && isset( $item->plugin ) && DPT_BASENAME === $item->plugin &&
+			true !== apply_filters( 'dpt_allow_self_auto_update', false ) ) {
+			return false;
+		}
+		return $update;
+	}
+
+	/** Replace the ineffective WordPress toggle while self-updates are denied. */
+	public static function auto_update_setting_html( $html, $plugin_file, $plugin_data ) {
+		if ( DPT_BASENAME === $plugin_file && true !== apply_filters( 'dpt_allow_self_auto_update', false ) ) {
+			return '<span class="dpt-auto-update-policy">' . esc_html__( 'Automatic updates are managed by DPT (disabled).', 'digitizer-pro-tools' ) . '</span>';
+		}
+		return $html;
 	}
 
 	/**

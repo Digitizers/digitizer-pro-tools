@@ -4,7 +4,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.53.1
+Stable tag: 1.54.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -24,7 +24,7 @@ Brings a new site up to the Digitizer baseline in one pass:
 * Untick anything a given client does not need, then install the rest
 * **Only the child theme and Elementor are switched on.** Everything else is installed and left inactive, so you decide per client what actually runs
 * Installs from WordPress.org, and from the public GitHub repositories for Hello Digitizer, Elementor MCP and MCP Adapter
-* Optionally turns on WordPress's automatic updates for the items it installed, and for Digitizer Pro Tools itself - the box starts unticked
+* Optionally turns on WordPress's automatic updates for the selected baseline items - the box starts unticked and excludes Digitizer Pro Tools itself
 * Reports updates for the baseline's GitHub items - Hello Digitizer, Elementor MCP and MCP Adapter - which are not in the WordPress.org directory and are installed inactive, so nothing else on the site would ever check them. Switch the module off and those offers stop with it
 * Optionally removes the unused default themes, always keeping the newest one and the theme this WordPress is configured to fall back to if the active theme ever breaks. The active theme, any theme another theme depends on, and anything that is not actually one of WordPress's own themes are never removed. Not offered on a multisite network, where one directory of themes is shared by every site
 * Nothing already installed is updated, downgraded or reconfigured
@@ -274,7 +274,7 @@ An explicit alternate color palette (disabled by default; enable it on the Modul
 
 * Choose whether the original site is light or dark, then enter alternate hex colors in Theme Switch settings. Elementor's active Kit colors are listed automatically; other CSS color variables can be mapped manually
 * Place `[dpt_theme_switch]` in content, a header/footer or an Elementor Shortcode widget. Each instance has native Light, Dark and System buttons, with keyboard support, Hebrew labels and RTL layout
-* A visitor's explicit choice wins over the device setting and is saved locally in that browser. System is the shipped first-visit default: it automatically applies dark mode for dark-device visitors without a click, and follows later device changes. Multiple switches, dynamic controls and other open tabs stay synchronized
+* A visitor's explicit choice wins over the device setting and is saved locally in that browser. Light is the default for new installations; existing saved settings are preserved. Choosing System automatically applies dark mode for dark-device visitors without a click, and follows later device changes. Fixed background colors outside global variables are unchanged; check a real page in both modes before choosing System. Multiple switches, dynamic controls and other open tabs stay synchronized
 * The synchronous head script applies the selected palette before content renders. The same HTML is served to every visitor, so page caches remain shared. If storage is blocked, switching still works for the current page; without JavaScript the original palette remains
 * Only mapped CSS variables change. Fixed widget colors, locally overridden variables and image/logo artwork need design changes. Blank mappings retain the site's original colors. Native color-scheme is scoped to the switch itself; form controls elsewhere keep the site's existing color scheme
 * With no valid alternate colors, the settings screen and enabled module card explain what is missing. No switch or frontend assets are rendered until a palette is saved
@@ -398,6 +398,12 @@ Yes. The banner is rendered hidden and an inline head precheck decides whether t
 
 The admin interface is English with a complete Hebrew translation. The cookie banner texts themselves can be set for any number of languages.
 
+= Can Digitizer Pro Tools update itself automatically? =
+
+DPT blocks its own unattended updates by default, including sites already enrolled in WordPress auto-updates. The Plugins screen explains that DPT manages this policy. Manual updates remain available, and other plugins keep their existing update behavior. Onboarding enrolls only selected baseline items.
+
+An operator can explicitly permit unattended self-updates with `add_filter( 'dpt_allow_self_auto_update', '__return_true' );`. This restores WordPress's normal decision and Plugins-screen toggle; it does not enroll DPT or force updates. WordPress's auto-update preference must also allow DPT. The policy takes effect only after this version is installed and active.
+
 == Installation ==
 
 1. Upload the plugin folder to /wp-content/plugins/
@@ -407,6 +413,10 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 5. Configure each module you enabled from its own screen. For the Cookie Banner that means reviewing the texts per language and pasting your analytics/marketing snippets in the Scripts tab, then checking the site
 
 == Changelog ==
+
+= 1.54.0 =
+* Updater: block automatic self-updates by default, with explicit dpt_allow_self_auto_update opt-in and a truthful Plugins-screen status. Onboarding no longer enrolls DPT itself; baseline item updates are unchanged (#107)
+* Theme Switch: new installations start in Light, existing saved preferences remain unchanged, and settings warn that fixed backgrounds do not follow the alternate palette (#107)
 
 = 1.53.1 =
 * Theme Switch: scope native color-scheme to the switch so fixed-color forms are not forced dark; explain the System default on the settings screen; skip idle-page observers; and warn/hide inactive controls when the alternate palette is empty (#105)

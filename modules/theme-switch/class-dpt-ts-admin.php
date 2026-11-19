@@ -59,9 +59,10 @@ class DPT_TS_Admin {
 							<option value="light" <?php selected( $o['default'], 'light' ); ?>><?php esc_html_e( 'Light', 'digitizer-pro-tools' ); ?></option>
 							<option value="dark" <?php selected( $o['default'], 'dark' ); ?>><?php esc_html_e( 'Dark', 'digitizer-pro-tools' ); ?></option>
 						</select>
-						<p class="description"><?php esc_html_e( 'System is the shipped default. On a first visit, System automatically applies the dark palette when the device prefers dark mode, without a click. A saved visitor choice takes priority.', 'digitizer-pro-tools' ); ?></p>
+						<p class="description"><?php esc_html_e( 'Light is the default for new installations. Existing saved settings are kept. System automatically applies the dark palette when the device prefers dark mode, without a click. A saved visitor choice takes priority.', 'digitizer-pro-tools' ); ?></p>
 					</td></tr>
 				</table>
+				<div class="notice notice-warning inline"><p><?php esc_html_e( 'Fixed background colors (not global colors) are not changed by the alternate palette. Before choosing System, check a real page in both Light and Dark modes.', 'digitizer-pro-tools' ); ?></p></div>
 				<h2><?php esc_html_e( 'Alternate palette', 'digitizer-pro-tools' ); ?></h2>
 				<p class="description"><?php esc_html_e( 'Native form controls outside the switch keep the site\'s color scheme. Check fixed-color forms in both modes.', 'digitizer-pro-tools' ); ?></p>
 				<p><?php esc_html_e( 'Enter hex colors, such as #18181b or #ffffff. Leave a color empty to keep the original. These values apply only in the mode opposite your original palette.', 'digitizer-pro-tools' ); ?></p>

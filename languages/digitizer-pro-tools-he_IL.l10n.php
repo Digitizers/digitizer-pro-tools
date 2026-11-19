@@ -858,5 +858,10 @@ return array (
     'Add at least one alternate color in Theme Switch settings. Until then, the visitor switch is hidden.' => 'הוסיפו לפחות צבע חלופי אחד בהגדרות החלפת מצב תצוגה. עד אז, המתג למבקרים מוסתר.',
     'System is the shipped default. On a first visit, System automatically applies the dark palette when the device prefers dark mode, without a click. A saved visitor choice takes priority.' => 'לפי המכשיר היא ברירת המחדל. בביקור הראשון, הפלטה הכהה חלה אוטומטית אם המכשיר מוגדר למצב כהה, ללא לחיצה. בחירה שמורה של המבקר קודמת להגדרה זו.',
     'Native form controls outside the switch keep the site\'s color scheme. Check fixed-color forms in both modes.' => 'שדות טופס מובנים מחוץ למתג שומרים על מצב הצבעים של האתר. בדקו טפסים בעלי צבעים קבועים בשני המצבים.',
+    'Automatic updates are managed by DPT (disabled).' => 'העדכונים האוטומטיים מנוהלים על ידי DPT (כבויים).',
+    'Turn on automatic updates for the selected baseline items' => 'הפעלת עדכונים אוטומטיים לפריטי הבסיס שנבחרו',
+    'Excludes Digitizer Pro Tools itself. Includes baseline items from GitHub while this module reports their releases to WordPress.' => 'לא כולל את Digitizer Pro Tools עצמו. כולל פריטי בסיס מ־GitHub כל עוד המודול מדווח לוורדפרס על הגרסאות שלהם.',
+    'Light is the default for new installations. Existing saved settings are kept. System automatically applies the dark palette when the device prefers dark mode, without a click. A saved visitor choice takes priority.' => 'מצב בהיר הוא ברירת המחדל בהתקנות חדשות. הגדרות קיימות שנשמרו נשארות ללא שינוי. מצב מערכת מחיל אוטומטית את ערכת הצבעים הכהה כשהמכשיר מעדיף מצב כהה, ללא לחיצה. בחירה שמורה של המבקר קודמת לכך.',
+    'Fixed background colors (not global colors) are not changed by the alternate palette. Before choosing System, check a real page in both Light and Dark modes.' => 'צבעי רקע קבועים (שאינם צבעים גלובליים) אינם משתנים עם ערכת הצבעים החלופית. לפני בחירה במצב מערכת, בדקו עמוד אמיתי גם במצב בהיר וגם במצב כהה.',
   ),
 );

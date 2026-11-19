@@ -7,7 +7,7 @@ class DPT_TS_Settings {
 	const OPTION = 'dpt_theme_switch';
 
 	public static function defaults() {
-		return array( 'base' => 'light', 'default' => 'system', 'colors' => array() );
+		return array( 'base' => 'light', 'default' => 'light', 'colors' => array() );
 	}
 
 	public static function install_defaults() {

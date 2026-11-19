@@ -27,8 +27,11 @@ Without JavaScript, the original design remains and inactive controls are hidden
 
 With no valid alternate colors, the shortcode emits nothing and no frontend
 assets are enqueued. The settings screen and enabled module card explain why.
-System remains the shipped first-visit default, explicitly described next to the
-selector: a dark-device visitor gets the dark palette without clicking a switch.
+Light is the shipped first-visit default for new installations. Existing saved
+Light, Dark and System preferences are preserved. Selecting System still applies
+the device preference without a click. A static settings warning explains that
+fixed (non-global) backgrounds are unchanged and asks administrators to check a
+real page in both modes before choosing System.
 
 The document observer starts only when the page contains a switch or Elementor
 content. Custom injectors adding the first switch to a previously idle page call

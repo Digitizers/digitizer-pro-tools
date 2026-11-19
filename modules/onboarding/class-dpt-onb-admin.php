@@ -13,7 +13,6 @@ class DPT_ONB_Admin {
 	public function __construct() {
 		add_action( 'wp_ajax_dpt_onb_apply', array( $this, 'handle_apply' ) );
 		add_action( 'wp_ajax_dpt_onb_cleanup', array( $this, 'handle_cleanup' ) );
-		add_action( 'wp_ajax_dpt_onb_self_update', array( $this, 'handle_self_update' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue' ) );
 	}
 
@@ -95,31 +94,6 @@ class DPT_ONB_Admin {
 		}
 
 		wp_send_json_success( DPT_ONB_Installer::apply( $id, $auto_update ) );
-	}
-
-	/**
-	 * Turn on automatic updates for this plugin.
-	 *
-	 * Its own request, and the first one of a run. Enrolling the plugin has
-	 * nothing to do with whether any particular item installs, and hanging it
-	 * off one meant a ticked box promised something that never happened when
-	 * every row was unticked or every install failed.
-	 */
-	public function handle_self_update() {
-		check_ajax_referer( self::NONCE, 'nonce' );
-
-		if ( ! current_user_can( 'manage_options' ) || ! DPT_ONB_Installer::may_auto_update( array( 'type' => 'plugin' ) ) ) {
-			wp_send_json_error( array( 'message' => __( 'You are not allowed to do that.', 'digitizer-pro-tools' ) ), 403 );
-		}
-
-		if ( ! DPT_ONB_Installer::enable_self_auto_update() ) {
-			wp_send_json_error(
-				array( 'message' => __( 'Automatic updates could not be turned on for Digitizer Pro Tools.', 'digitizer-pro-tools' ) ),
-				500
-			);
-		}
-
-		wp_send_json_success( array( 'enrolled' => true ) );
 	}
 
 	/**
@@ -212,8 +186,8 @@ class DPT_ONB_Admin {
 				<label>
 					<?php // Unticked by default: unattended updates are turned on on purpose, not by running the wizard as it comes (3.11). ?>
 					<input type="checkbox" id="dpt-onb-auto-update" />
-					<?php esc_html_e( 'Turn on automatic updates for these items and for Digitizer Pro Tools itself', 'digitizer-pro-tools' ); ?>
-					<span class="description"><?php esc_html_e( 'Covers Digitizer Pro Tools too, and the items installed from GitHub - while this module is on, it reports their releases to WordPress for them.', 'digitizer-pro-tools' ); ?></span>
+					<?php esc_html_e( 'Turn on automatic updates for the selected baseline items', 'digitizer-pro-tools' ); ?>
+					<span class="description"><?php esc_html_e( 'Excludes Digitizer Pro Tools itself. Includes baseline items from GitHub while this module reports their releases to WordPress.', 'digitizer-pro-tools' ); ?></span>
 				</label>
 				<?php endif; ?>
 				<?php if ( ! is_multisite() && current_user_can( 'delete_themes' ) ) : ?>
