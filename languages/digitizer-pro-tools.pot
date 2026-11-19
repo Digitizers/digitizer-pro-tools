@@ -2577,3 +2577,9 @@ msgstr ""
 
 msgid "Native form controls outside the switch keep the site's color scheme. Check fixed-color forms in both modes."
 msgstr ""
+
+msgid "Light is the default for new installations. Existing saved settings are kept. System automatically applies the dark palette when the device prefers dark mode, without a click. A saved visitor choice takes priority."
+msgstr ""
+
+msgid "Fixed background colors (not global colors) are not changed by the alternate palette. Before choosing System, check a real page in both Light and Dark modes."
+msgstr ""

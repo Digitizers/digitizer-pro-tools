@@ -5,8 +5,10 @@
  * Wires the bundled Plugin Update Checker library to this plugin's public GitHub
  * repository so updates appear on the normal WordPress Plugins / Dashboard >
  * Updates screens. Updates are pulled from tagged GitHub Releases: publish a
- * Release whose tag matches the new version (e.g. v1.15.0) and sites will be
- * offered the update on the next check.
+ * stable release whose tag matches the new version (e.g. v1.54.0) and sites
+ * will be offered the update on the next check. Explicit DPT_BETA opt-in also
+ * includes pre-releases. Maintainers publish pre-releases first, then promote
+ * the tested release only with Ben's approval.
  */
 
 if ( ! defined( 'ABSPATH' ) ) { exit; }
@@ -44,16 +46,24 @@ class DPT_Updater {
 			return null;
 		}
 
+		$beta = defined( 'DPT_BETA' ) && true === DPT_BETA;
 		$checker = call_user_func(
 			array( $factory, 'buildUpdateChecker' ),
 			self::REPO,
 			$plugin_file,
-			'digitizer-pro-tools'
+			'digitizer-pro-tools',
+			12,
+			// Keep beta offers out of stable's persisted update state when opting out.
+			$beta ? 'external_updates-digitizer-pro-tools-beta' : ''
 		);
 
 		// Public repo: no authentication needed. We deliberately do NOT call
 		// setBranch(): that would track a branch head instead of releases.
 		$api = ( is_object( $checker ) && method_exists( $checker, 'getVcsApi' ) ) ? $checker->getVcsApi() : null;
+		if ( $beta && is_object( $api ) && method_exists( $api, 'setReleaseFilter' ) ) {
+			// PUC still excludes drafts. Stable keeps its existing /releases/latest path.
+			$api->setReleaseFilter( '__return_true', $api::RELEASE_FILTER_ALL );
+		}
 		if ( is_object( $api ) && method_exists( $api, 'enableReleaseAssets' ) ) {
 			// If a Release attaches a built plugin .zip named like the plugin,
 			// prefer it; otherwise the checker falls back to the tag's source

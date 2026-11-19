@@ -4,7 +4,7 @@ Tags: cookies, gdpr, privacy, cookie banner, multilingual
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.53.1
+Stable tag: 1.54.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -274,7 +274,7 @@ An explicit alternate color palette (disabled by default; enable it on the Modul
 
 * Choose whether the original site is light or dark, then enter alternate hex colors in Theme Switch settings. Elementor's active Kit colors are listed automatically; other CSS color variables can be mapped manually
 * Place `[dpt_theme_switch]` in content, a header/footer or an Elementor Shortcode widget. Each instance has native Light, Dark and System buttons, with keyboard support, Hebrew labels and RTL layout
-* A visitor's explicit choice wins over the device setting and is saved locally in that browser. System is the shipped first-visit default: it automatically applies dark mode for dark-device visitors without a click, and follows later device changes. Multiple switches, dynamic controls and other open tabs stay synchronized
+* A visitor's explicit choice wins over the device setting and is saved locally in that browser. Light is the default for new installations; existing saved settings are preserved. Choosing System automatically applies dark mode for dark-device visitors without a click, and follows later device changes. Fixed background colors outside global variables are unchanged; check a real page in both modes before choosing System. Multiple switches, dynamic controls and other open tabs stay synchronized
 * The synchronous head script applies the selected palette before content renders. The same HTML is served to every visitor, so page caches remain shared. If storage is blocked, switching still works for the current page; without JavaScript the original palette remains
 * Only mapped CSS variables change. Fixed widget colors, locally overridden variables and image/logo artwork need design changes. Blank mappings retain the site's original colors. Native color-scheme is scoped to the switch itself; form controls elsewhere keep the site's existing color scheme
 * With no valid alternate colors, the settings screen and enabled module card explain what is missing. No switch or frontend assets are rendered until a palette is saved
@@ -398,6 +398,24 @@ Yes. The banner is rendered hidden and an inline head precheck decides whether t
 
 The admin interface is English with a complete Hebrew translation. The cookie banner texts themselves can be set for any number of languages.
 
+= How do stable and beta updates work? =
+
+By default the updater offers only published stable GitHub Releases. WordPress keeps its normal automatic-update controls, and Onboarding's automatic-update behavior is unchanged. Bare tags, branches, drafts and pre-releases are not offered on the stable channel.
+
+For staging/testing, explicitly opt in by adding `define( 'DPT_BETA', true );` to wp-config.php before WordPress is loaded. Only boolean true enables beta. The updater then includes pre-releases as well as stable releases, still excludes drafts, and uses separate cached update state. Remove the constant or set it to false to return to stable; this does not downgrade an already installed beta. Use Dashboard > Updates > Check again after changing channels.
+
+= Maintainers: how is a release published? =
+
+Every release starts as a pre-release with the built installation ZIP attached. Prepare and test the reviewed commit, build with `bash bin/build-zip.sh`, and prepare release-notes.md. Replace vX.Y.Z and REVIEWED_COMMIT_SHA below with the release version and reviewed full commit SHA. If the tag already exists, verify that it points to that same commit before publishing.
+
+    gh release create vX.Y.Z dist/digitizer-pro-tools.zip --repo Digitizers/digitizer-pro-tools --target REVIEWED_COMMIT_SHA --prerelease --title vX.Y.Z --notes-file release-notes.md
+
+Test the attached ZIP on a staging site with DPT_BETA enabled, including the upgrade path and the changed features. Stable-channel sites do not receive the pre-release. Only after testing and Ben's explicit approval, promote the same tested release and asset:
+
+    gh release edit vX.Y.Z --repo Digitizers/digitizer-pro-tools --prerelease=false --latest
+
+Promotion makes the release available to stable-channel sites, including sites with automatic updates enabled. Creating a pre-release is not approval to promote it. GitHub CLI command reference: https://cli.github.com/manual/gh_release_create and https://cli.github.com/manual/gh_release_edit
+
 == Installation ==
 
 1. Upload the plugin folder to /wp-content/plugins/
@@ -407,6 +425,10 @@ The admin interface is English with a complete Hebrew translation. The cookie ba
 5. Configure each module you enabled from its own screen. For the Cookie Banner that means reviewing the texts per language and pasting your analytics/marketing snippets in the Scripts tab, then checking the site
 
 == Changelog ==
+
+= 1.54.0 =
+* Updater: optional DPT_BETA constant includes GitHub pre-releases with separate cached update state; stable behavior and automatic-update controls are unchanged. Document pre-release-first publishing and promotion after testing and Ben's approval (#107)
+* Theme Switch: new installations start in Light, existing saved preferences remain unchanged, and settings warn that fixed backgrounds do not follow the alternate palette (#107)
 
 = 1.53.1 =
 * Theme Switch: scope native color-scheme to the switch so fixed-color forms are not forced dark; explain the System default on the settings screen; skip idle-page observers; and warn/hide inactive controls when the alternate palette is empty (#105)
