@@ -404,6 +404,8 @@ By default the updater offers only published stable GitHub Releases. WordPress k
 
 For staging/testing, explicitly opt in by adding `define( 'DPT_BETA', true );` to wp-config.php before WordPress is loaded. Only boolean true enables beta. The updater then includes pre-releases as well as stable releases, still excludes drafts, and uses separate cached update state. Remove the constant or set it to false to return to stable; this does not downgrade an already installed beta. Use Dashboard > Updates > Check again after changing channels.
 
+The constant is read by DPT 1.54.0 and later. A site still on an older version never sees a pre-release, even with DPT_BETA set: install the first beta manually (upload the release ZIP, or rsync it), and later pre-releases arrive through the updater.
+
 = Maintainers: how is a release published? =
 
 Every release starts as a pre-release with the built installation ZIP attached. Prepare and test the reviewed commit, build with `bash bin/build-zip.sh`, and prepare release-notes.md. Replace vX.Y.Z and REVIEWED_COMMIT_SHA below with the release version and reviewed full commit SHA. If the tag already exists, verify that it points to that same commit before publishing.

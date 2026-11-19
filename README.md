@@ -123,6 +123,11 @@ or test site, add this to `wp-config.php` before WordPress is loaded:
 define( 'DPT_BETA', true );
 ```
 
+The constant is read by DPT 1.54.0 and later. A site still on an older version
+never sees a pre-release, even with `DPT_BETA` set: install the first beta
+manually (upload the release ZIP, or rsync it), and later pre-releases arrive
+through the updater.
+
 Only boolean `true` opts in. PUC then considers stable releases and pre-releases,
 skips drafts, and retains the release-only strategy (no tag or branch fallback).
 Beta uses separate persisted update state, so its cached offers do not leak into
