@@ -2578,15 +2578,6 @@ msgstr "לפי המכשיר היא ברירת המחדל. בביקור הראש�
 msgid "Native form controls outside the switch keep the site's color scheme. Check fixed-color forms in both modes."
 msgstr "שדות טופס מובנים מחוץ למתג שומרים על מצב הצבעים של האתר. בדקו טפסים בעלי צבעים קבועים בשני המצבים."
 
-msgid "Automatic updates are managed by DPT (disabled)."
-msgstr "העדכונים האוטומטיים מנוהלים על ידי DPT (כבויים)."
-
-msgid "Turn on automatic updates for the selected baseline items"
-msgstr "הפעלת עדכונים אוטומטיים לפריטי הבסיס שנבחרו"
-
-msgid "Excludes Digitizer Pro Tools itself. Includes baseline items from GitHub while this module reports their releases to WordPress."
-msgstr "לא כולל את Digitizer Pro Tools עצמו. כולל פריטי בסיס מ־GitHub כל עוד המודול מדווח לוורדפרס על הגרסאות שלהם."
-
 msgid "Light is the default for new installations. Existing saved settings are kept. System automatically applies the dark palette when the device prefers dark mode, without a click. A saved visitor choice takes priority."
 msgstr "מצב בהיר הוא ברירת המחדל בהתקנות חדשות. הגדרות קיימות שנשמרו נשארות ללא שינוי. מצב מערכת מחיל אוטומטית את ערכת הצבעים הכהה כשהמכשיר מעדיף מצב כהה, ללא לחיצה. בחירה שמורה של המבקר קודמת לכך."
 

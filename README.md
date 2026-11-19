@@ -93,7 +93,7 @@ When a standalone is active, its module stands down so the two never run togethe
 2. In WordPress go to **Plugins → Add New → Upload Plugin**, then activate.
 3. Open the **Digitizer Pro Tools** menu and switch on what this site needs. A module with options gets its own screen in the same menu.
 
-New releases are offered on the normal **Dashboard → Updates** screen. Only published GitHub Releases are offered, never a branch or a bare tag.
+New releases are offered on the normal **Dashboard → Updates** screen. By default only published stable GitHub Releases are offered, never pre-releases, drafts, a branch or a bare tag. WordPress automatic-update controls and Onboarding enrollment are unchanged.
 
 > On Digitizer's own live sites, updates go out by rsync with a permissions script, not through the WordPress updater.
 
@@ -112,6 +112,45 @@ bash bin/build-zip.sh        # -> dist/digitizer-pro-tools.zip
 - Every change goes through a branch and a pull request, with a Codex review until it is clean.
 - A release is a GitHub Release with the built zip attached.
 - The version lives in three places: the plugin header and `DPT_VERSION` in `digitizer-pro-tools.php`, and `Stable tag` in `readme.txt`.
+
+### Release flow and opt-in beta channel
+
+Every release is published as a **pre-release first**, with the built installation
+ZIP attached. Stable sites keep using GitHub's latest stable release. For a staging
+or test site, add this to `wp-config.php` before WordPress is loaded:
+
+```php
+define( 'DPT_BETA', true );
+```
+
+Only boolean `true` opts in. PUC then considers stable releases and pre-releases,
+skips drafts, and retains the release-only strategy (no tag or branch fallback).
+Beta uses separate persisted update state, so its cached offers do not leak into
+stable when opting out. Remove the constant or set it to `false` to return to
+stable; an installed beta is not downgraded. Use **Dashboard → Updates → Check
+again** after a channel change. This does not change automatic-update enrollment.
+
+After the reviewed commit is ready, build with `bash bin/build-zip.sh` and prepare
+`release-notes.md`. Replace `vX.Y.Z` and `REVIEWED_COMMIT_SHA` below with the release
+version and reviewed full commit SHA. If the tag already exists, verify it points
+to that same commit before publishing:
+
+```bash
+gh release create vX.Y.Z dist/digitizer-pro-tools.zip --repo Digitizers/digitizer-pro-tools --target REVIEWED_COMMIT_SHA --prerelease --title vX.Y.Z --notes-file release-notes.md
+```
+
+Test the attached installation ZIP and upgrade path on staging with `DPT_BETA`
+enabled, including the changed features. **Only after testing and Ben's explicit
+yes**, promote that same release and asset to stable:
+
+```bash
+gh release edit vX.Y.Z --repo Digitizers/digitizer-pro-tools --prerelease=false --latest
+```
+
+Promotion offers the release to stable sites, including those with automatic
+updates enabled. Permission to create a pre-release is not permission to promote
+it. See the official CLI references for [create](https://cli.github.com/manual/gh_release_create)
+and [edit](https://cli.github.com/manual/gh_release_edit).
 
 **Layout:**
 

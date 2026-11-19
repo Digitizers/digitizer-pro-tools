@@ -411,6 +411,31 @@ class DPT_ONB_Installer {
 	}
 
 	/**
+	 * Enrol Digitizer Pro Tools itself in WordPress's automatic updates.
+	 *
+	 * The plugin is not a manifest item and auto_updatable() does not apply
+	 * to it. That rule refuses GitHub-sourced items because nothing on the
+	 * site would ever check them for a new version; this plugin carries its
+	 * own update checker, which puts its releases into the same transient
+	 * core reads, so core's unattended updater installs them exactly as it
+	 * would a WordPress.org plugin. The list entry is therefore acted on.
+	 *
+	 * Deliberately not called from apply(). Enrolling the plugin has nothing
+	 * to do with any particular item succeeding, and hanging it off one meant
+	 * the checkbox promised something that never happened when every row was
+	 * unticked, or when every selected install failed. The wizard calls it
+	 * once, on its own, before the items.
+	 *
+	 * @return bool Whether the plugin is now enrolled.
+	 */
+	public static function enable_self_auto_update() {
+		if ( ! defined( 'DPT_BASENAME' ) || ! self::may_auto_update( array( 'type' => 'plugin' ) ) ) {
+			return false;
+		}
+		return self::write_auto_update_list( 'auto_update_plugins', DPT_BASENAME );
+	}
+
+	/**
 	 * Apply one item by id.
 	 *
 	 * @param string $item_id     Manifest item id.

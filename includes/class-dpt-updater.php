@@ -5,8 +5,10 @@
  * Wires the bundled Plugin Update Checker library to this plugin's public GitHub
  * repository so updates appear on the normal WordPress Plugins / Dashboard >
  * Updates screens. Updates are pulled from tagged GitHub Releases: publish a
- * Release whose tag matches the new version (e.g. v1.15.0) and sites will be
- * offered the update on the next check.
+ * stable release whose tag matches the new version (e.g. v1.54.0) and sites
+ * will be offered the update on the next check. Explicit DPT_BETA opt-in also
+ * includes pre-releases. Maintainers publish pre-releases first, then promote
+ * the tested release only with Ben's approval.
  */
 
 if ( ! defined( 'ABSPATH' ) ) { exit; }
@@ -22,9 +24,6 @@ class DPT_Updater {
 	/** @var object|null The built update-checker instance. */
 	private static $checker = null;
 
-	/** @var bool Update policy is independent of the bundled checker. */
-	private static $policy_registered = false;
-
 	/**
 	 * Build the update checker for the given main plugin file.
 	 *
@@ -32,12 +31,6 @@ class DPT_Updater {
 	 * @return object|null The update checker, or null when unavailable.
 	 */
 	public static function init( $plugin_file ) {
-		// Install even if the checker is unavailable or was already built.
-		if ( ! self::$policy_registered ) {
-			add_filter( 'auto_update_plugin', array( __CLASS__, 'self_auto_update' ), PHP_INT_MAX, 2 );
-			add_filter( 'plugin_auto_update_setting_html', array( __CLASS__, 'auto_update_setting_html' ), PHP_INT_MAX, 3 );
-			self::$policy_registered = true;
-		}
 		if ( null !== self::$checker ) {
 			return self::$checker;
 		}
@@ -53,16 +46,24 @@ class DPT_Updater {
 			return null;
 		}
 
+		$beta = defined( 'DPT_BETA' ) && true === DPT_BETA;
 		$checker = call_user_func(
 			array( $factory, 'buildUpdateChecker' ),
 			self::REPO,
 			$plugin_file,
-			'digitizer-pro-tools'
+			'digitizer-pro-tools',
+			12,
+			// Keep beta offers out of stable's persisted update state when opting out.
+			$beta ? 'external_updates-digitizer-pro-tools-beta' : ''
 		);
 
 		// Public repo: no authentication needed. We deliberately do NOT call
 		// setBranch(): that would track a branch head instead of releases.
 		$api = ( is_object( $checker ) && method_exists( $checker, 'getVcsApi' ) ) ? $checker->getVcsApi() : null;
+		if ( $beta && is_object( $api ) && method_exists( $api, 'setReleaseFilter' ) ) {
+			// PUC still excludes drafts. Stable keeps its existing /releases/latest path.
+			$api->setReleaseFilter( '__return_true', $api::RELEASE_FILTER_ALL );
+		}
 		if ( is_object( $api ) && method_exists( $api, 'enableReleaseAssets' ) ) {
 			// If a Release attaches a built plugin .zip named like the plugin,
 			// prefer it; otherwise the checker falls back to the tag's source
@@ -104,31 +105,6 @@ class DPT_Updater {
 
 		self::$checker = $checker;
 		return $checker;
-	}
-
-	/**
-	 * Deny unattended self-updates unless an operator explicitly permits them.
-	 * Permission restores WordPress's decision; it never enrolls the plugin.
-	 * Manual updates and updates for other plugins are unaffected.
-	 *
-	 * @param bool|null $update WordPress's current decision.
-	 * @param object    $item   Plugin update offer.
-	 * @return bool|null
-	 */
-	public static function self_auto_update( $update, $item ) {
-		if ( is_object( $item ) && isset( $item->plugin ) && DPT_BASENAME === $item->plugin &&
-			true !== apply_filters( 'dpt_allow_self_auto_update', false ) ) {
-			return false;
-		}
-		return $update;
-	}
-
-	/** Replace the ineffective WordPress toggle while self-updates are denied. */
-	public static function auto_update_setting_html( $html, $plugin_file, $plugin_data ) {
-		if ( DPT_BASENAME === $plugin_file && true !== apply_filters( 'dpt_allow_self_auto_update', false ) ) {
-			return '<span class="dpt-auto-update-policy">' . esc_html__( 'Automatic updates are managed by DPT (disabled).', 'digitizer-pro-tools' ) . '</span>';
-		}
-		return $html;
 	}
 
 	/**

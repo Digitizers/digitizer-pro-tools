@@ -2578,15 +2578,6 @@ msgstr ""
 msgid "Native form controls outside the switch keep the site's color scheme. Check fixed-color forms in both modes."
 msgstr ""
 
-msgid "Automatic updates are managed by DPT (disabled)."
-msgstr ""
-
-msgid "Turn on automatic updates for the selected baseline items"
-msgstr ""
-
-msgid "Excludes Digitizer Pro Tools itself. Includes baseline items from GitHub while this module reports their releases to WordPress."
-msgstr ""
-
 msgid "Light is the default for new installations. Existing saved settings are kept. System automatically applies the dark palette when the device prefers dark mode, without a click. A saved visitor choice takes priority."
 msgstr ""
 

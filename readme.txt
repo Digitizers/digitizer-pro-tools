@@ -24,7 +24,7 @@ Brings a new site up to the Digitizer baseline in one pass:
 * Untick anything a given client does not need, then install the rest
 * **Only the child theme and Elementor are switched on.** Everything else is installed and left inactive, so you decide per client what actually runs
 * Installs from WordPress.org, and from the public GitHub repositories for Hello Digitizer, Elementor MCP and MCP Adapter
-* Optionally turns on WordPress's automatic updates for the selected baseline items - the box starts unticked and excludes Digitizer Pro Tools itself
+* Optionally turns on WordPress's automatic updates for the items it installed, and for Digitizer Pro Tools itself - the box starts unticked
 * Reports updates for the baseline's GitHub items - Hello Digitizer, Elementor MCP and MCP Adapter - which are not in the WordPress.org directory and are installed inactive, so nothing else on the site would ever check them. Switch the module off and those offers stop with it
 * Optionally removes the unused default themes, always keeping the newest one and the theme this WordPress is configured to fall back to if the active theme ever breaks. The active theme, any theme another theme depends on, and anything that is not actually one of WordPress's own themes are never removed. Not offered on a multisite network, where one directory of themes is shared by every site
 * Nothing already installed is updated, downgraded or reconfigured
@@ -398,11 +398,23 @@ Yes. The banner is rendered hidden and an inline head precheck decides whether t
 
 The admin interface is English with a complete Hebrew translation. The cookie banner texts themselves can be set for any number of languages.
 
-= Can Digitizer Pro Tools update itself automatically? =
+= How do stable and beta updates work? =
 
-DPT blocks its own unattended updates by default, including sites already enrolled in WordPress auto-updates. The Plugins screen explains that DPT manages this policy. Manual updates remain available, and other plugins keep their existing update behavior. Onboarding enrolls only selected baseline items.
+By default the updater offers only published stable GitHub Releases. WordPress keeps its normal automatic-update controls, and Onboarding's automatic-update behavior is unchanged. Bare tags, branches, drafts and pre-releases are not offered on the stable channel.
 
-An operator can explicitly permit unattended self-updates with `add_filter( 'dpt_allow_self_auto_update', '__return_true' );`. This restores WordPress's normal decision and Plugins-screen toggle; it does not enroll DPT or force updates. WordPress's auto-update preference must also allow DPT. The policy takes effect only after this version is installed and active.
+For staging/testing, explicitly opt in by adding `define( 'DPT_BETA', true );` to wp-config.php before WordPress is loaded. Only boolean true enables beta. The updater then includes pre-releases as well as stable releases, still excludes drafts, and uses separate cached update state. Remove the constant or set it to false to return to stable; this does not downgrade an already installed beta. Use Dashboard > Updates > Check again after changing channels.
+
+= Maintainers: how is a release published? =
+
+Every release starts as a pre-release with the built installation ZIP attached. Prepare and test the reviewed commit, build with `bash bin/build-zip.sh`, and prepare release-notes.md. Replace vX.Y.Z and REVIEWED_COMMIT_SHA below with the release version and reviewed full commit SHA. If the tag already exists, verify that it points to that same commit before publishing.
+
+    gh release create vX.Y.Z dist/digitizer-pro-tools.zip --repo Digitizers/digitizer-pro-tools --target REVIEWED_COMMIT_SHA --prerelease --title vX.Y.Z --notes-file release-notes.md
+
+Test the attached ZIP on a staging site with DPT_BETA enabled, including the upgrade path and the changed features. Stable-channel sites do not receive the pre-release. Only after testing and Ben's explicit approval, promote the same tested release and asset:
+
+    gh release edit vX.Y.Z --repo Digitizers/digitizer-pro-tools --prerelease=false --latest
+
+Promotion makes the release available to stable-channel sites, including sites with automatic updates enabled. Creating a pre-release is not approval to promote it. GitHub CLI command reference: https://cli.github.com/manual/gh_release_create and https://cli.github.com/manual/gh_release_edit
 
 == Installation ==
 
@@ -415,7 +427,7 @@ An operator can explicitly permit unattended self-updates with `add_filter( 'dpt
 == Changelog ==
 
 = 1.54.0 =
-* Updater: block automatic self-updates by default, with explicit dpt_allow_self_auto_update opt-in and a truthful Plugins-screen status. Onboarding no longer enrolls DPT itself; baseline item updates are unchanged (#107)
+* Updater: optional DPT_BETA constant includes GitHub pre-releases with separate cached update state; stable behavior and automatic-update controls are unchanged. Document pre-release-first publishing and promotion after testing and Ben's approval (#107)
 * Theme Switch: new installations start in Light, existing saved preferences remain unchanged, and settings warn that fixed backgrounds do not follow the alternate palette (#107)
 
 = 1.53.1 =
